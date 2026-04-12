@@ -26,6 +26,7 @@ Pick the skill matching the user's request. Each skill has:
 | `edit-article` | Editing articles, tightening prose |
 | `ubiquitous-language` | Building DDD-style glossaries |
 | `using-git-worktrees` | Setting up isolated workspaces |
+| `publish-semver` | Publishing packages with semver, GitHub Actions, and multi-ecosystem registries |
 
 ## Writing Rules
 
