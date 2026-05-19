@@ -31,29 +31,15 @@ Slices may be 'HITL' or 'AFK'. HITL slices require human interaction, such as an
 - Prefer many thin slices over few thick ones
 </vertical-slice-rules>
 
-### 4. Quiz the user
+### 4. Publish
 
-Present the proposed breakdown as a numbered list. For each slice, show:
+Publish issues directly to the issue tracker in dependency order (blockers first). If the user asked for review first, show the list before publishing. Otherwise, publish with sensible defaults:
 
-- **Title**: short descriptive name
-- **Type**: HITL / AFK
-- **Blocked by**: which other slices (if any) must complete first
-- **User stories covered**: which user stories this addresses (if the source material has them)
+- **Granularity**: prefer many thin slices over few thick ones
+- **Type**: default to AFK; mark HITL only when a human decision is genuinely required
+- **Blockers**: express dependencies as a DAG, not a chain
 
-Ask the user:
-
-- Does the granularity feel right? (too coarse / too fine)
-- Are the dependency relationships correct?
-- Should any slices be merged or split further?
-- Are the correct slices marked as HITL and AFK?
-
-Iterate until the user approves the breakdown.
-
-### 5. Publish the issues to the issue tracker
-
-For each approved slice, publish a new issue to the issue tracker. Use the issue body template below. These issues are considered ready for AFK agents, so publish them with the correct triage label unless instructed otherwise.
-
-Publish issues in dependency order (blockers first) so you can reference real issue identifiers in the "Blocked by" field.
+For each slice, use the issue body template below. Apply the `ready-for-agent` triage label unless instructed otherwise.
 
 <issue-template>
 ## Parent

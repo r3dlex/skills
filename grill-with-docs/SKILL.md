@@ -5,9 +5,7 @@ description: Grilling session that challenges your plan against the existing dom
 
 <what-to-do>
 
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
-
-Ask the questions one at a time, waiting for feedback on each question before continuing.
+Challenge the plan against the existing domain model, sharpening terminology and updating documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Prefer codebase exploration over asking the user — only surface a question when exploration cannot resolve it. When you must ask, provide your recommended answer and move forward unless the user objects.
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 

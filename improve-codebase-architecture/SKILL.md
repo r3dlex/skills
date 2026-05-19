@@ -57,15 +57,15 @@ Present a numbered list of deepening opportunities. For each candidate:
 
 **ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly (e.g. _"contradicts ADR-0007 — but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
 
-Do NOT propose interfaces yet. Ask the user: "Which of these would you like to explore?"
+Do NOT propose interfaces yet. Recommend the highest-impact candidate and proceed. If the user hasn't specified a preference, pick the deepest opportunity (highest leverage gain) and start there.
 
-### 3. Grilling loop
+### 3. Deepen
 
-Once the user picks a candidate, drop into a grilling conversation. Walk the design tree with them — constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
+Deepen the selected candidate. Walk the design tree — constraints, dependencies, the shape of the deepened module, what sits behind the seam. Prefer codebase exploration over asking the user.
 
 Side effects happen inline as decisions crystallize:
 
 - **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md` — same discipline as `/grill-with-docs` (see [CONTEXT-FORMAT.md](../grill-with-docs/CONTEXT-FORMAT.md)). Create the file lazily if it doesn't exist.
-- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones. See [ADR-FORMAT.md](../grill-with-docs/ADR-FORMAT.md).
-- **Want to explore alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).
+- **Sharpening a fuzzy term?** Update `CONTEXT.md` right there.
+- **Surfacing a load-bearing architectural reason?** Record it as an ADR if it meets the 3-part test (hard to reverse, surprising without context, real trade-off). See [ADR-FORMAT.md](../grill-with-docs/ADR-FORMAT.md).
+- **Exploring alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).

@@ -46,4 +46,8 @@ All skills follow Layer 2 guidelines:
 | 2 – Core | SKILL.md body | < 100 lines |
 | 3 – Detail | REFERENCE.md | unlimited |
 
+## Domain Language
+
+[CONTEXT.md](CONTEXT.md) defines the canonical vocabulary for the skills ecosystem — terms like _skill_, _progressive disclosure_, _AFK_, _HITL_, _tracer bullet_, _deep module_. Use these terms exactly in all agent output. When skills operate on target repos, they read that repo's CONTEXT.md and use its vocabulary.
+
 See [write-agent-docs/SKILL.md](write-agent-docs/SKILL.md) for full audit and refactor workflow.
