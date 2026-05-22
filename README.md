@@ -39,3 +39,22 @@ skill-name/
 ```
 
 The `description` frontmatter in `SKILL.md` is what the agent reads to decide whether to load the skill. Keep it specific and end with `Use when [triggers].`
+
+<!-- ai-sdlc-init:start -->
+
+## AI SDLC Methodology
+
+This project uses the [AI SDLC methodology](https://github.com/r3dlex/skills/tree/main/ai-sdlc-init)
+to maintain architectural governance alongside AI-assisted development.
+
+Key practices:
+- **Architecture Decision Records** in [`docs/adr/`](docs/adr/) — significant
+  decisions are version-controlled with context and rationale.
+- **Archgate rules** in [`.rules.ts`](.rules.ts) — code quality constraints
+  across five domains, validated in CI.
+- **Karpathy baseline** — four engineering heuristics loaded by all agents
+  operating in this repo (think, simplify, be surgical, stay on goal).
+
+Contributing? Read [`AGENTS.md`](AGENTS.md) for agent-facing methodology details.
+
+<!-- ai-sdlc-init:end -->

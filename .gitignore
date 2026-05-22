@@ -10,3 +10,9 @@
 # Editor
 *.swp
 *.swo
+
+# <!-- ai-sdlc-init:start -->
+# AI SDLC artifacts
+upstream-pocock/
+.prek-cache/
+# <!-- ai-sdlc-init:end -->
