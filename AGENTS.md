@@ -27,6 +27,7 @@ Pick the skill matching the user's request. Each skill has:
 | `ubiquitous-language` | Building DDD-style glossaries |
 | `using-git-worktrees` | Setting up isolated workspaces |
 | `publish-semver` | Publishing packages with semver, GitHub Actions, and multi-ecosystem registries |
+| `ai-sdlc-init` | Initialize AI SDLC methodology in a repo -- 13-step scaffold, CI pipeline, Archgate, Karpathy baseline, and ADRs |
 
 ## Writing Rules
 
