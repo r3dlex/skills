@@ -1,0 +1,7 @@
+[hooks]
+# Standard file hygiene
+trailing-whitespace = true
+end-of-file-fixer = true
+
+# Archgate: validate .rules.ts structural integrity
+validate-rules = { entry = "bash scripts/validate-rules.sh", language = "system", files = "\\.rules\\.ts$" }
