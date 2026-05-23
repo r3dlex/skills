@@ -79,29 +79,6 @@ export const frontend: Rule[] = [
 
 // ─── data ────────────────────────────────────────────────────────────────────
 
-export const data: Rule[] = [
-  {
-    name: "migration-naming",
-    severity: "error",
-    match: "Database migration files must follow the pattern YYYYMMDDHHMMSS_<slug>.sql.",
-    violation: "add_users_table.sql",
-    correction: "20260101120000_add_users_table.sql",
-  },
-  {
-    name: "query-batching",
-    severity: "warn",
-    match: "ORM queries inside loops are prohibited. Use batch/bulk methods or DataLoader.",
-    violation: "for (const id of ids) { await User.findOne(id); }",
-    correction: "await User.findAll({ where: { id: ids } });",
-  },
-  {
-    name: "cache-invalidation",
-    severity: "warn",
-    match: "Cache entries must be invalidated in the same transaction/service that mutates the source data.",
-    violation: "updateUser(id, data); // cache cleared in a separate cron",
-    correction: "await Promise.all([updateUser(id, data), cache.del(`user:${id}`)])",
-  },
-];
 
 // ─── architecture ────────────────────────────────────────────────────────────
 
