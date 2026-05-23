@@ -288,8 +288,16 @@ name = "Validate Archgate rules structure"
 entry = "bash scripts/validate-rules.sh"
 language = "system"
 files = '\.rules\.ts$'
-pass_filenames = true
+exclude = '^reference/golden-(skills|root)/'
+pass_filenames = false
 ```
+
+> **Why `pass_filenames = false`:** the script validates the canonical
+> repo-root `.rules.ts`, not whatever files prek happened to match. With
+> `pass_filenames = true`, prek would pass the matched files as positional
+> args; the script would then only check `$1` and miss broken siblings.
+> The `exclude` pattern prevents prek from running the hook against golden-dir
+> baseline copies of `.rules.ts`.
 
 > **Note:** Add more `[[repos]]` blocks for hosted hook collections (e.g.
 > `https://github.com/pre-commit/pre-commit-hooks` for `trailing-whitespace`, `end-of-file-fixer`).
