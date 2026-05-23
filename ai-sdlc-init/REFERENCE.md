@@ -271,18 +271,30 @@ jobs:
 
 ### `prek.toml` template
 
-Hook configuration consumed by prek. The `validate-rules` entry delegates `.rules.ts` structural
-validation to the local shell script — prek has no built-in TypeScript parser.
+Hook configuration consumed by prek. prek expects the same schema as `.pre-commit-config.yaml`
+(top-level `repos` array). Each repo entry has its own hooks. For Archgate, use a `local` repo
+with the `validate-rules` hook — prek delegates `.rules.ts` validation to the shell script.
 
 ```toml
-[hooks]
-# Standard file hygiene
-trailing-whitespace = true
-end-of-file-fixer = true
+# prek configuration — pre-commit hook manager (Rust-based, github.com/j178/prek)
+# Schema mirrors `.pre-commit-config.yaml` (top-level `repos` field).
 
-# Archgate: validate .rules.ts structural integrity
-validate-rules = { entry = "bash scripts/validate-rules.sh", language = "system", files = "\\.rules\\.ts$" }
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "validate-rules"
+name = "Validate Archgate rules structure"
+entry = "bash scripts/validate-rules.sh"
+language = "system"
+files = '\.rules\.ts$'
+pass_filenames = true
 ```
+
+> **Note:** Add more `[[repos]]` blocks for hosted hook collections (e.g.
+> `https://github.com/pre-commit/pre-commit-hooks` for `trailing-whitespace`, `end-of-file-fixer`).
+> Each hook within a `[[repos]]` block is added as a `[[repos.hooks]]` entry. The minimal local-only
+> config above is what the ai-sdlc-init scaffold emits — extend it per project.
 
 ---
 
