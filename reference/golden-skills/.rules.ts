@@ -174,4 +174,11 @@ export const general: Rule[] = [
     violation: "// increment counter\ncounter++;",
     correction: "// Retry budget: max 3 attempts before circuit-breaker trips\ncounter++;",
   },
+  {
+    name: "no-console-log-in-production",
+    severity: "warn",
+    match: "Production code must not contain console.log calls. Use a structured logger (pino, winston) for runtime diagnostics. console.log is acceptable in test files (*.test.ts, *.spec.ts) and scripts/ tooling.",
+    violation: "function processOrder(order: Order) {\n  console.log('processing', order.id);\n  // ...\n}",
+    correction: "function processOrder(order: Order) {\n  logger.info({ orderId: order.id }, 'processing order');\n  // ...\n}",
+  },
 ];
