@@ -5,113 +5,34 @@ description: Create new agent skills with proper structure, progressive disclosu
 
 # Writing Skills
 
+## Quick Start
+
+Create the smallest useful `SKILL.md` first, then split details into references only when needed. Read `REFERENCE.md` when you need templates, description examples, script rules, or review checklists.
+
 ## Process
 
-1. **Gather requirements** - ask user about:
-   - What task/domain does the skill cover?
-   - What specific use cases should it handle?
-   - Does it need executable scripts or just instructions?
-   - Any reference materials to include?
+1. **Gather requirements** — identify the task/domain, concrete trigger phrases, use cases, required scripts, and reference material.
+2. **Draft Layer 1** — write frontmatter with `name` and a trigger-focused `description` ending in `Use when ...`.
+3. **Draft Layer 2** — write the minimal workflow in `SKILL.md`: Quick Start first, numbered steps, and only essential options.
+4. **Split Layer 3** — move templates, examples, schemas, provider variants, and advanced behavior into content-specific files.
+5. **Add scripts when useful** — use scripts for deterministic validation, formatting, repeated transforms, or precise error handling.
+6. **Review with the user** — check coverage, missing cases, unclear steps, and whether any section is too detailed or too thin.
+7. **Validate** — ensure `SKILL.md` body is under 100 lines, references have when-to-read context, and terminology matches the repo.
 
-2. **Draft the skill** - create:
-   - SKILL.md with concise instructions
-   - Additional reference files if content exceeds 500 lines
-   - Utility scripts if deterministic operations needed
+## Structure
 
-3. **Review with user** - present draft and ask:
-   - Does this cover your use cases?
-   - Anything missing or unclear?
-   - Should any section be more/less detailed?
-
-## Skill Structure
-
-```
+```text
 skill-name/
-├── SKILL.md           # Main instructions (required)
-├── REFERENCE.md       # Detailed docs (if needed)
-├── EXAMPLES.md        # Usage examples (if needed)
-└── scripts/           # Utility scripts (if needed)
-    └── helper.js
+├── SKILL.md
+├── REFERENCE.md
+├── EXAMPLES.md
+└── scripts/
 ```
 
-## SKILL.md Template
+## Rules
 
-```md
----
-name: skill-name
-description: Brief description of capability. Use when [specific triggers].
----
-
-# Skill Name
-
-## Quick start
-
-[Minimal working example]
-
-## Workflows
-
-[Step-by-step processes with checklists for complex tasks]
-
-## Advanced features
-
-[Link to separate files: See [REFERENCE.md](REFERENCE.md)]
-```
-
-## Description Requirements
-
-The description is **the only thing your agent sees** when deciding which skill to load. It's surfaced in the system prompt alongside all other installed skills. Your agent reads these descriptions and picks the relevant skill based on the user's request.
-
-**Goal**: Give your agent just enough info to know:
-
-1. What capability this skill provides
-2. When/why to trigger it (specific keywords, contexts, file types)
-
-**Format**:
-
-- Max 1024 chars
-- Write in third person
-- First sentence: what it does
-- Second sentence: "Use when [specific triggers]"
-
-**Good example**:
-
-```
-Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files or when user mentions PDFs, forms, or document extraction.
-```
-
-**Bad example**:
-
-```
-Helps with documents.
-```
-
-The bad example gives your agent no way to distinguish this from other document skills.
-
-## When to Add Scripts
-
-Add utility scripts when:
-
-- Operation is deterministic (validation, formatting)
-- Same code would be generated repeatedly
-- Errors need explicit handling
-
-Scripts save tokens and improve reliability vs generated code.
-
-## When to Split Files
-
-Split into separate files when:
-
-- SKILL.md exceeds 100 lines
-- Content has distinct domains (finance vs sales schemas)
-- Advanced features are rarely needed
-
-## Review Checklist
-
-After drafting, verify:
-
-- [ ] Description includes triggers ("Use when...")
-- [ ] SKILL.md under 100 lines
-- [ ] No time-sensitive info
-- [ ] Consistent terminology
-- [ ] Concrete examples included
-- [ ] References one level deep
+- Keep Layer 2 under 100 body lines.
+- Put one concern per reference file; avoid vague names like `details.md`.
+- Do not bury common workflow steps in references.
+- Do not include time-sensitive claims unless they can be maintained.
+- Prefer concrete examples over generic advice, but move long examples out of `SKILL.md`.

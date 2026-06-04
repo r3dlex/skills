@@ -15,7 +15,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="${SKILLS_REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
 FAIL_COUNT=0
 PASS_COUNT=0
@@ -53,21 +53,25 @@ find_skills() {
 # -----------------------------------------------------------------------------
 validate_frontmatter() {
     local file="$1"
-    local content
-    content=$(cat "$file")
+    local first_line
+    first_line=$(sed -n '1p' "$file")
 
-    # Must start with ---
-    if [[ "$content" != $'---\n'* ]]; then
+    if [ "$first_line" != "---" ]; then
         echo "missing opening ---"
         return 1
     fi
 
-    # Extract frontmatter block (everything between the two --- delimiters)
+    # Extract frontmatter between opening and closing delimiters.
     local fm
-    fm=$(echo "$content" | sed -n '/^---$/,/^---$/p')
+    fm=$(awk '
+        NR == 1 && $0 == "---" { in_fm = 1; next }
+        in_fm && $0 == "---" { found_close = 1; exit }
+        in_fm { print }
+        END { if (!found_close) exit 2 }
+    ' "$file" 2>/dev/null)
+    local awk_exit=$?
 
-    # Must contain a closing ---
-    if ! echo "$fm" | grep -q '^---$'; then
+    if [ "$awk_exit" -ne 0 ]; then
         echo "missing closing ---"
         return 1
     fi
@@ -95,15 +99,27 @@ validate_line_count() {
     local file="$1"
     local body_line_count
     body_line_count=$(awk '
-        /^---$/ && !got_opening { got_opening = 1; next }
-        got_opening && /^---$/ { exit }
-        got_opening { body_lines++ }
-        END { print (body_lines == "" ? 0 : body_lines) }
+        NR == 1 && $0 == "---" { in_fm = 1; next }
+        NR == 1 { parse_error = "missing opening ---"; exit }
+        in_fm && $0 == "---" { in_body = 1; in_fm = 0; next }
+        in_body { body_lines++ }
+        END {
+            if (parse_error) {
+                print "ERROR:" parse_error
+            } else if (!in_body) {
+                print "ERROR:missing closing ---"
+            } else {
+                print body_lines + 0
+            }
+        }
     ' "$file")
 
-    if [ -z "$body_line_count" ] || [ "$body_line_count" -eq 0 ]; then
-        body_line_count=$(wc -l < "$file")
-    fi
+    case "$body_line_count" in
+        ERROR:*)
+            echo "${body_line_count#ERROR:}"
+            return 1
+            ;;
+    esac
 
     if [ "$body_line_count" -gt 100 ]; then
         echo "body has $body_line_count lines (limit: 100)"
@@ -159,23 +175,32 @@ while IFS= read -r skill_file; do
     echo ""
     echo "[ $relative_path ]"
 
+    set +e
     fm_result=$(validate_frontmatter "$skill_file" 2>&1)
-    if [ "$?" -eq 0 ]; then
+    fm_exit=$?
+    set -e
+    if [ "$fm_exit" -eq 0 ]; then
         log_pass "frontmatter valid ($fm_result)"
     else
         log_fail "frontmatter: $fm_result"
     fi
 
+    set +e
     count_result=$(validate_line_count "$skill_file" 2>&1)
-    if [ "$?" -eq 0 ]; then
+    count_exit=$?
+    set -e
+    if [ "$count_exit" -eq 0 ]; then
         lines=$(echo "$count_result" | cut -d: -f2)
         log_pass "line count $lines (under 100)"
     else
         log_fail "line count: $count_result"
     fi
 
+    set +e
     pd_result=$(validate_no_anti_patterns "$skill_file" 2>&1)
-    if [ "$?" -eq 0 ]; then
+    pd_exit=$?
+    set -e
+    if [ "$pd_exit" -eq 0 ]; then
         log_pass "progressive disclosure compliant"
     else
         log_fail "progressive disclosure: $pd_result"

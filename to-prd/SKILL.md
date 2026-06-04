@@ -3,9 +3,9 @@ name: to-prd
 description: Turn the current conversation context into a PRD and publish it to the project issue tracker. Use when user wants to create a PRD from the current context.
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — synthesize what you already know and publish directly.
+This skill takes the current conversation context, optional BRD, and codebase understanding and produces a PRD. Do NOT interview the user — synthesize what you already know and publish directly.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
+The issue tracker and triage label vocabulary should have been provided to you — run `setup-skills` if not.
 
 ## Process
 
@@ -13,9 +13,15 @@ The issue tracker and triage label vocabulary should have been provided to you �
 
 2. Sketch out the major modules you will need to build or modify. Look for opportunities to extract deep modules (simple interface, complex implementation, rarely changes) that can be tested in isolation. Default to writing tests for all new modules.
 
-3. Write the PRD using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label — no need for additional triage.
+3. Write the PRD using the template below, preserving any BRD source ID/link and acceptance criteria traceability, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label — no need for additional triage.
 
 <prd-template>
+
+## Traceability
+
+- BRD: <BRD ID/link, or "None provided">
+- Source conversation/spec: <link or summary>
+- Acceptance criteria source: <BRD section, user request, or inferred>
 
 ## Problem Statement
 

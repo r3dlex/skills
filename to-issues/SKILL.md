@@ -7,13 +7,13 @@ description: Break a plan, spec, or PRD into independently-grabbable issues on t
 
 Break a plan into independently-grabbable issues using vertical slices (tracer bullets).
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
+The issue tracker and triage label vocabulary should have been provided to you — run `setup-skills` if not.
 
 ## Process
 
 ### 1. Gather context
 
-Work from whatever is already in the conversation context. If the user passes an issue reference (issue number, URL, or path) as an argument, fetch it from the issue tracker and read its full body and comments.
+Work from whatever is already in the conversation context. If the user passes a BRD, PRD, issue reference, work item ID, URL, or path as an argument, fetch it from the issue tracker and read its full body, comments, and traceability links.
 
 ### 2. Explore the codebase (optional)
 
@@ -33,7 +33,7 @@ Slices may be 'HITL' or 'AFK'. HITL slices require human interaction, such as an
 
 ### 4. Publish
 
-Publish issues directly to the issue tracker in dependency order (blockers first). If the user asked for review first, show the list before publishing. Otherwise, publish with sensible defaults:
+Publish issues/work items directly to the issue tracker in dependency order (blockers first), preserving BRD and PRD backlinks in each body. If the user asked for review first, show the list before publishing. Otherwise, publish with sensible defaults:
 
 - **Granularity**: prefer many thin slices over few thick ones
 - **Type**: default to AFK; mark HITL only when a human decision is genuinely required
@@ -42,9 +42,15 @@ Publish issues directly to the issue tracker in dependency order (blockers first
 For each slice, use the issue body template below. Apply the `ready-for-agent` triage label unless instructed otherwise.
 
 <issue-template>
+## Traceability
+
+- BRD: <BRD ID/link, or "None provided">
+- PRD: <PRD ID/link>
+- Parent: <parent issue/work item, or "None">
+
 ## Parent
 
-A reference to the parent issue on the issue tracker (if the source was an existing issue, otherwise omit this section).
+A reference to the parent issue/work item on the issue tracker (if the source was an existing issue, otherwise omit this section).
 
 ## What to build
 

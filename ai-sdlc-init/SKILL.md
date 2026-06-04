@@ -1,51 +1,35 @@
 ---
 name: ai-sdlc-init
-description: Bootstrap the AI SDLC methodology in any repository — skill scaffold, CI pipeline with prek (Rust-based), Archgate rules, Karpathy baseline guidelines, and seed ADRs. Use when initializing the AI SDLC methodology in a repository, setting up AI-assisted development workflows, or when the user says "ai-sdlc-init", "bootstrap AI SDLC", or wants to add AI engineering practices to a project.
+description: Bootstrap an end-to-end AI SDLC in a repository: BRD/PRD traceability, tracker setup, CI/governance, Archgate rules, Karpathy guidance, ADRs, branch-policy checklist, and validation. Use when initializing AI-assisted software delivery, modernizing repo governance, or when the user says "ai-sdlc-init", "bootstrap AI SDLC", or "set up AI SDLC".
 ---
 
 # AI SDLC Init
 
-Run this skill in any repo's Claude Code session via `/ai-sdlc-init`. With `-p` flag it prints the plan without writing files (dry-run). Interactive mode (default) prompts for tracker and CI platform only when the repo has no existing setup-skills marker.
+## Quick Start
+
+Run this skill in the target repo. Use dry-run first when scope or host choices are unclear. Keep hosted settings as checklist output unless the user explicitly requests an admin/credentialed action.
 
 ## Workflow
 
-### 1. Detect repo state
-Read existing `AGENTS.md`/`CLAUDE.md` for brownfield/greenfield signals. Scan for `<!-- setup-skills:start -->`. If present, read config from `docs/agents/issue-tracker-{github,gitlab,local}.md` and `docs/agents/triage-labels.md` — skip tooling questions. Otherwise ask: issue tracker? (GH Issues / Jira / ADO) and CI platform? (GH Actions / ADO Pipelines / GitLab CI).
+1. **Detect repo state** — read `AGENTS.md`/`CLAUDE.md`, setup-skills markers, existing CI, language manifests, ADRs, and `.rules.ts`. Read `modules/README.md` when selecting optional modules.
+2. **Choose SDLC path** — map the repo to lifecycle modules: foundation, work intake, tracker, CI/policy, Archgate, language packs, and validation.
+3. **Scaffold foundation** — create/update Karpathy guidance, ADR templates, `.rules.ts`, `prek.toml`, Archgate scripts, `upstream.lock`, and AI SDLC doc blocks. Read `modules/foundation.md` for artifacts and `modules/archgate.md` for the JSON/semantic contract.
+4. **Scaffold work intake** — add BRD/PRD/ticket traceability only through the dedicated module. Read the BRD/PRD module when the repo lacks business-to-ticket flow.
+5. **Configure host adapters** — use setup-skills tracker adapters for GitHub, ADO, GitLab, or local markdown. Do not duplicate tracker semantics in this skill.
+6. **Configure CI and policy** — write CI files and branch-protection/branch-policy checklists. Read `modules/ci-policy.md` when choosing GitHub/ADO CI or hosted policy checklist details. Do not silently mutate GitHub or ADO settings.
+7. **Select language packs** — detect manifests or use explicit user selection. Read `modules/language-packs.md` when choosing TypeScript, Python, Rust, Go, JVM/.NET, or polyglot checks. Do not add dependencies unless detection or opt-in supports them.
+8. **Validate and emit handoff** — run structural checks and golden verification. Read `modules/validation.md` when verifying scaffold output.
 
-### 2. Create `.agents/` directory
-Create `.agents/skills/karpathy-guidelines/SKILL.md` and `REFERENCE.md` from templates in REFERENCE.md.
+## Module Map
 
-### 3. Write `upstream.lock`
-Run `git ls-remote https://github.com/mattpocock/skills.git HEAD`, populate `pinned_sha`. Fields: `source`, `via`, `pinned_sha`, `updated`, `sync_script`.
+- `modules/README.md` — read when choosing which Layer 3 module applies.
+- `modules/foundation.md` — read when writing the existing core scaffold artifacts.
+- `modules/validation.md` — read when validating generated artifacts and golden fixtures.
+- `REFERENCE.md` — read only for legacy full template bodies that have not yet moved into focused modules.
 
-### 4. Write `.gitignore` + `.gitkeep`
-Append AI SDLC entries to `.gitignore` with marker guard. Create `upstream-pocock/.gitkeep`.
+## Safety Rules
 
-### 5. Create `raw/docs/incident-template.md`
-Postmortem template with `INC-YYYY-MM-DD-slug.md` naming convention. See REFERENCE.md for template.
-
-### 6. Write `scripts/sync-upstream.sh`
-Design pattern only — document as a sync scaffold, not a runnable script.
-
-### 7. Create CI files
-Create `.github/workflows/ci-prek.yml` as a SEPARATE workflow (never modify existing `ci.yml`). Use `j178/prek-action@v2` with `extra-args: '--all-files'`. Create `prek.toml` for hook config. Create `scripts/validate-rules.sh` as a `.rules.ts` structural validator. See REFERENCE.md for templates.
-
-### 8. Write `.rules.ts`
-Archgate rules covering 5 domains: backend, frontend, data, architecture, general. See REFERENCE.md for schema.
-
-### 9. Append to `AGENTS.md`
-Idempotency guard: scan for `<!-- ai-sdlc-init:start -->` marker AND "AI SDLC Methodology" header. If both present → skip. If header present but marker missing → log warning and skip. Insert only when neither is found. Wrap inserted block with `<!-- ai-sdlc-init:start -->` / `<!-- ai-sdlc-init:end -->`.
-
-### 10. Append to `CLAUDE.md`
-Same idempotency pattern as step 9.
-
-### 11. Append to `README.md`
-Same idempotency pattern as step 9.
-
-### 12. Create `docs/adr/ADR-TEMPLATE.md`
-MADR format. See REFERENCE.md for template.
-
-### 13. Create `docs/adr/ADR-0001-record-architecture-decisions.md`
-Bootstrap ADR documenting the decision to record architecture decisions. See REFERENCE.md for template.
-
-See REFERENCE.md for full template content and detailed step instructions.
+- Keep `SKILL.md` under 100 body lines; move variants to modules.
+- Treat GitHub/ADO branch settings as checklists by default, never hidden mutations.
+- Reference `setup-skills` and `publish-semver` host docs instead of copying their full semantics.
+- Preserve existing GitLab/local support unless a later module explicitly migrates it.

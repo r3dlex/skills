@@ -1,0 +1,78 @@
+# CI and Branch Policy Module
+
+Read when adding CI files or branch-policy/ruleset checklist artifacts. This module is scaffold guidance, not hosted-policy automation.
+
+## Official docs anchors
+
+- GitHub rulesets: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+- GitHub branch protection: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches
+- Azure Repos branch policies: https://learn.microsoft.com/en-us/azure/devops/repos/git/branch-policies-overview?view=azure-devops
+- Azure Repos policy settings and build validation: https://learn.microsoft.com/en-us/azure/devops/repos/git/branch-policies?view=azure-devops
+- Azure Pipelines triggers: https://learn.microsoft.com/en-us/azure/devops/pipelines/build/triggers?view=azure-devops
+
+## Safety boundary
+
+By default, write checklist artifacts into the repo. Do not call GitHub or Azure DevOps APIs/CLIs that mutate branch rules, rulesets, or policies unless the user explicitly requests it and confirms admin credentials/permissions.
+
+## GitHub path
+
+### CI scaffold
+
+- Write `.github/workflows/ci-prek.yml` as a separate workflow.
+- Keep existing `.github/workflows/ci.yml` intact.
+- Include the `validate-rules` prek hook and any detected language-pack checks.
+
+### Branch ruleset/protection checklist
+
+Create `docs/agents/branch-policy-github.md` with:
+
+- Default branch target, usually `main` or `dev`.
+- Required PR before merge.
+- Required status checks, including the AI SDLC prek workflow.
+- Required review count and stale-review dismissal policy.
+- Optional linear history, signed commits, merge queue, or deployment requirements.
+- Ruleset/protection owner and whether enforcement is active, evaluate-only, or checklist-only.
+- Links to the official GitHub rulesets and branch protection docs above.
+
+## Azure DevOps path
+
+### CI scaffold
+
+Write `azure-pipelines.yml` only when ADO Pipelines is selected:
+
+```yaml
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+  - script: bash scripts/validate-rules.sh .rules.ts
+    displayName: Validate Archgate rules
+```
+
+### Branch policy/build-validation checklist
+
+Create `docs/agents/branch-policy-ado.md` with:
+
+- Project, repository, and protected branch target.
+- Minimum reviewer count.
+- Linked work-item requirement when desired.
+- Comment resolution requirement when desired.
+- Build validation policy referencing the selected pipeline.
+- Required status/check naming convention.
+- Distinction between YAML `pr` triggers and Azure Repos branch-policy build validation.
+- Links to the official Microsoft branch policy and pipeline trigger docs above.
+
+## GitLab/local path
+
+Keep existing GitLab/local tracker support. If GitLab CI or local-only checks are selected, write a checklist that mirrors the same intent: required review, required checks, traceability, and explicit owner.
