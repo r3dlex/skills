@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-06-07T00:00:00Z",
+  "actor": "ai-sdlc-init",
+  "umbrella_root": ".",
+  "actions": [
+    {
+      "source_path": ".agents/skills/karpathy-guidelines/SKILL.md",
+      "destination_path": ".ai/system-prompts/architect.md",
+      "action": "copy",
+      "destructive": false,
+      "confirmation_token": null,
+      "status": "completed"
+    },
+    {
+      "source_path": ".rules.ts",
+      "destination_path": ".ai/rules/technical-bounds.md",
+      "action": "migrate",
+      "destructive": true,
+      "confirmation_token": "ct-2026-06-07-001",
+      "status": "completed",
+      "backup_path": ".ai/drift/backups/2026-06-07T00-00-00Z/.rules.ts"
+    },
+    {
+      "source_path": "docs/adr/0001-record-architecture-decisions.md",
+      "destination_path": "docs/architecture/adr/0001-record-architecture-decisions.md",
+      "action": "copy",
+      "destructive": false,
+      "confirmation_token": null,
+      "status": "completed"
+    },
+    {
+      "source_path": "AGENTS.md",
+      "destination_path": "AGENTS.md",
+      "action": "supersede",
+      "destructive": false,
+      "confirmation_token": null,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "copy": 2,
+    "migrate": 1,
+    "deprecate": 0,
+    "supersede": 1,
+    "skipped": 0,
+    "failed": 0
+  }
+}

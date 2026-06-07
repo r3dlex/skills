@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "topology_type": "umbrella",
+  "max_allowed_depth": 3,
+  "current_depth": 2,
+  "sync_strategy": "physical-copy",
+  "upstream_authority": {
+    "type": "git",
+    "url": "https://github.com/example/umbrella-target.git",
+    "ref": "main"
+  },
+  "managed_repositories": [
+    {
+      "path": "services/auth",
+      "depth": 2,
+      "inherits_assets_from": "."
+    },
+    {
+      "path": "services/billing",
+      "depth": 2,
+      "inherits_assets_from": "."
+    }
+  ],
+  "inherited_assets": [
+    {
+      "path": "AGENTS.md",
+      "source": ".",
+      "mode": "physical-copy"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "source": ".",
+      "mode": "physical-copy"
+    },
+    {
+      "path": ".ai/matrix.json",
+      "source": ".",
+      "mode": "physical-copy"
+    },
+    {
+      "path": "docs/architecture/adr/0001-init.md",
+      "source": ".",
+      "mode": "physical-copy"
+    }
+  ],
+  "sync_status": {
+    "last_synced_at": "2026-06-07T00:00:00Z",
+    "drift_detected": false,
+    "last_drift_report": ".ai/drift/last-drift.json",
+    "retention_days": 30
+  }
+}

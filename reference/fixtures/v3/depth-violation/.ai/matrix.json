@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "topology_type": "umbrella",
+  "max_allowed_depth": 3,
+  "current_depth": 4,
+  "sync_strategy": "physical-copy",
+  "managed_repositories": [
+    {
+      "path": "platform/team-a/region-eu/service-x",
+      "depth": 4,
+      "inherits_assets_from": "."
+    }
+  ],
+  "inherited_assets": [],
+  "sync_status": {
+    "last_synced_at": "2026-06-07T00:00:00Z",
+    "drift_detected": false
+  },
+  "upstream_authority": {
+    "type": "git",
+    "url": "https://github.com/example/depth-violation-fixture.git",
+    "ref": "main"
+  }
+}
