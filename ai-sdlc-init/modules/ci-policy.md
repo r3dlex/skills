@@ -34,6 +34,15 @@ Create `docs/agents/branch-policy-github.md` with:
 - Ruleset/protection owner and whether enforcement is active, evaluate-only, or checklist-only.
 - Links to the official GitHub rulesets and branch protection docs above.
 
+### PR merge gate
+
+For any PR workflow or branch-policy checklist created by this skill, state that merge is allowed only when all of these are true:
+
+- **Architect** agrees the PR still matches ADRs, module boundaries, branch policy, and acceptance criteria.
+- **Reviewer** agrees code quality, safety, documentation, and drift checks have no blocking findings.
+- **Executor** agrees the requested change is complete, cleanup is done, and required checks are green.
+- The architect, reviewer, and executor loop reaches explicit agreement. If any role disagrees or checks are not green, do not merge.
+
 ## Azure DevOps path
 
 ### CI scaffold

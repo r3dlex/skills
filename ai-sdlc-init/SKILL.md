@@ -1,6 +1,6 @@
 ---
 name: ai-sdlc-init
-description: Bootstrap an end-to-end AI SDLC in a repository: BRD/PRD traceability, tracker setup, CI/governance, Archgate rules, Karpathy guidance, ADRs, branch-policy checklist, and validation. Use when initializing AI-assisted software delivery, modernizing repo governance, or when the user says "ai-sdlc-init", "bootstrap AI SDLC", or "set up AI SDLC".
+description: 'Bootstrap an end-to-end AI SDLC in a repository: BRD/PRD traceability, tracker setup, CI/governance, Archgate rules, Karpathy guidance, ADRs, branch-policy checklist, and validation. Use when initializing AI-assisted software delivery, modernizing repo governance, or when the user says "ai-sdlc-init", "bootstrap AI SDLC", or "set up AI SDLC".'
 ---
 
 # AI SDLC Init
@@ -19,6 +19,15 @@ Run this skill in the target repo. Use dry-run first when scope or host choices 
 6. **Configure CI and policy** — write CI files and branch-protection/branch-policy checklists. Read `modules/ci-policy.md` when choosing GitHub/ADO CI or hosted policy checklist details. Do not silently mutate GitHub or ADO settings.
 7. **Select language packs** — detect manifests or use explicit user selection. Read `modules/language-packs.md` when choosing TypeScript, Python, Rust, Go, JVM/.NET, or polyglot checks. Do not add dependencies unless detection or opt-in supports them.
 8. **Validate and emit handoff** — run structural checks and golden verification. Read `modules/validation.md` when verifying scaffold output.
+
+## PR Merge Gate
+
+When this skill creates or updates PR workflow guidance, require merge only after:
+
+1. The **architect** confirms the implementation still matches ADRs, module boundaries, branch policy, and acceptance criteria.
+2. The **reviewer** confirms code quality, safety, documentation, and drift checks have no blocking findings.
+3. The **executor** confirms the requested change is implemented, cleanup is complete, and all required checks are green.
+4. The loop reaches explicit agreement across architect, reviewer, and executor; if any role disagrees or checks are not green, do not merge.
 
 ## Module Map
 
