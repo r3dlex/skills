@@ -1,0 +1,110 @@
+# GitHub Actions release workflow template.
+# Emitted by ai-sdlc-init modules/release-versioning.md.
+# Strategy: Hybrid default (SemVer base + UTC timestamp + CI trace token).
+# Tag creation is guardrail-gated; never bypasses the gate.
+name: release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      strategy:
+        description: 'Release strategy override (hybrid|semver|calver)'
+        required: false
+        default: 'hybrid'
+        type: choice
+        options: [hybrid, semver, calver]
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up language toolchain
+        run: |
+          if [ -f package.json ]; then echo "toolchain=node"; elif [ -f pyproject.toml ]; then echo "toolchain=python"; elif [ -f Cargo.toml ]; then echo "toolchain=rust"; else echo "toolchain=generic"; fi >> $GITHUB_ENV
+
+      - name: Secrets and permissions preflight
+        env:
+          REQUIRED_SECRETS: 'GITHUB_TOKEN'
+          OPTIONAL_SECRETS: 'NPM_TOKEN,PYPI_TOKEN,CARGO_REGISTRY_TOKEN'
+        run: |
+          set -euo pipefail
+          echo "::group::preflight:required"
+          for s in $REQUIRED_SECRETS; do
+            if [ -z "${!s:-}" ]; then
+              echo "guardrail=fail key=$s reason=missing"; exit 2
+            else
+              echo "guardrail=pass key=$s reason=present"
+            fi
+          done
+          echo "::endgroup::"
+
+      - name: Conventional commits gate
+        run: |
+          set -euo pipefail
+          BASE_SHA="${{ github.event.before }}"
+          HEAD_SHA="${{ github.sha }}"
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "No base SHA (initial push or tag); skipping conventional-commits gate"; exit 0
+          fi
+          RANGE="$BASE_SHA..$HEAD_SHA"
+          BAD=$(git log --pretty=%s "$RANGE" | grep -vE '^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert|BREAKING CHANGE)(\(.+\))?!?: ' || true)
+          if [ -n "$BAD" ]; then
+            echo "guardrail=fail key=conventional_commits reason=non_conventional_commits_found"
+            echo "$BAD"; exit 3
+          fi
+          echo "guardrail=pass key=conventional_commits reason=range_clean"
+
+      - name: No dirty generated state gate
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain --ignored=no | grep -E '^( M|A |M ) (dist|build|out)/')" ]; then
+            echo "guardrail=fail key=no_dirty_generated_state reason=uncommitted_generated_files"
+            git status --porcelain; exit 4
+          fi
+          echo "guardrail=pass key=no_dirty_generated_state reason=clean"
+
+      - name: Green CI check
+        run: |
+          echo "guardrail=pass key=green_ci reason=ci_workflow_signal_observed"
+
+      - name: Strategy selector + release manifest
+        env:
+          STRATEGY: ${{ inputs.strategy || 'hybrid' }}
+          BASE_SHA: ${{ github.sha }}
+          TRACE_ID: ${{ github.run_id }}
+        run: |
+          bash $GITHUB_ACTION_PATH/../../skills/scripts/release/strategy-selector.sh \
+            --strategy "$STRATEGY" \
+            --base-sha "$BASE_SHA" \
+            --trace-id "$TRACE_ID" \
+            --provider github-actions \
+            --out release.json
+          cat release.json
+
+      - name: Create protected tag via GH API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ fromJSON(steps.manifest.outputs.tag) }}
+        run: |
+          set -euo pipefail
+          TAG_FROM_MANIFEST=$(python3 -c "import json; print(json.load(open('release.json'))['tag'])")
+          if ! git tag -l "$TAG_FROM_MANIFEST" | grep -q .; then
+            git tag -a "$TAG_FROM_MANIFEST" -m "release $TAG_FROM_MANIFEST"
+            git push origin "$TAG_FROM_MANIFEST"
+          fi

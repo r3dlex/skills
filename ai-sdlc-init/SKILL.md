@@ -35,6 +35,8 @@ When this skill creates or updates PR workflow guidance, require merge only afte
 - `modules/foundation.md` — read when writing the existing core scaffold artifacts.
 - `modules/validation.md` — read when validating generated artifacts and golden fixtures.
 - `REFERENCE.md` — read only for legacy full template bodies that have not yet moved into focused modules.
+- `modules/readme-documentation.md` — read when initializing, augmenting, or rewriting `README.md` (template mode for sparse repos, safe augmentation for existing).
+- `modules/release-versioning.md` — read when initializing release tagging, versioning, or CI/CD release workflows (Hybrid default; SemVer/CalVer variants; GHA/Azure/GitLab templates; tag guardrails).
 
 ## Safety Rules
 

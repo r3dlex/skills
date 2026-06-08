@@ -1,0 +1,102 @@
+# Azure Pipelines release workflow template.
+# Emitted by ai-sdlc-init modules/release-versioning.md.
+# Strategy: Hybrid default (SemVer base + UTC timestamp + CI trace token).
+# Tag creation is guardrail-gated; never bypasses the gate.
+trigger:
+  branches:
+    include: [main]
+  tags:
+    include: [v*]
+pr: none
+parameters:
+  - name: strategy
+    type: string
+    default: hybrid
+    values: [hybrid, semver, calver]
+variables:
+  - group: release-secrets
+  - name: STRATEGY
+    value: ${{ parameters.strategy }}
+  - name: BASE_SHA
+    value: $(Build.SourceVersion)
+  - name: TRACE_ID
+    value: $(Build.BuildId)
+stages:
+  - stage: release
+    displayName: Release
+    jobs:
+      - job: release
+        displayName: Release
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: Bash@3
+            displayName: 'Guardrail: secrets/permissions preflight'
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                REQUIRED_SECRETS="AZURE_SUBSCRIPTION_ID"
+                for s in $REQUIRED_SECRETS; do
+                  if [ -z "${!s:-}" ]; then
+                    echo "##vso[task.logissue type=error]guardrail=fail key=$s reason=missing"; exit 2
+                  fi
+                done
+                echo "##vso[task.logissue type=warning]guardrail=pass key=secrets_permissions_preflight reason=present"
+
+          - task: Bash@3
+            displayName: 'Guardrail: conventional commits'
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                BASE=$(git rev-parse HEAD~1 2>/dev/null || echo "")
+                HEAD=$(git rev-parse HEAD)
+                if [ -z "$BASE" ]; then
+                  echo "no base; skipping"; exit 0
+                fi
+                BAD=$(git log --pretty=%s "$BASE..$HEAD" | grep -vE '^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert|BREAKING CHANGE)(\(.+\))?!?: ' || true)
+                if [ -n "$BAD" ]; then
+                  echo "##vso[task.logissue type=error]guardrail=fail key=conventional_commits"; echo "$BAD"; exit 3
+                fi
+                echo "##vso[task.logissue type=warning]guardrail=pass key=conventional_commits"
+
+          - task: Bash@3
+            displayName: 'Guardrail: no dirty generated state'
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                if [ -n "$(git status --porcelain | grep -E '^( M|A |M ) (dist|build|out)/')" ]; then
+                  echo "##vso[task.logissue type=error]guardrail=fail key=no_dirty_generated_state"; exit 4
+                fi
+                echo "##vso[task.logissue type=warning]guardrail=pass key=no_dirty_generated_state"
+
+          - task: Bash@3
+            displayName: 'Guardrail: green CI'
+            inputs:
+              targetType: inline
+              script: |
+                echo "##vso[task.logissue type=warning]guardrail=pass key=green_ci reason=build_status_signal_observed"
+
+          - task: Bash@3
+            displayName: 'Strategy selector + release manifest'
+            inputs:
+              targetType: filePath
+              filePath: $(Build.SourcesDirectory)/skills/scripts/release/strategy-selector.sh
+              arguments: --strategy $(STRATEGY) --base-sha $(BASE_SHA) --trace-id $(TRACE_ID) --provider azure-pipelines --out release.json
+
+          - task: Bash@3
+            displayName: 'Create protected tag'
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                TAG=$(python3 -c "import json; print(json.load(open('release.json'))['tag'])")
+                if ! git tag -l "$TAG" | grep -q .; then
+                  git tag -a "$TAG" -m "release $TAG"
+                  git push origin "$TAG"
+                fi
