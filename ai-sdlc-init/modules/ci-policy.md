@@ -85,3 +85,12 @@ Create `docs/agents/branch-policy-ado.md` with:
 ## GitLab/local path
 
 Keep existing GitLab/local tracker support. If GitLab CI or local-only checks are selected, write a checklist that mirrors the same intent: required review, required checks, traceability, and explicit owner.
+
+## Validation CI vs release CI
+
+The `ai-sdlc-init` scaffold produces two distinct CI flows. They must be kept separate:
+
+- **Validation CI** (`.github/workflows/ci-prek.yml` and equivalents for Azure Pipelines and GitLab CI) — runs on every push and PR. Owns prek hooks, Archgate structural checks, language-pack checks, golden verification, and lint/typecheck/test. Status checks from validation CI gate PR merges.
+- **Release CI** (`modules/release-versioning.md` provider templates) — runs on push to `main`, on tag push, and via `workflow_dispatch`. Owns the release/versioning strategy, the `release.json` manifest, the tag guardrails, and the optional publish step. Status checks from release CI gate tag creation, not PR merges.
+
+A common mistake is to fold release logic into validation CI (e.g. running semantic-release on every push). This module explicitly rejects that pattern. Release CI must not run on PRs, and validation CI must not produce tags or push to registries.

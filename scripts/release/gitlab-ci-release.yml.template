@@ -1,0 +1,76 @@
+# GitLab CI release workflow template.
+# Emitted by ai-sdlc-init modules/release-versioning.md.
+# Strategy: Hybrid default (SemVer base + UTC timestamp + CI trace token).
+# Tag creation is guardrail-gated; never bypasses the gate.
+stages:
+  - validate
+  - release
+
+variables:
+  STRATEGY: "hybrid"
+  BASE_SHA: $CI_COMMIT_SHA
+  TRACE_ID: $CI_PIPELINE_ID
+
+release:validate:
+  stage: validate
+  image: alpine:3.19
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - apk add --no-cache bash git python3
+    - |
+      set -euo pipefail
+      # Guardrail: secrets/permissions preflight (masked CI/CD variables).
+      : "${CI_JOB_TOKEN:?guardrail=fail key=secrets_permissions_preflight reason=missing_CI_JOB_TOKEN}"
+      : "${GITLAB_TOKEN:?guardrail=fail key=secrets_permissions_preflight reason=missing_GITLAB_TOKEN}"
+      echo "guardrail=pass key=secrets_permissions_preflight reason=present"
+    - |
+      set -euo pipefail
+      # Guardrail: conventional commits.
+      if [ -n "$CI_COMMIT_BEFORE_SHA" ] && [ "$CI_COMMIT_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+        BAD=$(git log --pretty=%s "$CI_COMMIT_BEFORE_SHA..$CI_COMMIT_SHA" | grep -vE '^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert|BREAKING CHANGE)(\(.+\))?!?: ' || true)
+        if [ -n "$BAD" ]; then
+          echo "guardrail=fail key=conventional_commits"; echo "$BAD"; exit 3
+        fi
+      fi
+      echo "guardrail=pass key=conventional_commits"
+    - |
+      set -euo pipefail
+      # Guardrail: no dirty generated state.
+      if [ -n "$(git status --porcelain | grep -E '^( M|A |M ) (dist|build|out)/')" ]; then
+        echo "guardrail=fail key=no_dirty_generated_state"; exit 4
+      fi
+      echo "guardrail=pass key=no_dirty_generated_state"
+    - echo "guardrail=pass key=green_ci reason=pipeline_status_observed"
+
+release:manifest:
+  stage: release
+  image: alpine:3.19
+  needs: ["release:validate"]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v/
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - apk add --no-cache bash git python3
+    - bash skills/scripts/release/strategy-selector.sh --strategy "$STRATEGY" --base-sha "$BASE_SHA" --trace-id "$TRACE_ID" --provider gitlab-ci --out release.json
+    - cat release.json
+
+release:tag:
+  stage: release
+  image: alpine:3.19
+  needs: ["release:manifest"]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - apk add --no-cache bash git
+    - |
+      set -euo pipefail
+      TAG=$(python3 -c "import json; print(json.load(open('release.json'))['tag'])")
+      if ! git tag -l "$TAG" | grep -q .; then
+        git tag -a "$TAG" -m "release $TAG"
+        git push origin "$TAG"
+      fi

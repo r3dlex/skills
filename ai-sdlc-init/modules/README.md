@@ -11,5 +11,7 @@ Layer 3 modules keep `ai-sdlc-init/SKILL.md` lean. Read only the module that mat
 | `ci-policy.md` | Read when adding GitHub/ADO/GitLab CI and branch-policy/ruleset checklist artifacts. |
 | `archgate.md` | Read when configuring structural `.rules.ts` validation or optional semantic/drift checks. |
 | `language-packs.md` | Read when selecting local/CI checks for TypeScript, Python, Rust, Go, JVM/.NET, or polyglot repos. |
+| `readme-documentation.md` | Read when initializing, augmenting, or rewriting `README.md` (template mode for sparse repos, safe augmentation/rewrite for existing). |
+| `release-versioning.md` | Read when initializing release tagging, versioning, or CI/CD release workflows (Hybrid default, SemVer/CalVer variants, GHA/Azure/GitLab templates, tag guardrails). |
 
 Planned modules may start as index entries before their dedicated story fills the file. Until then, fall back to `REFERENCE.md` only for existing template bodies.
