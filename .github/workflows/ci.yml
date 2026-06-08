@@ -7,10 +7,12 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: Test Suite
-    runs-on: ubuntu-latest
-
+  _test-self-hosted:
+    name: "Test Suite (self-hosted)"
+    runs-on: [self-hosted, ubuntu-latest]
+    continue-on-error: true
+    outputs:
+      passed: ${{ steps.mark.outputs.passed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,4 +24,32 @@ jobs:
           chmod +x tests/test-scripts.sh
 
       - name: Run tests
+        run: tests/run-tests.sh
+
+      - id: mark
+        if: success()
+        run: echo "passed=true" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Test Suite
+    needs: _test-self-hosted
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Route
+        run: echo "self-hosted passed=${{ needs._test-self-hosted.outputs.passed }}"
+
+      - name: Checkout
+        if: needs._test-self-hosted.outputs.passed != 'true'
+        uses: actions/checkout@v4
+
+      - name: Make test scripts executable
+        if: needs._test-self-hosted.outputs.passed != 'true'
+        run: |
+          chmod +x tests/run-tests.sh
+          chmod +x tests/test-skills.sh
+          chmod +x tests/test-scripts.sh
+
+      - name: Run tests
+        if: needs._test-self-hosted.outputs.passed != 'true'
         run: tests/run-tests.sh
