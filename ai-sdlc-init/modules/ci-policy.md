@@ -14,6 +14,8 @@ Read when adding CI files or branch-policy/ruleset checklist artifacts. This mod
 
 By default, write checklist artifacts into the repo. Do not call GitHub or Azure DevOps APIs/CLIs that mutate branch rules, rulesets, or policies unless the user explicitly requests it and confirms admin credentials/permissions.
 
+Every initialized implementation assumes protected `main` and PR-only delivery. The scaffold may emit provider-specific checklists/config templates for branch rules, but hosted policy mutation remains opt-in and explicit.
+
 ## GitHub path
 
 ### CI scaffold
@@ -28,8 +30,10 @@ Create `docs/agents/branch-policy-github.md` with:
 
 - Default branch target, usually `main` or `dev`.
 - Required PR before merge.
+- Protected `main` ruleset/protection intent; direct pushes are disallowed.
 - Required status checks, including the AI SDLC prek workflow.
 - Required review count and stale-review dismissal policy.
+- Whether administrators may self-approve PRs, and the local policy rationale when allowed.
 - Optional linear history, signed commits, merge queue, or deployment requirements.
 - Ruleset/protection owner and whether enforcement is active, evaluate-only, or checklist-only.
 - Links to the official GitHub rulesets and branch protection docs above.
@@ -41,7 +45,10 @@ For any PR workflow or branch-policy checklist created by this skill, state that
 - **Architect** agrees the PR still matches ADRs, module boundaries, branch policy, and acceptance criteria.
 - **Reviewer** agrees code quality, safety, documentation, and drift checks have no blocking findings.
 - **Executor** agrees the requested change is complete, cleanup is done, and required checks are green.
-- The architect, reviewer, and executor loop reaches explicit agreement. If any role disagrees or checks are not green, do not merge.
+- All actionable PR comments are resolved.
+- Local CI and host SCM CI (GitHub Actions, Azure Pipelines, or GitLab CI as applicable) are green.
+- The architect, reviewer, and executor loop reaches explicit agreement. If any role disagrees, comments remain actionable, or checks are not green, do not merge.
+- Auto-merge may be enabled only after actionable comments are resolved, local CI and host SCM CI are green, the architect/reviewer/executor loop agrees, and branch policy permits merge.
 
 ## Azure DevOps path
 
@@ -76,15 +83,16 @@ Create `docs/agents/branch-policy-ado.md` with:
 - Project, repository, and protected branch target.
 - Minimum reviewer count.
 - Linked work-item requirement when desired.
-- Comment resolution requirement when desired.
+- Comment resolution requirement.
 - Build validation policy referencing the selected pipeline.
 - Required status/check naming convention.
+- Whether administrators may self-approve PRs, and the local policy rationale when allowed.
 - Distinction between YAML `pr` triggers and Azure Repos branch-policy build validation.
 - Links to the official Microsoft branch policy and pipeline trigger docs above.
 
 ## GitLab/local path
 
-Keep existing GitLab/local tracker support. If GitLab CI or local-only checks are selected, write a checklist that mirrors the same intent: required review, required checks, traceability, and explicit owner.
+Keep existing GitLab/local tracker support. If GitLab CI or local-only checks are selected, write a checklist that mirrors the same intent: protected main/default branch, PR/MR-only delivery, required review, required checks, comment resolution, traceability, and explicit owner.
 
 ## Validation CI vs release CI
 

@@ -1,13 +1,13 @@
 ---
-name: ai-sdlc-init
-description: 'Bootstrap an end-to-end AI SDLC in a repository: BRD/PRD traceability, tracker setup, CI/governance, Archgate rules, Karpathy guidance, ADRs, branch-policy checklist, and validation. Use when initializing AI-assisted software delivery, modernizing repo governance, or when the user says "ai-sdlc-init", "bootstrap AI SDLC", or "set up AI SDLC".'
+name: init-ai-repo
+description: 'Bootstrap an end-to-end AI-ready repository: BRD/PRD traceability, tracker setup, CI/governance, release versioning, Archgate rules, Karpathy guidance, ADRs, branch-policy checklist, and validation. Deprecated compatibility alias: ai-sdlc-init. Use when initializing AI-assisted software delivery, modernizing repo governance, or when the user says "init-ai-repo", "ai-sdlc-init", "bootstrap AI SDLC", or "set up AI SDLC".'
 ---
 
-# AI SDLC Init
+# Init AI Repo
 
 ## Quick Start
 
-Run this skill in the target repo. Use dry-run first when scope or host choices are unclear. Keep hosted settings as checklist output unless the user explicitly requests an admin/credentialed action.
+Run this skill in the target repo. `init-ai-repo` is the canonical skill name; `ai-sdlc-init` remains a deprecated compatibility alias during the migration. Use dry-run first when scope or host choices are unclear. Keep hosted settings as checklist output unless the user explicitly requests an admin/credentialed action.
 
 ## Workflow
 
@@ -22,12 +22,15 @@ Run this skill in the target repo. Use dry-run first when scope or host choices 
 
 ## PR Merge Gate
 
+Every implementation initialized by this skill must assume protected `main` and PR-only delivery. Emit provider-specific branch-policy checklist/config artifacts unless the user explicitly authorizes hosted mutation with credentials. Admin users may self-approve only when host policy permits it and all required checks still pass.
+
 When this skill creates or updates PR workflow guidance, require merge only after:
 
 1. The **architect** confirms the implementation still matches ADRs, module boundaries, branch policy, and acceptance criteria.
 2. The **reviewer** confirms code quality, safety, documentation, and drift checks have no blocking findings.
 3. The **executor** confirms the requested change is implemented, cleanup is complete, and all required checks are green.
-4. The loop reaches explicit agreement across architect, reviewer, and executor; if any role disagrees or checks are not green, do not merge.
+4. All actionable PR comments are resolved and local CI plus host SCM CI (GitHub Actions, Azure Pipelines, or GitLab CI as applicable) are green.
+5. The loop reaches explicit agreement across architect, reviewer, and executor; if any role disagrees, comments remain actionable, checks are not green, or branch policy forbids merge, do not merge or auto-merge.
 
 ## Module Map
 

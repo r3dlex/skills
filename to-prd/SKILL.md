@@ -22,6 +22,7 @@ The issue tracker and triage label vocabulary should have been provided to you â
 - BRD: <BRD ID/link, or "None provided">
 - Source conversation/spec: <link or summary>
 - Acceptance criteria source: <BRD section, user request, or inferred>
+- Version impact: <major|minor|patch|none|unknown> â€” use the highest-signal PRD/spec/ADR/acceptance-criteria source and include a one-line rationale.
 
 ## Problem Statement
 
@@ -66,6 +67,10 @@ A list of testing decisions that were made. Include:
 - A description of what makes a good test (only test external behavior, not implementation details)
 - Which modules will be tested
 - Prior art for the tests (i.e. similar types of tests in the codebase)
+
+## Version Impact
+
+State the compatibility/release impact and rationale. If signals conflict, use highest-signal-wins: PRD/spec/acceptance criteria/ADR first, ticket/work-item fields second, commit/diff inference third, operator defaults last. Preserve conflicts in notes rather than downgrading a spec-declared breaking change.
 
 ## Out of Scope
 
