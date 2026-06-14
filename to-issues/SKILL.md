@@ -47,6 +47,7 @@ For each slice, use the issue body template below. Apply the `ready-for-agent` t
 - BRD: <BRD ID/link, or "None provided">
 - PRD: <PRD ID/link>
 - Parent: <parent issue/work item, or "None">
+- Version impact: <copy from PRD/spec, or "unknown">
 
 ## Parent
 
@@ -63,6 +64,10 @@ Avoid specific file paths or code snippets — they go stale fast. Exception: if
 - [ ] Criterion 1
 - [ ] Criterion 2
 - [ ] Criterion 3
+
+## Version impact
+
+Copy the highest available PRD/spec/ADR/acceptance-criteria signal. If the slice appears lower-impact than the parent PRD/spec, keep the higher signal and note the conflict; do not downgrade from commit/diff inference alone.
 
 ## Blocked by
 

@@ -2,6 +2,8 @@
 # Emitted by ai-sdlc-init modules/release-versioning.md.
 # Strategy: Hybrid default (SemVer base + UTC timestamp + CI trace token).
 # Tag creation is guardrail-gated; never bypasses the gate.
+# Assumes protected main and PR-only delivery. Validation CI owns PR checks;
+# this release workflow runs only after PR merge to main or explicit dispatch.
 trigger:
   branches:
     include: [main]
@@ -13,6 +15,10 @@ parameters:
     type: string
     default: hybrid
     values: [hybrid, semver, calver]
+  - name: versionImpact
+    type: string
+    default: unknown
+    values: [major, minor, patch, none, unknown]
 variables:
   - group: release-secrets
   - name: STRATEGY
@@ -21,6 +27,8 @@ variables:
     value: $(Build.SourceVersion)
   - name: TRACE_ID
     value: $(Build.BuildId)
+  - name: VERSION_IMPACT
+    value: ${{ parameters.versionImpact }}
 stages:
   - stage: release
     displayName: Release
@@ -87,16 +95,24 @@ stages:
             inputs:
               targetType: filePath
               filePath: $(Build.SourcesDirectory)/skills/scripts/release/strategy-selector.sh
-              arguments: --strategy $(STRATEGY) --base-sha $(BASE_SHA) --trace-id $(TRACE_ID) --provider azure-pipelines --out release.json
+              arguments: --strategy $(STRATEGY) --base-sha $(BASE_SHA) --trace-id $(TRACE_ID) --provider azure-pipelines --version-impact $(VERSION_IMPACT) --version-impact-source operator --version-impact-rationale "workflow input after PRD/spec review" --out release.json
 
           - task: Bash@3
             displayName: 'Create protected tag'
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
             inputs:
               targetType: inline
               script: |
                 set -euo pipefail
                 TAG=$(python3 -c "import json; print(json.load(open('release.json'))['tag'])")
-                if ! git tag -l "$TAG" | grep -q .; then
-                  git tag -a "$TAG" -m "release $TAG"
-                  git push origin "$TAG"
-                fi
+                API_URL="$(System.CollectionUri)$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.ID)/refs?api-version=7.1"
+                ZERO="0000000000000000000000000000000000000000"
+                NEW_OBJECT_ID="$(Build.SourceVersion)"
+                export TAG ZERO NEW_OBJECT_ID
+                BODY=$(python3 -c 'import json, os; print(json.dumps([{"name": "refs/tags/" + os.environ["TAG"], "oldObjectId": os.environ["ZERO"], "newObjectId": os.environ["NEW_OBJECT_ID"]}]))')
+                curl -sSf -u ":${SYSTEM_ACCESSTOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -X POST \
+                  --data "$BODY" \
+                  "$API_URL"

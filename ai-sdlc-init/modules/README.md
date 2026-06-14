@@ -1,6 +1,6 @@
-# AI SDLC Init Modules
+# Init AI Repo Modules
 
-Layer 3 modules keep `ai-sdlc-init/SKILL.md` lean. Read only the module that matches the current scaffold decision.
+Layer 3 modules keep the canonical `init-ai-repo` skill lean. The files currently remain under `ai-sdlc-init/` as a deprecated compatibility path/alias. Read only the module that matches the current scaffold decision.
 
 | Module | When to read |
 | --- | --- |

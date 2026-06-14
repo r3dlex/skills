@@ -27,7 +27,7 @@ Pick the skill matching the user's request. Each skill has:
 | `ubiquitous-language` | Building DDD-style glossaries |
 | `using-git-worktrees` | Setting up isolated workspaces |
 | `publish-semver` | Publishing packages with semver, GitHub Actions, and multi-ecosystem registries |
-| `ai-sdlc-init` | Initialize an end-to-end AI SDLC in a repo -- BRD/PRD traceability, tracker setup, CI/governance, Archgate, Karpathy baseline, branch-policy checklist, and ADRs |
+| `init-ai-repo` | Initialize an AI-ready repo -- BRD/PRD traceability, tracker setup, CI/governance, release versioning, Archgate, Karpathy baseline, branch-policy checklist, and ADRs; deprecated alias: `ai-sdlc-init` |
 
 ## Writing Rules
 
@@ -57,7 +57,7 @@ See [write-agent-docs/SKILL.md](write-agent-docs/SKILL.md) for full audit and re
 
 ## AI SDLC Methodology
 
-This repository uses the AI SDLC methodology scaffolded by `ai-sdlc-init`.
+This repository uses the init-ai-repo methodology. The deprecated `ai-sdlc-init` alias remains valid during path migration.
 
 ### Architecture Decision Records
 

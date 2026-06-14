@@ -1,10 +1,10 @@
 # Release Versioning Module
 
-Read when initializing, configuring, or auditing a repo's release tagging, versioning, and CI/CD release workflows. This module covers strategy selection (Hybrid default, with SemVer and CalVer variants), provider-specific release workflows (GitHub Actions, Azure Pipelines, GitLab CI), tag guardrails, and the release metadata manifest. It is scaffold guidance only; the CI/CD release workflows it emits default to active-on-main but tag creation is guardrail-gated, and **no production deploys or history rewrites** are included in the first pass.
+Read when initializing, configuring, or auditing a repo's release tagging, versioning, and CI/CD release workflows. This module covers strategy selection (Hybrid default, with SemVer and CalVer variants), provider-specific release workflows (GitHub Actions, Azure Pipelines, GitLab CI), tag guardrails, and the release metadata manifest. It is scaffold guidance only; the CI/CD release workflows it emits assume protected main and PR-only delivery, default to active-on-main after PR merge, and keep tag creation guardrail-gated. **No production deploys or history rewrites** are included in the first pass.
 
 ## Strategy selection
 
-The default strategy is **Hybrid**: a semantic base (SemVer-derived or CalVer-derived) plus a timestamp/trace metadata envelope recorded in a release manifest. Pure SemVer and pure CalVer are still supported strategy variants.
+The default strategy is **Hybrid**: a semantic base (SemVer-derived or CalVer-derived) plus a timestamp/trace metadata envelope recorded in a release manifest. Pure SemVer and pure CalVer are still supported strategy variants. Every strategy records a `version_impact` audit decision inferred from trusted sources before tag creation is considered.
 
 | Strategy | When to read |
 | --- | --- |
@@ -12,7 +12,18 @@ The default strategy is **Hybrid**: a semantic base (SemVer-derived or CalVer-de
 | **SemVer** | Use when the project follows strict semantic versioning with conventional commits and a single source of truth for breaking-change signaling. |
 | **CalVer** | Use when the project is date-driven and version communicates release cadence rather than compatibility. |
 
-The strategy selector writes a `release.json` manifest at the repo root (or `.ai/release.json` if the project prefers hidden). The manifest is the audit anchor; the tag is derived from the manifest strategy.
+The strategy selector writes a `release.json` manifest at the repo root (or `.ai/release.json` if the project prefers hidden). The manifest is the audit anchor; the tag is derived from the manifest strategy and the version-impact decision is recorded alongside the guardrails.
+
+## Version-impact decision rule
+
+When BRD/PRD, product spec, acceptance criteria, ADRs, tickets, commits, or operator input disagree about release impact, use **highest-signal-wins**:
+
+1. Explicit PRD/spec/acceptance-criteria/ADR compatibility statements.
+2. Ticket or work-item `Version impact` fields copied from the PRD/spec chain.
+3. Conventional-commit or diff inference.
+4. Operator defaults or unknown impact.
+
+Record the selected signal and rationale in the manifest audit fields. Never downgrade a PRD/spec breaking-change signal because commit messages look non-breaking.
 
 ## Release manifest (`release.json`)
 
@@ -28,6 +39,15 @@ A complete release manifest contains, at minimum:
   "timestamp_utc": "2026-06-08T12:34:56Z",
   "trace_id": "<CI run id or local UUIDv4>",
   "provider": "github-actions|azure-pipelines|gitlab-ci",
+  "delivery_policy": {
+    "protected_main": "required",
+    "pr_before_main": "required",
+    "pr_review_loop": "required",
+    "actionable_comments_resolved": "required",
+    "local_ci": "required",
+    "host_ci": "required",
+    "provider_policy_mutation": "checklist_only"
+  },
   "guardrails": {
     "green_ci": "pass|fail|skipped",
     "conventional_commits": "pass|fail|skipped",
@@ -45,7 +65,22 @@ A complete release manifest contains, at minimum:
 
 For Hybrid, the tag format is `<base>+<utc-date>.<trace-token>`. For SemVer, the tag format is `v<MAJOR>.<MINOR>.<PATCH>`. For CalVer, the tag format is `v<YYYY>.<MM>.<DD>` or `v<YYYY>.<0X>` depending on cadence.
 
-The manifest is the only authoritative record. Tag push is a derived action that happens only when every guardrail is `pass` or `skipped` and `tag_creation` is `allowed`.
+The manifest is the only authoritative record. Tag creation is a derived provider-API action that happens only when every guardrail is `pass` or `skipped`, `tag_creation` is `allowed`, protected main is in force, the change reached main through a PR, the architect/reviewer/executor review loop resolved actionable comments, and local CI plus host CI are green. Provider branch/ruleset/tag policy mutation remains checklist-only unless the user explicitly authorizes an admin action.
+
+## Version-impact source matrix
+
+Automatic inference is allowed and expected: explicit `versionImpact` metadata in a PRD/spec is optional, not required. The selector records every source it can inspect and chooses the highest trusted signal using this precedence: `major > minor > patch > none`.
+
+| Source | Major signal | Minor signal | Patch signal | None signal |
+| --- | --- | --- | --- | --- |
+| PRD/spec prose | breaking change, incompatible behavior, required migration, removed public API | new user-visible capability or feature | bug fix, regression fix, compatibility fix | docs-only, no release impact |
+| Optional explicit metadata | `versionImpact: major` | `versionImpact: minor` | `versionImpact: patch` | `versionImpact: none` |
+| Conventional commits | `BREAKING CHANGE:` footer or `type!:` marker | `feat:` | `fix:` | `docs:`, `chore:`, `test:` |
+| PR labels | `release:major`, `breaking-change` | `release:minor`, `feature` | `release:patch`, `bugfix` | `release:none`, `no-release` |
+| Breaking-change markers | Migration required, compatibility break marker | n/a | n/a | n/a |
+| Linked issue/ticket type | epic/breaking/migration | feature/story | bug/defect | docs/task |
+
+Lower/higher ordinary signals are not conflicts; the highest signal wins and lower signals are retained in `version_impact_sources`. Explicit incompatible claims are conflicts: for example, an explicit `versionImpact: none` with PRD prose that says a breaking migration is required must populate `version_impact_conflicts` and block tag creation or require manual review before a tag is created.
 
 ## Tag guardrails
 
@@ -59,39 +94,50 @@ Five guardrails gate every tag-creation attempt. All five must pass (or be `skip
 
 A guardrail that fails produces a `guardrail_reasons` entry naming the failure. The release workflow must surface the failed guardrail to the operator and exit non-zero without creating the tag.
 
+Version-impact conflicts are an additional fail-closed gate. They do not replace the five guardrails above; if conflicts are present, `tag_creation` is `blocked` even when the five guardrails pass or are skipped.
+
 ## Provider release workflows
 
-The module emits provider-specific executable templates. Each template implements the same strategy contract (Hybrid default; SemVer/CalVer variants) and the same five guardrails. Templates default to **active on main** (the release workflow runs on push to `main` and on tag push), but tag creation is blocked by the guardrail gate.
+The module emits provider-specific executable templates. Each template implements the same strategy contract (Hybrid default; SemVer/CalVer variants), the same five guardrails, and the canonical protected main / PR-only delivery policy. Templates default to **active on main after PR merge** (the release workflow runs on push to `main` and manual dispatch, with tag handling provider-specific), but tag creation is blocked by the guardrail gate. Release CI must not replace validation CI; PR validation and comment resolution happen before merge.
 
 ### GitHub Actions (`.github/workflows/release.yml`)
 
-- Triggers: `push` to `main`, `push` of tags matching `v*`, `workflow_dispatch`.
-- Permissions: explicit `permissions:` block scoped to `contents: read`, `id-token: write` for OIDC, and any package-specific scopes (e.g. `packages: write` for GitHub Packages). No default broad `write-all`.
+- Triggers: `push` to `main`, `workflow_dispatch`; no `pull_request` release trigger.
+- Permissions: explicit `permissions:` block scoped to the minimum needed for tag creation and publishing (`contents: write` for protected-tag API refs, `id-token: write` for OIDC, and any package-specific scopes such as `packages: write`). No default broad `write-all`.
 - Steps: checkout → setup language toolchain → install publish-semver-derived helpers → run guardrail preflight → run strategy selector → emit `release.json` → compute tag → push tag via GH API (not local) → optionally publish via publish-semver.
 - Reuses `publish-semver` for ecosystem-specific publishing semantics (npm, PyPI, crates.io, Maven Central, etc.).
 - Fails closed on any guardrail failure.
 
 ### Azure Pipelines (`azure-pipelines-release.yml`)
 
-- Triggers: `trigger` on `main`, `pr` for validation only, manual via `parameters`.
+- Triggers: `trigger` on `main`, `pr: none` for release (validation PR checks are separate), manual via `parameters`.
 - Variables: explicit `variables:` block; sensitive values from an Azure DevOps variable group (linked secret store). `secrets/permissions` preflight runs as the first task.
-- Steps: checkout → use Node/Python/Rust task → install publish-semver helpers → run guardrail preflight → run strategy selector → emit `release.json` → push tag via `git push` from the agent with a service-principal identity, not a personal access token → optionally publish.
+- Steps: checkout → use Node/Python/Rust task → install publish-semver helpers → run guardrail preflight → run strategy selector → emit `release.json` → create tag via Azure Repos API with the CI identity, not a local push or personal access token → optionally publish.
 - Fails closed on any guardrail failure.
 
 ### GitLab CI (`.gitlab-ci-release.yml`)
 
 - Stages: `validate` → `release`.
-- Triggers: `rules:` on push to `main`, on tag push, manual via `when: manual`.
+- Triggers: `rules:` on push to `main`, on tag pipeline, manual via `when: manual`; no merge-request release trigger.
 - Variables: explicit; protected CI/CD variables masked; `secrets/permissions` preflight runs first.
 - Steps: checkout → install toolchain → install publish-semver helpers → run guardrail preflight → run strategy selector → emit `release.json` → create protected tag via the GitLab Releases API (not a local push) → optionally publish.
 - Fails closed on any guardrail failure.
 
 The provider release templates are checked in but do not run unless the user explicitly enables them. Enabling is a checklist/decision, not a hidden mutation.
 
+## Protected main and PR-only delivery
+
+Every repo initialized with this release module assumes protected main and PR-only delivery:
+
+- Branch/ruleset/tag protection is emitted as checklist-only provider configuration unless the user explicitly authorizes host admin mutation.
+- Every implementation change reaches main through a PR. Admin users may self-approve where policy permits, but the PR still exists and remains auditable.
+- The PR review loop must resolve all actionable comments using architect, reviewer, and executor roles before merge.
+- Local CI and host SCM CI must be green before merge. Release CI then runs from the protected main SHA and may create tags only through provider APIs.
+
 ## Tag creation, protected tags, and audit
 
 - **Protected tags.** Each provider has a tag-protection mechanism: GitHub `rulesets` for tag patterns, Azure DevOps branch/tag policies, GitLab `protected tags`. The module emits a checklist for tag protection per provider but does not call provider APIs to apply it.
-- **CI-controlled release identity.** Tag creation runs inside the CI job with the CI-provided identity, not from a developer machine. The audit trail in the `release.json` manifest records the CI run id as `trace_id` and the runner provider as `provider`.
+- **CI-controlled release identity.** Tag creation runs inside the CI job with the CI-provided identity through provider APIs, not from a developer machine and not via local `git push`. The audit trail in the `release.json` manifest records the CI run id as `trace_id`, the runner provider as `provider`, and the protected-main / PR-only `delivery_policy`.
 - **No history rewrites.** The module does not include tag deletion, force-push, or commit-history rewriting. If a bad tag is pushed, the recovery path is to push a new tag (e.g. `v1.4.1`) and emit a manifest entry explaining the prior tag's retirement; the prior tag is not deleted.
 - **No production deploys.** The release workflows stop at tag creation and (optional) package publish. They do not deploy to production environments, run database migrations, or invoke cloud provisioning. Production deployment is a separate downstream concern.
 
@@ -103,7 +149,7 @@ The provider release templates are checked in but do not run unless the user exp
 
 ## Reuse of `publish-semver`
 
-This module reuses the `publish-semver` skill (installed under `~/.codex/skills/publish-semver/`) for ecosystem-specific publishing semantics — npm, PyPI, crates.io, Maven Central, NuGet, pub.dev, Hex, Erlang Hex, and Gradle/Maven Central via Azure DevOps. The release workflow invokes `publish-semver` to do the actual publish step; this module owns the strategy, manifest, and guardrails, not the publish semantics.
+This module reuses the `publish-semver` skill (installed under `~/.codex/skills/publish-semver/`) for ecosystem-specific publishing semantics — npm, PyPI, crates.io, Maven Central, NuGet, pub.dev, Hex, Erlang Hex, and Gradle/Maven Central via Azure DevOps. The release workflow invokes `publish-semver` to do the actual publish step; this module owns the strategy, manifest, version-impact source selection, and guardrails, not the publish semantics. The `publish-semver` conventional-commit mapping (`fix` patch, `feat` minor, breaking major) is one input source in the matrix, not the only authority.
 
 ## Safety rules
 
@@ -134,6 +180,9 @@ The release-versioning-specific golden fixtures live under `reference/fixtures/r
 - `calver-only/` — CalVer strategy selector emits a CalVer-shaped manifest.
 - `guardrail-fail/` — at least one guardrail fails; the manifest records the failure and `tag_creation: "blocked"`.
 - `protected-tag/` — the provider template declares protected-tag semantics; local-push paths are explicitly rejected.
+- `version-impact/` — PRD/spec version-impact signals are recorded and win over lower-priority inferred signals.
 - `no-history-rewrite/` — the template contains no `git push --force`, no tag deletion, no commit-history rewrite.
 - `no-production-deploy/` — the template contains no `azure webapp deploy`, no `kubectl apply`, no `aws s3 sync` style production steps.
 - `secrets-preflight/` — the preflight logs key names only, never values.
+- `version-impact-highest-signal/` — PRD/spec prose can raise a fix-only commit to major or minor by highest-signal precedence.
+- `version-impact-conflict/` — explicit incompatible claims are recorded in `version_impact_conflicts` and block tag creation/review.

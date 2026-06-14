@@ -2,11 +2,12 @@
 # Emitted by ai-sdlc-init modules/release-versioning.md.
 # Strategy: Hybrid default (SemVer base + UTC timestamp + CI trace token).
 # Tag creation is guardrail-gated; never bypasses the gate.
+# Assumes protected main and PR-only delivery. Validation CI owns PR checks;
+# this release workflow runs only after PR merge to main or explicit dispatch.
 name: release
 on:
   push:
     branches: [main]
-    tags: ['v*']
   workflow_dispatch:
     inputs:
       strategy:
@@ -15,8 +16,14 @@ on:
         default: 'hybrid'
         type: choice
         options: [hybrid, semver, calver]
+      version_impact:
+        description: 'Highest-signal version impact from PRD/spec/ADR/ticket'
+        required: false
+        default: 'unknown'
+        type: choice
+        options: [major, minor, patch, none, unknown]
 permissions:
-  contents: read
+  contents: write
   id-token: write
   packages: write
 concurrency:
@@ -84,27 +91,36 @@ jobs:
           echo "guardrail=pass key=green_ci reason=ci_workflow_signal_observed"
 
       - name: Strategy selector + release manifest
+        id: manifest
         env:
           STRATEGY: ${{ inputs.strategy || 'hybrid' }}
+          VERSION_IMPACT: ${{ inputs.version_impact || 'unknown' }}
           BASE_SHA: ${{ github.sha }}
           TRACE_ID: ${{ github.run_id }}
         run: |
-          bash $GITHUB_ACTION_PATH/../../skills/scripts/release/strategy-selector.sh \
+          bash scripts/release/strategy-selector.sh \
             --strategy "$STRATEGY" \
             --base-sha "$BASE_SHA" \
             --trace-id "$TRACE_ID" \
             --provider github-actions \
+            --version-impact "$VERSION_IMPACT" \
+            --version-impact-source operator \
+            --version-impact-rationale "workflow input after PRD/spec review" \
             --out release.json
           cat release.json
+          python3 -c 'import json; print("tag=" + json.load(open("release.json"))["tag"])' >> "$GITHUB_OUTPUT"
 
       - name: Create protected tag via GH API
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ fromJSON(steps.manifest.outputs.tag) }}
+          TAG: ${{ steps.manifest.outputs.tag }}
         run: |
           set -euo pipefail
-          TAG_FROM_MANIFEST=$(python3 -c "import json; print(json.load(open('release.json'))['tag'])")
-          if ! git tag -l "$TAG_FROM_MANIFEST" | grep -q .; then
-            git tag -a "$TAG_FROM_MANIFEST" -m "release $TAG_FROM_MANIFEST"
-            git push origin "$TAG_FROM_MANIFEST"
+          if gh api "repos/${{ github.repository }}/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "tag already exists: $TAG"
+          else
+            gh api "repos/${{ github.repository }}/git/refs" \
+              --method POST \
+              -f ref="refs/tags/$TAG" \
+              -f sha="${{ github.sha }}"
           fi

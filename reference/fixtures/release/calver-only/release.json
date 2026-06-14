@@ -7,6 +7,18 @@
   "timestamp_utc": "2026-06-08T05:45:27Z",
   "trace_id": "1",
   "provider": "github-actions",
+  "version_impact": {
+    "level": "unknown",
+    "source": "none",
+    "rationale": "no PRD/spec version-impact signal supplied"
+  },
+  "version_impact_audit": {
+    "decision_rule": "highest-signal-wins",
+    "source_rank": 4,
+    "selected_signal": "none:unknown",
+    "conflicting_signals": [],
+    "notes": "selected by highest-signal-wins; upstream PRD/spec intake preserves conflicts"
+  },
   "guardrails": {
     "green_ci": "skipped",
     "conventional_commits": "skipped",
