@@ -79,7 +79,7 @@ Official documentation anchors:
 ### GitLab
 
 - **Discovery** — REST API: `GET /api/v4/projects/{id}/protected_branches` and `GET /api/v4/projects/{id}/merge_request_approval_rules`. See [GitLab protected branches](https://docs.gitlab.com/ee/user/project/protected_branches.html) and [GitLab merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/).
-- **Dry-run diff** — compares current protected-branch shape and approval rules against the intended shape. Note GitLab tier differences: some approval-rule features require Premium or higher; blocked or unsupported features are reported in the dry-run and require tier-appropriate configuration.
+- **Dry-run diff** — compares current protected-branch shape and approval rules against the intended shape. Note GitLab tier differences: some approval-rule features require Premium or higher; blocked or unsupported features are reported in the dry-run and require tier-appropriate configuration. If discovery reports a Free/Core tier for a Premium/Ultimate-only approval-rule mutation, apply refuses mutation endpoints and records `apply-rejected-gitlab-tier-restriction`.
 - **Apply** — `POST /api/v4/projects/{id}/protected_branches` and the approval-rule endpoints. Capture the response status and rule id.
 - **Readback** — re-fetch the protected branches and approval rules; assert equality; record in `.ai/host-policy/gitlab/readback.json`.
 - **Admin exception** — host-supported allowed-to-merge / allowed-to-push bypass only; non-admin auto-approval is disallowed.
@@ -112,6 +112,7 @@ Tests use mocked host adapters. Live host mutations require explicit credentials
 - `apply-blocked-no-confirmation` is recorded when admin credentials are present without confirmation.
 - `apply-rejected-non-admin` is recorded when the actor is not an admin and the host does not support a non-admin bypass.
 - `apply-rejected-dry-run-mismatch` is recorded when the readback differs from the intended shape.
+- `apply-rejected-gitlab-tier-restriction` is recorded when GitLab discovery reports a Free/Core tier for an intended Premium/Ultimate-only approval-rule mutation.
 
 ## Audit log
 

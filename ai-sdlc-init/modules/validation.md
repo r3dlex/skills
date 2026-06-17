@@ -21,9 +21,79 @@ In addition, the v3 check set is exercised against `reference/fixtures/v3/`:
 ./scripts/verify-golden-dir.sh . reference/golden-root
 ./scripts/verify-golden-dir.sh . reference/golden-skills
 python3 -m json.tool reference/fixtures/v3/standalone/.ai/matrix.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/standalone/.ai/skills/git-ops.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/standalone/.ai/skills/workspace-sync.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/matrix.json >/dev/null
-python3 -c "import json,sys; d=json.load(open('reference/fixtures/v3/umbrella/.ai/matrix.json')); sys.exit(0 if d['current_depth']<=d['max_allowed_depth'] else 1)"
-python3 -c "import json,sys; d=json.load(open('reference/fixtures/v3/depth-violation/.ai/matrix.json')); sys.exit(1 if d['current_depth']>d['max_allowed_depth'] else 0)"
+python3 -m json.tool reference/fixtures/v3/umbrella/.ai/drift/last-drift.json >/dev/null
+python3 - <<'PY'
+import copy, json, pathlib
+
+def rejects_invalid_topology(candidate):
+    if candidate["topology_type"] == "standalone":
+        return candidate["max_allowed_depth"] != 0 or candidate["current_depth"] != 0
+    if candidate["topology_type"] == "umbrella":
+        return (
+            candidate["max_allowed_depth"] != 3
+            or candidate["current_depth"] > candidate["max_allowed_depth"]
+            or any(repo["depth"] > candidate["max_allowed_depth"] for repo in candidate.get("managed_repositories", []))
+        )
+    return True
+
+m = json.load(open("reference/fixtures/v3/standalone/.ai/matrix.json"))
+assert m["topology_type"] == "standalone"
+assert m["max_allowed_depth"] == 0
+assert m["current_depth"] == 0
+invalid = copy.deepcopy(m)
+invalid["max_allowed_depth"] = 1
+assert rejects_invalid_topology(invalid)
+invalid = copy.deepcopy(m)
+invalid["current_depth"] = 1
+assert rejects_invalid_topology(invalid)
+for rel in [
+    "reference/fixtures/v3/standalone/.ai/skills/git-ops.json",
+    "reference/fixtures/v3/standalone/.ai/skills/workspace-sync.json",
+]:
+    data = json.loads(pathlib.Path(rel).read_text())
+    assert data["sync_strategy"] == "physical-copy"
+    assert data["topology"]["topology_type"] == "standalone"
+    assert data["topology"]["max_allowed_depth"] == 0
+    assert data["topology"]["current_depth"] == 0
+    assert data["validation"]["reject_canonical_symlink"] is True
+    assert data["validation"]["reject_canonical_git_submodule"] is True
+PY
+python3 - <<'PY'
+import copy, json
+
+def rejects_invalid_topology(candidate):
+    if candidate["topology_type"] == "standalone":
+        return candidate["max_allowed_depth"] != 0 or candidate["current_depth"] != 0
+    if candidate["topology_type"] == "umbrella":
+        return (
+            candidate["max_allowed_depth"] != 3
+            or candidate["current_depth"] > candidate["max_allowed_depth"]
+            or any(repo["depth"] > candidate["max_allowed_depth"] for repo in candidate.get("managed_repositories", []))
+        )
+    return True
+
+m = json.load(open("reference/fixtures/v3/umbrella/.ai/matrix.json"))
+assert m["topology_type"] == "umbrella"
+assert m["max_allowed_depth"] == 3
+assert m["current_depth"] <= m["max_allowed_depth"]
+for repo in m["managed_repositories"]:
+    assert repo["depth"] <= m["max_allowed_depth"]
+invalid = copy.deepcopy(m)
+invalid["max_allowed_depth"] = 2
+assert rejects_invalid_topology(invalid)
+invalid = copy.deepcopy(m)
+invalid["current_depth"] = 4
+assert rejects_invalid_topology(invalid)
+PY
+python3 - <<'PY'
+import json
+m = json.load(open("reference/fixtures/v3/depth-violation/.ai/matrix.json"))
+assert m["current_depth"] > m["max_allowed_depth"]
+assert any(repo["depth"] > m["max_allowed_depth"] for repo in m["managed_repositories"])
+PY
 python3 -m json.tool reference/fixtures/v3/legacy-migration/migration-manifest.json >/dev/null
 ```
 
@@ -40,7 +110,7 @@ The validator runs the following v3 checks on the v3 fixtures and any candidate 
 
 1. **Top-level layout** — required entry files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`) and required directories (`.ai/`, `.memory/`, `docs/architecture/`, `docs/specifications/ACTIVE/`, `docs/specifications/ARCHIVED/`, `docs/learning/`) are present for a standalone repo.
 2. **Topology matrix** — `.ai/matrix.json` exists, parses as JSON, declares `schema_version: "1.0"`, has a valid `topology_type` (`standalone` or `umbrella`), and uses `sync_strategy: "physical-copy"`.
-3. **Depth rule** — for `umbrella` topology, `max_allowed_depth` is `3` and `current_depth` is `<= max_allowed_depth`. The validator fails or blocks the apply path when `current_depth > max_allowed_depth`.
+3. **Depth rule** — for `standalone` topology, `max_allowed_depth` and `current_depth` are exactly `0`; any other values fail or block before apply. For `umbrella` topology, `max_allowed_depth` is exactly `3`, `current_depth` is `<= max_allowed_depth`, and every managed repository depth is `<= max_allowed_depth`; any other maximum or exceeded depth fails or blocks before apply.
 4. **Sync-strategy rule** — `sync_strategy` is `physical-copy`. The validator rejects `symlink` and `git-submodule` as canonical.
 5. **Memory layer** — `.memory/human-override/` exists and is treated as terminal priority (validator never overwrites files there). `.memory/self-learned/` declares `schema_version` on every JSON file.
 6. **Host-policy safety wording** — host-policy documentation contains the dry-run / confirmation / audit / negative-test language and the non-admin auto-approval prohibition. See `modules/host-policy-automation.md`.
@@ -74,6 +144,7 @@ The v3 regression suite asserts:
 - `apply-blocked-no-confirmation` is recorded when admin credentials are present without confirmation.
 - `apply-rejected-non-admin` is recorded when the actor is not an admin and the host does not support a non-admin bypass.
 - `apply-rejected-dry-run-mismatch` is recorded when the readback differs from the intended shape.
+- `apply-rejected-gitlab-tier-restriction` is recorded when GitLab discovery reports a Free/Core tier for an intended Premium/Ultimate-only approval-rule mutation.
 
 These negative tests are documented in `modules/host-policy-automation.md`; the live assertions are scoped to mocked host adapters in the regression suite.
 
@@ -92,13 +163,18 @@ A missing or weakened wording fails the static check pass; the validator never r
 
 ## Regression commands
 
+Run these commands from the repository root that contains `tests/`, `scripts/`,
+and `reference/` for the installed AI-SDLC skill package. If validating from an
+umbrella workspace, first `cd <target-repo>` once, then run the commands without
+embedding the repository name in each command.
+
 ```sh
-cd skills && tests/test-skills.sh
-cd skills && tests/test-scripts.sh
-cd skills && tests/run-tests.sh
-cd skills && bash scripts/archgate.sh --mode structural --rules .rules.ts --format json
-cd skills && ./scripts/verify-golden-dir.sh . reference/golden-root
-cd skills && ./scripts/verify-golden-dir.sh . reference/golden-skills
+tests/test-skills.sh
+tests/test-scripts.sh
+tests/run-tests.sh
+bash scripts/archgate.sh --mode structural --rules .rules.ts --format json
+./scripts/verify-golden-dir.sh . reference/golden-root
+./scripts/verify-golden-dir.sh . reference/golden-skills
 ```
 
 ## E2E acceptance
@@ -107,6 +183,7 @@ cd skills && ./scripts/verify-golden-dir.sh . reference/golden-skills
 - A clean umbrella fixture can be initialized, sync inherited assets by physical copy, and detect drift.
 - A legacy fixture can migrate with backups/audit logs.
 - A depth-violation fixture blocks the apply path with a clear error.
+- Invalid standalone or umbrella `max_allowed_depth` values are rejected before apply.
 - Host-policy dry-run shows exact intended changes and required confirmations.
 - Host-policy apply without explicit confirmation is rejected, including for admin credentials.
 - All skills repo tests pass.

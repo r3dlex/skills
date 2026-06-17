@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "name": "git-ops",
+  "source": "skills/git-ops",
+  "sync_strategy": "physical-copy",
+  "topology": {
+    "topology_type": "standalone",
+    "max_allowed_depth": 0,
+    "current_depth": 0
+  },
+  "contracts": [
+    "check status before editing",
+    "keep commits small and reversible",
+    "never rewrite protected branches without explicit confirmation"
+  ],
+  "validation": {
+    "requires_clean_worktree_before_apply": true,
+    "reject_canonical_symlink": true,
+    "reject_canonical_git_submodule": true
+  }
+}
