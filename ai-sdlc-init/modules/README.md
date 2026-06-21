@@ -15,3 +15,9 @@ Layer 3 modules keep the canonical `init-ai-repo` skill lean. The files currentl
 | `release-versioning.md` | Read when initializing release tagging, versioning, or CI/CD release workflows (Hybrid default, SemVer/CalVer variants, GHA/Azure/GitLab templates, tag guardrails). |
 
 Planned modules may start as index entries before their dedicated story fills the file. Until then, fall back to `REFERENCE.md` only for existing template bodies.
+## Phase Modules
+
+| Module | Purpose |
+|--------|---------|
+| [`modules/phases/README.md`](phases/README.md) | Four-phase AI-SDLC phase index and original eight-checkpoint mapping. |
+| [`modules/phases/01-discover-decide.md`](phases/01-discover-decide.md) | Phase 1 discovery, lane selection, hosted-ticket posture, and OMX/OMC planning surfaces. |

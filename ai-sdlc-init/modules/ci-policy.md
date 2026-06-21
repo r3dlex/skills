@@ -33,7 +33,7 @@ Create `docs/agents/branch-policy-github.md` with:
 - Protected `main` ruleset/protection intent; direct pushes are disallowed.
 - Required status checks, including the AI SDLC prek workflow.
 - Required review count and stale-review dismissal policy.
-- Whether administrators may self-approve PRs, and the local policy rationale when allowed.
+- Whether administrators may self-approve PRs through admin approve/admin bypass, and the local policy rationale when allowed; this is valid only when the host/runtime explicitly supports admin approval for the same actor. GitHub hosted PR review rejects same-actor approval, so GitHub requires a distinct admin reviewer or explicit admin bypass/admin merge with actor, authority, reason, checks, and approval mode recorded.
 - Optional linear history, signed commits, merge queue, or deployment requirements.
 - Ruleset/protection owner and whether enforcement is active, evaluate-only, or checklist-only.
 - Links to the official GitHub rulesets and branch protection docs above.
@@ -86,7 +86,7 @@ Create `docs/agents/branch-policy-ado.md` with:
 - Comment resolution requirement.
 - Build validation policy referencing the selected pipeline.
 - Required status/check naming convention.
-- Whether administrators may self-approve PRs, and the local policy rationale when allowed.
+- Whether administrators may self-approve PRs through admin approve/admin bypass, and the local policy rationale when allowed; this is valid only when the host/runtime explicitly supports admin approval for the same actor and the merge record captures actor, authority, reason, checks, and approval mode.
 - Distinction between YAML `pr` triggers and Azure Repos branch-policy build validation.
 - Links to the official Microsoft branch policy and pipeline trigger docs above.
 

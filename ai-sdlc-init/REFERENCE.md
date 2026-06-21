@@ -1,7 +1,7 @@
-# AI SDLC Init — Reference
+# init-ai-repo — Reference
 
-Detailed templates and operational documentation for every artifact the `ai-sdlc-init` skill emits.
-Companion to [SKILL.md](SKILL.md) (the 13-step workflow entry point).
+Detailed templates and operational documentation for every artifact the canonical `init-ai-repo` skill emits. The legacy `ai-sdlc-init` name remains a compatibility alias only.
+Companion to [SKILL.md](SKILL.md) (the four-phase workflow entry point).
 
 ---
 
@@ -302,7 +302,7 @@ pass_filenames = false
 > **Note:** Add more `[[repos]]` blocks for hosted hook collections (e.g.
 > `https://github.com/pre-commit/pre-commit-hooks` for `trailing-whitespace`, `end-of-file-fixer`).
 > Each hook within a `[[repos]]` block is added as a `[[repos.hooks]]` entry. The minimal local-only
-> config above is what the ai-sdlc-init scaffold emits — extend it per project.
+> config above is what the init-ai-repo scaffold emits — extend it per project.
 
 ---
 
@@ -907,7 +907,7 @@ Insert between `<!-- ai-sdlc-init:start -->` and `<!-- ai-sdlc-init:end -->` mar
 
 ## AI SDLC Methodology
 
-This repository uses the AI SDLC methodology scaffolded by `ai-sdlc-init`.
+This repository uses the AI SDLC methodology scaffolded by `init-ai-repo` (legacy alias/path: `ai-sdlc-init`).
 
 ### Architecture Decision Records
 
@@ -989,7 +989,7 @@ Public-facing. Brief and links out rather than duplicating.
 
 ## AI SDLC Methodology
 
-This project uses the [AI SDLC methodology](https://github.com/r3dlex/skills/tree/main/ai-sdlc-init)
+This project uses the [init-ai-repo AI SDLC methodology](https://github.com/r3dlex/skills/tree/main/init-ai-repo)
 to maintain architectural governance alongside AI-assisted development.
 
 Key practices:
@@ -1052,7 +1052,7 @@ Checking both marker and content independently protects against:
 
 ## Setup-Skills Interaction
 
-`ai-sdlc-init` Step 1 detects whether the `setup-skills` skill has already run
+The `init-ai-repo` compatibility path detects whether the `setup-skills` skill has already run
 in the target repo.
 
 ### Detection
@@ -1086,7 +1086,7 @@ Ask the two tooling questions:
 | Skill | Marker namespace | Files modified |
 |-------|-----------------|----------------|
 | setup-skills | `<!-- setup-skills:* -->` | AGENTS.md, CLAUDE.md |
-| ai-sdlc-init | `<!-- ai-sdlc-init:* -->` | AGENTS.md, CLAUDE.md, README.md, .gitignore |
+| init-ai-repo (legacy marker namespace) | `<!-- ai-sdlc-init:* -->` | AGENTS.md, CLAUDE.md, README.md, .gitignore |
 
 No overlap. Both marker blocks can coexist in the same file. Each skill's
 idempotency guard checks only its own namespace.
@@ -1096,7 +1096,7 @@ idempotency guard checks only its own namespace.
 If both skills will be run in a fresh repo:
 
 1. Run `setup-skills` first — it configures issue tracker and triage labels.
-2. Run `ai-sdlc-init` second — it detects setup-skills output and skips
+2. Run `init-ai-repo` second — it detects setup-skills output and skips
    redundant tooling questions.
 
 ---
@@ -1145,25 +1145,25 @@ after each failed attempt. The circuit trips at `attempts:3`.
 
 ## Invocation Strategy
 
-`ai-sdlc-init` is an OMC skill consumed by Claude Code. It is not a standalone
+`init-ai-repo` is an OMC-compatible skill consumed by Claude Code. Legacy `/ai-sdlc-init` remains an alias/path only. It is not a standalone
 CLI tool.
 
 ### Method 1 — Direct invocation (recommended)
 
 ```bash
 cd /path/to/target-repo
-claude -p "/ai-sdlc-init"
+claude -p "/init-ai-repo"
 ```
 
 The `-p` flag runs the slash command in print mode. The skill loads SKILL.md,
-reads the 13-step workflow, and executes against the current working directory.
+reads the four-phase workflow, and executes against the current working directory.
 
 ### Method 2 — Interactive session
 
 In an active Claude Code session in the target repo:
 
 ```
-/ai-sdlc-init
+/init-ai-repo
 ```
 
 The skill loads and the agent follows the numbered steps interactively.
@@ -1174,7 +1174,7 @@ From a parent orchestrating agent (e.g., the AiTool root repo):
 
 ```
 Delegate to an executor agent with cwd set to the target repo.
-Instruct it to run /ai-sdlc-init.
+Instruct it to run /init-ai-repo.
 ```
 
 ### Constraints
