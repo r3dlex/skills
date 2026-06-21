@@ -130,7 +130,7 @@ The provider release templates are checked in but do not run unless the user exp
 Every repo initialized with this release module assumes protected main and PR-only delivery:
 
 - Branch/ruleset/tag protection is emitted as checklist-only provider configuration unless the user explicitly authorizes host admin mutation.
-- Every implementation change reaches main through a PR. Admin users may self-approve where policy permits, but the PR still exists and remains auditable.
+- Every implementation change reaches main through a PR. Admin users may self-approve where policy permits only through an explicit admin approve/admin bypass lane that the host/runtime supports; otherwise use a distinct approver. The PR still exists and remains auditable, and the merge record captures actor, authority, reason, checks, and approval mode.
 - The PR review loop must resolve all actionable comments using architect, reviewer, and executor roles before merge.
 - Local CI and host SCM CI must be green before merge. Release CI then runs from the protected main SHA and may create tags only through provider APIs.
 

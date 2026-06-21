@@ -38,7 +38,7 @@ The public workflow is four phases, but the generator preserves the original eig
 
 ## PR Merge Gate
 
-Every implementation initialized by this skill must assume protected `main` and PR-only delivery. Emit provider-specific branch-policy checklist/config artifacts unless the user explicitly authorizes hosted mutation with credentials. Admin users may self-approve only when host policy permits it and all required checks still pass.
+Every implementation initialized by this skill must assume protected `main` and PR-only delivery. Emit provider-specific branch-policy checklist/config artifacts unless the user explicitly authorizes hosted mutation with credentials. Admin users may self-approve only when host policy permits it and the host/runtime explicitly supports an admin approve/admin bypass lane for the same actor; all required checks must still pass. If the host rejects same-actor review approval (for example, GitHub hosted PR review), use a distinct admin reviewer or explicit host admin bypass/admin merge. Record the actor, authority, reason, checks, and approval mode, and fail closed when same-actor admin approval support cannot be proven.
 
 When this skill creates or updates PR workflow guidance, require merge only after:
 

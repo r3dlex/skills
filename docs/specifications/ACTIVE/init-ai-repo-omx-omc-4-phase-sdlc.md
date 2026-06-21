@@ -286,6 +286,7 @@ During coding:
 Before final PR merge:
 
 - Local fallback tickets must be reconciled with the hosted issue tracker.
+- admin approval mode is explicit: an approving reviewer may be the same admin actor only when the host/runtime explicitly supports admin approval or admin bypass for that actor; GitHub hosted PR review rejects same-actor approval, so GitHub uses distinct admin review or admin bypass/admin merge with actor, authority, reason, checks, and approval mode recorded.
 - Validation evidence must be recorded.
 - Drift against spec, ADRs, and `RULES.md` must be checked.
 - Handoff must state what was done, what was verified, and what remains.
