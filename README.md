@@ -53,7 +53,7 @@ Migration note: `init-ai-repo` is the canonical skill name and path. The
 until downstream skill loaders have migrated.
 
 Key practices:
-- **Architecture Decision Records** in [`docs/adr/`](docs/adr/) — significant
+- **Architecture Decision Records** in [`docs/architecture/adr/`](docs/architecture/adr/) — significant
   decisions are version-controlled with context and rationale.
 - **Archgate rules** in [`.rules.ts`](.rules.ts) — code quality constraints
   across five domains, validated in CI.

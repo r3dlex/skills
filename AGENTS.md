@@ -63,7 +63,7 @@ This repository uses the init-ai-repo methodology. The deprecated `ai-sdlc-init`
 
 ### Architecture Decision Records
 
-Significant architectural decisions are recorded in [`docs/adr/`](docs/adr/).
+Significant architectural decisions are recorded in [`docs/architecture/adr/`](docs/architecture/adr/).
 Before making a change that affects module boundaries, API contracts, data
 schemas, or dependency direction, check whether a relevant ADR exists.
 If your change contradicts an existing ADR, either update the ADR or open a
