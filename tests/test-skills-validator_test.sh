@@ -108,4 +108,45 @@ if grep -R "setup-matt-pocock-skills" "$REPO_ROOT" \
     exit 1
 fi
 
+# Fixture D: skill catalog validator hard-fails descriptions over 280 chars.
+catalog_root="$TMP_ROOT/catalog-hard-fail"
+mkdir -p "$catalog_root/too-long"
+{
+    echo '---'
+    echo 'name: too-long'
+    printf 'description: '
+    python3 - <<'PY'
+print('x' * 281)
+PY
+    echo '---'
+    echo 'Body'
+} > "$catalog_root/too-long/SKILL.md"
+set +e
+catalog_output=$(python3 "$REPO_ROOT/scripts/validate-skill-catalog.py" --root "$catalog_root" 2>&1)
+catalog_exit=$?
+set -e
+if [ "$catalog_exit" -eq 0 ]; then
+    echo "Expected catalog hard-fail fixture to fail" >&2
+    echo "$catalog_output" >&2
+    exit 1
+fi
+assert_contains "$catalog_output" "exceeds hard limit 280"
+
+# Fixture E: over-target but under-hard descriptions warn without failing.
+catalog_warn="$TMP_ROOT/catalog-warn"
+mkdir -p "$catalog_warn/warn-skill"
+{
+    echo '---'
+    echo 'name: warn-skill'
+    printf 'description: '
+    python3 - <<'PY'
+print('x' * 181)
+PY
+    echo '---'
+    echo 'Body'
+} > "$catalog_warn/warn-skill/SKILL.md"
+warn_output=$(python3 "$REPO_ROOT/scripts/validate-skill-catalog.py" --root "$catalog_warn" 2>&1)
+assert_contains "$warn_output" "WARN:"
+assert_contains "$warn_output" "skill catalog validation passed"
+
 printf 'test-skills validator regression tests passed\n'

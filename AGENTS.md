@@ -27,9 +27,11 @@ Pick the skill matching the user's request. Each skill has:
 | `ubiquitous-language` | Building DDD-style glossaries |
 | `using-git-worktrees` | Setting up isolated workspaces |
 | `publish-semver` | Publishing packages with semver, GitHub Actions, and multi-ecosystem registries |
-| `init-ai-repo` | Initialize an AI-ready repo -- BRD/PRD traceability, tracker setup, CI/governance, release versioning, Archgate, Karpathy baseline, branch-policy checklist, and ADRs; deprecated alias: `ai-sdlc-init` |
+| `init-ai-repo` | Initialize AI-ready repo governance, traceability, cascade, catalog audit, and validation; deprecated alias: `ai-sdlc-init` |
 
 ## Writing Rules
+
+Description budget: target <=180 characters; hard-fail >280 characters unless `.ai/skills/description-exceptions.json` records an audited exception. Run `python3 scripts/validate-skill-catalog.py` after changing skill metadata.
 
 All skills follow Layer 2 guidelines:
 - Quick Start first

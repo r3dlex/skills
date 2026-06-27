@@ -82,7 +82,12 @@
     {
       "id": "skill-modernization",
       "enabled_when": "target repo owns a skill catalog",
-      "status": "planned-pr-6e"
+      "status": "available",
+      "outputs": [
+        ".ai/skills/catalog-audit.json",
+        ".ai/skills/description-exceptions.json",
+        ".ai/skills/modernization-report.md"
+      ]
     }
   ],
   "handoff": ".ai/handoff/init-ai-repo-handoff.md",
@@ -104,5 +109,12 @@
     ],
     "first_run_confirmation_required": true,
     "idempotent_subsequent_updates": true
+  },
+  "skill_catalog": {
+    "audit": ".ai/skills/catalog-audit.json",
+    "description_exceptions": ".ai/skills/description-exceptions.json",
+    "modernization_report": ".ai/skills/modernization-report.md",
+    "target_description_chars": 180,
+    "hard_fail_description_chars": 280
   }
 }

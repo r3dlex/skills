@@ -1,6 +1,6 @@
 ---
 name: progressive-disclosure-docs
-description: Write and audit agent-facing Markdown documentation using progressive disclosure. Keeps SKILL.md, AGENTS.md, README.md, and other agent-readable .md files lean and layered so agents load only what they need. Use when creating or editing any .md file intended for agent consumption, when a repo has bloated agent docs, or when the user wants to audit and refactor all agent-facing Markdown in a codebase.
+description: 'Write or audit agent-facing Markdown with progressive disclosure. Use when editing SKILL.md, AGENTS.md, README.md, or other agent docs.'
 ---
 
 # Progressive Disclosure Docs

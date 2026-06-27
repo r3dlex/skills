@@ -1,6 +1,6 @@
 ---
 name: using-git-worktrees
-description: Create isolated git worktrees for feature work with smart directory selection and safety verification. Use when starting feature work that needs isolation from current workspace, before executing implementation plans, or when the user mentions worktrees.
+description: "Create isolated git worktrees with safety checks and setup guidance. Use when starting feature work that needs separation from the main checkout."
 ---
 
 # Using Git Worktrees

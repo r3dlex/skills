@@ -117,3 +117,7 @@ Migration rules, the action vocabulary, and the migration-manifest schema are ow
 ## Cascade outputs
 
 When the cascade branch is enabled, generate `.ai/cascade/cascade-plan.json`, `.ai/cascade/audit.jsonl`, `.ai/cascade/reconciliation-report.md`, and `.ai/cascade/host-adapters/<host>.json` for each configured host. These outputs are validation artifacts; hosted mutation remains confirmation-gated.
+
+## Skill catalog outputs
+
+When the target repo owns a skill catalog, generate `.ai/skills/catalog-audit.json`, `.ai/skills/description-exceptions.json`, and `.ai/skills/modernization-report.md`. These artifacts enforce compact descriptions, progressive disclosure, trigger boundaries, cross-skill links, and AI-SDLC compatibility.

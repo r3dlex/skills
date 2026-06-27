@@ -1,0 +1,225 @@
+{
+  "schema_version": "1.0",
+  "policy": {
+    "target_description_chars": 180,
+    "hard_fail_description_chars": 280,
+    "body_line_limit": 100,
+    "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
+  },
+  "skill_count": 21,
+  "warnings": [],
+  "failures": [],
+  "skills": [
+    {
+      "name": "ai-sdlc-init",
+      "path": "ai-sdlc-init/SKILL.md",
+      "description_chars": 130,
+      "description_status": "target",
+      "body_lines": 6,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "design-an-api-or-interface",
+      "path": "design-an-api-or-interface/SKILL.md",
+      "description_chars": 151,
+      "description_status": "target",
+      "body_lines": 55,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "diagnose",
+      "path": "diagnose/SKILL.md",
+      "description_chars": 135,
+      "description_status": "target",
+      "body_lines": 68,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "edit-article",
+      "path": "edit-article/SKILL.md",
+      "description_chars": 92,
+      "description_status": "target",
+      "body_lines": 30,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "grill-me",
+      "path": "grill-me/SKILL.md",
+      "description_chars": 136,
+      "description_status": "target",
+      "body_lines": 4,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "grill-with-docs",
+      "path": "grill-with-docs/SKILL.md",
+      "description_chars": 145,
+      "description_status": "target",
+      "body_lines": 82,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "handoff",
+      "path": "handoff/SKILL.md",
+      "description_chars": 86,
+      "description_status": "target",
+      "body_lines": 10,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "improve-codebase-architecture",
+      "path": "improve-codebase-architecture/SKILL.md",
+      "description_chars": 130,
+      "description_status": "target",
+      "body_lines": 67,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "init-ai-repo",
+      "path": "init-ai-repo/SKILL.md",
+      "description_chars": 161,
+      "description_status": "target",
+      "body_lines": 71,
+      "cross_skill_links": "present",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "prototype",
+      "path": "prototype/SKILL.md",
+      "description_chars": 145,
+      "description_status": "target",
+      "body_lines": 26,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "publish-semver",
+      "path": "publish-semver/SKILL.md",
+      "description_chars": 145,
+      "description_status": "target",
+      "body_lines": 69,
+      "cross_skill_links": "present",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "setup-skills",
+      "path": "setup-skills/SKILL.md",
+      "description_chars": 141,
+      "description_status": "target",
+      "body_lines": 42,
+      "cross_skill_links": "present",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "tdd",
+      "path": "tdd/SKILL.md",
+      "description_chars": 127,
+      "description_status": "target",
+      "body_lines": 70,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "to-issues",
+      "path": "to-issues/SKILL.md",
+      "description_chars": 131,
+      "description_status": "target",
+      "body_lines": 76,
+      "cross_skill_links": "present",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "to-prd",
+      "path": "to-prd/SKILL.md",
+      "description_chars": 155,
+      "description_status": "target",
+      "body_lines": 79,
+      "cross_skill_links": "present",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "triage",
+      "path": "triage/SKILL.md",
+      "description_chars": 141,
+      "description_status": "target",
+      "body_lines": 99,
+      "cross_skill_links": "present",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "ubiquitous-language",
+      "path": "ubiquitous-language/SKILL.md",
+      "description_chars": 137,
+      "description_status": "target",
+      "body_lines": 87,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "using-git-worktrees",
+      "path": "using-git-worktrees/SKILL.md",
+      "description_chars": 145,
+      "description_status": "target",
+      "body_lines": 77,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "write-a-skill",
+      "path": "write-a-skill/SKILL.md",
+      "description_chars": 153,
+      "description_status": "target",
+      "body_lines": 34,
+      "cross_skill_links": "present",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "progressive-disclosure-docs",
+      "path": "write-agent-docs/SKILL.md",
+      "description_chars": 135,
+      "description_status": "target",
+      "body_lines": 57,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "zoom-out",
+      "path": "zoom-out/SKILL.md",
+      "description_chars": 135,
+      "description_status": "target",
+      "body_lines": 2,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    }
+  ],
+  "status": "pass"
+}

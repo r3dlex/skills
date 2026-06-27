@@ -1,6 +1,6 @@
 ---
 name: design-an-api-or-interface
-description: Design software interfaces using the "Design It Twice" methodology — generate multiple radically different designs before choosing one. Use when user asks to design an API, interface, module, or class, or wants multiple design options before choosing one.
+description: 'Design APIs/interfaces with Design It Twice: create alternatives, compare tradeoffs, choose one. Use when designing an API, module, class, or boundary.'
 ---
 
 # Design an API or Interface

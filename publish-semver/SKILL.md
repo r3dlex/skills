@@ -1,6 +1,6 @@
 ---
 name: publish-semver
-description: Set up and operate semantic versioning with automated publishing for JS/TS (npm), Python (PyPI), Elixir (Hex + Burrito), Rust (crates.io), C# (NuGet), Dart/Flutter (pub.dev), Java (Maven Central), Kotlin (Gradle + Maven Central), and Erlang (Hex) via GitHub Actions or Azure DevOps Pipelines. Handles conventional commits, pre-release increments on every main branch push, stable releases via Release-Please or semantic-release, dual publishing to host-native and public registries, and floating major version tags. Use when the user wants to publish a package, set up versioning, configure release automation, write a CI release workflow, or ask about semver, changelogs, pre-releases, or floating tags in any of these ecosystems.
+description: "Set up semantic or calendar versioning and package publishing across supported ecosystems. Use when configuring release automation or changelogs."
 ---
 
 # publish-semver

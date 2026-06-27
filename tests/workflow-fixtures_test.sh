@@ -61,7 +61,7 @@ for fixture, topology in fixtures.items():
 
     branch_status = {branch["id"]: branch["status"] for branch in manifest["optional_branches"]}
     assert branch_status["multi-repo-cascade"] == "available"
-    assert branch_status["skill-modernization"] == "planned-pr-6e"
+    assert branch_status["skill-modernization"] == "available"
 
     doc = doc_path.read_text()
     assert "## Mandatory steps" in doc
@@ -71,7 +71,9 @@ for fixture, topology in fixtures.items():
     assert ".ai/commands/omx/" in doc
     assert ".ai/commands/omc/" in doc
     assert "available" in doc
-    assert "planned-pr-6e" in doc
+    assert ".ai/skills/catalog-audit.json" in doc
+    assert ".ai/skills/description-exceptions.json" in doc
+    assert ".ai/skills/modernization-report.md" in doc
     assert ".ai/cascade/cascade-plan.json" in doc
     assert ".ai/cascade/audit.jsonl" in doc
     assert ".ai/cascade/reconciliation-report.md" in doc
@@ -91,6 +93,7 @@ assert "workflow.md` | Read when generating repo workflow docs" in modules
 assert "`modules/traceability.md` — read when generating stable traceability IDs" in skill
 assert "traceability.md` | Read when generating stable IDs" in modules
 assert "`modules/cascade.md` — read when generating multi-repo cascade plans" in skill
+assert "`modules/skill-modernization.md` — read when auditing compact descriptions" in skill
 PY
 
 printf 'workflow fixture validation passed\n'
