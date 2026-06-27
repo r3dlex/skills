@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "workflow_id": "init-ai-repo",
+  "phase_id": "04-validate-handoff",
+  "title": "Validate & Handoff",
+  "required": true,
+  "status": "pending",
+  "inputs": [
+    ".ai/phases/03-configure-generate/status.json"
+  ],
+  "outputs": [
+    ".ai/validation/report.md",
+    ".ai/drift/migration-manifest.json",
+    ".ai/handoff/init-ai-repo-handoff.md"
+  ],
+  "next_actions": [
+    "Run this phase and update status to complete with validation evidence."
+  ]
+}

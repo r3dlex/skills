@@ -61,7 +61,8 @@ When this skill creates or updates PR workflow guidance, require merge only afte
 - `REFERENCE.md` — read only for legacy full template bodies that have not yet moved into focused modules.
 - `modules/readme-documentation.md` — read when initializing, augmenting, or rewriting `README.md`.
 - `modules/release-versioning.md` — read when initializing release tagging, versioning, or CI/CD release workflows.
-- Planned phase modules: `modules/workflow.md` (PR 6B), `modules/traceability.md` (PR 6C), and `modules/cascade.md` (PR 6D). These are map entries only until their dedicated phase PRs add the files and validation.
+- `modules/workflow.md` — read when generating repo workflow docs, workflow/status manifests, entry-surface links, and handoff indexes.
+- Planned phase modules: `modules/traceability.md` (PR 6C) and `modules/cascade.md` (PR 6D). These are map entries only until their dedicated phase PRs add the files and validation.
 
 ## Safety Rules
 

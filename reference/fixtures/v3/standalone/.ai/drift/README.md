@@ -13,6 +13,16 @@ Reference v3 layout for a standalone repository. The tree below documents the ex
 │   ├── skills/
 │   │   ├── git-ops.json
 │   │   └── workspace-sync.json
+│   ├── workflows/
+│   │   ├── repo-workflow.md
+│   │   └── repo-workflow.json
+│   ├── phases/
+│   │   ├── 01-discover-decide/status.json
+│   │   ├── 02-govern-plan/status.json
+│   │   ├── 03-configure-generate/status.json
+│   │   └── 04-validate-handoff/status.json
+│   ├── handoff/
+│   │   └── init-ai-repo-handoff.md
 │   ├── rules/
 │   │   ├── security.md
 │   │   └── technical-bounds.md
