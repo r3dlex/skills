@@ -78,12 +78,29 @@ for fixture, topology in fixtures.items():
     assert ".ai/cascade/audit.jsonl" in doc
     assert ".ai/cascade/reconciliation-report.md" in doc
 
-    for surface in ["AGENTS.md", "CLAUDE.md", "README.md"]:
+    # AGENTS.md + README.md are the workflow-linking entry surfaces (ADR-0004).
+    for surface in ["AGENTS.md", "README.md"]:
         surface_path = root / surface
         assert surface_path.is_file(), f"missing {surface_path}"
         text = surface_path.read_text()
         assert ".ai/workflows/repo-workflow.md" in text
         assert ".ai/workflows/repo-workflow.json" in text
+
+    # CLAUDE.md + GEMINI.md are thin pointers to AGENTS.md with no workflow links.
+    for surface in ["CLAUDE.md", "GEMINI.md"]:
+        surface_path = root / surface
+        assert surface_path.is_file(), f"missing {surface_path}"
+        text = surface_path.read_text()
+        assert "AGENTS.md" in text, f"{surface_path} must point to AGENTS.md"
+        assert "repo-workflow" not in text, f"{surface_path} must not link workflow files"
+        assert not any(line.startswith("## ") for line in text.splitlines()), \
+            f"{surface_path} must have no '##' content sections"
+
+    # entry_surfaces manifest contract drops CLAUDE.md/GEMINI.md.
+    assert "CLAUDE.md" not in manifest["entry_surfaces"], manifest["entry_surfaces"]
+    assert "GEMINI.md" not in manifest["entry_surfaces"], manifest["entry_surfaces"]
+    assert "AGENTS.md" in manifest["entry_surfaces"]
+    assert "README.md" in manifest["entry_surfaces"]
 
 # Module/read-order surfaces must expose workflow as active, not planned-only.
 skill = Path("init-ai-repo/SKILL.md").read_text()

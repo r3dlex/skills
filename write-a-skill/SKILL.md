@@ -36,3 +36,18 @@ skill-name/
 - Do not bury common workflow steps in references.
 - Do not include time-sensitive claims unless they can be maintained.
 - Prefer concrete examples over generic advice, but move long examples out of `SKILL.md`.
+
+## Codex Parity
+
+Skills must work tool-agnostically (Claude Code and Codex). Do not hard-depend on Claude/OMC-only invocations: `AskUserQuestion`, `Task(subagent_type=...)`, `Skill(...)`, `subagent_type:`, `TodoWrite`, or `mcp__*` tool calls. Prefer tool-agnostic prose — for example, ask the user a question in plain markdown instead of calling the interactive question tool. `scripts/check-codex-parity.sh` enforces this; it scans only real invocations and ignores documented mentions inside backticks or fenced code blocks.
+
+When a Claude-only construct is genuinely needed, annotate it with the graceful-degradation marker and describe a plain-markdown fallback adjacent to it:
+
+```markdown
+<!-- codex:optional -->
+Use AskUserQuestion to pick a branch.
+Fallback (Codex / plain markdown): list the options as a numbered list and ask
+the user to reply with a number.
+```
+
+The marker on the construct line (or the line directly above it, with no blank line between) permits that single annotated occurrence; everything else must be unmarked and tool-agnostic.

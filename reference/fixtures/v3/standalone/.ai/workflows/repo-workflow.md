@@ -21,7 +21,7 @@ This generated workflow is the shared source of truth for mandatory and optional
 
 ## Entry surface links
 
-Generated `AGENTS.md`, `CLAUDE.md`, and `README.md` must link to this workflow doc and `.ai/workflows/repo-workflow.json`.
+Generated `AGENTS.md` and `README.md` must link to this workflow doc and `.ai/workflows/repo-workflow.json`. `CLAUDE.md` and `GEMINI.md` are thin pointers to `AGENTS.md` (ADR-0004) and are not entry surfaces.
 
 ## Traceability
 

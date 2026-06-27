@@ -57,7 +57,7 @@ A domain language glossary at the repo root defining canonical terms for the pro
 _Avoid_: Glossary, terminology doc, domain model
 
 **ADR**:
-Architecture Decision Record — a document capturing a hard-to-reverse decision, its context, alternatives considered, and consequences. Stored under `docs/adr/`. Only warranted when the decision is hard to reverse, surprising without context, and the result of a real trade-off.
+Architecture Decision Record — a document capturing a hard-to-reverse decision, its context, alternatives considered, and consequences. Stored under `docs/architecture/adr/`. Only warranted when the decision is hard to reverse, surprising without context, and the result of a real trade-off.
 _Avoid_: Design doc, tech spec, decision log
 
 **PRD**:

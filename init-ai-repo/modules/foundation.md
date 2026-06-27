@@ -11,7 +11,7 @@ Read when writing the current base scaffold artifacts. This module names the art
 - `scripts/sync-upstream.sh` as a documented sync scaffold
 - `.github/workflows/ci-prek.yml`, `prek.toml`, `scripts/validate-rules.sh`, and `scripts/archgate.sh`
 - `.rules.ts` with backend, frontend, data, architecture, and general rule domains
-- `AGENTS.md`, `CLAUDE.md`, and `README.md` AI SDLC marker blocks
+- `AGENTS.md` and `README.md` AI SDLC marker blocks (`CLAUDE.md`/`GEMINI.md` are thin pointers to `AGENTS.md` and carry no marker block)
 - `docs/adr/ADR-TEMPLATE.md` and `ADR-0001-record-architecture-decisions.md`
 
 ## Idempotency

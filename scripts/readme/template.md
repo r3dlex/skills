@@ -64,5 +64,5 @@
 <SPDX_ID> — see [LICENSE](LICENSE).
 
 <!-- AI-SDLC:start -->
-This repository follows the AI-SDLC methodology. See [AGENTS.md](AGENTS.md) for the operating contract, [docs/adr/](docs/adr/) for architectural decisions, and the BRD/PRD traceability chain.
+This repository follows the AI-SDLC methodology. See [AGENTS.md](AGENTS.md) for the operating contract, [docs/architecture/adr/](docs/architecture/adr/) for architectural decisions, and the BRD/PRD traceability chain.
 <!-- AI-SDLC:end -->

@@ -72,7 +72,9 @@ echo ""
 echo "--- Modified file marker checks ---"
 marker_pattern='<!-- ai-sdlc-init:start -->'
 
-for marker_file in "AGENTS.md" "CLAUDE.md" "README.md" ".gitignore"; do
+# CLAUDE.md/GEMINI.md are thin pointers to AGENTS.md (ADR-0004); they carry no
+# marker block, so only the content-bearing surfaces are checked here.
+for marker_file in "AGENTS.md" "README.md" ".gitignore"; do
   repo_file="$REPO_PATH/$marker_file"
   if [ -f "$repo_file" ]; then
     if grep -q "$marker_pattern" "$repo_file" 2>/dev/null; then

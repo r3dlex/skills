@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "judge": {
+    "tier": "frontier",
+    "mode": "lm-judge",
+    "harness": "stub",
+    "evaluates": ["output", "trajectory"],
+    "passing_threshold": 0.8,
+    "execution": "out-of-band"
+  },
+  "trajectory_trace": {
+    "schema_version": "1.0",
+    "records": "tool-call sequence with arguments and outcomes",
+    "scored_against": "rubric.md trajectory criteria"
+  }
+}

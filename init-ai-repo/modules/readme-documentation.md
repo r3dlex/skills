@@ -84,9 +84,9 @@ Before any augmentation or rewrite:
 
 Append a short, link-only block at the end of the README. The block must:
 
-- Link to `AGENTS.md` (or `CLAUDE.md` when only that exists), `CONTRIBUTING.md`, `docs/adr/`, and any BRD/PRD traceability doc that exists.
+- Link to `AGENTS.md` (or `CLAUDE.md` when only that exists), `CONTRIBUTING.md`, `docs/architecture/adr/`, and any BRD/PRD traceability doc that exists.
 - Stay under 10 lines.
-- Use neutral wording: "This repository follows the AI-SDLC methodology. See [AGENTS.md] for the operating contract, [docs/adr/] for architectural decisions, and [BRD/PRD] for traceability."
+- Use neutral wording: "This repository follows the AI-SDLC methodology. See [AGENTS.md] for the operating contract, [docs/architecture/adr/] for architectural decisions, and [BRD/PRD] for traceability."
 - Never inline `.rules.ts`, ADR bodies, BRD/PRD bodies, or full governance payloads.
 
 ## Safety rules

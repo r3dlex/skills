@@ -1,7 +1,7 @@
 # ADR 0004: AGENTS.md as single source of truth; CLAUDE.md/GEMINI.md as thin stubs; full Codex parity
 
 ## Status
-Proposed.
+Accepted.
 
 ## Context
 The whitepaper classifies AGENTS.md, CLAUDE.md, and GEMINI.md as static-context rule files and stresses portability across tools/vendors as a core reason Agent Skills exist. The user requires that `CLAUDE.md` only refer to `AGENTS.md` (same as `GEMINI.md`) and that skills work tool-agnostically across Claude Code and Codex. The in-flight PR6 scope instead links workflow content into CLAUDE.md, which conflicts. This repo's own `skills/CLAUDE.md` currently carries an "AI SDLC" section and a stale `docs/adr/` reference, and `AGENTS.md` (AI SDLC Methodology section, line 66) points at the legacy `docs/adr/` path.

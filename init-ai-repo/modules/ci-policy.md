@@ -46,6 +46,7 @@ For any PR workflow or branch-policy checklist created by this skill, state that
 - **Reviewer** agrees code quality, safety, documentation, and drift checks have no blocking findings.
 - **Executor** agrees the requested change is complete, cleanup is done, and required checks are green.
 - All actionable PR comments are resolved.
+- Eval coverage: structurally valid eval declaration required. A skill changed in the PR diff that declares an `eval:` key (a shippable capability) must reference a structurally valid evalset — an `.ai/evals/<set>/` directory with `evalset.json`, `rubric.md`, and `judge-config.json`, each parsing and well-formed. Doc-only or unchanged skills are exempt, and an audited-exception token in `.ai/evals/coverage-exceptions.json` (owner, reason, expiry) bypasses the gate for non-shippable changes. This check is offline and deterministic: eval coverage is enforced structurally in CI; eval quality is verified via an out-of-band LM-judge run, never by a model or network call in CI. See `modules/evals.md`.
 - Local CI and host SCM CI (GitHub Actions, Azure Pipelines, or GitLab CI as applicable) are green.
 - The architect, reviewer, and executor loop reaches explicit agreement. If any role disagrees, comments remain actionable, or checks are not green, do not merge.
 - Auto-merge may be enabled only after actionable comments are resolved, local CI and host SCM CI are green, the architect/reviewer/executor loop agrees, and branch policy permits merge.

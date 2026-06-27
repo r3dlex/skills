@@ -28,6 +28,10 @@ Pick the skill matching the user's request. Each skill has:
 | `using-git-worktrees` | Setting up isolated workspaces |
 | `publish-semver` | Publishing packages with semver, GitHub Actions, and multi-ecosystem registries |
 | `init-ai-repo` | Initialize AI-ready repo governance, traceability, cascade, catalog audit, and validation; deprecated alias: `ai-sdlc-init` |
+| `to-prd` | Turning conversation context into a PRD on the issue tracker |
+| `to-issues` | Breaking a plan or PRD into independently-grabbable tracker issues |
+| `triage` | Triaging issues through a role-driven state machine |
+| `diagnose` | Disciplined diagnosis loop for hard bugs and performance regressions |
 
 ## Writing Rules
 
@@ -40,6 +44,10 @@ All skills follow Layer 2 guidelines:
 - Reference deeper files with "when to read" context
 - No "Overview" or "Background" sections
 - Under 100 lines
+
+### Codex parity
+
+Skill bodies must be tool-agnostic across Claude Code and Codex. Do not hard-depend on Claude/OMC-only invocations (`AskUserQuestion`, `Task(subagent_type=...)`, `Skill(...)`, `subagent_type:`, `TodoWrite`, `mcp__*`); use plain-markdown prose instead. `scripts/check-codex-parity.sh` enforces this and scans real invocations only (mentions inside backticks or fenced code blocks are ignored). When a Claude-only construct is unavoidable, annotate it with the `<!-- codex:optional -->` marker on the construct line (or the line directly above it, with no blank line between) and describe a plain-markdown fallback adjacent to it. See `write-a-skill/SKILL.md` for the convention.
 
 ## Layers
 
@@ -63,7 +71,7 @@ This repository uses the init-ai-repo methodology. The deprecated `ai-sdlc-init`
 
 ### Architecture Decision Records
 
-Significant architectural decisions are recorded in [`docs/adr/`](docs/adr/).
+Significant architectural decisions are recorded in [`docs/architecture/adr/`](docs/architecture/adr/).
 Before making a change that affects module boundaries, API contracts, data
 schemas, or dependency direction, check whether a relevant ADR exists.
 If your change contradicts an existing ADR, either update the ADR or open a

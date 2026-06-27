@@ -48,6 +48,8 @@ When this skill creates or updates PR workflow guidance, require merge only afte
 4. All actionable PR comments are resolved and local CI plus host SCM CI (GitHub Actions, Azure Pipelines, or GitLab CI as applicable) are green.
 5. The loop reaches explicit agreement across architect, reviewer, and executor; if any role disagrees, comments remain actionable, checks are not green, or branch policy forbids merge, do not merge or auto-merge.
 
+`modules/ci-policy.md` adds a mechanical eval-coverage check to this PR merge gate: a changed shippable skill must declare a structurally valid evalset. See `modules/evals.md`.
+
 ## Module Map
 
 - `modules/README.md` — read when choosing which Layer 3 module applies.
@@ -65,6 +67,7 @@ When this skill creates or updates PR workflow guidance, require merge only afte
 - `modules/traceability.md` — read when generating stable traceability IDs, graph schema, backlink validation, graph fixtures, or cross-skill requirement/work-artifact links.
 - `modules/cascade.md` — read when generating multi-repo cascade plans, first-run confirmation gates, idempotent linked updates, host adapter contracts, audits, and reconciliation reports.
 - `modules/skill-modernization.md` — read when auditing compact descriptions, progressive disclosure, trigger boundaries, cross-skill links, and AI-SDLC compatibility.
+- `modules/evals.md` — read when generating the `.ai/evals/` scaffold or the offline eval-coverage gate that `modules/ci-policy.md` adds to the PR merge gate.
 
 ## Safety Rules
 

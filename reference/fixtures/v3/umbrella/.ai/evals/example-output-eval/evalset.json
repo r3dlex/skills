@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "set_id": "example-output-eval",
+  "kind": "output",
+  "skill_under_test": "example-skill",
+  "cases": [
+    {
+      "case_id": "case-001",
+      "input": "Generate the v3 .ai/ tree for an umbrella repo and inherit assets by physical copy.",
+      "expected_behavior": "Emits the documented tree, inherits listed assets, and respects max_allowed_depth.",
+      "trajectory": ["read-matrix", "resolve-managed-repos", "plan-tree", "write-files", "emit-audit"]
+    }
+  ]
+}

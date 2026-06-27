@@ -1,7 +1,7 @@
 # ADR 0005: MCP/A2A open standards and an observability harness surface
 
 ## Status
-Proposed.
+Accepted.
 
 ## Context
 The whitepaper lists observability (logs, traces, eval/cost/latency metering) as non-optional harness surface — "without observability there is no way to tell whether the agent is doing well or quietly drifting" — and recommends adopting open standards now: Model Context Protocol (MCP) for tool access and Agent2Agent (A2A) for cross-agent delegation. Today the repo has no observability surface and only a single passing mention of MCP/A2A in `documentation-blueprint.md`.
