@@ -1,91 +1,91 @@
 {
   "schema_version": "1.1",
-  "root_repo_id": "umbrella-root",
-  "topology_type": "umbrella",
+  "root_repo_id": "standalone-root",
+  "topology_type": "standalone",
   "generated_at": "2026-06-27T00:00:00Z",
   "nodes": [
     {
-      "id": "prd:umbrella-root:init-ai-repo-workflow-surfaces",
+      "id": "prd:standalone-root:init-ai-repo-workflow-surfaces",
       "type": "prd",
       "title": "init-ai-repo workflow surfaces",
       "status": "active",
-      "repo_id": "umbrella-root",
+      "repo_id": "standalone-root",
       "path": "docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md",
       "backlinks": []
     },
     {
-      "id": "pr:umbrella-root:workflow-surfaces",
+      "id": "pr:standalone-root:workflow-surfaces",
       "type": "pr",
       "title": "PR 6B workflow surfaces",
       "status": "active",
-      "repo_id": "umbrella-root",
+      "repo_id": "standalone-root",
       "path": ".ai/reviews/pr-6b-workflow-surfaces.md",
       "backlinks": [
-        "prd:umbrella-root:init-ai-repo-workflow-surfaces"
+        "prd:standalone-root:init-ai-repo-workflow-surfaces"
       ]
     },
     {
-      "id": "test:umbrella-root:workflow-fixtures",
+      "id": "test:standalone-root:workflow-fixtures",
       "type": "test",
       "title": "Workflow fixture validation",
       "status": "active",
-      "repo_id": "umbrella-root",
+      "repo_id": "standalone-root",
       "path": "tests/workflow-fixtures_test.sh",
       "backlinks": [
-        "pr:umbrella-root:workflow-surfaces"
+        "pr:standalone-root:workflow-surfaces"
       ]
     },
     {
-      "id": "eval-result:umbrella-root:example-output-eval",
+      "id": "eval-result:standalone-root:example-output-eval",
       "type": "eval-result",
       "title": "example-output-eval LM-judge result",
       "status": "active",
-      "repo_id": "umbrella-root",
-      "path": ".ai/evals/example-output-eval/evalset.json",
+      "repo_id": "standalone-root",
+      "path": ".ai/evals/example-output-eval/judgment-demo.json",
       "backlinks": [
-        "pr:umbrella-root:workflow-surfaces"
+        "pr:standalone-root:workflow-surfaces"
       ]
     },
     {
-      "id": "trajectory-trace:umbrella-root:example-output-eval",
+      "id": "trajectory-trace:standalone-root:example-output-eval",
       "type": "trajectory-trace",
       "title": "example-output-eval trajectory trace",
       "status": "active",
-      "repo_id": "umbrella-root",
-      "path": ".ai/evals/example-output-eval/rubric.md",
+      "repo_id": "standalone-root",
+      "path": ".ai/evals/example-output-eval/evalset.json",
       "backlinks": [
-        "eval-result:umbrella-root:example-output-eval"
+        "eval-result:standalone-root:example-output-eval"
       ]
     }
   ],
   "edges": [
     {
-      "source": "prd:umbrella-root:init-ai-repo-workflow-surfaces",
-      "target": "pr:umbrella-root:workflow-surfaces",
+      "source": "prd:standalone-root:init-ai-repo-workflow-surfaces",
+      "target": "pr:standalone-root:workflow-surfaces",
       "relation": "implemented-by",
       "created_by": "init-ai-repo",
       "evidence_path": ".ai/traceability/index.md"
     },
     {
-      "source": "pr:umbrella-root:workflow-surfaces",
-      "target": "test:umbrella-root:workflow-fixtures",
+      "source": "pr:standalone-root:workflow-surfaces",
+      "target": "test:standalone-root:workflow-fixtures",
       "relation": "verified-by",
       "created_by": "init-ai-repo",
       "evidence_path": ".ai/traceability/index.md"
     },
     {
-      "source": "pr:umbrella-root:workflow-surfaces",
-      "target": "eval-result:umbrella-root:example-output-eval",
+      "source": "pr:standalone-root:workflow-surfaces",
+      "target": "eval-result:standalone-root:example-output-eval",
       "relation": "evaluated-by",
       "created_by": "init-ai-repo",
-      "evidence_path": ".ai/evals/example-output-eval/evalset.json"
+      "evidence_path": ".ai/evals/example-output-eval/judgment-demo.json"
     },
     {
-      "source": "eval-result:umbrella-root:example-output-eval",
-      "target": "trajectory-trace:umbrella-root:example-output-eval",
+      "source": "eval-result:standalone-root:example-output-eval",
+      "target": "trajectory-trace:standalone-root:example-output-eval",
       "relation": "traced-by",
       "created_by": "init-ai-repo",
-      "evidence_path": ".ai/evals/example-output-eval/rubric.md"
+      "evidence_path": ".ai/evals/example-output-eval/evalset.json"
     }
   ],
   "coverage": {

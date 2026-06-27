@@ -95,6 +95,17 @@ Schema `1.1` is a strictly additive bump over `1.0`. No `1.0` field is removed o
 }
 ```
 
+### Wiring eval evidence (eval-result / trajectory-trace)
+
+When eval evidence exists, wire it into the graph so it is reachable from the work item it grades:
+
+- Link the evaluated work item (a `skill`, `pr`, `test`, `issue`, or `plan` node) to its `eval-result` node with an `evaluated-by` edge (`source` = work item, `target` = `eval-result`).
+- Link the `eval-result` node to its `trajectory-trace` node with a `traced-by` edge (`source` = `eval-result`, `target` = `trajectory-trace`).
+- Each `eval-result` and `trajectory-trace` node's `path` MUST point at a real eval artifact under `.ai/evals/<set-id>/` that exists on disk (e.g. the recorded `judgment-demo.json` for a result, the `evalset.json` trajectory or `rubric.md` for a trace). Do not invent paths; reference the committed eval fixtures/outputs.
+- The `evidence_path` on `evaluated-by` / `traced-by` edges should point at the same real eval artifact rather than a generic index, so the edge itself carries provenance.
+
+Both topologies ship a fixture demonstrating this: `reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json` and `reference/fixtures/v3/umbrella/.ai/traceability/graph-1.1.json`. Each wires a `pr` node → `eval-result` (`evaluated-by`) → `trajectory-trace` (`traced-by`) against the `.ai/evals/example-output-eval/` fixtures.
+
 ### Version acceptance and migration
 
 - The validator accepts any graph whose `schema_version` is `>= 1.1` and treats `eval-result`/`trajectory-trace` as known types; it also still accepts `1.0` graphs (back-compat). A node `type` outside the known enum still fails validation at any version.
