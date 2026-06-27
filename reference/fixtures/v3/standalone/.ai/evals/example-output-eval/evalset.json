@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "set_id": "example-output-eval",
+  "kind": "output",
+  "skill_under_test": "example-skill",
+  "cases": [
+    {
+      "case_id": "case-001",
+      "input": "Generate the v3 .ai/ tree for a clean standalone repo.",
+      "expected_behavior": "Emits the documented directory tree with no overwrites and a generation audit entry.",
+      "trajectory": ["read-matrix", "plan-tree", "write-files", "emit-audit"]
+    }
+  ]
+}

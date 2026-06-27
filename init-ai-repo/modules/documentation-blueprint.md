@@ -29,6 +29,12 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 │   │   ├── graph.json
 │   │   ├── index.md
 │   │   └── validation-report.md
+│   ├── evals/
+│   │   ├── coverage-exceptions.json
+│   │   └── <set>/
+│   │       ├── evalset.json
+│   │       ├── rubric.md
+│   │       └── judge-config.json
 │   ├── rules/
 │   │   ├── security.md
 │   │   └── technical-bounds.md
@@ -81,6 +87,7 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 - `phases/` holds per-phase status JSON for mandatory workflow steps.
 - `handoff/` holds the generated initialization handoff index.
 - `traceability/` holds graph.json, index.md, and validation-report.md for BRD/PRD/work artifact links.
+- `evals/` holds one directory per evalset (`evalset.json`, `rubric.md`, `judge-config.json`) plus `coverage-exceptions.json`. Both output and trajectory evaluation are representable; see `modules/evals.md`. The eval-coverage gate is offline-structural only.
 
 ## `.memory/`
 

@@ -27,6 +27,10 @@ python3 -m json.tool reference/fixtures/v3/standalone/.ai/skills/git-ops.json >/
 python3 -m json.tool reference/fixtures/v3/standalone/.ai/skills/workspace-sync.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/standalone/.ai/workflows/repo-workflow.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/standalone/.ai/traceability/graph.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/standalone/.ai/evals/example-output-eval/evalset.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/standalone/.ai/evals/example-output-eval/judge-config.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/umbrella/.ai/evals/example-output-eval/evalset.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/umbrella/.ai/evals/example-output-eval/judge-config.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/matrix.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/drift/last-drift.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/workflows/repo-workflow.json >/dev/null
@@ -127,6 +131,7 @@ The validator runs the following v3 checks on the v3 fixtures and any candidate 
 11. **Host-policy safety wording** — host-policy documentation contains the dry-run / confirmation / audit / negative-test language and the non-admin auto-approval prohibition. See `modules/host-policy-automation.md`.
 12. **Migration audit** — when migrating from a legacy scaffold, `.ai/drift/migration-manifest.json` exists with the action vocabulary (`migrate`, `copy`, `deprecate`, `supersede`) and a confirmation token for every `migrate` action.
 13. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
+14. **Eval coverage** — for every `.ai/evals/<set>/` directory, `evalset.json`, `rubric.md`, and `judge-config.json` exist; `evalset.json` parses and declares `schema_version`, `set_id`, and a non-empty `cases` array; `judge-config.json` parses and declares `schema_version` and a `judge` block; `rubric.md` is non-empty. The eval-coverage gate (`modules/evals.md`, ADR-0002) is offline and structural only; no LM-judge or network call runs in CI. A skill changed in the PR diff that declares an `eval:` key must reference a structurally valid evalset unless an audited exception is recorded in `.ai/evals/coverage-exceptions.json`.
 
 ## v3 fixture set
 
