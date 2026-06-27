@@ -31,6 +31,8 @@ python3 -m json.tool reference/fixtures/v3/standalone/.ai/evals/example-output-e
 python3 -m json.tool reference/fixtures/v3/standalone/.ai/evals/example-output-eval/judge-config.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/evals/example-output-eval/evalset.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/evals/example-output-eval/judge-config.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/standalone/.ai/policies/model-routing.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/umbrella/.ai/policies/model-routing.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/matrix.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/drift/last-drift.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/workflows/repo-workflow.json >/dev/null
@@ -104,6 +106,29 @@ m = json.load(open("reference/fixtures/v3/depth-violation/.ai/matrix.json"))
 assert m["current_depth"] > m["max_allowed_depth"]
 assert any(repo["depth"] > m["max_allowed_depth"] for repo in m["managed_repositories"])
 PY
+python3 - <<'PY'
+import json
+
+TIERS = {"frontier", "mid", "cheap"}
+for variant in ("standalone", "umbrella"):
+    p = f"reference/fixtures/v3/{variant}/.ai/policies/model-routing.json"
+    data = json.load(open(p))
+    assert data.get("schema_version"), f"{p}: schema_version missing"
+    task_classes = data["task_classes"]
+    assert task_classes, f"{p}: task_classes empty"
+    # forward: every task-class maps to a known tier
+    for tc, tier in task_classes.items():
+        assert tier in TIERS, f"{p}: task-class {tc} -> unknown tier {tier}"
+    # reverse coverage: every tier has >=1 host alias; no alias outside the set
+    covered = set()
+    for host, aliases in data["host_aliases"].items():
+        assert aliases, f"{p}: host {host} has no aliases"
+        for tier, model in aliases.items():
+            assert tier in TIERS, f"{p}: host {host} aliases unknown tier {tier}"
+            assert model, f"{p}: host {host} tier {tier} empty model"
+            covered.add(tier)
+    assert covered == TIERS, f"{p}: tiers without a host alias: {sorted(TIERS - covered)}"
+PY
 python3 -m json.tool reference/fixtures/v3/legacy-migration/migration-manifest.json >/dev/null
 ```
 
@@ -132,6 +157,7 @@ The validator runs the following v3 checks on the v3 fixtures and any candidate 
 12. **Migration audit** — when migrating from a legacy scaffold, `.ai/drift/migration-manifest.json` exists with the action vocabulary (`migrate`, `copy`, `deprecate`, `supersede`) and a confirmation token for every `migrate` action.
 13. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
 14. **Eval coverage** — for every `.ai/evals/<set>/` directory, `evalset.json`, `rubric.md`, and `judge-config.json` exist; `evalset.json` parses and declares `schema_version`, `set_id`, and a non-empty `cases` array; `judge-config.json` parses and declares `schema_version` and a `judge` block; `rubric.md` is non-empty. The eval-coverage gate (`modules/evals.md`, ADR-0002) is offline and structural only; no LM-judge or network call runs in CI. A skill changed in the PR diff that declares an `eval:` key must reference a structurally valid evalset unless an audited exception is recorded in `.ai/evals/coverage-exceptions.json`.
+15. **Model-routing policy** — `.ai/policies/model-routing.json` exists, parses as JSON, and declares `schema_version` (ADR-0003, `modules/documentation-blueprint.md`). Tiers are provider-neutral: `{frontier, mid, cheap}`. **Forward:** every entry in the `task_classes` map points to a tier in that set. **Reverse coverage:** the `host_aliases` table maps each host (e.g. `claude`, `codex`) to per-tier model names; every tier in `{frontier, mid, cheap}` has at least one alias entry, and no alias points to a tier outside that set. The check is offline-structural only; it never resolves a provider model ID over the network.
 
 ## v3 fixture set
 

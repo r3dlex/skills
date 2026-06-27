@@ -35,6 +35,8 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 │   │       ├── evalset.json
 │   │       ├── rubric.md
 │   │       └── judge-config.json
+│   ├── policies/
+│   │   └── model-routing.json
 │   ├── rules/
 │   │   ├── security.md
 │   │   └── technical-bounds.md
@@ -89,6 +91,7 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 - `handoff/` holds the generated initialization handoff index.
 - `traceability/` holds graph.json, index.md, and validation-report.md for BRD/PRD/work artifact links.
 - `evals/` holds one directory per evalset (`evalset.json`, `rubric.md`, `judge-config.json`) plus `coverage-exceptions.json`. Both output and trajectory evaluation are representable; see `modules/evals.md`. The eval-coverage gate is offline-structural only.
+- `policies/` holds machine-readable routing/config policy. `model-routing.json` (ADR-0003) declares a `schema_version`, provider-neutral tiers `{frontier, mid, cheap}`, a `task_classes` map (task-class → tier), and a `host_aliases` table binding each host (e.g. `claude`, `codex`) to per-tier model names. Frontier covers requirements/architecture/initial-implementation/hard-verification; mid covers standard implementation/planning; cheap covers test generation/first-pass code review/CI monitoring/lookups. Tier aliases — not provider IDs — keep the policy portable; routing is validated offline-structurally (`modules/validation.md` check #15) with no network model resolution.
 
 ## `.memory/`
 
