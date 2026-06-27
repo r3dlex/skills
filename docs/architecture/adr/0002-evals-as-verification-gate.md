@@ -1,7 +1,7 @@
 # ADR 0002: Evals as a first-class verification gate
 
 ## Status
-Proposed.
+Accepted.
 
 ## Context
 The Day-1 whitepaper (*The New SDLC With Vibe Coding*, May 2026) names verification as the single biggest differentiator between vibe coding and agentic engineering: tests verify deterministic parts, **evals** (rubrics, labelled datasets, LM judges) verify non-deterministic parts, and **trajectory evaluation** checks the tool-call sequence — not just the final artifact. "Set the bar at the eval, not the demo." The repo currently has no first-class eval concept (`eval` appears only incidentally in `ci-policy.md`/`sync.md`).
