@@ -1,0 +1,5 @@
+{"cascade_id": "cascade:umbrella-root:init-ai-repo", "duplicates_created": 0, "event": "dry_run", "host": "all", "status": "planned", "ts": "2026-06-27T00:00:00Z"}
+{"cascade_id": "cascade:umbrella-root:init-ai-repo", "confirmation_token": null, "event": "apply_blocked", "host": "github", "status": "apply-blocked-no-confirmation", "ts": "2026-06-27T00:01:00Z"}
+{"cascade_id": "cascade:umbrella-root:init-ai-repo", "confirmation_token": "ct-2026-06-27-001", "event": "apply_confirmed", "host": "all", "status": "created-or-linked", "ts": "2026-06-27T00:02:00Z"}
+{"cascade_id": "cascade:umbrella-root:init-ai-repo", "duplicates_created": 0, "event": "idempotent_update", "host": "all", "status": "updated-existing", "ts": "2026-06-27T00:03:00Z"}
+{"cascade_id": "cascade:umbrella-root:init-ai-repo", "event": "readback", "host": "all", "missing_links": 0, "status": "match", "ts": "2026-06-27T00:04:00Z"}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "host": "ado",
+  "host_label": "Azure DevOps Boards",
+  "hosted": true,
+  "adapter_doc": "setup-skills/issue-tracker-ado.md",
+  "operations": [
+    "discover_scope",
+    "plan_parent_item",
+    "plan_child_item",
+    "dry_run",
+    "confirm_first_run",
+    "apply_confirmed_plan",
+    "readback_links",
+    "apply_idempotent_update",
+    "audit_event",
+    "reconcile"
+  ],
+  "safety": {
+    "first_run_without_confirmation": "blocked",
+    "confirmation_token_required": true,
+    "confirmation_token": "ct-2026-06-27-001",
+    "credentials_stored": false,
+    "host_policy_mutation": false
+  },
+  "dry_run": {
+    "status": "no-op-standalone",
+    "would_create_parent": false,
+    "would_create_children": 0
+  },
+  "apply": {
+    "status": "not-required",
+    "parent_key": null,
+    "child_keys": []
+  },
+  "second_run": {
+    "status": "no-op-existing",
+    "duplicates_created": 0,
+    "idempotency_key": "init-ai-repo:standalone-root:cascade"
+  },
+  "readback": {
+    "status": "match",
+    "parent_link_present": false,
+    "child_links_present": false
+  },
+  "audit_path": ".ai/cascade/audit.jsonl",
+  "standalone_noop": true
+}

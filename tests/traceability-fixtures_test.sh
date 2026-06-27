@@ -67,7 +67,7 @@ skill = Path("init-ai-repo/SKILL.md").read_text()
 modules = Path("init-ai-repo/modules/README.md").read_text()
 assert "`modules/traceability.md` — read when generating stable traceability IDs" in skill
 assert "traceability.md` | Read when generating stable IDs" in modules
-assert "`modules/cascade.md` (PR 6D)" in skill
+assert "`modules/cascade.md` — read when generating multi-repo cascade plans" in skill
 PY
 
 printf 'traceability fixture validation passed\n'

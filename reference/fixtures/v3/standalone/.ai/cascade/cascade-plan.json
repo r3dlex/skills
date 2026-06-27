@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "cascade_id": "cascade:standalone-root:init-ai-repo",
+  "root_repo_id": "standalone-root",
+  "topology_type": "standalone",
+  "matrix_path": ".ai/matrix.json",
+  "managed_repositories": [],
+  "configured_hosts": [
+    "github",
+    "ado",
+    "gitlab",
+    "jira",
+    "local-markdown"
+  ],
+  "first_run_confirmation_required": true,
+  "confirmation_token_pattern": "^ct-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{3}$",
+  "idempotency_key": "init-ai-repo:standalone-root:cascade",
+  "parent_item": null,
+  "child_items": [],
+  "dry_run_path": ".ai/cascade/cascade-plan.json",
+  "audit_path": ".ai/cascade/audit.jsonl",
+  "reconciliation_report": ".ai/cascade/reconciliation-report.md",
+  "safety": {
+    "no_first_run_apply_without_confirmation": true,
+    "no_duplicate_child_items": true,
+    "no_secret_material": true,
+    "host_policy_mutations_out_of_scope": true,
+    "standalone_noop_without_explicit_multi_repo_selection": true
+  },
+  "cascade_mode": "no-op-standalone"
+}

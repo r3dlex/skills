@@ -60,7 +60,7 @@ for fixture, topology in fixtures.items():
             assert required_outputs.issubset(set(status["outputs"])), status["outputs"]
 
     branch_status = {branch["id"]: branch["status"] for branch in manifest["optional_branches"]}
-    assert branch_status["multi-repo-cascade"] == "planned-pr-6d"
+    assert branch_status["multi-repo-cascade"] == "available"
     assert branch_status["skill-modernization"] == "planned-pr-6e"
 
     doc = doc_path.read_text()
@@ -70,8 +70,11 @@ for fixture, topology in fixtures.items():
     assert "init-ai-repo-handoff.md" in doc
     assert ".ai/commands/omx/" in doc
     assert ".ai/commands/omc/" in doc
-    assert "planned-pr-6d" in doc
+    assert "available" in doc
     assert "planned-pr-6e" in doc
+    assert ".ai/cascade/cascade-plan.json" in doc
+    assert ".ai/cascade/audit.jsonl" in doc
+    assert ".ai/cascade/reconciliation-report.md" in doc
 
     for surface in ["AGENTS.md", "CLAUDE.md", "README.md"]:
         surface_path = root / surface
@@ -87,7 +90,7 @@ assert "`modules/workflow.md` — read when generating repo workflow docs" in sk
 assert "workflow.md` | Read when generating repo workflow docs" in modules
 assert "`modules/traceability.md` — read when generating stable traceability IDs" in skill
 assert "traceability.md` | Read when generating stable IDs" in modules
-assert "`modules/cascade.md` (PR 6D)" in skill
+assert "`modules/cascade.md` — read when generating multi-repo cascade plans" in skill
 PY
 
 printf 'workflow fixture validation passed\n'

@@ -1,0 +1,4 @@
+{"cascade_id": "cascade:standalone-root:init-ai-repo", "duplicates_created": 0, "event": "dry_run", "host": "all", "status": "no-op-standalone", "ts": "2026-06-27T00:00:00Z"}
+{"cascade_id": "cascade:standalone-root:init-ai-repo", "confirmation_token": null, "event": "apply_blocked", "host": "github", "reason": "hosted apply remains blocked if explicit multi-repo selection is later enabled", "status": "apply-blocked-no-confirmation", "ts": "2026-06-27T00:01:00Z"}
+{"cascade_id": "cascade:standalone-root:init-ai-repo", "duplicates_created": 0, "event": "idempotent_update", "host": "all", "status": "no-op-existing", "ts": "2026-06-27T00:02:00Z"}
+{"cascade_id": "cascade:standalone-root:init-ai-repo", "event": "readback", "host": "all", "missing_links": 0, "status": "match", "ts": "2026-06-27T00:03:00Z"}
