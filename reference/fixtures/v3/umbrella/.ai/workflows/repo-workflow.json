@@ -6,7 +6,6 @@
   "manifest": ".ai/workflows/repo-workflow.json",
   "entry_surfaces": [
     "AGENTS.md",
-    "CLAUDE.md",
     "README.md"
   ],
   "phases": [

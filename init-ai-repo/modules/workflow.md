@@ -11,7 +11,7 @@ Read when generating the repo workflow documentation, machine-readable workflow 
 | `.ai/phases/<phase>/status.json` | Per-phase status record for agent/human progress tracking. |
 | `.ai/handoff/init-ai-repo-handoff.md` | Final handoff index linking workflow, validation, and remaining work. |
 
-Generated `AGENTS.md`, `CLAUDE.md`, and `README.md` surfaces must link to both the workflow doc and the manifest so humans and agents can find the same source of truth.
+Generated `AGENTS.md` and `README.md` surfaces must link to both the workflow doc and the manifest so humans and agents can find the same source of truth. `CLAUDE.md` and `GEMINI.md` are thin pointers to `AGENTS.md` (ADR-0004) and carry no workflow links of their own.
 
 ## Mandatory repo initialization workflow
 
@@ -37,7 +37,7 @@ Every mandatory phase writes a status JSON with `phase_id`, `required`, `status`
 - `topology_type`: `standalone` or `umbrella` from `.ai/matrix.json`.
 - `human_doc`: path to `.ai/workflows/repo-workflow.md`.
 - `manifest`: path to `.ai/workflows/repo-workflow.json`.
-- `entry_surfaces`: generated surfaces that link to both workflow files.
+- `entry_surfaces`: generated surfaces that link to both workflow files — `AGENTS.md` and `README.md` only. `CLAUDE.md`/`GEMINI.md` are thin pointers to `AGENTS.md` and are never entry surfaces.
 - `phases`: ordered phase records with `id`, `title`, `required`, `status_path`, and `outputs`.
 - `optional_branches`: optional branch records with `id`, `enabled_when`, and `status`.
 - `handoff`: path to `.ai/handoff/init-ai-repo-handoff.md`.

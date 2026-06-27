@@ -96,6 +96,19 @@ else
   ok "catalog docs use init-ai-repo as canonical repository path"
 fi
 
+# --- P0-2: this repo's CLAUDE.md is a thin pointer to AGENTS.md (ADR-0004) ---
+assert_file_contains CLAUDE.md "AGENTS.md" "repo CLAUDE.md points to AGENTS.md"
+if grep -Eq '^## ' CLAUDE.md; then
+  bad "repo CLAUDE.md is a pointer (no '^##' content sections)"
+else
+  ok "repo CLAUDE.md is a pointer (no '^##' content sections)"
+fi
+if grep -Fq "docs/adr/" CLAUDE.md; then
+  bad "repo CLAUDE.md contains no stale docs/adr/ link"
+else
+  ok "repo CLAUDE.md contains no stale docs/adr/ link"
+fi
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

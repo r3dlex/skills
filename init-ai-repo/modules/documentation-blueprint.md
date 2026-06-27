@@ -60,7 +60,8 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 │       ├── concept-maps/
 │       └── troubleshooting-matrix.md
 ├── AGENTS.md
-├── CLAUDE.md
+├── CLAUDE.md                     # thin pointer to AGENTS.md
+├── GEMINI.md                     # thin pointer to AGENTS.md
 ├── CONTRIBUTING.md
 └── README.md
 ```
@@ -75,7 +76,7 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 | Architecture | `docs/architecture/` | Humans | No; per-repo authorship. |
 | Specifications | `docs/specifications/` | Humans | No; per-repo authorship. |
 | Learning | `docs/learning/` | Humans | No; per-repo authorship. |
-| Entry files | `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md` | Both | Inherited assets only when explicitly listed. |
+| Entry files | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CONTRIBUTING.md`, `README.md` | Both | Inherited assets only when explicitly listed. |
 
 ## `.ai/`
 
@@ -103,12 +104,13 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 
 ## Entry files
 
-- `AGENTS.md` — agent-facing operating contract.
-- `CLAUDE.md` — Claude Code specific overrides (only if used; otherwise skip).
+- `AGENTS.md` — agent-facing operating contract and single source of truth for rule-file/static context.
+- `CLAUDE.md` — thin pointer to `AGENTS.md` with no content-bearing sections (ADR-0004).
+- `GEMINI.md` — thin pointer to `AGENTS.md` with no content-bearing sections (ADR-0004).
 - `CONTRIBUTING.md` — human contributor guide.
 - `README.md` — top-level human entry point.
 
-All four files are required for standalone repos. Umbrella repos include them as inherited assets; managed sub-repos may have a thin local override that references the umbrella. Generated `AGENTS.md`, `CLAUDE.md`, and `README.md` link to `.ai/workflows/repo-workflow.md` and `.ai/workflows/repo-workflow.json`.
+`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CONTRIBUTING.md`, and `README.md` are required for standalone repos. Umbrella repos include them as inherited assets; managed sub-repos may have a thin local override that references the umbrella. Generated `AGENTS.md` and `README.md` link to `.ai/workflows/repo-workflow.md` and `.ai/workflows/repo-workflow.json`. `CLAUDE.md` and `GEMINI.md` carry only a single pointer to `AGENTS.md` and are emitted as thin pointers, not workflow-linking surfaces.
 
 ## Generation rules
 
