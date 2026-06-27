@@ -71,6 +71,8 @@ for s in data["servers"]:
     assert isinstance(s["tools"], list), f"{p}: server {s.get('name')} tools not a list"
     # Stub is offline/deterministic: registry declares no resolved network endpoint.
     assert s.get("status") == "stub", f"{p}: server {s.get('name')} status must be 'stub'"
+    assert "endpoint" in s, f"{p}: server {s.get('name')} missing endpoint key"
+    assert s["endpoint"] is None, f"{p}: server {s.get('name')} endpoint must be null (offline stub)"
 PY
   then
     ok "v3 $variant MCP registry parses + has expected shape"

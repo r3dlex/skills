@@ -61,6 +61,18 @@ for skill in "${catalog[@]}"; do
   fi
 done
 
+# Reverse direction: every first-column skill name in the table maps to a real
+# */SKILL.md dir, so a stale row for a deleted/renamed skill is caught (no orphans).
+while IFS= read -r row; do
+  name="$(printf '%s' "$row" | sed -n 's/^| *`\([^`]*\)`.*/\1/p')"
+  [[ -n "$name" ]] || continue
+  if [[ -f "$name/SKILL.md" ]]; then
+    ok "AGENTS.md row '$name' maps to a real skill dir"
+  else
+    bad "AGENTS.md row '$name' maps to a real skill dir (orphan row?)"
+  fi
+done <<< "$table"
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1
