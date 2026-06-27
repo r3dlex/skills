@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "set_id": "example-trajectory-eval",
+  "kind": "trajectory",
+  "skill_under_test": "example-skill",
+  "cases": [
+    {
+      "case_id": "case-001",
+      "input": "Regenerate the v3 .ai/ tree over a repo that already has partial state.",
+      "expected_behavior": "Reads existing state before writing, preserves prior files, and emits the generation audit step last with a sound tool-call sequence.",
+      "trajectory": ["read-matrix", "read-existing", "plan-tree", "write-files", "emit-audit"]
+    }
+  ]
+}

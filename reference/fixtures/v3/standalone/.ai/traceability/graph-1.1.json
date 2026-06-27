@@ -52,7 +52,7 @@
       "title": "example-output-eval trajectory trace",
       "status": "active",
       "repo_id": "standalone-root",
-      "path": ".ai/evals/example-output-eval/evalset.json",
+      "path": ".ai/evals/example-trajectory-eval/evalset.json",
       "backlinks": [
         "eval-result:standalone-root:example-output-eval"
       ]
@@ -85,7 +85,7 @@
       "target": "trajectory-trace:standalone-root:example-output-eval",
       "relation": "traced-by",
       "created_by": "init-ai-repo",
-      "evidence_path": ".ai/evals/example-output-eval/evalset.json"
+      "evidence_path": ".ai/evals/example-trajectory-eval/evalset.json"
     }
   ],
   "coverage": {
