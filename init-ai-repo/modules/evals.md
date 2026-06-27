@@ -48,6 +48,22 @@ see `modules/documentation-blueprint.md` policy outputs), `mode`
 (`out-of-band`). The stub is intentionally non-executing: it documents the
 shape an out-of-band runner consumes. CI never invokes it.
 
+## Worked example: out-of-band LM-judge demonstration
+
+`reference/fixtures/v3/standalone/.ai/evals/example-output-eval/judgment-demo.json`
+is a recorded out-of-band LM-judge judgment for the `example-output-eval`
+fixture, committed as evidence. It shows the shape an out-of-band runner
+produces end-to-end: which evalset and rubric were judged, the illustrative
+judge model and a timestamp placeholder, one per-criterion score and rationale
+for every rubric criterion, and an aggregate score (the rubric-weighted sum)
+checked against the rubric's passing threshold.
+
+It is a demonstration, not a CI gate — it carries an explicit "recorded
+out-of-band demonstration, not a CI gate" disclaimer, was authored without any
+live model or network call, and CI never invokes it. It is the in-repo proof
+that the structural-in-CI + quality-out-of-band split works. The discoverable
+offline runner is `tests/lm_judge_demo_test.sh`.
+
 ## Eval-coverage gate (D1/D2)
 
 The gate is diff-aware and offline:

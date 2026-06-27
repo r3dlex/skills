@@ -40,6 +40,58 @@ Each configured host adapter must expose the same logical operations:
 
 Configured hosts are `github`, `ado`, `gitlab`, `jira`, and `local-markdown`. Hosted adapters delegate externally visible mutation safety to `modules/host-policy-automation.md`; local markdown writes still record audit/readback evidence but do not need confirmation.
 
+## Host adapter JSON schema
+
+Each `.ai/cascade/host-adapters/<host>.json` is a mocked, offline contract fixture — never a live connector and never a credential store. The schema is intentionally small so the idempotency and no-duplicate guarantees are mechanically checkable without a network:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `schema_version` | string | Adapter contract version (`"1.0"`). |
+| `host` | string | One of `github`, `ado`, `gitlab`, `jira`, `local-markdown`. |
+| `host_label` | string | Human label for the tracker surface. |
+| `hosted` | bool | `true` for externally visible hosts; `false` for `local-markdown`. |
+| `adapter_doc` | string | Pointer to the `setup-skills/*` adapter detail doc. |
+| `operations` | string[] | Exactly the 10 logical operations (see below). |
+| `safety` | object | `credentials_stored: false`, `host_policy_mutation: false`, and (for hosted) `first_run_without_confirmation: "blocked"`, `confirmation_token_required: true`, `confirmation_token` matching `^ct-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{3}$`. |
+| `dry_run` | object | Planned mutation summary (`status`, `would_create_parent`, `would_create_children`). No external call. |
+| `apply` | object | First confirmed apply result (`status`, `parent_key`, `child_keys`). |
+| `second_run` | object | Idempotent re-run result: `status: "updated-existing"`, `duplicates_created: 0`, and a stable `idempotency_key`. |
+| `readback` | object | Required link evidence: `status`, `parent_link_present`, `child_links_present`. |
+| `audit_path` | string | Pointer to `.ai/cascade/audit.jsonl`. |
+
+The `operations` array is exactly these 10 logical ops: `discover_scope`, `plan_parent_item`, `plan_child_item`, `dry_run`, `confirm_first_run`, `apply_confirmed_plan`, `readback_links`, `apply_idempotent_update`, `audit_event`, `reconcile`.
+
+### Stable idempotency key
+
+`second_run.idempotency_key` is the stable key (derived from the cascade `cascade_id`, e.g. `init-ai-repo:<repo-id>:cascade`) that maps the cascade scope to already-created host work items. On any re-run, the adapter resolves the existing child by this key and **updates it in place** (`status: "updated-existing"`) instead of creating a duplicate; `duplicates_created` stays `0`. This is the contract that makes the no-duplicate-child guarantee testable offline (see `tests/cascade-host-adapter-schema_test.sh`, which runs a mocked adapter twice and asserts a single child).
+
+### No credentials
+
+Adapter fixtures must never contain API tokens, access/refresh tokens, OAuth secrets, bearer headers, passwords, or any `authorization:` material. Credential handling is owned by `setup-skills` configuration and `modules/host-policy-automation.md`, never serialized into cascade artifacts.
+
+```json
+{
+  "schema_version": "1.0",
+  "host": "github",
+  "hosted": true,
+  "operations": [
+    "discover_scope", "plan_parent_item", "plan_child_item", "dry_run",
+    "confirm_first_run", "apply_confirmed_plan", "readback_links",
+    "apply_idempotent_update", "audit_event", "reconcile"
+  ],
+  "safety": {
+    "first_run_without_confirmation": "blocked",
+    "confirmation_token_required": true,
+    "confirmation_token": "ct-2026-06-27-001",
+    "credentials_stored": false,
+    "host_policy_mutation": false
+  },
+  "apply": { "status": "created-or-linked", "parent_key": "GH-101", "child_keys": ["GH-102"] },
+  "second_run": { "status": "updated-existing", "duplicates_created": 0, "idempotency_key": "init-ai-repo:umbrella-root:cascade" },
+  "readback": { "status": "match", "parent_link_present": true, "child_links_present": true }
+}
+```
+
 ## Safety rules
 
 - Never auto-create hosted parent/child items on the first run without an explicit confirmation token.

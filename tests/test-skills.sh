@@ -8,6 +8,8 @@
 #   - Required frontmatter fields: name, description
 #   - File body (after frontmatter) is under 100 lines
 #   - Progressive disclosure compliance (no Overview/Background sections)
+#   - Description budget: target <=180 chars (warn over), hard-fail >280 chars
+#     unless the skill is listed in .ai/skills/description-exceptions.json
 #
 # Exit 0 on all pass, non-zero on any failure.
 #
@@ -20,6 +22,7 @@ REPO_ROOT="${SKILLS_REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FAIL_COUNT=0
 PASS_COUNT=0
 SKIP_COUNT=0
+WARN_COUNT=0
 
 log_pass() {
     echo "  PASS: $1"
@@ -34,6 +37,11 @@ log_fail() {
 log_skip() {
     echo "  SKIP: $1"
     SKIP_COUNT=$((SKIP_COUNT + 1))
+}
+
+log_warn() {
+    echo "  WARN: $1"
+    WARN_COUNT=$((WARN_COUNT + 1))
 }
 
 # -----------------------------------------------------------------------------
@@ -155,6 +163,109 @@ validate_no_anti_patterns() {
 }
 
 # -----------------------------------------------------------------------------
+# Description-length budget (compact Codex/Claude metadata policy).
+# Target <=180 chars (warn when over), hard-fail >280 chars unless the skill
+# name is listed in the audited-exception manifest:
+#   .ai/skills/description-exceptions.json
+# Pure-shell / offline, consistent with the other checks in this file.
+#
+# Prints one of:
+#   pass:<len>           description within target
+#   warn:<len>           over target (<=280); non-failing
+#   exception:<len>      over hard limit but listed in exception manifest
+#   ERROR:<reason>       parse failure (treated as failure by caller)
+#   FAIL:<reason>        over hard limit and not excepted
+# Returns 0 for pass/warn/exception, 1 for ERROR/FAIL.
+# -----------------------------------------------------------------------------
+DESCRIPTION_TARGET_CHARS=180
+DESCRIPTION_HARD_CHARS=280
+EXCEPTIONS_FILE="$REPO_ROOT/.ai/skills/description-exceptions.json"
+
+# Returns 0 if the given skill name is listed in the exception manifest.
+is_description_excepted() {
+    local skill_name="$1"
+    [ -f "$EXCEPTIONS_FILE" ] || return 1
+    # Match a JSON entry of the form: "skill": "<name>" (manifest is line-oriented).
+    grep -Eq "\"skill\"[[:space:]]*:[[:space:]]*\"${skill_name}\"" "$EXCEPTIONS_FILE"
+}
+
+validate_description_budget() {
+    local file="$1"
+    local desc skill_name len
+
+    # Extract the `description:` value from the frontmatter block. Handles both
+    # single-line scalars and folded/literal block scalars (`>`, `>-`, `|`, `|-`)
+    # by joining indented continuation lines into one space-separated string.
+    desc=$(awk '
+        NR == 1 && $0 != "---" { exit }
+        NR == 1 { in_fm = 1; next }
+        in_fm && $0 == "---" { exit }
+        collecting {
+            # Continuation lines of a block scalar are indented; a non-indented
+            # line (next key) ends the block.
+            if ($0 ~ /^[[:space:]]+/ || $0 ~ /^$/) {
+                line = $0
+                sub(/^[[:space:]]+/, "", line)
+                acc = (acc == "" ? line : acc " " line)
+                next
+            }
+            collecting = 0
+            print acc
+            exit
+        }
+        in_fm && /^description:/ {
+            val = $0
+            sub(/^description:[[:space:]]*/, "", val)
+            if (val ~ /^[>|][+-]?[[:space:]]*$/) {
+                acc = ""
+                collecting = 1
+                next
+            }
+            gsub(/^["'\'']|["'\'']$/, "", val)
+            print val
+            exit
+        }
+        END { if (collecting) print acc }
+    ' "$file")
+
+    skill_name=$(awk '
+        NR == 1 && $0 != "---" { exit }
+        NR == 1 { in_fm = 1; next }
+        in_fm && $0 == "---" { exit }
+        in_fm && /^name:/ {
+            sub(/^name:[[:space:]]*/, "")
+            gsub(/^["'\'']|["'\'']$/, "")
+            print
+            exit
+        }
+    ' "$file")
+
+    if [ -z "$desc" ]; then
+        echo "ERROR:no description found in frontmatter"
+        return 1
+    fi
+
+    len=${#desc}
+
+    if [ "$len" -gt "$DESCRIPTION_HARD_CHARS" ]; then
+        if is_description_excepted "$skill_name"; then
+            echo "exception:$len"
+            return 0
+        fi
+        echo "FAIL:description has $len chars (hard limit: $DESCRIPTION_HARD_CHARS); not in exception manifest"
+        return 1
+    fi
+
+    if [ "$len" -gt "$DESCRIPTION_TARGET_CHARS" ]; then
+        echo "warn:$len"
+        return 0
+    fi
+
+    echo "pass:$len"
+    return 0
+}
+
+# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 echo "Skill Structure Tests"
@@ -206,11 +317,31 @@ while IFS= read -r skill_file; do
         log_fail "progressive disclosure: $pd_result"
     fi
 
+    set +e
+    budget_result=$(validate_description_budget "$skill_file" 2>&1)
+    budget_exit=$?
+    set -e
+    if [ "$budget_exit" -eq 0 ]; then
+        case "$budget_result" in
+            warn:*)
+                log_warn "description length ${budget_result#warn:} over target (${DESCRIPTION_TARGET_CHARS}); under hard limit (${DESCRIPTION_HARD_CHARS})"
+                ;;
+            exception:*)
+                log_pass "description length ${budget_result#exception:} over hard limit but audited (exception manifest)"
+                ;;
+            *)
+                log_pass "description length ${budget_result#pass:} (within target ${DESCRIPTION_TARGET_CHARS})"
+                ;;
+        esac
+    else
+        log_fail "description budget: ${budget_result#*:}"
+    fi
+
 done <<< "$SKILLS"
 
 echo ""
 echo "---------------------"
-echo "Results: PASS=$PASS_COUNT  FAIL=$FAIL_COUNT  SKIP=$SKIP_COUNT"
+echo "Results: PASS=$PASS_COUNT  FAIL=$FAIL_COUNT  WARN=$WARN_COUNT  SKIP=$SKIP_COUNT"
 echo "---------------------"
 
 if [ "$FAIL_COUNT" -gt 0 ]; then

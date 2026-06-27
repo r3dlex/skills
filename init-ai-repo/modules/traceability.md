@@ -15,7 +15,7 @@ Generated workflow and handoff surfaces should link to the traceability index on
 ## Stable ID policy
 
 - IDs are deterministic strings: `<type>:<repo-id>:<slug>`.
-- `type` is one of `brd`, `prd`, `adr`, `plan`, `issue`, `pr`, `test`, `handoff`, `workflow`, or `validation`.
+- `type` is one of `brd`, `prd`, `adr`, `plan`, `issue`, `pr`, `test`, `handoff`, `workflow`, or `validation`. Schema `1.1` additively adds `eval-result` and `trajectory-trace` (see below).
 - `repo-id` comes from `.ai/matrix.json` when present; otherwise use `root` for the local repo fixture.
 - `slug` is lower-kebab-case from the artifact title or host key.
 - IDs never include credentials, access tokens, or mutable host session IDs.
@@ -50,10 +50,60 @@ Generated workflow and handoff surfaces should link to the traceability index on
 }
 ```
 
+## Graph schema v1.1 (additive)
+
+Schema `1.1` is a strictly additive bump over `1.0`. No `1.0` field is removed or renamed, so existing `1.0` graphs and fixtures stay valid unchanged.
+
+- `schema_version` is `"1.1"`.
+- The `type` enum gains two node types: `eval-result` (a recorded LM-judge/eval outcome for a skill or PR) and `trajectory-trace` (a recorded agent trajectory captured during an eval run).
+- New relations are permitted for the new types, e.g. `evaluated-by` (work item → `eval-result`) and `traced-by` (`eval-result` → `trajectory-trace`).
+- All other node/edge field rules from `1.0` apply unchanged to the new types: each node still carries `id`, `type`, `title`, `status`, `repo_id`, and either `path` or `host_url`; backlinks and edges must resolve.
+
+```json
+{
+  "schema_version": "1.1",
+  "root_repo_id": "umbrella-root",
+  "nodes": [
+    {
+      "id": "eval-result:umbrella-root:example-output-eval",
+      "type": "eval-result",
+      "title": "example-output-eval LM-judge result",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/evals/example-output-eval/evalset.json",
+      "backlinks": ["pr:umbrella-root:workflow-surfaces"]
+    },
+    {
+      "id": "trajectory-trace:umbrella-root:example-output-eval",
+      "type": "trajectory-trace",
+      "title": "example-output-eval trajectory trace",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/evals/example-output-eval/rubric.md",
+      "backlinks": ["eval-result:umbrella-root:example-output-eval"]
+    }
+  ],
+  "edges": [
+    {
+      "source": "pr:umbrella-root:workflow-surfaces",
+      "target": "eval-result:umbrella-root:example-output-eval",
+      "relation": "evaluated-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    }
+  ]
+}
+```
+
+### Version acceptance and migration
+
+- The validator accepts any graph whose `schema_version` is `>= 1.1` and treats `eval-result`/`trajectory-trace` as known types; it also still accepts `1.0` graphs (back-compat). A node `type` outside the known enum still fails validation at any version.
+- Migration is a no-op for `1.0` consumers: a `1.0` graph is a valid `1.1` graph minus the two new node types. To migrate, bump `schema_version` to `"1.1"` and add `eval-result`/`trajectory-trace` nodes as eval evidence becomes available.
+
 ## Required validation
 
 1. Every edge `source` and `target` exists in `nodes`.
-2. Every node has `id`, `type`, `title`, `status`, `repo_id`, and either `path` or `host_url`.
+2. Every node has `id`, `type`, `title`, `status`, `repo_id`, and either `path` or `host_url`. Every `type` is in the known enum for the declared schema version (`1.1` adds `eval-result` and `trajectory-trace`); an unknown type fails.
 3. Every node backlink references another existing node ID.
 4. The graph covers BRD/PRD/ADR/plan/issue/PR/test/handoff/workflow/validation artifacts when those artifacts exist.
 5. The human index links every node ID back to its file path or host URL.

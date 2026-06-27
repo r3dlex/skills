@@ -32,6 +32,12 @@ Pick the skill matching the user's request. Each skill has:
 | `to-issues` | Breaking a plan or PRD into independently-grabbable tracker issues |
 | `triage` | Triaging issues through a role-driven state machine |
 | `diagnose` | Disciplined diagnosis loop for hard bugs and performance regressions |
+| `grill-me` | Stress-testing a plan or design through relentless interview |
+| `grill-with-docs` | Stress-testing a plan against repo docs, ADRs, and CONTEXT.md |
+| `setup-skills` | Configuring AGENTS/CLAUDE and docs/agents before issue, PRD, triage, TDD, or diagnosis skills |
+| `prototype` | Building a throwaway terminal or UI prototype to test state, logic, or design options |
+| `zoom-out` | Explaining broader code or product context before local changes |
+| `handoff` | Compacting the conversation into a handoff document for another agent |
 
 ## Writing Rules
 
