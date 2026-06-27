@@ -123,6 +123,23 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 
 `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CONTRIBUTING.md`, and `README.md` are required for standalone repos. Umbrella repos include them as inherited assets; managed sub-repos may have a thin local override that references the umbrella. Generated `AGENTS.md` and `README.md` link to `.ai/workflows/repo-workflow.md` and `.ai/workflows/repo-workflow.json`. `CLAUDE.md` and `GEMINI.md` carry only a single pointer to `AGENTS.md` and are emitted as thin pointers, not workflow-linking surfaces.
 
+## Harness Map
+
+Generated `AGENTS.md` carries a `## Harness Map` section enumerating the six context types and documenting the static-vs-dynamic context boundary (ADR-0005). The Harness Map is non-optional AGENTS.md surface: it makes the agent's context inputs explicit and reviewable rather than implicit.
+
+The six context types, each emitted as a code-fenced cell pointing at its canonical source in the v3 tree:
+
+| Context type | Canonical source | Static or dynamic |
+| --- | --- | --- |
+| `Instructions` | `AGENTS.md`, `.ai/system-prompts/`, `.ai/rules/` | Static |
+| `Knowledge` | `docs/architecture/`, `docs/specifications/`, `docs/learning/` | Static |
+| `Memory` | `.memory/human-override/`, `.memory/self-learned/` | Dynamic |
+| `Examples` | `.ai/evals/<set>/`, `docs/learning/concept-maps/` | Static |
+| `Tools` | `.ai/skills/`, `.ai/mcp/registry.json` | Dynamic |
+| `Guardrails` | `.ai/rules/security.md`, `.ai/rules/technical-bounds.md`, `.ai/policies/` | Static |
+
+**Static-vs-dynamic boundary.** Static context is fixed at the start of a task (instructions, knowledge, examples, guardrails) and is reviewed and versioned in-repo; dynamic context is assembled per-run (memory written by local agents, tool/MCP results resolved at call time). The boundary is a reviewed, versioned architectural decision (ADR-0005), not an implicit one: moving a context type across the boundary requires an ADR update.
+
 ## Generation rules
 
 1. Existing files are never overwritten silently. If a target path exists, the generator emits a `present-not-overwritten` audit entry and skips the write.
