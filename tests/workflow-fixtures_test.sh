@@ -85,7 +85,8 @@ skill = Path("init-ai-repo/SKILL.md").read_text()
 modules = Path("init-ai-repo/modules/README.md").read_text()
 assert "`modules/workflow.md` — read when generating repo workflow docs" in skill
 assert "workflow.md` | Read when generating repo workflow docs" in modules
-assert "`modules/traceability.md` (PR 6C)" in skill
+assert "`modules/traceability.md` — read when generating stable traceability IDs" in skill
+assert "traceability.md` | Read when generating stable IDs" in modules
 assert "`modules/cascade.md` (PR 6D)" in skill
 PY
 

@@ -62,7 +62,8 @@ When this skill creates or updates PR workflow guidance, require merge only afte
 - `modules/readme-documentation.md` — read when initializing, augmenting, or rewriting `README.md`.
 - `modules/release-versioning.md` — read when initializing release tagging, versioning, or CI/CD release workflows.
 - `modules/workflow.md` — read when generating repo workflow docs, workflow/status manifests, entry-surface links, and handoff indexes.
-- Planned phase modules: `modules/traceability.md` (PR 6C) and `modules/cascade.md` (PR 6D). These are map entries only until their dedicated phase PRs add the files and validation.
+- `modules/traceability.md` — read when generating stable traceability IDs, graph schema, backlink validation, graph fixtures, or cross-skill requirement/work-artifact links.
+- Planned phase module: `modules/cascade.md` (PR 6D). This is a map entry only until its dedicated phase PR adds the file and validation.
 
 ## Safety Rules
 

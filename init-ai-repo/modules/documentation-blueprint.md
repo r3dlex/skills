@@ -25,6 +25,10 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 │   │   └── 04-validate-handoff/status.json
 │   ├── handoff/
 │   │   └── init-ai-repo-handoff.md
+│   ├── traceability/
+│   │   ├── graph.json
+│   │   ├── index.md
+│   │   └── validation-report.md
 │   ├── rules/
 │   │   ├── security.md
 │   │   └── technical-bounds.md
@@ -76,6 +80,7 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 - `workflows/` holds the human repo workflow and machine-readable workflow manifest.
 - `phases/` holds per-phase status JSON for mandatory workflow steps.
 - `handoff/` holds the generated initialization handoff index.
+- `traceability/` holds graph.json, index.md, and validation-report.md for BRD/PRD/work artifact links.
 
 ## `.memory/`
 
