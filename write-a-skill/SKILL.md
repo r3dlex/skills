@@ -37,6 +37,15 @@ skill-name/
 - Do not include time-sensitive claims unless they can be maintained.
 - Prefer concrete examples over generic advice, but move long examples out of `SKILL.md`.
 
+## Description Budget
+
+The frontmatter `description` is loaded into every agent's context, so keep it compact (Codex/Claude metadata policy):
+
+- **Target:** `description` ≤ 180 characters. Spend the budget on concrete trigger phrases, not prose.
+- **Hard limit:** > 280 characters fails `tests/test-skills.sh`. 181–280 passes but warns — trim it if you can.
+- **Progressive disclosure first:** if a description is growing past target, the detail belongs in the body or a reference file, not the metadata.
+- **Audited exception:** only when a longer description is genuinely required, add an entry (`skill`, `owner`, `reason`, `expires`) to `.ai/skills/description-exceptions.json`. Do not weaken the check; exceptions are tracked and reviewed.
+
 ## Codex Parity
 
 Skills must work tool-agnostically (Claude Code and Codex). Do not hard-depend on Claude/OMC-only invocations: `AskUserQuestion`, `Task(subagent_type=...)`, `Skill(...)`, `subagent_type:`, `TodoWrite`, or `mcp__*` tool calls. Prefer tool-agnostic prose — for example, ask the user a question in plain markdown instead of calling the interactive question tool. `scripts/check-codex-parity.sh` enforces this; it scans only real invocations and ignores documented mentions inside backticks or fenced code blocks.

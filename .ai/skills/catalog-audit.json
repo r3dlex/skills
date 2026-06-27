@@ -195,7 +195,7 @@
       "path": "write-a-skill/SKILL.md",
       "description_chars": 153,
       "description_status": "target",
-      "body_lines": 49,
+      "body_lines": 58,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
