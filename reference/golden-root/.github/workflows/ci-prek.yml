@@ -2,7 +2,7 @@ name: AI SDLC Pre-commit Checks
 
 on:
   push:
-    branches: [main]
+    branches: [main, "codex/**"]
   pull_request:
     branches: [main]
 

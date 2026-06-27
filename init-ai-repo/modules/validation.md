@@ -10,6 +10,8 @@ Run from `skills/` when validating this repository:
 tests/test-skills.sh
 tests/test-scripts.sh
 tests/run-tests.sh
+tests/final-validation-gate_test.sh
+python3 scripts/validate-final-package.py
 bash scripts/archgate.sh --mode structural --rules .rules.ts --format json
 ./scripts/verify-golden-dir.sh . reference/golden-root
 ./scripts/verify-golden-dir.sh . reference/golden-skills
@@ -116,14 +118,15 @@ The validator runs the following v3 checks on the v3 fixtures and any candidate 
 2. **Workflow surfaces** — `.ai/workflows/repo-workflow.md`, `.ai/workflows/repo-workflow.json`, `.ai/phases/<phase>/status.json`, and `.ai/handoff/init-ai-repo-handoff.md` exist; generated `AGENTS.md`, `CLAUDE.md`, and `README.md` link to both workflow files.
 3. **Cascade contract** — `.ai/cascade/cascade-plan.json`, `.ai/cascade/audit.jsonl`, `.ai/cascade/reconciliation-report.md`, and `.ai/cascade/host-adapters/<host>.json` exist when multi-repo cascade is available; configured hosts are GitHub, Azure DevOps, GitLab, Jira, and Local Markdown; first hosted apply without confirmation is blocked; confirmed apply creates links once; subsequent update is idempotent and creates no duplicate child items.
 4. **Skill catalog modernization** — `.ai/skills/catalog-audit.json`, `.ai/skills/description-exceptions.json`, and `.ai/skills/modernization-report.md` exist when the target repo owns skills; target descriptions are `<=180` characters, hard-fail budget is `>280` without audited exceptions, and first-class skills preserve progressive disclosure, trigger boundaries, cross-skill workflow links, and AI-SDLC compatibility.
-4. **Top-level layout** — required entry files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`) and required directories (`.ai/`, `.memory/`, `docs/architecture/`, `docs/specifications/ACTIVE/`, `docs/specifications/ARCHIVED/`, `docs/learning/`) are present for a standalone repo.
-5. **Topology matrix** — `.ai/matrix.json` exists, parses as JSON, declares `schema_version: "1.0"`, has a valid `topology_type` (`standalone` or `umbrella`), and uses `sync_strategy: "physical-copy"`.
-6. **Depth rule** — for `standalone` topology, `max_allowed_depth` and `current_depth` are exactly `0`; any other values fail or block before apply. For `umbrella` topology, `max_allowed_depth` is exactly `3`, `current_depth` is `<= max_allowed_depth`, and every managed repository depth is `<= max_allowed_depth`; any other maximum or exceeded depth fails or blocks before apply.
-7. **Sync-strategy rule** — `sync_strategy` is `physical-copy`. The validator rejects `symlink` and `git-submodule` as canonical.
-8. **Memory layer** — `.memory/human-override/` exists and is treated as terminal priority (validator never overwrites files there). `.memory/self-learned/` declares `schema_version` on every JSON file.
-9. **Host-policy safety wording** — host-policy documentation contains the dry-run / confirmation / audit / negative-test language and the non-admin auto-approval prohibition. See `modules/host-policy-automation.md`.
-10. **Migration audit** — when migrating from a legacy scaffold, `.ai/drift/migration-manifest.json` exists with the action vocabulary (`migrate`, `copy`, `deprecate`, `supersede`) and a confirmation token for every `migrate` action.
-11. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
+5. **Final validation package** — `scripts/validate-final-package.py` and `tests/final-validation-gate_test.sh` bundle workflow, traceability, cascade, catalog, golden, CI-wiring, archgate, and no-secret/static checks for the final review gate.
+6. **Top-level layout** — required entry files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`) and required directories (`.ai/`, `.memory/`, `docs/architecture/`, `docs/specifications/ACTIVE/`, `docs/specifications/ARCHIVED/`, `docs/learning/`) are present for a standalone repo.
+7. **Topology matrix** — `.ai/matrix.json` exists, parses as JSON, declares `schema_version: "1.0"`, has a valid `topology_type` (`standalone` or `umbrella`), and uses `sync_strategy: "physical-copy"`.
+8. **Depth rule** — for `standalone` topology, `max_allowed_depth` and `current_depth` are exactly `0`; any other values fail or block before apply. For `umbrella` topology, `max_allowed_depth` is exactly `3`, `current_depth` is `<= max_allowed_depth`, and every managed repository depth is `<= max_allowed_depth`; any other maximum or exceeded depth fails or blocks before apply.
+9. **Sync-strategy rule** — `sync_strategy` is `physical-copy`. The validator rejects `symlink` and `git-submodule` as canonical.
+10. **Memory layer** — `.memory/human-override/` exists and is treated as terminal priority (validator never overwrites files there). `.memory/self-learned/` declares `schema_version` on every JSON file.
+11. **Host-policy safety wording** — host-policy documentation contains the dry-run / confirmation / audit / negative-test language and the non-admin auto-approval prohibition. See `modules/host-policy-automation.md`.
+12. **Migration audit** — when migrating from a legacy scaffold, `.ai/drift/migration-manifest.json` exists with the action vocabulary (`migrate`, `copy`, `deprecate`, `supersede`) and a confirmation token for every `migrate` action.
+13. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
 
 ## v3 fixture set
 
@@ -180,6 +183,8 @@ embedding the repository name in each command.
 tests/test-skills.sh
 tests/test-scripts.sh
 tests/run-tests.sh
+tests/final-validation-gate_test.sh
+python3 scripts/validate-final-package.py
 bash scripts/archgate.sh --mode structural --rules .rules.ts --format json
 ./scripts/verify-golden-dir.sh . reference/golden-root
 ./scripts/verify-golden-dir.sh . reference/golden-skills
