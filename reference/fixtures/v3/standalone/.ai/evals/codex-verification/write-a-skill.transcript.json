@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "artifact_kind": "codex-verification-transcript",
+  "disclaimer": "This is a recorded out-of-band verification, not a CI gate. No live Codex run happened in CI or in the offline sandbox that produced this repo; CI never invokes Codex. This artifact records the shape an out-of-band Codex verification run produces. Until a maintainer pastes a real recorded session, the transcript_excerpt and outcome below are illustrative placeholders, not the output of a live model run.",
+  "skill_under_test": "write-a-skill",
+  "codex_model": "illustrative-codex-frontier (placeholder; no live model invoked)",
+  "codex_command": "./scripts/install-codex.sh --skill write-a-skill && codex \"use the write-a-skill skill to draft a new skill that summarizes a changelog\"",
+  "scenario": "Ask Codex, with write-a-skill installed, to draft a new skill (frontmatter + SKILL.md body with progressive disclosure). write-a-skill legitimately documents the strings AskUserQuestion / Task(subagent_type= / Skill( inside backticks while teaching the codex:optional marker convention, so it is a representative parity case.",
+  "outcome": "pass — Codex discovered write-a-skill, produced compliant frontmatter and a <100-line body with trigger/non-trigger/fallback boundaries, and treated the documented Claude-only construct names as prose, not invocations.",
+  "recorded_at": "<RECORDED-TIMESTAMP-PLACEHOLDER e.g. 2026-01-01T00:00:00Z>",
+  "transcript_excerpt": "$ ./scripts/install-codex.sh --skill write-a-skill\n  ✓ write-a-skill\n$ codex \"use the write-a-skill skill to draft a new skill ...\"\n[codex] Using skill: write-a-skill\n[codex] Drafting frontmatter (name, description with trigger boundaries) ...\n[codex] Drafting SKILL.md body (< 100 lines, progressive disclosure) ...\n[codex] Marker convention noted; documented construct names left as prose.\n[codex] Done. No Claude/OMC-only tool was required on the core path.",
+  "notes": "Verified bar (ADR-0004 P2). The mechanical bar is enforced offline in CI by scripts/check-codex-parity.sh, and write-a-skill passes it because the matcher skips backticks/fenced blocks. Replace transcript_excerpt, codex_model, outcome, and recorded_at with a real session when a maintainer runs it under Codex."
+}

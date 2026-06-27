@@ -54,7 +54,7 @@ All skills follow Layer 2 guidelines:
 
 ### Codex parity
 
-Skill bodies must be tool-agnostic across Claude Code and Codex. Do not hard-depend on Claude/OMC-only invocations (`AskUserQuestion`, `Task(subagent_type=...)`, `Skill(...)`, `subagent_type:`, `TodoWrite`, `mcp__*`); use plain-markdown prose instead. `scripts/check-codex-parity.sh` enforces this and scans real invocations only (mentions inside backticks or fenced code blocks are ignored). When a Claude-only construct is unavoidable, annotate it with the `<!-- codex:optional -->` marker on the construct line (or the line directly above it, with no blank line between) and describe a plain-markdown fallback adjacent to it. See `write-a-skill/SKILL.md` for the convention.
+Skill bodies must be tool-agnostic across Claude Code and Codex. Do not hard-depend on Claude/OMC-only invocations (`AskUserQuestion`, `Task(subagent_type=...)`, `Skill(...)`, `subagent_type:`, `TodoWrite`, `mcp__*`); use plain-markdown prose instead. `scripts/check-codex-parity.sh` enforces this and scans real invocations only (mentions inside backticks or fenced code blocks are ignored). When a Claude-only construct is unavoidable, annotate it with the `<!-- codex:optional -->` marker on the construct line (or the line directly above it, with no blank line between) and describe a plain-markdown fallback adjacent to it. See `write-a-skill/SKILL.md` for the convention. The mechanical check is the P0/P1 bar; the P2 **verified** bar — representative skills actually run under Codex — is recorded out-of-band per `docs/learning/codex-verification.md` (never a live Codex run in CI).
 
 ## Layers
 
