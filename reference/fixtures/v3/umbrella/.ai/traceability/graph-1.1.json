@@ -41,7 +41,7 @@
       "title": "example-output-eval LM-judge result",
       "status": "active",
       "repo_id": "umbrella-root",
-      "path": ".ai/evals/example-output-eval/evalset.json",
+      "path": ".ai/evals/example-output-eval/judgment-demo.json",
       "backlinks": [
         "pr:umbrella-root:workflow-surfaces"
       ]
@@ -78,7 +78,7 @@
       "target": "eval-result:umbrella-root:example-output-eval",
       "relation": "evaluated-by",
       "created_by": "init-ai-repo",
-      "evidence_path": ".ai/evals/example-output-eval/evalset.json"
+      "evidence_path": ".ai/evals/example-output-eval/judgment-demo.json"
     },
     {
       "source": "eval-result:umbrella-root:example-output-eval",
