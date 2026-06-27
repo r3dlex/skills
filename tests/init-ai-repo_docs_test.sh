@@ -75,6 +75,7 @@ assert_file_contains init-ai-repo/SKILL.md '`modules/cascade.md` — read when g
 assert_file_contains init-ai-repo/modules/README.md "workflow.md" "module README names active workflow module"
 assert_file_contains init-ai-repo/modules/README.md "traceability.md" "module README names active traceability module"
 assert_file_contains init-ai-repo/modules/README.md "cascade.md" "module README names active cascade module"
+assert_file_contains init-ai-repo/modules/README.md "skill-modernization.md" "module README names active skill modernization module"
 assert_file_contains init-ai-repo/REFERENCE.md "/init-ai-repo" "reference uses canonical invocation"
 assert_file_contains init-ai-repo/REFERENCE.md "four-phase workflow" "reference documents four-phase workflow"
 assert_file_contains init-ai-repo/REFERENCE.md 'Legacy `/ai-sdlc-init` remains an alias/path only' "reference preserves legacy alias"

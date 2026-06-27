@@ -17,7 +17,7 @@ This generated workflow is the shared source of truth for mandatory and optional
 - **multi-repo-cascade** - enabled when topology_type == umbrella; status: `available`.
 - **hosted-tracker-first** - enabled when configured tracker is authorized; status: `available`.
 - **legacy-migration** - enabled when legacy scaffold artifacts are detected; status: `available`.
-- **skill-modernization** - enabled when target repo owns a skill catalog; status: `planned-pr-6e`.
+- **skill-modernization** - enabled when target repo owns a skill catalog; status: `available`.
 
 ## Entry surface links
 
@@ -33,3 +33,9 @@ Generated `AGENTS.md`, `CLAUDE.md`, and `README.md` must link to this workflow d
 - Cascade plan: `.ai/cascade/cascade-plan.json`
 - Cascade audit: `.ai/cascade/audit.jsonl`
 - Cascade reconciliation: `.ai/cascade/reconciliation-report.md`
+
+## Skill catalog links
+
+- Catalog audit: `.ai/skills/catalog-audit.json`
+- Description exceptions: `.ai/skills/description-exceptions.json`
+- Modernization report: `.ai/skills/modernization-report.md`

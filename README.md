@@ -39,7 +39,7 @@ skill-name/
 └── scripts/        # Utility scripts if needed
 ```
 
-The `description` frontmatter in `SKILL.md` is what the agent reads to decide whether to load the skill. Keep it specific and end with `Use when [triggers].`
+The `description` frontmatter in `SKILL.md` is what the agent reads to decide whether to load the skill. Keep it specific, trigger-focused, target <=180 characters, and hard-fail >280 characters unless `.ai/skills/description-exceptions.json` records an audited exception.
 
 <!-- ai-sdlc-init:start -->
 

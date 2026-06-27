@@ -1,6 +1,6 @@
 ---
 name: init-ai-repo
-description: 'Bootstrap an end-to-end AI-ready repository: BRD/PRD traceability, tracker setup, CI/governance, release versioning, Archgate rules, Karpathy guidance, ADRs, branch-policy checklist, v3 layout (`.ai/`, `.memory/`, `docs/`), topology matrix, migration support, and validation. Deprecated compatibility alias: ai-sdlc-init. Use when initializing AI-assisted software delivery, modernizing repo governance, migrating from legacy scaffolds, or when the user says "init-ai-repo", "ai-sdlc-init", "bootstrap AI SDLC", or "set up AI SDLC".'
+description: 'Bootstrap AI-ready repo governance, traceability, cascade, catalog audits, validation. Deprecated compatibility alias: ai-sdlc-init. Use when setting up AI SDLC.'
 ---
 
 # Init AI Repo
@@ -64,6 +64,7 @@ When this skill creates or updates PR workflow guidance, require merge only afte
 - `modules/workflow.md` — read when generating repo workflow docs, workflow/status manifests, entry-surface links, and handoff indexes.
 - `modules/traceability.md` — read when generating stable traceability IDs, graph schema, backlink validation, graph fixtures, or cross-skill requirement/work-artifact links.
 - `modules/cascade.md` — read when generating multi-repo cascade plans, first-run confirmation gates, idempotent linked updates, host adapter contracts, audits, and reconciliation reports.
+- `modules/skill-modernization.md` — read when auditing compact descriptions, progressive disclosure, trigger boundaries, cross-skill links, and AI-SDLC compatibility.
 
 ## Safety Rules
 

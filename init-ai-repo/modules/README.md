@@ -24,8 +24,9 @@ Layer 3 modules keep the canonical `init-ai-repo` skill lean. These files live u
 | `workflow.md` | Read when generating repo workflow docs, workflow/status manifests, entry-surface links, and handoff indexes. |
 | `traceability.md` | Read when generating stable IDs, graph schema, backlink validation, graph fixtures, and cross-skill artifact links. |
 | `cascade.md` | Read when generating multi-repo cascade plans, first-run confirmation gates, idempotent linked updates, host adapter contracts, audits, and reconciliation reports. |
+| `skill-modernization.md` | Read when auditing compact descriptions, progressive disclosure, trigger boundaries, cross-skill links, and AI-SDLC compatibility. |
 
-`workflow.md`, `traceability.md`, and `cascade.md` are active phase modules. Fall back to `REFERENCE.md` only for legacy template bodies that have not yet moved into focused modules.
+`workflow.md`, `traceability.md`, `cascade.md`, and `skill-modernization.md` are active phase modules. Fall back to `REFERENCE.md` only for legacy template bodies that have not yet moved into focused modules.
 
 ## Module ordering for a fresh v3 scaffold
 

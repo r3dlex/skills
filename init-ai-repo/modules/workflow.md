@@ -27,7 +27,7 @@ Every mandatory phase writes a status JSON with `phase_id`, `required`, `status`
 - **Multi-repo cascade** — enabled only for umbrella topology or explicit multi-repo selection; see `cascade.md` for orchestration, confirmation, idempotency, audit, and reconciliation semantics.
 - **Hosted tracker first** — enabled when a configured tracker is authorized; otherwise local markdown fallback is recorded and reconciled before final merge.
 - **Legacy migration** — enabled when legacy `.agents`/`.rules.ts`/marker-block artifacts are present; destructive actions remain confirmation-gated.
-- **Skill modernization** — enabled when the target repo owns a skill catalog; catalog budgets and audit gates are added by the later catalog-modernization phase.
+- **Skill modernization** — enabled when the target repo owns a skill catalog; see `skill-modernization.md` for description budgets, audit gates, and cross-skill workflow links.
 
 ## Manifest contract
 

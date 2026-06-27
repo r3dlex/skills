@@ -14,3 +14,9 @@ Update this handoff after Validate & Handoff records complete evidence.
 - Cascade plan: `.ai/cascade/cascade-plan.json`
 - Cascade audit: `.ai/cascade/audit.jsonl`
 - Cascade reconciliation: `.ai/cascade/reconciliation-report.md`
+
+## Skill catalog links
+
+- Catalog audit: `.ai/skills/catalog-audit.json`
+- Description exceptions: `.ai/skills/description-exceptions.json`
+- Modernization report: `.ai/skills/modernization-report.md`
