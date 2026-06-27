@@ -37,6 +37,9 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 │   │       └── judge-config.json
 │   ├── policies/
 │   │   └── model-routing.json
+│   ├── observability/
+│   │   ├── conventions.md
+│   │   └── audit-checklist.md
 │   ├── rules/
 │   │   ├── security.md
 │   │   └── technical-bounds.md
@@ -92,6 +95,7 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 - `traceability/` holds graph.json, index.md, and validation-report.md for BRD/PRD/work artifact links.
 - `evals/` holds one directory per evalset (`evalset.json`, `rubric.md`, `judge-config.json`) plus `coverage-exceptions.json`. Both output and trajectory evaluation are representable; see `modules/evals.md`. The eval-coverage gate is offline-structural only.
 - `policies/` holds machine-readable routing/config policy. `model-routing.json` (ADR-0003) declares a `schema_version`, provider-neutral tiers `{frontier, mid, cheap}`, a `task_classes` map (task-class → tier), and a `host_aliases` table binding each host (e.g. `claude`, `codex`) to per-tier model names. Frontier covers requirements/architecture/initial-implementation/hard-verification; mid covers standard implementation/planning; cheap covers test generation/first-pass code review/CI monitoring/lookups. Tier aliases — not provider IDs — keep the policy portable; routing is validated offline-structurally (`modules/validation.md` check #15) with no network model resolution.
+- `observability/` holds the generated observability surface (ADR-0005): `conventions.md` (logging and trace conventions) and `audit-checklist.md` (the token-cost and trajectory-audit checklist). Observability is non-optional harness surface — without it agent drift, cost, and trajectory are not auditable. These are generated conventions and a checklist, not live metering: token-cost and trajectory metering execute out-of-band and are recorded as evidence; CI validates only that the conventions and checklist exist (`modules/validation.md` check #16). The PR merge gate in `modules/ci-policy.md` references the audit checklist for behavior-changing PRs.
 
 ## `.memory/`
 

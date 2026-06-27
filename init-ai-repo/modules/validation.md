@@ -130,6 +130,10 @@ for variant in ("standalone", "umbrella"):
     assert covered == TIERS, f"{p}: tiers without a host alias: {sorted(TIERS - covered)}"
 PY
 python3 -m json.tool reference/fixtures/v3/legacy-migration/migration-manifest.json >/dev/null
+test -s reference/fixtures/v3/standalone/.ai/observability/conventions.md
+test -s reference/fixtures/v3/standalone/.ai/observability/audit-checklist.md
+test -s reference/fixtures/v3/umbrella/.ai/observability/conventions.md
+test -s reference/fixtures/v3/umbrella/.ai/observability/audit-checklist.md
 ```
 
 ## Expected interpretation
@@ -158,6 +162,7 @@ The validator runs the following v3 checks on the v3 fixtures and any candidate 
 13. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
 14. **Eval coverage** — for every `.ai/evals/<set>/` directory, `evalset.json`, `rubric.md`, and `judge-config.json` exist; `evalset.json` parses and declares `schema_version`, `set_id`, and a non-empty `cases` array; `judge-config.json` parses and declares `schema_version` and a `judge` block; `rubric.md` is non-empty. The eval-coverage gate (`modules/evals.md`, ADR-0002) is offline and structural only; no LM-judge or network call runs in CI. A skill changed in the PR diff that declares an `eval:` key must reference a structurally valid evalset unless an audited exception is recorded in `.ai/evals/coverage-exceptions.json`.
 15. **Model-routing policy** — `.ai/policies/model-routing.json` exists, parses as JSON, and declares `schema_version` (ADR-0003, `modules/documentation-blueprint.md`). Tiers are provider-neutral: `{frontier, mid, cheap}`. **Forward:** every entry in the `task_classes` map points to a tier in that set. **Reverse coverage:** the `host_aliases` table maps each host (e.g. `claude`, `codex`) to per-tier model names; every tier in `{frontier, mid, cheap}` has at least one alias entry, and no alias points to a tier outside that set. The check is offline-structural only; it never resolves a provider model ID over the network.
+16. **Observability surface** — `.ai/observability/conventions.md` and `.ai/observability/audit-checklist.md` exist and are non-empty (ADR-0005, `modules/documentation-blueprint.md`). The conventions doc covers logging and trace conventions; the checklist carries the token-cost and trajectory-audit checklist items. `modules/ci-policy.md` and `modules/validation.md` carry the token-cost and trajectory-audit checklist keywords. The check is offline-structural only: observability here is generated conventions plus a checklist; token-cost and trajectory metering execute out-of-band, never as a model or network call in CI.
 
 ## v3 fixture set
 
@@ -200,6 +205,7 @@ The validator also runs a static check pass on the documentation modules:
 - `modules/memory.md` declares `.memory/human-override/` as terminal priority and never lists it as inherited or syncable.
 - `modules/topology.md` defines the matrix schema and the depth rule.
 - `modules/language-packs.md` covers .NET Core / EF Core and legacy .NET / EF in the pack matrix.
+- `modules/ci-policy.md` and this module (`modules/validation.md`) contain the observability checklist keywords `token-cost` and `trajectory-audit`, and the generated `.ai/observability/` tree (conventions + audit checklist) is named in check #16 above. Observability metering is out-of-band; CI verifies only the generated conventions and checklist, never a live model or network call.
 
 A missing or weakened wording fails the static check pass; the validator never re-words the safety rules to satisfy a missing match.
 
