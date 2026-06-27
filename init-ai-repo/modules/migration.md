@@ -53,7 +53,7 @@ The migration path writes a manifest to `.ai/drift/migration-manifest.json` with
 {
   "schema_version": "1.0",
   "generated_at": "2026-06-07T00:00:00Z",
-  "actor": "ai-sdlc-init",
+  "actor": "init-ai-repo",
   "umbrella_root": ".",
   "actions": [
     {

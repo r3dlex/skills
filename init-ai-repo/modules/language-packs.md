@@ -8,7 +8,7 @@ Read when selecting local and CI checks for a repo. Packs are modular: detect ma
 2. Prefer existing package manager commands over inventing new ones.
 3. Add CI steps only for tools already present or explicitly selected.
 4. In polyglot repos, run each detected pack independently and keep failures attributable to the pack.
-5. Do not add dependencies as part of `ai-sdlc-init` unless the user explicitly asks.
+5. Do not add dependencies as part of `init-ai-repo` unless the user explicitly asks.
 
 ## Pack matrix
 

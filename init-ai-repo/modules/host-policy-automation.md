@@ -123,7 +123,7 @@ Every run appends one JSON object per line to `.ai/host-policy/<host>/audit.json
   "ts": "2026-06-07T00:00:00Z",
   "host": "github.com/example/repo",
   "audit_path": ".ai/host-policy/github/audit.jsonl",
-  "actor": "ai-sdlc-init",
+  "actor": "init-ai-repo",
   "mode": "apply",
   "confirmation_token": "ct-2026-06-07-001",
   "diff_sha256": "...",
