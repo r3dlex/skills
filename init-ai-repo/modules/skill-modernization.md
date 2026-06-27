@@ -23,8 +23,27 @@ Read when auditing or updating a skill catalog for compact metadata, progressive
 2. Verify every first-class skill has `name` and `description` frontmatter.
 3. Warn when a description exceeds the 180-character target; fail when it exceeds 280 without an audited exception.
 4. Verify body line limits and progressive-disclosure anti-patterns through `tests/test-skills.sh`.
-5. Verify generated workflow links remain discoverable for skills that create PRDs, issues, releases, traces, or AI-SDLC artifacts.
-6. Emit a stable catalog audit artifact and keep exceptions explicit, reviewed, and time-bounded.
+5. Verify trigger/non-trigger/fallback boundaries are present in each first-class description (see "Trigger boundaries").
+6. Validate referenced surfaces: no broken relative links, aliases resolve to a real canonical skill, every referenced file exists, and every bundled script passes `bash -n` (see "Link, alias, referenced-file, and script validation").
+7. Verify generated workflow links remain discoverable for skills that create PRDs, issues, releases, traces, or AI-SDLC artifacts.
+8. Emit a stable catalog audit artifact and keep exceptions explicit, reviewed, and time-bounded.
+
+## Trigger boundaries
+
+Every audited skill description must make three boundaries explicit so an agent can route correctly without loading the body:
+
+- **Trigger** — the concrete conditions under which the skill should run (verbs, artifacts, keywords).
+- **Non-trigger** — adjacent situations the skill must *not* claim, to prevent over-eager invocation (e.g. "use X instead for live-app runs"). Audit warns when a skill's description overlaps another skill's trigger without a non-trigger carve-out.
+- **Fallback** — what happens when a precondition is missing or an optional tool/host is unavailable (graceful degradation, plain-markdown path, or "defer to <other skill>"). A skill with optional host/tool dependencies must name its fallback.
+
+## Link, alias, referenced-file, and script validation
+
+The audit statically validates a skill's referenced surfaces — offline, no network:
+
+- **Broken link check** — every relative Markdown link and `modules/*`/`reference/*` pointer in `SKILL.md` and its modules resolves to a tracked file.
+- **Alias check** — declared aliases/shims (e.g. the `ai-sdlc-init` → `init-ai-repo` compatibility alias) point to a real canonical skill and do not collide with another first-class name.
+- **Referenced-file check** — every file a skill names (templates, fixtures, ADRs, golden outputs) exists at the cited path; cite by content where line numbers would drift.
+- **Script check** — every bundled `scripts/*` a skill invokes exists and passes `bash -n`; the audit does not execute network- or credential-dependent scripts.
 
 ## Cross-skill workflow links
 

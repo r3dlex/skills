@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.1",
+  "root_repo_id": "umbrella-root",
+  "topology_type": "umbrella",
+  "generated_at": "2026-06-27T00:00:00Z",
+  "nodes": [
+    {
+      "id": "prd:umbrella-root:init-ai-repo-workflow-surfaces",
+      "type": "prd",
+      "title": "init-ai-repo workflow surfaces",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": "docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md",
+      "backlinks": []
+    },
+    {
+      "id": "pr:umbrella-root:workflow-surfaces",
+      "type": "pr",
+      "title": "PR 6B workflow surfaces",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/reviews/pr-6b-workflow-surfaces.md",
+      "backlinks": [
+        "prd:umbrella-root:init-ai-repo-workflow-surfaces"
+      ]
+    },
+    {
+      "id": "test:umbrella-root:workflow-fixtures",
+      "type": "test",
+      "title": "Workflow fixture validation",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": "tests/workflow-fixtures_test.sh",
+      "backlinks": [
+        "pr:umbrella-root:workflow-surfaces"
+      ]
+    },
+    {
+      "id": "eval-result:umbrella-root:example-output-eval",
+      "type": "eval-result",
+      "title": "example-output-eval LM-judge result",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/evals/example-output-eval/evalset.json",
+      "backlinks": [
+        "pr:umbrella-root:workflow-surfaces"
+      ]
+    },
+    {
+      "id": "trajectory-trace:umbrella-root:example-output-eval",
+      "type": "trajectory-trace",
+      "title": "example-output-eval trajectory trace",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/evals/example-output-eval/rubric.md",
+      "backlinks": [
+        "eval-result:umbrella-root:example-output-eval"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "prd:umbrella-root:init-ai-repo-workflow-surfaces",
+      "target": "pr:umbrella-root:workflow-surfaces",
+      "relation": "implemented-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "pr:umbrella-root:workflow-surfaces",
+      "target": "test:umbrella-root:workflow-fixtures",
+      "relation": "verified-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "pr:umbrella-root:workflow-surfaces",
+      "target": "eval-result:umbrella-root:example-output-eval",
+      "relation": "evaluated-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "eval-result:umbrella-root:example-output-eval",
+      "target": "trajectory-trace:umbrella-root:example-output-eval",
+      "relation": "traced-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    }
+  ],
+  "coverage": {
+    "required_types": [
+      "prd",
+      "pr",
+      "test"
+    ],
+    "schema_1_1_types": [
+      "eval-result",
+      "trajectory-trace"
+    ]
+  }
+}
