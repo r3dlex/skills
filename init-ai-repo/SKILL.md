@@ -68,6 +68,7 @@ When this skill creates or updates PR workflow guidance, require merge only afte
 - `modules/cascade.md` — read when generating multi-repo cascade plans, first-run confirmation gates, idempotent linked updates, host adapter contracts, audits, and reconciliation reports.
 - `modules/skill-modernization.md` — read when auditing compact descriptions, progressive disclosure, trigger boundaries, cross-skill links, and AI-SDLC compatibility.
 - `modules/evals.md` — read when generating the `.ai/evals/` scaffold or the offline eval-coverage gate that `modules/ci-policy.md` adds to the PR merge gate.
+- `modules/mcp-a2a.md` — read when generating the `.ai/mcp/` registry stub and the A2A cross-agent handoff convention.
 
 ## Safety Rules
 

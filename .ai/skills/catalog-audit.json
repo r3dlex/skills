@@ -95,7 +95,7 @@
       "path": "init-ai-repo/SKILL.md",
       "description_chars": 161,
       "description_status": "target",
-      "body_lines": 74,
+      "body_lines": 75,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"

@@ -134,6 +134,27 @@ test -s reference/fixtures/v3/standalone/.ai/observability/conventions.md
 test -s reference/fixtures/v3/standalone/.ai/observability/audit-checklist.md
 test -s reference/fixtures/v3/umbrella/.ai/observability/conventions.md
 test -s reference/fixtures/v3/umbrella/.ai/observability/audit-checklist.md
+python3 -m json.tool reference/fixtures/v3/standalone/.ai/mcp/registry.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/umbrella/.ai/mcp/registry.json >/dev/null
+test -s reference/fixtures/v3/standalone/.ai/mcp/a2a-handoff.md
+test -s reference/fixtures/v3/umbrella/.ai/mcp/a2a-handoff.md
+python3 - <<'PY'
+import json
+for variant in ("standalone", "umbrella"):
+    p = f"reference/fixtures/v3/{variant}/.ai/mcp/registry.json"
+    data = json.load(open(p))
+    assert data.get("schema_version"), f"{p}: schema_version missing"
+    assert isinstance(data.get("servers"), list), f"{p}: servers array missing"
+    a2a = data.get("a2a")
+    assert isinstance(a2a, dict), f"{p}: a2a block missing"
+    assert a2a.get("protocol"), f"{p}: a2a.protocol missing"
+    assert a2a.get("handoff_convention"), f"{p}: a2a.handoff_convention missing"
+    for s in data["servers"]:
+        for key in ("name", "transport", "status", "tools"):
+            assert key in s, f"{p}: server entry missing key {key}"
+        assert s["status"] == "stub", f"{p}: server {s.get('name')} status must be 'stub'"
+        assert isinstance(s["tools"], list), f"{p}: server {s.get('name')} tools not a list"
+PY
 ```
 
 ## Expected interpretation
@@ -163,6 +184,7 @@ The validator runs the following v3 checks on the v3 fixtures and any candidate 
 14. **Eval coverage** — for every `.ai/evals/<set>/` directory, `evalset.json`, `rubric.md`, and `judge-config.json` exist; `evalset.json` parses and declares `schema_version`, `set_id`, and a non-empty `cases` array; `judge-config.json` parses and declares `schema_version` and a `judge` block; `rubric.md` is non-empty. The eval-coverage gate (`modules/evals.md`, ADR-0002) is offline and structural only; no LM-judge or network call runs in CI. A skill changed in the PR diff that declares an `eval:` key must reference a structurally valid evalset unless an audited exception is recorded in `.ai/evals/coverage-exceptions.json`.
 15. **Model-routing policy** — `.ai/policies/model-routing.json` exists, parses as JSON, and declares `schema_version` (ADR-0003, `modules/documentation-blueprint.md`). Tiers are provider-neutral: `{frontier, mid, cheap}`. **Forward:** every entry in the `task_classes` map points to a tier in that set. **Reverse coverage:** the `host_aliases` table maps each host (e.g. `claude`, `codex`) to per-tier model names; every tier in `{frontier, mid, cheap}` has at least one alias entry, and no alias points to a tier outside that set. The check is offline-structural only; it never resolves a provider model ID over the network.
 16. **Observability surface** — `.ai/observability/conventions.md` and `.ai/observability/audit-checklist.md` exist and are non-empty (ADR-0005, `modules/documentation-blueprint.md`). The conventions doc covers logging and trace conventions; the checklist carries the token-cost and trajectory-audit checklist items. `modules/ci-policy.md` and `modules/validation.md` carry the token-cost and trajectory-audit checklist keywords. The check is offline-structural only: observability here is generated conventions plus a checklist; token-cost and trajectory metering execute out-of-band, never as a model or network call in CI.
+17. **MCP/A2A surface** — `.ai/mcp/registry.json` and `.ai/mcp/a2a-handoff.md` exist (ADR-0005, `modules/documentation-blueprint.md`, `modules/mcp-a2a.md`). `registry.json` parses as JSON and declares `schema_version`, a `servers` array whose entries each carry `name`, `transport`, `status`, and a `tools` array, and an `a2a` block with `protocol` and a `handoff_convention` pointer. Every server `status` is `"stub"` — the registry resolves no live endpoint. `a2a-handoff.md` is non-empty and carries the handoff-envelope and `correlation_id` keywords. The check is offline-structural only: the registry is a stub and the handoff doc is a convention; generation makes no model or network call. The discoverable runner is `tests/mcp_a2a_test.sh`.
 
 ## v3 fixture set
 
