@@ -1,9 +1,10 @@
 #!/bin/bash
 #
-# codex_parity_test.sh  (P0-5)
+# codex_parity_test.sh  (P0-5, upgraded to full catalog parity in P1-7)
 #
 # Asserts:
-#   - the 8 SDLC-core skills PASS scripts/check-codex-parity.sh (exit 0);
+#   - EVERY catalog skill (every top-level */SKILL.md) PASSES
+#     scripts/check-codex-parity.sh (exit 0);
 #   - `write-a-skill` PASSES even though its body documents the denylisted
 #     strings while teaching the marker convention (self-reference guard);
 #   - a fixture body with an UNMARKED AskUserQuestion FAILS (non-zero);
@@ -25,20 +26,23 @@ ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
 bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
 # ---------------------------------------------------------------------------
-# (1) The 8 P0 SDLC-core skill bodies pass parity.
+# (1) EVERY catalog skill body passes parity (full ~21, P1-7).
+#     The catalog is every top-level */SKILL.md — discovered dynamically so
+#     this suite stays consistent with the live catalog with no allowlist.
 # ---------------------------------------------------------------------------
-SDLC_CORE=(
-  init-ai-repo
-  write-a-skill
-  to-prd
-  to-issues
-  triage
-  tdd
-  diagnose
-  publish-semver
-)
+catalog=()
+for body in */SKILL.md; do
+  [[ -f "$body" ]] || continue
+  catalog+=("${body%/SKILL.md}")
+done
 
-for skill in "${SDLC_CORE[@]}"; do
+if [[ "${#catalog[@]}" -eq 0 ]]; then
+  bad "catalog has at least one skill (*/SKILL.md)"
+else
+  ok "catalog discovered ${#catalog[@]} skills"
+fi
+
+for skill in "${catalog[@]}"; do
   body="$skill/SKILL.md"
   if bash "$CHECK" "$body" >/dev/null 2>&1; then
     ok "$skill passes codex parity"
