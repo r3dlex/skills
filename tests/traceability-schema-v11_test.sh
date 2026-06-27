@@ -183,5 +183,98 @@ assert re.search(r"accepts?[^.]*1\.1|>=\s*1\.1|>=\s*`1\.1`", module), (
     "module must state validator accepts >= 1.1")
 print("PASS: module documents schema 1.1 and new types")
 
-print("traceability schema 1.1 test passed")
+# --- 5. The SHARED validator the shipped script calls enforces the contract ---
+# scripts/validate-final-package.py imports scripts/traceability_schema.py, so
+# asserting against the shared module proves the runtime check (not just this
+# in-test reference validator) enforces the type enum + schema_version. Doc,
+# runtime, and test cannot drift.
+import importlib.util
+
+shared_path = ROOT / "scripts/traceability_schema.py"
+assert shared_path.is_file(), "shipped shared validator scripts/traceability_schema.py must exist"
+spec = importlib.util.spec_from_file_location("traceability_schema", shared_path)
+shared = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(shared)
+
+# 5a. v1.0 + both 1.1 fixtures PASS the shared validator.
+for fixture in ("standalone", "umbrella"):
+    v10 = json.loads((ROOT / "reference/fixtures/v3" / fixture / ".ai/traceability/graph.json").read_text())
+    shared.validate_graph(v10)  # raises ValueError on violation
+    v11 = json.loads((ROOT / "reference/fixtures/v3" / fixture / ".ai/traceability/graph-1.1.json").read_text())
+    shared.validate_graph(v11)
+print("PASS: shared validator accepts v1.0 AND both 1.1 fixtures")
+
+# 5b. The shared validator's enum/schema rules match the in-test reference enum.
+assert shared.KNOWN_TYPES == KNOWN_TYPES, "shared validator enum drifted from reference enum"
+
+# 5c. An unknown node type FAILS the shared validator.
+bad_type = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json").read_text())
+bad_type["nodes"].append({
+    "id": "bogus:standalone-root:nope", "type": "bogus-type", "title": "x",
+    "status": "active", "repo_id": "standalone-root", "path": "README.md",
+})
+try:
+    shared.validate_graph(bad_type)
+except ValueError:
+    print("PASS: shared validator rejects unknown node type")
+else:
+    print("FAIL: shared validator accepted unknown node type")
+    sys.exit(1)
+
+# 5d. A missing schema_version FAILS the shared validator.
+no_ver = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph.json").read_text())
+no_ver.pop("schema_version", None)
+try:
+    shared.validate_graph(no_ver)
+except ValueError:
+    print("PASS: shared validator rejects missing schema_version")
+else:
+    print("FAIL: shared validator accepted graph with no schema_version")
+    sys.exit(1)
 PY
+
+# --- 6. The SHIPPED validate-final-package.py rejects an unknown node type -----
+# End-to-end proof that the *shipped* script (not just the shared helper) now
+# fails when a traceability graph carries an unknown type. We temporarily
+# pollute a real 1.1 fixture, run the shipped validator, assert it FAILS, then
+# always restore the fixture (trap) so the working tree is left clean.
+POLLUTE_TARGET="reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json"
+BACKUP="$(mktemp)"
+cp "$POLLUTE_TARGET" "$BACKUP"
+restore() { cp "$BACKUP" "$POLLUTE_TARGET"; rm -f "$BACKUP"; }
+trap restore EXIT
+
+python3 - "$POLLUTE_TARGET" <<'PY'
+import json, sys
+p = sys.argv[1]
+g = json.loads(open(p).read())
+g["nodes"].append({
+    "id": "bogus:standalone-root:shipped", "type": "definitely-not-a-type",
+    "title": "x", "status": "active", "repo_id": "standalone-root", "path": "README.md",
+})
+open(p, "w").write(json.dumps(g, indent=2) + "\n")
+PY
+
+set +e
+python3 scripts/validate-final-package.py >/dev/null 2>&1
+shipped_exit=$?
+set -e
+restore
+trap - EXIT
+
+if [ "$shipped_exit" -ne 0 ]; then
+  echo "PASS: shipped validate-final-package.py rejects an unknown traceability node type"
+else
+  echo "FAIL: shipped validate-final-package.py accepted an unknown traceability node type"
+  exit 1
+fi
+
+# --- 7. The clean (restored) tree still PASSES the shipped validator ----------
+if python3 scripts/validate-final-package.py >/dev/null 2>&1; then
+  echo "PASS: shipped validate-final-package.py passes on the clean fixtures"
+else
+  echo "FAIL: shipped validate-final-package.py failed on the clean fixtures"
+  exit 1
+fi
+
+echo "traceability schema 1.1 test passed"
