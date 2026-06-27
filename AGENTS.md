@@ -108,5 +108,5 @@ Before starting work on an issue:
 
 <!-- v3-ai-sdlc-init:start -->
 ## AI SDLC v3
-This repo follows the v3 AI-SDLC layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules at `r3dlex/skills/ai-sdlc-init/modules/`.
+This repo follows the v3 AI-SDLC layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules at `r3dlex/skills/init-ai-repo/modules/`.
 <!-- v3-ai-sdlc-init:end -->

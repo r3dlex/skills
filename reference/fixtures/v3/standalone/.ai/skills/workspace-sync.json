@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "name": "workspace-sync",
+  "source": "skills/workspace-sync",
+  "sync_strategy": "physical-copy",
+  "topology": {
+    "topology_type": "standalone",
+    "max_allowed_depth": 0,
+    "current_depth": 0
+  },
+  "managed_paths": [
+    ".ai/",
+    ".memory/self-learned/",
+    "docs/architecture/",
+    "docs/specifications/",
+    "docs/learning/"
+  ],
+  "excluded_paths": [
+    ".memory/human-override/"
+  ],
+  "validation": {
+    "max_allowed_depth_must_equal": 0,
+    "current_depth_must_equal": 0,
+    "reject_canonical_symlink": true,
+    "reject_canonical_git_submodule": true
+  }
+}

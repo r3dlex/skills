@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # readme-generate.sh
-# Generate or augment a repo's README.md under the ai-sdlc-init readme-documentation module.
+# Generate or augment a repo's README.md under the init-ai-repo readme-documentation module.
 #
 # Modes:
 #   --mode template    Generate a full README from the template (sparse/empty repos).

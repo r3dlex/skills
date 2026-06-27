@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-06-07T00:00:00Z",
+  "umbrella_root": ".",
+  "managed_repos": 2,
+  "assets": [
+    {
+      "path": "AGENTS.md",
+      "source": ".",
+      "mode": "physical-copy",
+      "status": "unchanged",
+      "source_sha256": "0000000000000000000000000000000000000000000000000000000000000001",
+      "destination_sha256": "0000000000000000000000000000000000000000000000000000000000000001"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "source": ".",
+      "mode": "physical-copy",
+      "status": "updated",
+      "source_sha256": "0000000000000000000000000000000000000000000000000000000000000002",
+      "destination_sha256": "0000000000000000000000000000000000000000000000000000000000000003"
+    }
+  ],
+  "summary": {
+    "unchanged": 3,
+    "updated": 1,
+    "added": 0,
+    "failed": 0,
+    "skipped": 0
+  }
+}

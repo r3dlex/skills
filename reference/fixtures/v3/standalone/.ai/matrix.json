@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "topology_type": "standalone",
+  "max_allowed_depth": 0,
+  "current_depth": 0,
+  "sync_strategy": "physical-copy",
+  "upstream_authority": {
+    "type": "git",
+    "url": "https://github.com/example/standalone-target.git",
+    "ref": "main"
+  },
+  "managed_repositories": [],
+  "inherited_assets": [],
+  "sync_status": {
+    "last_synced_at": "2026-06-07T00:00:00Z",
+    "drift_detected": false,
+    "last_drift_report": ".ai/drift/last-drift.json"
+  },
+  "memory": {
+    "external_integration": false
+  }
+}

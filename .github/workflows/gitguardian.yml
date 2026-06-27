@@ -1,0 +1,66 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    name: GitGuardian Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan for committed secret material
+        run: |
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import pathlib
+          import re
+          import sys
+
+          root = pathlib.Path(".")
+          skip_dirs = {
+              ".git",
+              ".omx",
+              ".venv",
+              "node_modules",
+              "__pycache__",
+          }
+          patterns = [
+              re.compile(r"-----BEGIN (?:RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----"),
+              re.compile(r"gh[pousr]_[A-Za-z0-9_]{30,}"),
+              re.compile(r"github_pat_[A-Za-z0-9_]{80,}"),
+              re.compile(r"sk-[A-Za-z0-9]{32,}"),
+              re.compile(r"xox[baprs]-[A-Za-z0-9-]{20,}"),
+              re.compile(r"AKIA[0-9A-Z]{16}"),
+          ]
+          offenders: list[str] = []
+
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              if any(part in skip_dirs for part in path.parts):
+                  continue
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for lineno, line in enumerate(text.splitlines(), 1):
+                  if any(pattern.search(line) for pattern in patterns):
+                      offenders.append(f"{path}:{lineno}")
+
+          if offenders:
+              print("Potential committed secret material found:")
+              print("\n".join(offenders))
+              sys.exit(1)
+
+          print("No committed secret material matched the guarded patterns.")
+          PY
