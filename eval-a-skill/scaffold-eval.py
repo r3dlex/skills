@@ -64,17 +64,32 @@ def judge_config() -> dict:
     }
 
 
-def rubric(skill: str) -> str:
+def rubric(skill: str, kind: str = "output") -> str:
+    # Weights skew to the declared kind's dimension (both dimensions always
+    # scored; weights sum to 1.0), so a `--kind trajectory` evalset is genuinely
+    # trajectory-weighted rather than carrying an output-dominant rubric.
+    if kind == "trajectory":
+        rows = (
+            "| Sound tool sequence | trajectory | 0.4 | Reads context before acting; verifies last. |\n"
+            "| Reads before writes | trajectory | 0.3 | Inspects existing state before mutating it. |\n"
+            "| No prohibited calls | trajectory | 0.2 | No network or hosted-mutation calls during evaluation. |\n"
+            "| Final artifact intact | output | 0.1 | Produced artifact matches expected behavior. |\n"
+        )
+    else:
+        rows = (
+            "| Task correctness | output | 0.4 | Final artifact matches expected behavior. |\n"
+            "| No silent overwrite | output | 0.2 | Existing work is preserved with an audit trail. |\n"
+            "| Sound tool sequence | trajectory | 0.3 | Reads context before acting; verifies last. |\n"
+            "| No prohibited calls | trajectory | 0.1 | No network or hosted-mutation calls during evaluation. |\n"
+        )
     return (
         f"# Rubric — {skill}-eval\n\n"
-        f"Scoring rubric for the `{skill}` skill. Output and trajectory dimensions "
-        "are scored. Weights sum to `1.0`. The passing threshold is `0.8`.\n\n"
+        f"Scoring rubric for the `{skill}` skill ({kind}-weighted). Output and "
+        "trajectory dimensions are both scored. Weights sum to `1.0`. The passing "
+        "threshold is `0.8`.\n\n"
         "| Criterion | Dimension | Weight | Passing bar |\n"
         "| --- | --- | --- | --- |\n"
-        "| Task correctness | output | 0.4 | Final artifact matches expected behavior. |\n"
-        "| No silent overwrite | output | 0.2 | Existing work is preserved with an audit trail. |\n"
-        "| Sound tool sequence | trajectory | 0.3 | Reads context before acting; verifies last. |\n"
-        "| No prohibited calls | trajectory | 0.1 | No network or hosted-mutation calls during evaluation. |\n\n"
+        f"{rows}\n"
         "Quality of this rubric is verified out-of-band via an LM-judge run; CI "
         "only checks that the rubric exists and is non-empty.\n"
     )
@@ -85,7 +100,7 @@ def scaffold(skill: str, root: Path, kind: str) -> Path:
     out.mkdir(parents=True, exist_ok=True)
     (out / "evalset.json").write_text(json.dumps(evalset(skill, kind), indent=2) + "\n")
     (out / "judge-config.json").write_text(json.dumps(judge_config(), indent=2) + "\n")
-    (out / "rubric.md").write_text(rubric(skill))
+    (out / "rubric.md").write_text(rubric(skill, kind))
     return out
 
 

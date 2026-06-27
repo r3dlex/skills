@@ -184,6 +184,52 @@ PY
   fi
 fi
 
+# -----------------------------------------------------------------------------
+# 4. A committed `kind: trajectory` evalset fixture exists, parses, and is
+#    structurally valid; and (if the generator supports it) `--kind trajectory`
+#    produces a matching valid triplet offline.
+# -----------------------------------------------------------------------------
+TRAJ_FIXTURE="$REPO_ROOT/reference/fixtures/v3/standalone/.ai/evals/example-trajectory-eval"
+if triplet_is_valid "$TRAJ_FIXTURE"; then
+  ok "committed trajectory-kind fixture is structurally valid"
+else
+  bad "committed trajectory-kind fixture must be structurally valid ($TRAJ_FIXTURE)"
+fi
+
+# evalset.json must declare kind: trajectory.
+if [ -f "$TRAJ_FIXTURE/evalset.json" ] && python3 - "$TRAJ_FIXTURE/evalset.json" <<'PY' 2>/dev/null
+import json, sys
+d = json.load(open(sys.argv[1]))
+sys.exit(0 if d.get("kind") == "trajectory" else 1)
+PY
+then
+  ok "committed trajectory fixture declares kind: trajectory"
+else
+  bad "committed trajectory fixture must declare kind: trajectory"
+fi
+
+# Generator must produce a matching valid triplet for --kind trajectory, offline.
+if [ -n "$GEN" ]; then
+  TWORK="$(mktemp -d)"
+  trap 'rm -rf "$WORK" "$TWORK"' EXIT
+  if python3 "$GEN" --skill traj-target --root "$TWORK" --kind trajectory >/dev/null 2>&1 \
+     && triplet_is_valid "$TWORK/.ai/evals/traj-target"; then
+    ok "generator produces a valid triplet for --kind trajectory"
+  else
+    bad "generator must produce a valid triplet for --kind trajectory"
+  fi
+  if [ -f "$TWORK/.ai/evals/traj-target/evalset.json" ] && python3 - "$TWORK/.ai/evals/traj-target/evalset.json" <<'PY' 2>/dev/null
+import json, sys
+d = json.load(open(sys.argv[1]))
+sys.exit(0 if d.get("kind") == "trajectory" else 1)
+PY
+  then
+    ok "generated --kind trajectory triplet declares kind: trajectory"
+  else
+    bad "generated --kind trajectory triplet must declare kind: trajectory"
+  fi
+fi
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
