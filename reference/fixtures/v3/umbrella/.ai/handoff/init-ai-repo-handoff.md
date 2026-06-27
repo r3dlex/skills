@@ -5,3 +5,6 @@
 - Validation report: `.ai/validation/report.md`
 
 Update this handoff after Validate & Handoff records complete evidence.
+
+- Traceability index: [`.ai/traceability/index.md`](../traceability/index.md)
+- Traceability graph: [`.ai/traceability/graph.json`](../traceability/graph.json)

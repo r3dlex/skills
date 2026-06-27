@@ -1,0 +1,193 @@
+{
+  "schema_version": "1.0",
+  "root_repo_id": "umbrella-root",
+  "topology_type": "umbrella",
+  "generated_at": "2026-06-27T00:00:00Z",
+  "nodes": [
+    {
+      "id": "brd:umbrella-root:business-need",
+      "type": "brd",
+      "title": "Business Need",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": "docs/specifications/ACTIVE/brd-business-need.md",
+      "backlinks": []
+    },
+    {
+      "id": "prd:umbrella-root:init-ai-repo-workflow-surfaces",
+      "type": "prd",
+      "title": "init-ai-repo workflow surfaces",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": "docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md",
+      "backlinks": [
+        "brd:umbrella-root:business-need"
+      ]
+    },
+    {
+      "id": "adr:umbrella-root:initial-architecture",
+      "type": "adr",
+      "title": "Initial Architecture",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": "docs/architecture/adr/0001-init.md",
+      "backlinks": []
+    },
+    {
+      "id": "plan:umbrella-root:init-ai-repo-pr-stack",
+      "type": "plan",
+      "title": "init-ai-repo phased PR stack",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/plans/init-ai-repo-pr-stack.md",
+      "backlinks": [
+        "prd:umbrella-root:init-ai-repo-workflow-surfaces",
+        "adr:umbrella-root:initial-architecture"
+      ]
+    },
+    {
+      "id": "issue:umbrella-root:workflow-surfaces",
+      "type": "issue",
+      "title": "Workflow surfaces work item",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/work-intake/workflow-surfaces.md",
+      "backlinks": [
+        "plan:umbrella-root:init-ai-repo-pr-stack"
+      ]
+    },
+    {
+      "id": "pr:umbrella-root:workflow-surfaces",
+      "type": "pr",
+      "title": "PR 6B workflow surfaces",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/reviews/pr-6b-workflow-surfaces.md",
+      "backlinks": [
+        "issue:umbrella-root:workflow-surfaces"
+      ]
+    },
+    {
+      "id": "test:umbrella-root:workflow-fixtures",
+      "type": "test",
+      "title": "Workflow fixture validation",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": "tests/workflow-fixtures_test.sh",
+      "backlinks": [
+        "pr:umbrella-root:workflow-surfaces",
+        "workflow:umbrella-root:repo-workflow"
+      ]
+    },
+    {
+      "id": "workflow:umbrella-root:repo-workflow",
+      "type": "workflow",
+      "title": "Repo workflow manifest",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/workflows/repo-workflow.json",
+      "backlinks": []
+    },
+    {
+      "id": "validation:umbrella-root:traceability-report",
+      "type": "validation",
+      "title": "Traceability validation report",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/traceability/validation-report.md",
+      "backlinks": [
+        "test:umbrella-root:workflow-fixtures"
+      ]
+    },
+    {
+      "id": "handoff:umbrella-root:init-ai-repo",
+      "type": "handoff",
+      "title": "init-ai-repo handoff",
+      "status": "active",
+      "repo_id": "umbrella-root",
+      "path": ".ai/handoff/init-ai-repo-handoff.md",
+      "backlinks": [
+        "validation:umbrella-root:traceability-report"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "brd:umbrella-root:business-need",
+      "target": "prd:umbrella-root:init-ai-repo-workflow-surfaces",
+      "relation": "refines-to",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "prd:umbrella-root:init-ai-repo-workflow-surfaces",
+      "target": "plan:umbrella-root:init-ai-repo-pr-stack",
+      "relation": "planned-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "adr:umbrella-root:initial-architecture",
+      "target": "plan:umbrella-root:init-ai-repo-pr-stack",
+      "relation": "constrains",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "plan:umbrella-root:init-ai-repo-pr-stack",
+      "target": "issue:umbrella-root:workflow-surfaces",
+      "relation": "decomposes-to",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "issue:umbrella-root:workflow-surfaces",
+      "target": "pr:umbrella-root:workflow-surfaces",
+      "relation": "implemented-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "pr:umbrella-root:workflow-surfaces",
+      "target": "test:umbrella-root:workflow-fixtures",
+      "relation": "verified-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "workflow:umbrella-root:repo-workflow",
+      "target": "test:umbrella-root:workflow-fixtures",
+      "relation": "validated-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "test:umbrella-root:workflow-fixtures",
+      "target": "validation:umbrella-root:traceability-report",
+      "relation": "reported-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "validation:umbrella-root:traceability-report",
+      "target": "handoff:umbrella-root:init-ai-repo",
+      "relation": "summarized-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    }
+  ],
+  "coverage": {
+    "required_types": [
+      "brd",
+      "prd",
+      "adr",
+      "plan",
+      "issue",
+      "pr",
+      "test",
+      "handoff",
+      "workflow",
+      "validation"
+    ]
+  }
+}

@@ -71,7 +71,7 @@ assert_file_contains init-ai-repo/SKILL.md "1. Detect repo state" "skill preserv
 assert_file_contains init-ai-repo/modules/README.md "phases/01-discover-decide.md" "module README links phase 1 module"
 assert_file_contains init-ai-repo/modules/phases/README.md "Eight internal checkpoints" "phase README preserves checkpoint mapping"
 assert_file_contains init-ai-repo/modules/phases/01-discover-decide.md ".ai/phases/01-discover-decide/" "phase 1 module emits phase state folder"
-assert_file_contains init-ai-repo/SKILL.md "Planned phase modules" "skill module map names planned phase modules without claiming implementation"
+assert_file_contains init-ai-repo/SKILL.md 'Planned phase module: `modules/cascade.md`' 'skill module map names remaining planned phase module without claiming implementation'
 assert_file_contains init-ai-repo/modules/README.md "workflow.md" "module README names planned workflow module"
 assert_file_contains init-ai-repo/modules/README.md "traceability.md" "module README names planned traceability module"
 assert_file_contains init-ai-repo/modules/README.md "cascade.md" "module README names planned cascade module"

@@ -1,0 +1,193 @@
+{
+  "schema_version": "1.0",
+  "root_repo_id": "standalone-root",
+  "topology_type": "standalone",
+  "generated_at": "2026-06-27T00:00:00Z",
+  "nodes": [
+    {
+      "id": "brd:standalone-root:business-need",
+      "type": "brd",
+      "title": "Business Need",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": "docs/specifications/ACTIVE/brd-business-need.md",
+      "backlinks": []
+    },
+    {
+      "id": "prd:standalone-root:init-ai-repo-workflow-surfaces",
+      "type": "prd",
+      "title": "init-ai-repo workflow surfaces",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": "docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md",
+      "backlinks": [
+        "brd:standalone-root:business-need"
+      ]
+    },
+    {
+      "id": "adr:standalone-root:initial-architecture",
+      "type": "adr",
+      "title": "Initial Architecture",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": "docs/architecture/adr/0001-init.md",
+      "backlinks": []
+    },
+    {
+      "id": "plan:standalone-root:init-ai-repo-pr-stack",
+      "type": "plan",
+      "title": "init-ai-repo phased PR stack",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": ".ai/plans/init-ai-repo-pr-stack.md",
+      "backlinks": [
+        "prd:standalone-root:init-ai-repo-workflow-surfaces",
+        "adr:standalone-root:initial-architecture"
+      ]
+    },
+    {
+      "id": "issue:standalone-root:workflow-surfaces",
+      "type": "issue",
+      "title": "Workflow surfaces work item",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": ".ai/work-intake/workflow-surfaces.md",
+      "backlinks": [
+        "plan:standalone-root:init-ai-repo-pr-stack"
+      ]
+    },
+    {
+      "id": "pr:standalone-root:workflow-surfaces",
+      "type": "pr",
+      "title": "PR 6B workflow surfaces",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": ".ai/reviews/pr-6b-workflow-surfaces.md",
+      "backlinks": [
+        "issue:standalone-root:workflow-surfaces"
+      ]
+    },
+    {
+      "id": "test:standalone-root:workflow-fixtures",
+      "type": "test",
+      "title": "Workflow fixture validation",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": "tests/workflow-fixtures_test.sh",
+      "backlinks": [
+        "pr:standalone-root:workflow-surfaces",
+        "workflow:standalone-root:repo-workflow"
+      ]
+    },
+    {
+      "id": "workflow:standalone-root:repo-workflow",
+      "type": "workflow",
+      "title": "Repo workflow manifest",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": ".ai/workflows/repo-workflow.json",
+      "backlinks": []
+    },
+    {
+      "id": "validation:standalone-root:traceability-report",
+      "type": "validation",
+      "title": "Traceability validation report",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": ".ai/traceability/validation-report.md",
+      "backlinks": [
+        "test:standalone-root:workflow-fixtures"
+      ]
+    },
+    {
+      "id": "handoff:standalone-root:init-ai-repo",
+      "type": "handoff",
+      "title": "init-ai-repo handoff",
+      "status": "active",
+      "repo_id": "standalone-root",
+      "path": ".ai/handoff/init-ai-repo-handoff.md",
+      "backlinks": [
+        "validation:standalone-root:traceability-report"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "brd:standalone-root:business-need",
+      "target": "prd:standalone-root:init-ai-repo-workflow-surfaces",
+      "relation": "refines-to",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "prd:standalone-root:init-ai-repo-workflow-surfaces",
+      "target": "plan:standalone-root:init-ai-repo-pr-stack",
+      "relation": "planned-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "adr:standalone-root:initial-architecture",
+      "target": "plan:standalone-root:init-ai-repo-pr-stack",
+      "relation": "constrains",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "plan:standalone-root:init-ai-repo-pr-stack",
+      "target": "issue:standalone-root:workflow-surfaces",
+      "relation": "decomposes-to",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "issue:standalone-root:workflow-surfaces",
+      "target": "pr:standalone-root:workflow-surfaces",
+      "relation": "implemented-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "pr:standalone-root:workflow-surfaces",
+      "target": "test:standalone-root:workflow-fixtures",
+      "relation": "verified-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "workflow:standalone-root:repo-workflow",
+      "target": "test:standalone-root:workflow-fixtures",
+      "relation": "validated-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "test:standalone-root:workflow-fixtures",
+      "target": "validation:standalone-root:traceability-report",
+      "relation": "reported-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    },
+    {
+      "source": "validation:standalone-root:traceability-report",
+      "target": "handoff:standalone-root:init-ai-repo",
+      "relation": "summarized-by",
+      "created_by": "init-ai-repo",
+      "evidence_path": ".ai/traceability/index.md"
+    }
+  ],
+  "coverage": {
+    "required_types": [
+      "brd",
+      "prd",
+      "adr",
+      "plan",
+      "issue",
+      "pr",
+      "test",
+      "handoff",
+      "workflow",
+      "validation"
+    ]
+  }
+}

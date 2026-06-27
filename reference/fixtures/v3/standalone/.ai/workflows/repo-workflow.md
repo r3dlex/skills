@@ -22,3 +22,8 @@ This generated workflow is the shared source of truth for mandatory and optional
 ## Entry surface links
 
 Generated `AGENTS.md`, `CLAUDE.md`, and `README.md` must link to this workflow doc and `.ai/workflows/repo-workflow.json`.
+
+## Traceability
+
+- Traceability index: [`.ai/traceability/index.md`](../traceability/index.md)
+- Traceability graph: [`.ai/traceability/graph.json`](../traceability/graph.json)
