@@ -1,7 +1,7 @@
 # Skill Modernization Report
 
 status: `pass`
-skill_count: `21`
+skill_count: `22`
 target_description_chars: `180`
 hard_fail_description_chars: `280`
 warnings: `0`

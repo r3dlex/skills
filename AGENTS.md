@@ -38,6 +38,7 @@ Pick the skill matching the user's request. Each skill has:
 | `prototype` | Building a throwaway terminal or UI prototype to test state, logic, or design options |
 | `zoom-out` | Explaining broader code or product context before local changes |
 | `handoff` | Compacting the conversation into a handoff document for another agent |
+| `eval-a-skill` | Scaffolding a structurally valid eval triplet for a target skill; CI checks structure, the judge runs out-of-band |
 
 ## Writing Rules
 

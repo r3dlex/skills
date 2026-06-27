@@ -6,7 +6,7 @@
     "body_line_limit": 100,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 21,
+  "skill_count": 22,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -46,6 +46,16 @@
       "description_chars": 92,
       "description_status": "target",
       "body_lines": 30,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "eval-a-skill",
+      "path": "eval-a-skill/SKILL.md",
+      "description_chars": 149,
+      "description_status": "target",
+      "body_lines": 75,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"

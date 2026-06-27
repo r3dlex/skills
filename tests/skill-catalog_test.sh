@@ -11,7 +11,17 @@ python3 - <<'PY'
 import json
 from pathlib import Path
 
+# Expected live-catalog skill count per root. The repo root tracks the live
+# catalog (grows as skills are added); the v3 fixtures model a generated target
+# repo and stay pinned.
+expected_count = {
+    Path('.'): 22,
+    Path('reference/fixtures/v3/standalone'): 21,
+    Path('reference/fixtures/v3/umbrella'): 21,
+}
+
 for root in [Path('.'), Path('reference/fixtures/v3/standalone'), Path('reference/fixtures/v3/umbrella')]:
+    count = expected_count[root]
     audit_path = root / '.ai/skills/catalog-audit.json'
     exceptions_path = root / '.ai/skills/description-exceptions.json'
     report_path = root / '.ai/skills/modernization-report.md'
@@ -22,7 +32,7 @@ for root in [Path('.'), Path('reference/fixtures/v3/standalone'), Path('referenc
     exceptions = json.loads(exceptions_path.read_text())
     assert audit['schema_version'] == '1.0'
     assert audit['status'] == 'pass'
-    assert audit['skill_count'] == 21
+    assert audit['skill_count'] == count
     assert audit['policy']['target_description_chars'] == 180
     assert audit['policy']['hard_fail_description_chars'] == 280
     assert not audit['failures']
@@ -31,7 +41,7 @@ for root in [Path('.'), Path('reference/fixtures/v3/standalone'), Path('referenc
     assert exceptions['exceptions'] == []
     report = report_path.read_text()
     assert 'status: `pass`' in report
-    assert 'skill_count: `21`' in report
+    assert f'skill_count: `{count}`' in report
 
 workflow = Path('reference/fixtures/v3/standalone/.ai/workflows/repo-workflow.md').read_text()
 handoff = Path('reference/fixtures/v3/standalone/.ai/handoff/init-ai-repo-handoff.md').read_text()
