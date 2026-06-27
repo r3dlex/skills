@@ -16,3 +16,7 @@
 upstream-pocock/
 .prek-cache/
 # <!-- ai-sdlc-init:end -->
+
+# Python build artifacts
+__pycache__/
+*.pyc

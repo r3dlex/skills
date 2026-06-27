@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "artifact_kind": "lm-judge-demonstration",
+  "disclaimer": "This is a recorded out-of-band demonstration, not a CI gate. It is illustrative committed evidence showing the shape an out-of-band LM-judge runner produces. No live model or network call was made to generate it, and CI never invokes the LM-judge. The scores and rationales below are hand-authored placeholders, not the output of a real model run.",
+  "eval_under_judgment": {
+    "set_id": "example-output-eval",
+    "skill_under_test": "example-skill",
+    "evalset": "reference/fixtures/v3/umbrella/.ai/evals/example-output-eval/evalset.json",
+    "rubric": "reference/fixtures/v3/umbrella/.ai/evals/example-output-eval/rubric.md",
+    "judge_config": "reference/fixtures/v3/umbrella/.ai/evals/example-output-eval/judge-config.json"
+  },
+  "judge_model": "illustrative-frontier-judge (placeholder; no real model invoked)",
+  "recorded_at": "<RECORDED-TIMESTAMP-PLACEHOLDER e.g. 2026-01-01T00:00:00Z>",
+  "case_under_judgment": "case-001",
+  "passing_threshold": 0.8,
+  "criterion_judgments": [
+    {
+      "criterion": "Structural correctness",
+      "dimension": "output",
+      "weight": 0.4,
+      "score": 0.95,
+      "rationale": "The generated artifact matches the documented v3 tree: every required directory under .ai/, .memory/, and docs/ is present and well-formed. Minor wording drift in one generated comment keeps this just short of a perfect score."
+    },
+    {
+      "criterion": "No silent overwrite",
+      "dimension": "output",
+      "weight": 0.2,
+      "score": 1.0,
+      "rationale": "Pre-existing files were preserved and a generation audit entry was emitted for each write, with no destructive overwrite of human-authored content."
+    },
+    {
+      "criterion": "Sound tool sequence",
+      "dimension": "trajectory",
+      "weight": 0.3,
+      "score": 0.85,
+      "rationale": "The trajectory reads the matrix and plans the tree before writing, and emits the audit step last, matching the reference trajectory. The plan-tree and write-files steps were interleaved slightly rather than strictly sequential, a benign deviation."
+    },
+    {
+      "criterion": "No prohibited calls",
+      "dimension": "trajectory",
+      "weight": 0.1,
+      "score": 1.0,
+      "rationale": "No network or hosted-mutation calls were observed during evaluation; the run stayed fully offline as required."
+    }
+  ],
+  "aggregate_score": 0.935,
+  "verdict": "pass",
+  "notes": "aggregate_score is the rubric-weighted sum of per-criterion scores (0.95*0.4 + 1.0*0.2 + 0.85*0.3 + 1.0*0.1 = 0.935), which clears the 0.8 passing threshold declared in rubric.md and judge-config.json. This end-to-end shape demonstrates the structural-in-CI + quality-out-of-band split from modules/evals.md and ADR-0002."
+}

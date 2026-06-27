@@ -38,6 +38,7 @@ Pick the skill matching the user's request. Each skill has:
 | `prototype` | Building a throwaway terminal or UI prototype to test state, logic, or design options |
 | `zoom-out` | Explaining broader code or product context before local changes |
 | `handoff` | Compacting the conversation into a handoff document for another agent |
+| `eval-a-skill` | Scaffolding a structurally valid eval triplet for a target skill; CI checks structure, the judge runs out-of-band |
 
 ## Writing Rules
 
@@ -53,7 +54,7 @@ All skills follow Layer 2 guidelines:
 
 ### Codex parity
 
-Skill bodies must be tool-agnostic across Claude Code and Codex. Do not hard-depend on Claude/OMC-only invocations (`AskUserQuestion`, `Task(subagent_type=...)`, `Skill(...)`, `subagent_type:`, `TodoWrite`, `mcp__*`); use plain-markdown prose instead. `scripts/check-codex-parity.sh` enforces this and scans real invocations only (mentions inside backticks or fenced code blocks are ignored). When a Claude-only construct is unavoidable, annotate it with the `<!-- codex:optional -->` marker on the construct line (or the line directly above it, with no blank line between) and describe a plain-markdown fallback adjacent to it. See `write-a-skill/SKILL.md` for the convention.
+Skill bodies must be tool-agnostic across Claude Code and Codex. Do not hard-depend on Claude/OMC-only invocations (`AskUserQuestion`, `Task(subagent_type=...)`, `Skill(...)`, `subagent_type:`, `TodoWrite`, `mcp__*`); use plain-markdown prose instead. `scripts/check-codex-parity.sh` enforces this and scans real invocations only (mentions inside backticks or fenced code blocks are ignored). When a Claude-only construct is unavoidable, annotate it with the `<!-- codex:optional -->` marker on the construct line (or the line directly above it, with no blank line between) and describe a plain-markdown fallback adjacent to it. See `write-a-skill/SKILL.md` for the convention. The mechanical check is the P0/P1 bar; the P2 **verified** bar — representative skills actually run under Codex — is recorded out-of-band per `docs/learning/codex-verification.md` (never a live Codex run in CI).
 
 ## Layers
 

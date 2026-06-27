@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "artifact_kind": "codex-verification-transcript",
+  "disclaimer": "This is a recorded out-of-band verification, not a CI gate. No live Codex run happened in CI or in the offline sandbox that produced this repo; CI never invokes Codex. This artifact records the shape an out-of-band Codex verification run produces. Until a maintainer pastes a real recorded session, the transcript_excerpt and outcome below are illustrative placeholders, not the output of a live model run.",
+  "skill_under_test": "init-ai-repo",
+  "codex_model": "illustrative-codex-frontier (placeholder; no live model invoked)",
+  "codex_command": "./scripts/install-codex.sh --skill init-ai-repo && codex \"scaffold the v3 AI-SDLC tree in this scratch repo using the init-ai-repo skill\"",
+  "scenario": "Ask Codex, with init-ai-repo installed, to scaffold the v3 AI-SDLC tree (.ai/, .memory/, docs/architecture/adr/, AGENTS.md + thin CLAUDE.md/GEMINI.md pointers) in an empty scratch repository.",
+  "outcome": "placeholder — not yet recorded (see disclaimer). Expected on a real run: Codex discovers init-ai-repo, reads AGENTS.md as the single source of truth, and emits the v3 tree with thin CLAUDE.md/GEMINI.md pointers and no Claude-only invocation on the core path.",
+  "recorded_at": "<RECORDED-TIMESTAMP-PLACEHOLDER e.g. 2026-01-01T00:00:00Z>",
+  "transcript_excerpt": "$ ./scripts/install-codex.sh --skill init-ai-repo\n  ✓ init-ai-repo\n$ codex \"scaffold the v3 AI-SDLC tree ...\"\n[codex] Using skill: init-ai-repo\n[codex] Reading AGENTS.md (single source of truth) ...\n[codex] Writing .ai/matrix.json (topology_type=standalone, depth=0) ...\n[codex] Writing AGENTS.md, CLAUDE.md (pointer), GEMINI.md (pointer) ...\n[codex] Writing docs/architecture/adr/ ...\n[codex] Done. No Claude/OMC-only tool was required.",
+  "notes": "Verified bar (ADR-0004 P2). The mechanical bar is enforced offline in CI by scripts/check-codex-parity.sh; this records the out-of-band verified run. Replace transcript_excerpt, codex_model, outcome, and recorded_at with a real session when a maintainer runs it under Codex."
+}

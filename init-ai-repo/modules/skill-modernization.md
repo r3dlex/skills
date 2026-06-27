@@ -53,6 +53,18 @@ The audit statically validates a skill's referenced surfaces — offline, no net
 - `publish-semver` must link release evidence to specs, PRs, and tests.
 - `write-a-skill` and `write-agent-docs` own authoring guidance for future catalog changes.
 
+## Codex parity verification (P2)
+
+The mechanical Codex-parity bar (no Claude/OMC-only hard dependencies) is
+enforced offline by `scripts/check-codex-parity.sh`. The **verified** bar — a
+human actually running representative skills under Codex — is recorded
+out-of-band, never in CI. Follow `docs/learning/codex-verification.md` to run a
+skill under Codex via `scripts/install-codex.sh`, what to record, and the pass
+criteria; recorded transcript evidence lives under
+`reference/fixtures/v3/standalone/.ai/evals/codex-verification/` and carries the
+"recorded out-of-band verification, not a CI gate" disclaimer (validation check
+#20, ADR-0004).
+
 ## Safety rules
 
 - Do not weaken validators to make existing skills pass; fix the skill or add a reviewed exception.
