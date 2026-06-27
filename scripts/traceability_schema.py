@@ -46,13 +46,20 @@ def validate_graph(graph: dict) -> None:
     if version < (1, 0):
         raise ValueError(f"unsupported schema_version {graph['schema_version']}")
 
-    nodes = {node["id"]: node for node in graph.get("nodes", [])}
+    nodes: dict = {}
+    for node in graph.get("nodes", []):
+        if not isinstance(node, dict):
+            raise ValueError(f"node is not an object: {node!r}")
+        node_id = node.get("id")
+        if not node_id:
+            raise ValueError("node missing id")
+        if node_id in nodes:
+            raise ValueError(f"duplicate node id {node_id!r}")
+        nodes[node_id] = node
     for node in nodes.values():
         node_type = node.get("type")
         if node_type not in KNOWN_TYPES:
             raise ValueError(f"unknown node type {node_type!r}")
-        if not node.get("id"):
-            raise ValueError("node missing id")
         if not node.get("title"):
             raise ValueError(f"node {node['id']} missing title")
         if not node.get("status"):
