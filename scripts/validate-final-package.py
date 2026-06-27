@@ -7,6 +7,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from traceability_schema import validate_graph  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 TEXT_SUFFIXES = {
     '.md', '.txt', '.toml', '.json', '.jsonl', '.yml', '.yaml', '.sh', '.py',
@@ -101,11 +104,15 @@ def check_v3_fixtures() -> None:
         for branch in workflow.get('optional_branches', []):
             if branch.get('id') in {'multi-repo-cascade', 'skill-modernization'} and branch.get('status') != 'available':
                 fail(f'optional branch {branch.get("id")} must be available in {fixture}')
-        graph = read_json(fixture / '.ai/traceability/graph.json')
-        node_ids = {node['id'] for node in graph.get('nodes', [])}
-        for edge in graph.get('edges', []):
-            if edge.get('source') not in node_ids or edge.get('target') not in node_ids:
-                fail(f'dangling traceability edge in {fixture}: {edge}')
+        for graph_name in ('graph.json', 'graph-1.1.json'):
+            graph_path = fixture / '.ai/traceability' / graph_name
+            if not graph_path.is_file():
+                continue
+            graph = read_json(graph_path)
+            try:
+                validate_graph(graph)
+            except ValueError as exc:
+                fail(f'invalid traceability graph {graph_path.relative_to(ROOT)}: {exc}')
         catalog = read_json(fixture / '.ai/skills/catalog-audit.json')
         if catalog.get('status') != 'pass' or catalog.get('skill_count') != 21:
             fail(f'catalog audit must pass with 21 skills in {fixture}')
