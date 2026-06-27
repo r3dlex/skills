@@ -43,6 +43,8 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 │   ├── mcp/
 │   │   ├── registry.json
 │   │   └── a2a-handoff.md
+│   ├── reviews/
+│   │   └── ai-failure-modes.md
 │   ├── rules/
 │   │   ├── security.md
 │   │   └── technical-bounds.md
@@ -100,6 +102,7 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 - `policies/` holds machine-readable routing/config policy. `model-routing.json` (ADR-0003) declares a `schema_version`, provider-neutral tiers `{frontier, mid, cheap}`, a `task_classes` map (task-class → tier), and a `host_aliases` table binding each host (e.g. `claude`, `codex`) to per-tier model names. Frontier covers requirements/architecture/initial-implementation/hard-verification; mid covers standard implementation/planning; cheap covers test generation/first-pass code review/CI monitoring/lookups. Tier aliases — not provider IDs — keep the policy portable; routing is validated offline-structurally (`modules/validation.md` check #15) with no network model resolution.
 - `observability/` holds the generated observability surface (ADR-0005): `conventions.md` (logging and trace conventions) and `audit-checklist.md` (the token-cost and trajectory-audit checklist). Observability is non-optional harness surface — without it agent drift, cost, and trajectory are not auditable. These are generated conventions and a checklist, not live metering: token-cost and trajectory metering execute out-of-band and are recorded as evidence; CI validates only that the conventions and checklist exist (`modules/validation.md` check #16). The PR merge gate in `modules/ci-policy.md` references the audit checklist for behavior-changing PRs.
 - `mcp/` holds the generated MCP/A2A surface (ADR-0005) under `.ai/mcp/`: `registry.json` (the MCP-server registry stub) and `a2a-handoff.md` (the A2A cross-agent handoff convention). Promoting MCP/A2A from a mention to a real surface adopts the open standards now and preserves multi-vendor optionality. The registry is a stub — declared servers carry `status: "stub"` and no resolved endpoint — and the handoff doc is a convention, not a live router; generation makes no network or model call. CI validates only that the registry parses with the expected shape and the handoff convention exists (`modules/validation.md` check #17). See `modules/mcp-a2a.md`.
+- `reviews/` (`.ai/reviews/`) holds the generated AI-failure-mode review checklist (`ai-failure-modes.md`, spec §4.B) plus per-PR review records. The checklist gives reviewers actionable items for the failure modes common to AI-authored code — hallucinated dependencies, slopsquatting, inadequate error handling, and "looks-right" / subtle correctness gaps — so they are caught in review rather than relied on to surface in tests. It is a generated review convention, not a live CI gate; the PR merge gate in `modules/ci-policy.md` references it for AI-authored PRs. CI validates only that the checklist exists and covers the named failure modes (`modules/validation.md` check #18).
 
 ## `.memory/`
 

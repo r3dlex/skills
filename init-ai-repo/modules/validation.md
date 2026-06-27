@@ -155,6 +155,18 @@ for variant in ("standalone", "umbrella"):
         assert s["status"] == "stub", f"{p}: server {s.get('name')} status must be 'stub'"
         assert isinstance(s["tools"], list), f"{p}: server {s.get('name')} tools not a list"
 PY
+test -s reference/fixtures/v3/standalone/.ai/reviews/ai-failure-modes.md
+test -s reference/fixtures/v3/umbrella/.ai/reviews/ai-failure-modes.md
+python3 - <<'PY'
+import pathlib
+MODES = ("hallucinated", "slopsquat", "error handling", "looks-right")
+for variant in ("standalone", "umbrella"):
+    p = f"reference/fixtures/v3/{variant}/.ai/reviews/ai-failure-modes.md"
+    text = pathlib.Path(p).read_text().lower()
+    for mode in MODES:
+        assert mode in text, f"{p}: missing failure mode keyword {mode!r}"
+    assert "- [ ]" in pathlib.Path(p).read_text(), f"{p}: no actionable checklist items"
+PY
 ```
 
 ## Expected interpretation
@@ -185,6 +197,7 @@ The validator runs the following v3 checks on the v3 fixtures and any candidate 
 15. **Model-routing policy** — `.ai/policies/model-routing.json` exists, parses as JSON, and declares `schema_version` (ADR-0003, `modules/documentation-blueprint.md`). Tiers are provider-neutral: `{frontier, mid, cheap}`. **Forward:** every entry in the `task_classes` map points to a tier in that set. **Reverse coverage:** the `host_aliases` table maps each host (e.g. `claude`, `codex`) to per-tier model names; every tier in `{frontier, mid, cheap}` has at least one alias entry, and no alias points to a tier outside that set. The check is offline-structural only; it never resolves a provider model ID over the network.
 16. **Observability surface** — `.ai/observability/conventions.md` and `.ai/observability/audit-checklist.md` exist and are non-empty (ADR-0005, `modules/documentation-blueprint.md`). The conventions doc covers logging and trace conventions; the checklist carries the token-cost and trajectory-audit checklist items. `modules/ci-policy.md` and `modules/validation.md` carry the token-cost and trajectory-audit checklist keywords. The check is offline-structural only: observability here is generated conventions plus a checklist; token-cost and trajectory metering execute out-of-band, never as a model or network call in CI.
 17. **MCP/A2A surface** — `.ai/mcp/registry.json` and `.ai/mcp/a2a-handoff.md` exist (ADR-0005, `modules/documentation-blueprint.md`, `modules/mcp-a2a.md`). `registry.json` parses as JSON and declares `schema_version`, a `servers` array whose entries each carry `name`, `transport`, `status`, and a `tools` array, and an `a2a` block with `protocol` and a `handoff_convention` pointer. Every server `status` is `"stub"` — the registry resolves no live endpoint. `a2a-handoff.md` is non-empty and carries the handoff-envelope and `correlation_id` keywords. The check is offline-structural only: the registry is a stub and the handoff doc is a convention; generation makes no model or network call. The discoverable runner is `tests/mcp_a2a_test.sh`.
+18. **AI-failure-mode review checklist** — `.ai/reviews/ai-failure-modes.md` exists, is non-empty, and carries actionable review items (Markdown checkboxes) covering the four named AI-authored-code failure modes (spec §4.B, `modules/documentation-blueprint.md`): hallucinated dependencies, slopsquatting, inadequate error handling, and "looks-right" / subtle correctness gaps. The check is offline-structural only — it asserts the checklist exists and names the failure modes (keyword + non-empty), never running a model or network call. The `modules/ci-policy.md` PR merge gate references the checklist for PRs containing AI-authored code. The discoverable runner is `tests/ai_failure_modes_test.sh`.
 
 ## v3 fixture set
 
