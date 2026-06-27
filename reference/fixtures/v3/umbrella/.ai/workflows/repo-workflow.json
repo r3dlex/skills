@@ -62,7 +62,12 @@
     {
       "id": "multi-repo-cascade",
       "enabled_when": "topology_type == umbrella",
-      "status": "planned-pr-6d"
+      "status": "available",
+      "outputs": [
+        ".ai/cascade/cascade-plan.json",
+        ".ai/cascade/audit.jsonl",
+        ".ai/cascade/reconciliation-report.md"
+      ]
     },
     {
       "id": "hosted-tracker-first",
@@ -85,5 +90,19 @@
     "entry_surfaces_must_link_doc": true,
     "entry_surfaces_must_link_manifest": true,
     "phase_status_required": true
+  },
+  "cascade": {
+    "plan": ".ai/cascade/cascade-plan.json",
+    "audit": ".ai/cascade/audit.jsonl",
+    "reconciliation_report": ".ai/cascade/reconciliation-report.md",
+    "configured_hosts": [
+      "github",
+      "ado",
+      "gitlab",
+      "jira",
+      "local-markdown"
+    ],
+    "first_run_confirmation_required": true,
+    "idempotent_subsequent_updates": true
   }
 }

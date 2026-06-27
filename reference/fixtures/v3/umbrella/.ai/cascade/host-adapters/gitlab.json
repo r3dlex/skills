@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "host": "gitlab",
+  "host_label": "GitLab Issues",
+  "hosted": true,
+  "adapter_doc": "setup-skills/issue-tracker-gitlab.md",
+  "operations": [
+    "discover_scope",
+    "plan_parent_item",
+    "plan_child_item",
+    "dry_run",
+    "confirm_first_run",
+    "apply_confirmed_plan",
+    "readback_links",
+    "apply_idempotent_update",
+    "audit_event",
+    "reconcile"
+  ],
+  "safety": {
+    "first_run_without_confirmation": "blocked",
+    "confirmation_token_required": true,
+    "confirmation_token": "ct-2026-06-27-001",
+    "credentials_stored": false,
+    "host_policy_mutation": false
+  },
+  "dry_run": {
+    "status": "planned",
+    "would_create_parent": true,
+    "would_create_children": 2
+  },
+  "apply": {
+    "status": "created-or-linked",
+    "parent_key": "GL-301",
+    "child_keys": [
+      "GL-302"
+    ]
+  },
+  "second_run": {
+    "status": "updated-existing",
+    "duplicates_created": 0,
+    "idempotency_key": "init-ai-repo:umbrella-root:cascade"
+  },
+  "readback": {
+    "status": "match",
+    "parent_link_present": true,
+    "child_links_present": true
+  },
+  "audit_path": ".ai/cascade/audit.jsonl"
+}

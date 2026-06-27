@@ -113,3 +113,7 @@ All four files are required for standalone repos. Umbrella repos include them as
 ## Migration from legacy scaffold
 
 Migration rules, the action vocabulary, and the migration-manifest schema are owned by `modules/migration.md`. The blueprint does not duplicate them; consumers must read `modules/migration.md` for the authoritative classification of `.agents/`, `.rules.ts`, `docs/adr/`, marker blocks, and any pre-existing `.memory/` content.
+
+## Cascade outputs
+
+When the cascade branch is enabled, generate `.ai/cascade/cascade-plan.json`, `.ai/cascade/audit.jsonl`, `.ai/cascade/reconciliation-report.md`, and `.ai/cascade/host-adapters/<host>.json` for each configured host. These outputs are validation artifacts; hosted mutation remains confirmation-gated.

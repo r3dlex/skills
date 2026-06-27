@@ -114,14 +114,15 @@ The validator runs the following v3 checks on the v3 fixtures and any candidate 
 
 1. **Traceability graph** — `.ai/traceability/graph.json`, `.ai/traceability/index.md`, and `.ai/traceability/validation-report.md` exist; graph node IDs are stable, every edge endpoint resolves, and backlinks have no dangling node IDs.
 2. **Workflow surfaces** — `.ai/workflows/repo-workflow.md`, `.ai/workflows/repo-workflow.json`, `.ai/phases/<phase>/status.json`, and `.ai/handoff/init-ai-repo-handoff.md` exist; generated `AGENTS.md`, `CLAUDE.md`, and `README.md` link to both workflow files.
-3. **Top-level layout** — required entry files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`) and required directories (`.ai/`, `.memory/`, `docs/architecture/`, `docs/specifications/ACTIVE/`, `docs/specifications/ARCHIVED/`, `docs/learning/`) are present for a standalone repo.
-4. **Topology matrix** — `.ai/matrix.json` exists, parses as JSON, declares `schema_version: "1.0"`, has a valid `topology_type` (`standalone` or `umbrella`), and uses `sync_strategy: "physical-copy"`.
-5. **Depth rule** — for `standalone` topology, `max_allowed_depth` and `current_depth` are exactly `0`; any other values fail or block before apply. For `umbrella` topology, `max_allowed_depth` is exactly `3`, `current_depth` is `<= max_allowed_depth`, and every managed repository depth is `<= max_allowed_depth`; any other maximum or exceeded depth fails or blocks before apply.
-6. **Sync-strategy rule** — `sync_strategy` is `physical-copy`. The validator rejects `symlink` and `git-submodule` as canonical.
-7. **Memory layer** — `.memory/human-override/` exists and is treated as terminal priority (validator never overwrites files there). `.memory/self-learned/` declares `schema_version` on every JSON file.
-8. **Host-policy safety wording** — host-policy documentation contains the dry-run / confirmation / audit / negative-test language and the non-admin auto-approval prohibition. See `modules/host-policy-automation.md`.
-9. **Migration audit** — when migrating from a legacy scaffold, `.ai/drift/migration-manifest.json` exists with the action vocabulary (`migrate`, `copy`, `deprecate`, `supersede`) and a confirmation token for every `migrate` action.
-10. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
+3. **Cascade contract** — `.ai/cascade/cascade-plan.json`, `.ai/cascade/audit.jsonl`, `.ai/cascade/reconciliation-report.md`, and `.ai/cascade/host-adapters/<host>.json` exist when multi-repo cascade is available; configured hosts are GitHub, Azure DevOps, GitLab, Jira, and Local Markdown; first hosted apply without confirmation is blocked; confirmed apply creates links once; subsequent update is idempotent and creates no duplicate child items.
+4. **Top-level layout** — required entry files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`) and required directories (`.ai/`, `.memory/`, `docs/architecture/`, `docs/specifications/ACTIVE/`, `docs/specifications/ARCHIVED/`, `docs/learning/`) are present for a standalone repo.
+5. **Topology matrix** — `.ai/matrix.json` exists, parses as JSON, declares `schema_version: "1.0"`, has a valid `topology_type` (`standalone` or `umbrella`), and uses `sync_strategy: "physical-copy"`.
+6. **Depth rule** — for `standalone` topology, `max_allowed_depth` and `current_depth` are exactly `0`; any other values fail or block before apply. For `umbrella` topology, `max_allowed_depth` is exactly `3`, `current_depth` is `<= max_allowed_depth`, and every managed repository depth is `<= max_allowed_depth`; any other maximum or exceeded depth fails or blocks before apply.
+7. **Sync-strategy rule** — `sync_strategy` is `physical-copy`. The validator rejects `symlink` and `git-submodule` as canonical.
+8. **Memory layer** — `.memory/human-override/` exists and is treated as terminal priority (validator never overwrites files there). `.memory/self-learned/` declares `schema_version` on every JSON file.
+9. **Host-policy safety wording** — host-policy documentation contains the dry-run / confirmation / audit / negative-test language and the non-admin auto-approval prohibition. See `modules/host-policy-automation.md`.
+10. **Migration audit** — when migrating from a legacy scaffold, `.ai/drift/migration-manifest.json` exists with the action vocabulary (`migrate`, `copy`, `deprecate`, `supersede`) and a confirmation token for every `migrate` action.
+11. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
 
 ## v3 fixture set
 
@@ -133,7 +134,7 @@ The v3 fixture set lives under `reference/fixtures/v3/`. Each fixture documents 
 
 ### Fixture B — umbrella repo
 
-`reference/fixtures/v3/umbrella/.ai/matrix.json` declares `topology_type: "umbrella"`, `max_allowed_depth: 3`, and at least one entry in `managed_repositories` with a path and depth. The fixture demonstrates physical-copy inheritance, workflow docs/manifests, per-phase status files, traceability graph/index/report files, and the audit log format under `.ai/drift/`.
+`reference/fixtures/v3/umbrella/.ai/matrix.json` declares `topology_type: "umbrella"`, `max_allowed_depth: 3`, and at least one entry in `managed_repositories` with a path and depth. The fixture demonstrates physical-copy inheritance, workflow docs/manifests, per-phase status files, traceability graph/index/report files, cascade plan/audit/reconciliation artifacts, and the audit log format under `.ai/drift/`.
 
 ### Fixture C — depth violation
 

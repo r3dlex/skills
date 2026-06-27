@@ -71,10 +71,10 @@ assert_file_contains init-ai-repo/SKILL.md "1. Detect repo state" "skill preserv
 assert_file_contains init-ai-repo/modules/README.md "phases/01-discover-decide.md" "module README links phase 1 module"
 assert_file_contains init-ai-repo/modules/phases/README.md "Eight internal checkpoints" "phase README preserves checkpoint mapping"
 assert_file_contains init-ai-repo/modules/phases/01-discover-decide.md ".ai/phases/01-discover-decide/" "phase 1 module emits phase state folder"
-assert_file_contains init-ai-repo/SKILL.md 'Planned phase module: `modules/cascade.md`' 'skill module map names remaining planned phase module without claiming implementation'
-assert_file_contains init-ai-repo/modules/README.md "workflow.md" "module README names planned workflow module"
-assert_file_contains init-ai-repo/modules/README.md "traceability.md" "module README names planned traceability module"
-assert_file_contains init-ai-repo/modules/README.md "cascade.md" "module README names planned cascade module"
+assert_file_contains init-ai-repo/SKILL.md '`modules/cascade.md` — read when generating multi-repo cascade plans' 'skill module map names active cascade module after PR 6D'
+assert_file_contains init-ai-repo/modules/README.md "workflow.md" "module README names active workflow module"
+assert_file_contains init-ai-repo/modules/README.md "traceability.md" "module README names active traceability module"
+assert_file_contains init-ai-repo/modules/README.md "cascade.md" "module README names active cascade module"
 assert_file_contains init-ai-repo/REFERENCE.md "/init-ai-repo" "reference uses canonical invocation"
 assert_file_contains init-ai-repo/REFERENCE.md "four-phase workflow" "reference documents four-phase workflow"
 assert_file_contains init-ai-repo/REFERENCE.md 'Legacy `/ai-sdlc-init` remains an alias/path only' "reference preserves legacy alias"

@@ -14,7 +14,7 @@ This generated workflow is the shared source of truth for mandatory and optional
 
 ## Optional steps
 
-- **multi-repo-cascade** - enabled when topology_type == umbrella; status: `planned-pr-6d`.
+- **multi-repo-cascade** - enabled when topology_type == umbrella; status: `available`.
 - **hosted-tracker-first** - enabled when configured tracker is authorized; status: `available`.
 - **legacy-migration** - enabled when legacy scaffold artifacts are detected; status: `available`.
 - **skill-modernization** - enabled when target repo owns a skill catalog; status: `planned-pr-6e`.
@@ -27,3 +27,9 @@ Generated `AGENTS.md`, `CLAUDE.md`, and `README.md` must link to this workflow d
 
 - Traceability index: [`.ai/traceability/index.md`](../traceability/index.md)
 - Traceability graph: [`.ai/traceability/graph.json`](../traceability/graph.json)
+
+## Cascade links
+
+- Cascade plan: `.ai/cascade/cascade-plan.json`
+- Cascade audit: `.ai/cascade/audit.jsonl`
+- Cascade reconciliation: `.ai/cascade/reconciliation-report.md`
