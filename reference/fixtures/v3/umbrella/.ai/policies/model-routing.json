@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "description": "Provider-neutral model-routing policy (ADR-0003). Task classes map to portable tiers; host_aliases bind tiers to concrete host model names per provider.",
+  "description": "Provider-neutral model-routing policy (ADR-0003). Task classes map to portable tiers; host_aliases bind tiers to host model names per provider. Host model names below are illustrative examples — replace them with the model IDs your provider/CLI actually exposes at deployment time.",
   "tiers": ["frontier", "mid", "cheap"],
   "task_classes": {
     "requirements": "frontier",
@@ -21,9 +21,9 @@
       "cheap": "haiku"
     },
     "codex": {
-      "frontier": "gpt-5-codex-high",
-      "mid": "gpt-5-codex",
-      "cheap": "gpt-5-codex-mini"
+      "frontier": "gpt-5-codex",
+      "mid": "gpt-5",
+      "cheap": "gpt-5-mini"
     }
   }
 }
