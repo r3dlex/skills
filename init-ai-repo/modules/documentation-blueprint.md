@@ -15,6 +15,16 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 │   ├── skills/                  # target-repo tool injection definitions, not Codex skill packages
 │   │   ├── git-ops.json
 │   │   └── workspace-sync.json
+│   ├── workflows/
+│   │   ├── repo-workflow.md
+│   │   └── repo-workflow.json
+│   ├── phases/
+│   │   ├── 01-discover-decide/status.json
+│   │   ├── 02-govern-plan/status.json
+│   │   ├── 03-configure-generate/status.json
+│   │   └── 04-validate-handoff/status.json
+│   ├── handoff/
+│   │   └── init-ai-repo-handoff.md
 │   ├── rules/
 │   │   ├── security.md
 │   │   └── technical-bounds.md
@@ -63,6 +73,9 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 - `skills/` holds target-repo tool injection definitions in JSON form. These are tool/MCP descriptors that the target repo exposes to agents; they are not the same as Codex skill packages under `skills/`.
 - `rules/` holds repo-specific safety and technical-bounds rules in Markdown. Cross-reference these from `.rules.ts` when present.
 - `matrix.json` holds the topology matrix; see `modules/topology.md`.
+- `workflows/` holds the human repo workflow and machine-readable workflow manifest.
+- `phases/` holds per-phase status JSON for mandatory workflow steps.
+- `handoff/` holds the generated initialization handoff index.
 
 ## `.memory/`
 
@@ -83,7 +96,7 @@ Read when generating the v3 canonical layout in a target repo. The blueprint def
 - `CONTRIBUTING.md` — human contributor guide.
 - `README.md` — top-level human entry point.
 
-All four files are required for standalone repos. Umbrella repos include them as inherited assets; managed sub-repos may have a thin local override that references the umbrella.
+All four files are required for standalone repos. Umbrella repos include them as inherited assets; managed sub-repos may have a thin local override that references the umbrella. Generated `AGENTS.md`, `CLAUDE.md`, and `README.md` link to `.ai/workflows/repo-workflow.md` and `.ai/workflows/repo-workflow.json`.
 
 ## Generation rules
 

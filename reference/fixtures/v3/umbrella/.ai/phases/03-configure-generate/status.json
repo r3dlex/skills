@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "workflow_id": "init-ai-repo",
+  "phase_id": "03-configure-generate",
+  "title": "Configure & Generate",
+  "required": true,
+  "status": "pending",
+  "inputs": [
+    ".ai/phases/02-govern-plan/status.json"
+  ],
+  "outputs": [
+    ".ai/bin/",
+    ".ai/policies/",
+    ".ai/commands/omx/",
+    ".ai/commands/omc/",
+    ".github/workflows/"
+  ],
+  "next_actions": [
+    "Run this phase and update status to complete with validation evidence."
+  ]
+}

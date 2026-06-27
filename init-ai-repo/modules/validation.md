@@ -23,8 +23,10 @@ In addition, the v3 check set is exercised against `reference/fixtures/v3/`:
 python3 -m json.tool reference/fixtures/v3/standalone/.ai/matrix.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/standalone/.ai/skills/git-ops.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/standalone/.ai/skills/workspace-sync.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/standalone/.ai/workflows/repo-workflow.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/matrix.json >/dev/null
 python3 -m json.tool reference/fixtures/v3/umbrella/.ai/drift/last-drift.json >/dev/null
+python3 -m json.tool reference/fixtures/v3/umbrella/.ai/workflows/repo-workflow.json >/dev/null
 python3 - <<'PY'
 import copy, json, pathlib
 
@@ -108,14 +110,15 @@ python3 -m json.tool reference/fixtures/v3/legacy-migration/migration-manifest.j
 
 The validator runs the following v3 checks on the v3 fixtures and any candidate v3 repo:
 
-1. **Top-level layout** — required entry files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`) and required directories (`.ai/`, `.memory/`, `docs/architecture/`, `docs/specifications/ACTIVE/`, `docs/specifications/ARCHIVED/`, `docs/learning/`) are present for a standalone repo.
-2. **Topology matrix** — `.ai/matrix.json` exists, parses as JSON, declares `schema_version: "1.0"`, has a valid `topology_type` (`standalone` or `umbrella`), and uses `sync_strategy: "physical-copy"`.
-3. **Depth rule** — for `standalone` topology, `max_allowed_depth` and `current_depth` are exactly `0`; any other values fail or block before apply. For `umbrella` topology, `max_allowed_depth` is exactly `3`, `current_depth` is `<= max_allowed_depth`, and every managed repository depth is `<= max_allowed_depth`; any other maximum or exceeded depth fails or blocks before apply.
-4. **Sync-strategy rule** — `sync_strategy` is `physical-copy`. The validator rejects `symlink` and `git-submodule` as canonical.
-5. **Memory layer** — `.memory/human-override/` exists and is treated as terminal priority (validator never overwrites files there). `.memory/self-learned/` declares `schema_version` on every JSON file.
-6. **Host-policy safety wording** — host-policy documentation contains the dry-run / confirmation / audit / negative-test language and the non-admin auto-approval prohibition. See `modules/host-policy-automation.md`.
-7. **Migration audit** — when migrating from a legacy scaffold, `.ai/drift/migration-manifest.json` exists with the action vocabulary (`migrate`, `copy`, `deprecate`, `supersede`) and a confirmation token for every `migrate` action.
-8. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
+1. **Workflow surfaces** — `.ai/workflows/repo-workflow.md`, `.ai/workflows/repo-workflow.json`, `.ai/phases/<phase>/status.json`, and `.ai/handoff/init-ai-repo-handoff.md` exist; generated `AGENTS.md`, `CLAUDE.md`, and `README.md` link to both workflow files.
+2. **Top-level layout** — required entry files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`) and required directories (`.ai/`, `.memory/`, `docs/architecture/`, `docs/specifications/ACTIVE/`, `docs/specifications/ARCHIVED/`, `docs/learning/`) are present for a standalone repo.
+3. **Topology matrix** — `.ai/matrix.json` exists, parses as JSON, declares `schema_version: "1.0"`, has a valid `topology_type` (`standalone` or `umbrella`), and uses `sync_strategy: "physical-copy"`.
+4. **Depth rule** — for `standalone` topology, `max_allowed_depth` and `current_depth` are exactly `0`; any other values fail or block before apply. For `umbrella` topology, `max_allowed_depth` is exactly `3`, `current_depth` is `<= max_allowed_depth`, and every managed repository depth is `<= max_allowed_depth`; any other maximum or exceeded depth fails or blocks before apply.
+5. **Sync-strategy rule** — `sync_strategy` is `physical-copy`. The validator rejects `symlink` and `git-submodule` as canonical.
+6. **Memory layer** — `.memory/human-override/` exists and is treated as terminal priority (validator never overwrites files there). `.memory/self-learned/` declares `schema_version` on every JSON file.
+7. **Host-policy safety wording** — host-policy documentation contains the dry-run / confirmation / audit / negative-test language and the non-admin auto-approval prohibition. See `modules/host-policy-automation.md`.
+8. **Migration audit** — when migrating from a legacy scaffold, `.ai/drift/migration-manifest.json` exists with the action vocabulary (`migrate`, `copy`, `deprecate`, `supersede`) and a confirmation token for every `migrate` action.
+9. **Marker blocks** — `<!-- ai-sdlc-init:start -->` ... `<!-- ai-sdlc-init:end -->` markers are present in the entry files when the v3 marker format is in use.
 
 ## v3 fixture set
 
@@ -127,7 +130,7 @@ The v3 fixture set lives under `reference/fixtures/v3/`. Each fixture documents 
 
 ### Fixture B — umbrella repo
 
-`reference/fixtures/v3/umbrella/.ai/matrix.json` declares `topology_type: "umbrella"`, `max_allowed_depth: 3`, and at least one entry in `managed_repositories` with a path and depth. The fixture demonstrates physical-copy inheritance and shows the audit log format under `.ai/drift/`.
+`reference/fixtures/v3/umbrella/.ai/matrix.json` declares `topology_type: "umbrella"`, `max_allowed_depth: 3`, and at least one entry in `managed_repositories` with a path and depth. The fixture demonstrates physical-copy inheritance, workflow docs/manifests, per-phase status files, and the audit log format under `.ai/drift/`.
 
 ### Fixture C — depth violation
 

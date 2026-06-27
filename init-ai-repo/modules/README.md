@@ -21,11 +21,11 @@ Layer 3 modules keep the canonical `init-ai-repo` skill lean. These files live u
 | `migration.md` | Read when migrating a target repo from a legacy AI-SDLC scaffold to the v3 layout, or when classifying legacy artifacts. |
 | `phases/README.md` | Read when mapping the four public phases to internal checkpoints. |
 | `phases/01-discover-decide.md` | Read when executing Phase 1 discovery, lane selection, hosted-ticket posture, and OMX/OMC planning surfaces. |
-| `workflow.md` | Planned for PR 6B; read only after that phase adds generated workflow docs/manifests. |
+| `workflow.md` | Read when generating repo workflow docs, workflow/status manifests, entry-surface links, and handoff indexes. |
 | `traceability.md` | Planned for PR 6C; read only after that phase adds graph schema and validation. |
 | `cascade.md` | Planned for PR 6D; read only after that phase adds cascade orchestration and host fixtures. |
 
-Planned modules may start as index entries before their dedicated story fills the file. Until then, fall back to `REFERENCE.md` only for existing template bodies.
+Planned modules may start as index entries before their dedicated story fills the file. Until then, fall back to `REFERENCE.md` only for existing template bodies. `workflow.md` is active; `traceability.md` and `cascade.md` remain planned follow-up modules.
 
 ## Module ordering for a fresh v3 scaffold
 
