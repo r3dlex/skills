@@ -4,7 +4,7 @@
     "tier": "frontier",
     "mode": "lm-judge",
     "harness": "stub",
-    "evaluates": ["trajectory"],
+    "evaluates": ["output", "trajectory"],
     "passing_threshold": 0.8,
     "execution": "out-of-band"
   },
