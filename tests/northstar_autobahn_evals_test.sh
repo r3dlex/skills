@@ -63,6 +63,8 @@ try:
     for k in ("schema_version", "set_id", "cases"):
         if not es.get(k):
             fails.append(f"evalset missing/empty key: {k}")
+    if es.get("kind") not in ("output", "trajectory"):
+        fails.append(f"evalset kind {es.get('kind')!r} not in (output, trajectory)")
     cases = es.get("cases") or []
     if not isinstance(cases, list) or not cases:
         fails.append("evalset cases must be a non-empty list")
