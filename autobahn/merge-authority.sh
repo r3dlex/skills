@@ -53,8 +53,16 @@ fi
 # Consume the host-policy verdict verbatim. We read three signals it ALREADY
 # decided: its mode, whether it carries a confirmation_token, and its outcome
 # marker. We do NOT re-validate the token or recompute admin status.
-_tmp_verdict="$(mktemp)"
-python3 - "$VERDICT" > "$_tmp_verdict" <<'PY'
+#
+# We capture the reader's output into a variable (no temp file): a fail-closed
+# adapter must not depend on a writable TMPDIR, and must never crash ambiguously
+# if one is unavailable. The reader is passed via `python3 -c` (not a heredoc
+# inside $(...), which macOS bash 3.2 cannot parse) and uses only double quotes
+# internally so it nests safely in this single-quoted shell string. If the reader
+# cannot run at all, we FAIL CLOSED (exit 4) rather than leaving the decision
+# variables unbound.
+mode="" has_token="" marker=""
+_reader='
 import json, sys
 try:
     v = json.load(open(sys.argv[1]))
@@ -64,12 +72,19 @@ mode = v.get("mode", "") or "-"
 # host-policy emits the token itself; we only note presence, never re-validate it.
 token = v.get("confirmation_token")
 has_token = "yes" if (isinstance(token, str) and token != "") else "no"
-# host-policy's own outcome marker; rejection markers begin apply-rejected-.
+# host-policy own outcome marker; rejection markers begin apply-rejected-.
 marker = v.get("marker") or v.get("status") or "-"
 print(mode, has_token, marker)
-PY
-read -r mode has_token marker < "$_tmp_verdict"
-rm -f "$_tmp_verdict"
+'
+if ! verdict_fields="$(python3 -c "$_reader" "$VERDICT")"; then
+  echo "fail-closed: could not evaluate host-policy verdict '$VERDICT' (reader failed); not merging" >&2
+  exit 4
+fi
+# Word-split the three simple tokens (no embedded spaces) rather than `read <<<`,
+# whose here-string also needs a writable TMPDIR under bash 3.2.
+# shellcheck disable=SC2086
+set -- $verdict_fields
+mode="${1:-}" has_token="${2:-}" marker="${3:-}"
 
 if [[ "$mode" == "PARSE_ERROR" ]]; then
   echo "merge-authority: could not parse host-policy verdict '$VERDICT'" >&2

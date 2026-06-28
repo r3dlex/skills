@@ -137,6 +137,18 @@ else
   bad "adapter consumes host-policy verdict verbatim (opaque token merges)"
 fi
 
+# Regression: the adapter must FAIL CLOSED / still decide with NO writable TMPDIR.
+# A live Codex read-only-sandbox run surfaced that a mktemp/here-string dependency
+# crashed the adapter ('mode: unbound variable' under set -u) instead of deciding.
+# With TMPDIR pointed at a non-existent dir, the approved verdict must still merge
+# (exit 0) — proving the adapter needs no temp file to reach a decision.
+rc="$(TMPDIR=/nonexistent-readonly-$$ bash "$SCRIPT" --verdict "$tmp/approved.json" >/dev/null 2>&1; echo $?)"
+if [[ "$rc" -eq 0 ]]; then
+  ok "(d) approved verdict merges with NO writable TMPDIR (no temp-file dependency)"
+else
+  bad "(d) approved verdict must merge with no writable TMPDIR (got $rc)"
+fi
+
 # Anchor the verdict SHAPE to a committed host-policy fixture (not only inline
 # mocks), so drift in the normalized-verdict object is caught in CI.
 COMMITTED_VERDICT="reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json"
