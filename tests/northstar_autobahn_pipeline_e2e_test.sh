@@ -45,7 +45,8 @@ for s in "$N_PREREQ" "$N_HANDOFF" "$A_PREREQ" "$A_ENGINE" "$A_MERGE"; do
 done
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+tmp2=""
+trap 'rm -rf "$tmp" "${tmp2:-}"' EXIT
 cp -R "$FIXTURE/." "$tmp/"
 
 SLUG="rate-limit-public-api"
@@ -68,9 +69,11 @@ if [[ "$rc" -eq 0 ]]; then
 else
   bad "2. northstar handoff-write should write the handoff (got $rc)"
 fi
-[[ -f "$tmp/.ai/handoff/northstar-$SLUG.md" ]] \
-  && ok "2. handoff file present at .ai/handoff/northstar-$SLUG.md" \
-  || bad "2. handoff file missing"
+if [[ -f "$tmp/.ai/handoff/northstar-$SLUG.md" ]]; then
+  ok "2. handoff file present at .ai/handoff/northstar-$SLUG.md"
+else
+  bad "2. handoff file missing"
+fi
 
 # --- 3. autobahn DISCOVERS northstar's handoff (the handshake) ----------------
 out="$(bash "$A_PREREQ" --root "$tmp" 2>&1)"; rc=$?
