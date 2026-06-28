@@ -6,7 +6,7 @@
     "body_line_limit": 100,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 23,
+  "skill_count": 24,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -16,6 +16,16 @@
       "description_chars": 130,
       "description_status": "target",
       "body_lines": 6,
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "autobahn",
+      "path": "autobahn/SKILL.md",
+      "description_chars": 177,
+      "description_status": "target",
+      "body_lines": 99,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"

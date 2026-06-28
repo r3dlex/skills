@@ -93,6 +93,64 @@ else
   bad "init-ai-repo phases README cross-references the command-surface schema"
 fi
 
+# --- autobahn entries reuse the same shared schema (PR-2, A5) -----------------
+a_omx="$FIXTURE/.ai/commands/omx/autobahn.json"
+a_omc="$FIXTURE/.ai/commands/omc/autobahn.json"
+
+for f in "$a_omx" "$a_omc"; do
+  if [[ -f "$f" ]] && python3 -m json.tool "$f" >/dev/null 2>&1; then
+    ok "command surface parses: $f"
+  else
+    bad "command surface parses: $f"
+  fi
+done
+
+python3 - "$a_omx" "$a_omc" <<'PY'
+import json, sys
+omx_path, omc_path = sys.argv[1], sys.argv[2]
+required = {"name","surface","skill","invocation","args","description","delegates_to"}
+errs = []
+def load(p):
+    try:
+        return json.load(open(p))
+    except Exception as e:
+        errs.append(f"load {p}: {e}"); return {}
+omx = load(omx_path); omc = load(omc_path)
+for label, doc, surface in (("omx", omx, "omx"), ("omc", omc, "omc")):
+    missing = required - set(doc)
+    if missing:
+        errs.append(f"{label} missing fields: {sorted(missing)}")
+    if doc.get("surface") != surface:
+        errs.append(f"{label} surface != {surface}: {doc.get('surface')}")
+    if doc.get("name") != "autobahn":
+        errs.append(f"{label} name != autobahn")
+    if doc.get("skill") != "autobahn":
+        errs.append(f"{label} skill != autobahn")
+if omx.get("invocation") != "$autobahn":
+    errs.append(f"omx invocation must be $autobahn, got {omx.get('invocation')!r}")
+if omc.get("invocation") != "/oh-my-claudecode:autobahn":
+    errs.append(f"omc invocation must be /oh-my-claudecode:autobahn, got {omc.get('invocation')!r}")
+if omx.get("skill") != omc.get("skill"):
+    errs.append("omx and omc must point at the same skill")
+if errs:
+    print("\n".join(errs), file=sys.stderr); sys.exit(1)
+print("schema-ok")
+PY
+if [[ $? -eq 0 ]]; then
+  ok "autobahn omx/omc entries carry required fields; invocation forms differ"
+else
+  bad "autobahn omx/omc schema validation"
+fi
+
+A_MODULE="autobahn/modules/command-surface.md"
+for needle in '$autobahn' "/oh-my-claudecode:autobahn"; do
+  if grep -qF -- "$needle" "$A_MODULE" 2>/dev/null; then
+    ok "autobahn command-surface module documents '$needle'"
+  else
+    bad "autobahn command-surface module documents '$needle'"
+  fi
+done
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

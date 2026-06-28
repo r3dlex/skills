@@ -40,6 +40,7 @@ Pick the skill matching the user's request. Each skill has:
 | `handoff` | Compacting the conversation into a handoff document for another agent |
 | `eval-a-skill` | Scaffolding a structurally valid eval triplet for a target skill; CI checks structure, the judge runs out-of-band |
 | `northstar` | Intake intent into a tracked, sliced plan in an init-ai-repo repo and write the A→B handoff |
+| `autobahn` | Ship a northstar handoff's sliced goals one PR per goal: ultragoal, engine-pick, peer review, CI gate, fail-closed merge, cascade closure |
 
 ## Writing Rules
 
