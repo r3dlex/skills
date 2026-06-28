@@ -137,16 +137,41 @@ else
   bad "adapter consumes host-policy verdict verbatim (opaque token merges)"
 fi
 
-# Regression: the adapter must FAIL CLOSED / still decide with NO writable TMPDIR.
-# A live Codex read-only-sandbox run surfaced that a mktemp/here-string dependency
-# crashed the adapter ('mode: unbound variable' under set -u) instead of deciding.
-# With TMPDIR pointed at a non-existent dir, the approved verdict must still merge
-# (exit 0) — proving the adapter needs no temp file to reach a decision.
+# Regression: the adapter must reach a decision with NO writable TMPDIR. A live
+# Codex read-only-sandbox run surfaced that a mktemp/here-string dependency crashed
+# the adapter ('mode: unbound variable' under set -u) instead of deciding.
+#
+# (d) STATIC guard — the real regression check. A TMPDIR override alone does NOT
+# reproduce the bug (macOS mktemp falls back to /var/folders even when TMPDIR is
+# invalid; the bug needs a fully read-only fs as in the Codex sandbox). So assert
+# structurally that the EXECUTABLE code uses no temp-requiring construct: mktemp,
+# a here-string (<<<), or process substitution (<(...)). This catches a future
+# reintroduction on any platform.
+if printf '%s' "$code_only" | grep -Eq 'mktemp|<<<|<\('; then
+  bad "(d) merge-authority uses no temp-requiring construct (mktemp/<<</<()"
+else
+  ok "(d) merge-authority uses no temp-requiring construct (mktemp/<<</<()"
+fi
+
+# (d2) smoke: with TMPDIR pointed at a non-existent dir the approved verdict still
+# merges (exit 0). Effective on Linux (CI); a no-op safety net on macOS.
 rc="$(TMPDIR=/nonexistent-readonly-$$ bash "$SCRIPT" --verdict "$tmp/approved.json" >/dev/null 2>&1; echo $?)"
 if [[ "$rc" -eq 0 ]]; then
-  ok "(d) approved verdict merges with NO writable TMPDIR (no temp-file dependency)"
+  ok "(d2) approved verdict merges with TMPDIR=/nonexistent (smoke)"
 else
-  bad "(d) approved verdict must merge with no writable TMPDIR (got $rc)"
+  bad "(d2) approved verdict must merge with TMPDIR=/nonexistent (got $rc)"
+fi
+
+# (e) a malformed marker containing whitespace must NOT be truncated into a merge:
+# it must fail closed (the unsafe direction is merging an intended rejection).
+cat > "$tmp/reject-spaced.json" <<'JSON'
+{ "mode": "apply", "confirmation_token": "ct-2026-06-28-009", "marker": "apply-rejected non-admin" }
+JSON
+rc="$(run "$tmp/reject-spaced.json")"
+if [[ "$rc" -eq 4 ]]; then
+  ok "(e) rejection marker with whitespace fails closed (exit 4), not merged"
+else
+  bad "(e) whitespace rejection marker must fail closed (got $rc)"
 fi
 
 # Anchor the verdict SHAPE to a committed host-policy fixture (not only inline
