@@ -1,0 +1,8 @@
+{
+  "_comment": "Committed host-policy VERDICT object (normalized shape the merge-authority adapter consumes). This is the projection of a host-policy decision: top-level mode + confirmation_token + outcome marker. The host-policy module (init-ai-repo/modules/host-policy-automation.md) owns the token regex, admin matrix, and audit format; this fixture only carries the already-decided verdict so the adapter's shape contract is anchored to a committed artifact, not only inline test mocks.",
+  "mode": "apply",
+  "host": "github.com/example/repo",
+  "confirmation_token": "ct-2026-06-28-001",
+  "marker": "host-supported-bypass",
+  "readback_status": "match"
+}
