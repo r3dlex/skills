@@ -39,6 +39,7 @@ Pick the skill matching the user's request. Each skill has:
 | `zoom-out` | Explaining broader code or product context before local changes |
 | `handoff` | Compacting the conversation into a handoff document for another agent |
 | `eval-a-skill` | Scaffolding a structurally valid eval triplet for a target skill; CI checks structure, the judge runs out-of-band |
+| `northstar` | Intake intent into a tracked, sliced plan in an init-ai-repo repo and write the A→B handoff |
 
 ## Writing Rules
 
