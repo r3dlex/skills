@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "set_id": "northstar-eval",
+  "kind": "output",
+  "skill_under_test": "northstar",
+  "cases": [
+    {
+      "case_id": "case-001-intake-to-handoff",
+      "input": "northstar \"Add rate limiting to the public API\" in an init-ai-repo-initialized repo; the user answers the interview questions and skips grill-me.",
+      "expected_behavior": "Runs deep-interview one question at a time; honors the grill-me skip; raises a tracked issue; runs ralplan to produce sliced goals; writes the A->B handoff into .ai/ (workflow manifest optional_branches entry, traceability nodes, .ai/handoff/). No goal is dropped between the plan and the handoff.",
+      "trajectory": ["read-init-ai-repo-context", "deep-interview", "raise-issue", "ralplan", "write-handoff", "verify-handoff"]
+    },
+    {
+      "case_id": "case-002-grill-me-runs",
+      "input": "northstar \"Migrate auth to OIDC\"; the user does NOT skip grill-me.",
+      "expected_behavior": "After deep-interview, runs the grill-me adversarial pass one question at a time and loops until both deep-interview and grill-me are satisfied before raising the issue. Does not raise the issue or run ralplan while grill-me still has open challenges.",
+      "trajectory": ["deep-interview", "grill-me", "raise-issue", "ralplan", "write-handoff"]
+    },
+    {
+      "case_id": "case-003-issue-fail-closed",
+      "input": "northstar invoked in a repo with NO configured or authorized hosted tracker.",
+      "expected_behavior": "Always raises an issue, but local-first: writes a local markdown issue and does NOT attempt a hosted-tracker mutation. A hosted issue is created only when a tracker is configured AND authorized; otherwise it fails closed to local without erroring out.",
+      "trajectory": ["read-tracker-config", "raise-issue-local", "ralplan", "write-handoff"]
+    },
+    {
+      "case_id": "case-004-prereq-not-initialized",
+      "input": "northstar invoked in a repo that was NOT initialized with init-ai-repo (no .ai/ scaffold present).",
+      "expected_behavior": "Detects the missing init-ai-repo prerequisite via the prereq check and stops with clear guidance rather than fabricating handoff surfaces. Writes no partial handoff.",
+      "trajectory": ["prereq-check", "stop-with-guidance"]
+    }
+  ]
+}

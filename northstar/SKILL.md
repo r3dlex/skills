@@ -1,6 +1,7 @@
 ---
 name: northstar
 description: Intake intent into a tracked, sliced plan in an init-ai-repo repo — deep-interview + skippable grill-me, always raise an issue, ralplan, write the A→B handoff.
+eval: northstar
 ---
 
 # Northstar

@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "set_id": "autobahn-eval",
+  "kind": "trajectory",
+  "skill_under_test": "autobahn",
+  "cases": [
+    {
+      "case_id": "case-001-one-pr-per-goal",
+      "input": "autobahn invoked after a northstar handoff with three sliced goals is present in .ai/.",
+      "expected_behavior": "Discovers the handoff, then ships each sliced goal as exactly one PR via ultragoal. Runs the architect+reviewer+executor peer-review loop, resolves all comments, and requires remote AND local CI green before any merge decision.",
+      "trajectory": ["discover-handoff", "ultragoal", "engine-pick", "review-loop", "ci-green", "merge-authority", "cascade-closure"]
+    },
+    {
+      "case_id": "case-002-engine-pick-precedence",
+      "input": "autobahn must select an execution engine for a qa-heavy goal, a parallelizable goal, and a persistence-heavy goal, with no --engine override.",
+      "expected_behavior": "Applies the deterministic precedence ultraqa (qa-heavy) > ultrawork (parallelizable) > ralph (persistence) > team (default fallback). With --engine set, honors the override. An unrecognized engine exits non-zero rather than silently defaulting.",
+      "trajectory": ["read-goal-metadata", "engine-pick", "dispatch-engine"]
+    },
+    {
+      "case_id": "case-003-merge-fail-closed",
+      "input": "autobahn reaches the merge step with a host-policy verdict that is NOT approved (or carries no valid confirmation token).",
+      "expected_behavior": "The merge-authority adapter consumes the host-policy verdict verbatim and does not re-derive the token regex or admin rule. Merges only on an approved verdict WITH a valid token; on a blocked/default verdict it stops at ready-for-human; on a rejected verdict it fails closed. Never self-approves.",
+      "trajectory": ["read-verdict", "merge-authority", "stop-or-merge"]
+    },
+    {
+      "case_id": "case-004-idempotent-cascade-closure",
+      "input": "autobahn closes the originating issue after a goal merges, and the closure step runs twice.",
+      "expected_behavior": "Delegates closure to the cascade engine with the canonical triage status. The second close resolves by the stable idempotency key, creates no duplicate, and still appends an audit event. Closure never invents a status string.",
+      "trajectory": ["merge", "cascade-closure", "verify-idempotent"]
+    }
+  ]
+}
