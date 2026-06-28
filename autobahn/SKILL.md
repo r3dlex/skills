@@ -1,6 +1,7 @@
 ---
 name: autobahn
 description: Ship a northstar handoff's sliced goals in an init-ai-repo repo — ultragoal one-PR-per-goal, deterministic engine-pick, peer review, CI gate, fail-closed merge, cascade closure.
+eval: autobahn
 ---
 
 # Autobahn
