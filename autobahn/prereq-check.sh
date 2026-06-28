@@ -21,6 +21,8 @@
 
 set -uo pipefail
 
+command -v python3 >/dev/null 2>&1 || { echo "prereq-check: python3 is required (fail-closed prerequisite)." >&2; exit 2; }
+
 ROOT="."
 while [[ $# -gt 0 ]]; do
   case "$1" in

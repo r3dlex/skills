@@ -31,6 +31,8 @@
 
 set -uo pipefail
 
+command -v python3 >/dev/null 2>&1 || { echo "engine-pick: python3 is required (fail-closed prerequisite)." >&2; exit 2; }
+
 VALID_ENGINES="ultraqa ultrawork ralph team"
 
 GOAL="" ; OVERRIDE=""

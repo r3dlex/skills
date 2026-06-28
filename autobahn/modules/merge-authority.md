@@ -42,11 +42,21 @@ review/CI gate.
 
 ## How it is invoked + tested
 
-The adapter takes a host-policy verdict input (a verdict object/file the
-host-policy decision produced) and emits the merge/ready-for-human/fail-closed
-outcome. Tests drive it against a **mocked verdict fixture** for each marker and
-assert the adapter never recomputes the regex or admin rule — it consumes the
-mock's verdict verbatim.
+The adapter takes a **pre-normalized host-policy verdict object** and emits the
+merge/ready-for-human/fail-closed outcome. The normalized shape is top-level
+`mode` + `confirmation_token` + outcome `marker`. Normalizing the host-policy
+decision into this object — in particular projecting the host-policy audit line's
+`apply_results[].status` and the `apply-rejected-*`/`apply-blocked-*` markers
+(owned by `init-ai-repo/modules/host-policy-automation.md`) onto the top-level
+`marker` — is the **host-policy consumer's** responsibility (the step that invokes
+the host-policy decision), not this adapter's. The adapter never reads
+`apply_results[]` or re-derives a marker.
+
+Tests drive it against inline mocks for each marker **and** a committed verdict
+fixture (`reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json`)
+so the normalized shape is anchored to a real artifact. The opaque-token case (a
+non-`ct-` token that still merges on an approved verdict) proves the adapter
+consumes the verdict verbatim and never recomputes the regex or admin rule.
 
 ## Safety rules
 

@@ -34,6 +34,8 @@
 
 set -uo pipefail
 
+command -v python3 >/dev/null 2>&1 || { echo "merge-authority: python3 is required (fail-closed prerequisite)." >&2; exit 2; }
+
 VERDICT=""
 while [[ $# -gt 0 ]]; do
   case "$1" in

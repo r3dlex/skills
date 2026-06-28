@@ -137,6 +137,20 @@ else
   bad "adapter consumes host-policy verdict verbatim (opaque token merges)"
 fi
 
+# Anchor the verdict SHAPE to a committed host-policy fixture (not only inline
+# mocks), so drift in the normalized-verdict object is caught in CI.
+COMMITTED_VERDICT="reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json"
+if [[ -f "$COMMITTED_VERDICT" ]]; then
+  rc="$(run "$COMMITTED_VERDICT")"
+  if [[ "$rc" -eq 0 ]]; then
+    ok "committed host-policy verdict fixture -> merge (exit 0); shape anchored"
+  else
+    bad "committed host-policy verdict fixture -> merge (got $rc)"
+  fi
+else
+  bad "committed host-policy verdict fixture exists ($COMMITTED_VERDICT)"
+fi
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

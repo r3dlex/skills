@@ -128,6 +128,20 @@ else
   bad "audit: closure events / idempotency"
 fi
 
+# Delegation contract: the mock above is a contract-shape STAND-IN, not the real
+# cascade integration. The integration assertion is that autobahn DELEGATES to the
+# cascade engine rather than owning closure — so assert the module documents
+# delegating to init-ai-repo's cascade engine + canonical triage status + the
+# stable idempotency_key + the audit append.
+CC="autobahn/modules/cascade-closure.md"
+if grep -qi "cascade" "$CC" && grep -qi "idempotency_key" "$CC" \
+   && grep -qi "triage" "$CC" && grep -qi "audit" "$CC" \
+   && grep -qiE "delegat|reimplement" "$CC"; then
+  ok "cascade-closure.md documents delegation to the cascade engine (idempotency_key/triage/audit)"
+else
+  bad "cascade-closure.md documents delegation to the cascade engine"
+fi
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1
