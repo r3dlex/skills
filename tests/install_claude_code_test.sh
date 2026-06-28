@@ -34,7 +34,9 @@ fi
 expected=0
 for d in "$REPO_ROOT"/*/; do
   s="$(basename "$d")"
-  case "$s" in scripts|raw) continue;; esac
+  # Mirror the installer's exact skip-list (.claude/.omc never match the */ glob
+  # but are listed for intent parity with install-claude-code.sh).
+  case "$s" in .claude|.omc|scripts|raw) continue;; esac
   [[ -f "$d/SKILL.md" ]] && expected=$((expected + 1))
 done
 
