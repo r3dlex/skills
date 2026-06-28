@@ -82,8 +82,15 @@ remediation follow-up (abstract the construct or add a fallback per
 ## Representative skills
 
 Start with the SDLC-core skills and grow the set over time. The committed
-evidence currently covers `init-ai-repo` and `write-a-skill`; add more
+evidence covers `init-ai-repo` and `write-a-skill` (illustrative shape) plus
+`northstar` and `autobahn`, the latter two recorded from **real** out-of-band
+`codex exec` runs (model `gpt-5.5`, `codex-cli 0.142.3`). Add more
 `<skill>.transcript.json` artifacts as maintainers record real out-of-band runs.
+
+> The `autobahn` real run is also why `merge-authority.sh` no longer depends on a
+> writable `TMPDIR`: the read-only sandbox run surfaced a fail-closed gap (a
+> `mktemp` failure crashed the adapter under `set -u` instead of failing closed),
+> which was fixed so the adapter evaluates and fails closed with no temp file.
 
 ## See also
 

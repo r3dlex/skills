@@ -53,23 +53,44 @@ fi
 # Consume the host-policy verdict verbatim. We read three signals it ALREADY
 # decided: its mode, whether it carries a confirmation_token, and its outcome
 # marker. We do NOT re-validate the token or recompute admin status.
-_tmp_verdict="$(mktemp)"
-python3 - "$VERDICT" > "$_tmp_verdict" <<'PY'
+#
+# We capture the reader's output into a variable (no temp file): a fail-closed
+# adapter must not depend on a writable TMPDIR, and must never crash ambiguously
+# if one is unavailable. The reader is passed via `python3 -c` (not a heredoc
+# inside $(...), which macOS bash 3.2 cannot parse) and uses only double quotes
+# internally so it nests safely in this single-quoted shell string. If the reader
+# cannot run at all, we FAIL CLOSED (exit 4) rather than leaving the decision
+# variables unbound.
+mode="" has_token="" marker=""
+_reader='
 import json, sys
 try:
     v = json.load(open(sys.argv[1]))
 except Exception:
-    print("PARSE_ERROR - -"); sys.exit(0)
+    print("PARSE_ERROR|-|-"); sys.exit(0)
 mode = v.get("mode", "") or "-"
 # host-policy emits the token itself; we only note presence, never re-validate it.
 token = v.get("confirmation_token")
 has_token = "yes" if (isinstance(token, str) and token != "") else "no"
-# host-policy's own outcome marker; rejection markers begin apply-rejected-.
+# outcome marker emitted by host-policy; rejection markers begin apply-rejected-.
 marker = v.get("marker") or v.get("status") or "-"
-print(mode, has_token, marker)
-PY
-read -r mode has_token marker < "$_tmp_verdict"
-rm -f "$_tmp_verdict"
+# Pipe-delimited so a marker containing whitespace survives intact (a space-split
+# marker could lose its apply-rejected- prefix and merge in the UNSAFE direction).
+print("|".join([str(mode), has_token, str(marker)]))
+'
+if ! verdict_fields="$(python3 -c "$_reader" "$VERDICT")"; then
+  echo "fail-closed: could not evaluate host-policy verdict '$VERDICT' (reader failed); not merging" >&2
+  exit 4
+fi
+# Split on '|' (not whitespace) without `read <<<`, whose here-string also needs a
+# writable TMPDIR under bash 3.2. Restoring IFS afterward keeps marker intact even
+# if it contains spaces, so a malformed marker can never be truncated into a merge.
+_saved_ifs="$IFS"
+IFS='|'
+# shellcheck disable=SC2086
+set -- $verdict_fields
+IFS="$_saved_ifs"
+mode="${1:-}" has_token="${2:-}" marker="${3:-}"
 
 if [[ "$mode" == "PARSE_ERROR" ]]; then
   echo "merge-authority: could not parse host-policy verdict '$VERDICT'" >&2
@@ -78,8 +99,10 @@ fi
 
 # Rejection markers host-policy itself emits. If host-policy rejected, we honor it
 # (fail closed) even when a token is present — we do not second-guess the policy.
+# The broad *reject* catch is defense-in-depth: any rejection-shaped marker (even
+# an out-of-contract / malformed one) fails closed rather than risking a merge.
 case "$marker" in
-  apply-rejected-*)
+  apply-rejected-*|*reject*)
     echo "fail-closed: host-policy rejected the apply (marker=$marker); not merging" >&2
     exit 4
     ;;
