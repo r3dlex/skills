@@ -31,8 +31,12 @@ install_to_user() {
             if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
                 continue
             fi
+            # Copy to an explicit destination path (no trailing slash on the
+            # source). `cp -r "$skill_dir" "$dest/"` would copy the directory's
+            # CONTENTS into $dest on macOS/BSD (the glob appends a trailing
+            # slash), flattening every skill into one merged blob.
             rm -rf "${dest}/${skill_name}"
-            cp -r "$skill_dir" "$dest/"
+            cp -r "${skill_dir%/}" "${dest}/${skill_name}"
             echo "  ✓ $skill_name"
         fi
     done
@@ -54,8 +58,12 @@ install_to_project() {
             if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
                 continue
             fi
+            # Copy to an explicit destination path (no trailing slash on the
+            # source). `cp -r "$skill_dir" "$dest/"` would copy the directory's
+            # CONTENTS into $dest on macOS/BSD (the glob appends a trailing
+            # slash), flattening every skill into one merged blob.
             rm -rf "${dest}/${skill_name}"
-            cp -r "$skill_dir" "$dest/"
+            cp -r "${skill_dir%/}" "${dest}/${skill_name}"
             echo "  ✓ $skill_name"
         fi
     done
