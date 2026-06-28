@@ -42,6 +42,15 @@ Pick the skill matching the user's request. Each skill has:
 | `northstar` | Intake intent into a tracked, sliced plan in an init-ai-repo repo and write the A→B handoff |
 | `autobahn` | Ship a northstar handoff's sliced goals one PR per goal: ultragoal, engine-pick, peer review, CI gate, fail-closed merge, cascade closure |
 
+### Pipeline: `northstar` → `autobahn`
+
+In an `init-ai-repo`-initialized repo, the two compose into an intake→ship loop:
+
+1. **`northstar "<intent>"`** — deep-interview (primary) + grill-me (adversarial, skippable) one question at a time until both are satisfied → always raises an issue (local-first markdown; hosted only if a tracker is configured and authorized, fail-closed) → `ralplan` → sliced goals. Writes the **A→B handoff** into `.ai/` (workflow manifest `optional_branches` entry, traceability nodes, `.ai/handoff/`).
+2. **`autobahn`** — discovers the handoff and ships each sliced goal as **one PR**: `ultragoal` orchestrates, the engine is auto-picked per goal by a deterministic precedence — `ultraqa` (qa-heavy) > `ultrawork` (parallelizable) > `ralph` (persistence) > `team` (default fallback); override with `--engine` — runs the architect+reviewer+executor peer-review loop, requires remote **and** local CI green, then the merge-authority adapter decides — merge only when host-policy **approves AND** the token is valid (either rejection fails closed → stop at *ready-for-human*) — and closes the issue across repos via the cascade engine with the canonical `triage` status.
+
+Both are lightweight composers: they delegate to the existing skills/engines and never reimplement them. Each runs identically under OMC (`/oh-my-claudecode:<name>`) and OMX (`$<name>`) via the generated `.ai/commands/{omc,omx}/` surfaces.
+
 ## Writing Rules
 
 Description budget: target <=180 characters; hard-fail >280 characters unless `.ai/skills/description-exceptions.json` records an audited exception. Run `python3 scripts/validate-skill-catalog.py` after changing skill metadata.
