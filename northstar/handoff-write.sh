@@ -77,7 +77,11 @@ with open(manifest_path, "w") as f:
 
 # --- traceability graph (schema 1.1; plan + handoff nodes, idempotent by id) ---
 graph = json.load(open(graph_path))
-graph["schema_version"] = "1.1"
+def _ver(v):
+    return tuple(int(p) for p in str(v).split("."))
+# Bump to 1.1 only if currently below it — never downgrade a higher schema (set->max).
+if _ver(graph.get("schema_version", "1.0")) < (1, 1):
+    graph["schema_version"] = "1.1"
 repo_id = graph.get("root_repo_id", "root")
 
 nodes = graph.setdefault("nodes", [])

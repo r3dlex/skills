@@ -42,10 +42,15 @@ resolve.
 
 ## Idempotency and partial-write recovery
 
-The write order is **manifest/graph first, handoff file last** so a re-run can
-reconcile. Re-running never duplicates a node or branch record (matched by id)
-and recreates the handoff file if it was lost. A partial write reports non-zero
-and names the unwritten artifact; the idempotent re-run converges the graph.
+The write order is **manifest/graph first, handoff file last**, and the handoff
+file is the **completion marker**: if a run is interrupted before it is written,
+the run is incomplete. Recovery is by **idempotent re-run** — the manifest and
+graph are regenerated id-matched (no duplicate node or branch records) and the
+handoff file is (re)created, so a re-run converges from any incomplete prior
+state, including a stale or half-written graph. The redirect that writes the
+handoff file is guarded: if it fails (e.g. unwritable dir) the script exits
+non-zero naming the artifact. (Mid-process abort of the manifest/graph writer is
+not specially handled — the next idempotent re-run regenerates both.)
 
 ## Safety rules
 
