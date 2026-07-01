@@ -1,0 +1,247 @@
+{
+  "schema_version": "1.0",
+  "description": "Mechanical/judgment boundary manifest for the v3 .ai/ scaffold. Every path listed under 'mechanical' has a corresponding static template file in this directory. Paths listed under 'judgment_laden' are produced in-harness by the ai-catapult plugin and are NOT templated here. This manifest is consumed by Slice 3 parity fixtures.",
+  "classification_rules": {
+    "mechanical": "Path layout is deterministic and repo-agnostic; content is fixed or contains only well-typed placeholder tokens ({{REPO_ID}}, {{TOPOLOGY_TYPE}}, {{DATE}}, {{UPSTREAM_URL}}, {{UPSTREAM_REF}}, {{REPO_URL}}). No domain knowledge or architecture judgment required.",
+    "judgment_laden": "Content requires interpretation of the specific repo's domain, architecture decisions, cascade topology, or AI-failure-mode analysis. Generated in-harness by the plugin after discovery."
+  },
+  "paths": [
+    {
+      "path": ".ai/matrix.json",
+      "classification": "mechanical",
+      "template": "dot-ai/matrix.json",
+      "rationale": "Schema is fully specified (topology.md). All required fields are deterministic or placeholder-typed. Topology type and depth default to standalone/0."
+    },
+    {
+      "path": ".ai/system-prompts/architect.md",
+      "classification": "mechanical",
+      "template": "dot-ai/system-prompts/architect.md",
+      "rationale": "Role-specific instructions are fixed conventions, not repo-specific decisions."
+    },
+    {
+      "path": ".ai/system-prompts/developer.md",
+      "classification": "mechanical",
+      "template": "dot-ai/system-prompts/developer.md",
+      "rationale": "Role-specific instructions are fixed conventions."
+    },
+    {
+      "path": ".ai/system-prompts/qa-engineer.md",
+      "classification": "mechanical",
+      "template": "dot-ai/system-prompts/qa-engineer.md",
+      "rationale": "Role-specific instructions are fixed conventions."
+    },
+    {
+      "path": ".ai/skills/git-ops.json",
+      "classification": "mechanical",
+      "template": "dot-ai/skills/git-ops.json",
+      "rationale": "Tool injection descriptor; operations list and confirmation gates are fixed."
+    },
+    {
+      "path": ".ai/skills/workspace-sync.json",
+      "classification": "mechanical",
+      "template": "dot-ai/skills/workspace-sync.json",
+      "rationale": "Tool injection descriptor; fixed operations set."
+    },
+    {
+      "path": ".ai/workflows/repo-workflow.md",
+      "classification": "mechanical",
+      "template": "dot-ai/workflows/repo-workflow.md",
+      "rationale": "Workflow phase sequence is fixed and deterministic."
+    },
+    {
+      "path": ".ai/workflows/repo-workflow.json",
+      "classification": "mechanical",
+      "template": "dot-ai/workflows/repo-workflow.json",
+      "rationale": "Machine-readable workflow manifest; workflow_id and phase list are fixed."
+    },
+    {
+      "path": ".ai/phases/01-discover-decide/status.json",
+      "classification": "mechanical",
+      "template": "dot-ai/phases/01-discover-decide/status.json",
+      "rationale": "Phase schema is fixed (schema_version, workflow_id, phase_id, title, required, status scaffold). Initial status is 'pending'."
+    },
+    {
+      "path": ".ai/phases/02-govern-plan/status.json",
+      "classification": "mechanical",
+      "template": "dot-ai/phases/02-govern-plan/status.json",
+      "rationale": "Phase schema is fixed."
+    },
+    {
+      "path": ".ai/phases/03-configure-generate/status.json",
+      "classification": "mechanical",
+      "template": "dot-ai/phases/03-configure-generate/status.json",
+      "rationale": "Phase schema is fixed."
+    },
+    {
+      "path": ".ai/phases/04-validate-handoff/status.json",
+      "classification": "mechanical",
+      "template": "dot-ai/phases/04-validate-handoff/status.json",
+      "rationale": "Phase schema is fixed."
+    },
+    {
+      "path": ".ai/policies/model-routing.json",
+      "classification": "mechanical",
+      "template": "dot-ai/policies/model-routing.json",
+      "rationale": "Provider-neutral tier table (ADR-0003) is fixed; host_aliases are illustrative examples that teams replace — not judgment-laden architecture decisions."
+    },
+    {
+      "path": ".ai/mcp/registry.json",
+      "classification": "mechanical",
+      "template": "dot-ai/mcp/registry.json",
+      "rationale": "MCP registry stub (ADR-0005) is fixed; all servers carry status:stub and no live endpoint."
+    },
+    {
+      "path": ".ai/mcp/a2a-handoff.md",
+      "classification": "mechanical",
+      "template": "dot-ai/mcp/a2a-handoff.md",
+      "rationale": "A2A cross-agent handoff convention (ADR-0005) is fixed prose, not repo-specific."
+    },
+    {
+      "path": ".ai/evals/coverage-exceptions.json",
+      "classification": "mechanical",
+      "template": "dot-ai/evals/coverage-exceptions.json",
+      "rationale": "Empty array at scaffold time; shape is fixed."
+    },
+    {
+      "path": ".ai/rules/security.md",
+      "classification": "mechanical",
+      "template": "dot-ai/rules/security.md",
+      "rationale": "Baseline security guardrails are fixed conventions applicable to any repo."
+    },
+    {
+      "path": ".ai/rules/technical-bounds.md",
+      "classification": "mechanical",
+      "template": "dot-ai/rules/technical-bounds.md",
+      "rationale": "Baseline technical-bounds are fixed placeholder rules; teams extend post-scaffold."
+    },
+    {
+      "path": ".ai/drift/last-drift.json",
+      "classification": "mechanical",
+      "template": "dot-ai/drift/last-drift.json",
+      "rationale": "Empty/null initial drift record; shape is fixed."
+    },
+    {
+      "path": ".ai/observability/conventions.md",
+      "classification": "mechanical",
+      "template": "dot-ai/observability/conventions.md",
+      "rationale": "Logging and trace conventions (ADR-0005) are fixed scaffold prose."
+    },
+    {
+      "path": ".ai/observability/audit-checklist.md",
+      "classification": "mechanical",
+      "template": "dot-ai/observability/audit-checklist.md",
+      "rationale": "Token-cost and trajectory-audit checklist (ADR-0005) is fixed."
+    },
+    {
+      "path": ".ai/reviews/ai-failure-modes.md",
+      "classification": "mechanical",
+      "template": "dot-ai/reviews/ai-failure-modes.md",
+      "rationale": "AI-failure-mode review checklist (spec §4.B) is fixed; failure mode categories are invariant."
+    },
+    {
+      "path": "AGENTS.md",
+      "classification": "mechanical",
+      "template": "AGENTS.md",
+      "rationale": "Skeleton with Harness Map section and placeholder tokens is fixed; actual workflow decisions (ADRs, cascade list) are judgment-laden and filled in-harness."
+    },
+    {
+      "path": "CLAUDE.md",
+      "classification": "mechanical",
+      "template": "CLAUDE.md",
+      "rationale": "Thin pointer to AGENTS.md (ADR-0004). No content-bearing sections."
+    },
+    {
+      "path": "GEMINI.md",
+      "classification": "mechanical",
+      "template": "GEMINI.md",
+      "rationale": "Thin pointer to AGENTS.md (ADR-0004). No content-bearing sections."
+    },
+    {
+      "path": ".rules.ts",
+      "classification": "mechanical",
+      "template": "dot-rules.ts",
+      "rationale": "Five-domain Archgate rules file with standard placeholder rules. Teams customize rule entries post-scaffold."
+    },
+    {
+      "path": "prek.toml",
+      "classification": "mechanical",
+      "template": "prek.toml",
+      "rationale": "Hook configuration is fixed schema (validate-rules local hook)."
+    },
+    {
+      "path": ".github/workflows/ci-prek.yml",
+      "classification": "mechanical",
+      "template": "dot-github/workflows/ci-prek.yml",
+      "rationale": "CI workflow for prek is fixed (j178/prek-action@v2 with --all-files)."
+    },
+    {
+      "path": ".ai/handoff/init-ai-repo-handoff.md",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Handoff document summarises what the plugin discovered and decided about the specific repo. Generated in-harness after all four phases complete."
+    },
+    {
+      "path": ".ai/traceability/graph.json",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Traceability graph nodes reference actual BRD/PRD/issue IDs specific to the repo."
+    },
+    {
+      "path": ".ai/traceability/index.md",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Human-readable index of traceability links; content is per-repo."
+    },
+    {
+      "path": ".ai/traceability/validation-report.md",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Validation report reflects discovered coverage gaps for this specific repo."
+    },
+    {
+      "path": "docs/architecture/adr/0001-init.md",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "ADR body captures the specific architectural decision context of this repo. Cannot be templated without losing meaning."
+    },
+    {
+      "path": ".ai/cascade/cascade-plan.json",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Cascade plan lists specific managed repositories and host adapters discovered during phase 1. Per-repo topology judgment."
+    },
+    {
+      "path": ".memory/human-override/custom-conventions.md",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Terminal-priority human-override content is never generated; only written by humans."
+    },
+    {
+      "path": ".memory/human-override/tribal-knowledge.md",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Terminal-priority human-override content. Same rationale."
+    },
+    {
+      "path": ".memory/self-learned/error-patterns.json",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Written only by local agents at runtime, not scaffolded."
+    },
+    {
+      "path": ".memory/self-learned/module-complexity.json",
+      "classification": "judgment_laden",
+      "template": null,
+      "rationale": "Written only by local agents at runtime, not scaffolded."
+    }
+  ],
+  "mechanical_count": 28,
+  "judgment_laden_count": 9,
+  "notes": [
+    "Dirs without a named file get a .gitkeep in the template tree so the directory is tracked by git.",
+    "The .ai/evals/<set>/ evalset files (evalset.json, rubric.md, judge-config.json) are judgment_laden — the eval set name and rubric content are per-repo.",
+    "The .ai/drift/backups/ dir is runtime-only (written by sync path), not scaffolded.",
+    "The .ai/skills/catalog-audit.json and description-exceptions.json are generated by the skill-catalog branch, not the base scaffold.",
+    "upstream.lock is omitted: it requires resolving a live git SHA at scaffold time and is written by foundation.md artifacts, not the .ai/ tree."
+  ]
+}
