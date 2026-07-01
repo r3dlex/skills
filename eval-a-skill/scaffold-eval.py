@@ -11,7 +11,7 @@ Given a target skill name, write the P0 eval shape under
 
 No model or network call is made. The judge declared in ``judge-config.json`` is
 an out-of-band stub: this script never invokes it, and CI never invokes it. See
-``eval-a-skill/SKILL.md`` and ``init-ai-repo/modules/evals.md``.
+``eval-a-skill/SKILL.md`` and ``ai-catapult-init/modules/evals.md``.
 
 Usage:
     scaffold-eval.py --skill <name> [--root <dir>] [--kind output|trajectory]
