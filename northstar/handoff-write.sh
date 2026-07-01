@@ -2,7 +2,7 @@
 #
 # northstar/handoff-write.sh  (PR-1, N4)
 #
-# Writes the A->B handoff into an init-ai-repo .ai/ tree under --root:
+# Writes the A->B handoff into an ai-catapult-init .ai/ tree under --root:
 #   1. an optional_branches record in .ai/workflows/repo-workflow.json
 #   2. plan + handoff nodes (schema_version 1.1) in .ai/traceability/graph.json
 #   3. a handoff entry file in .ai/handoff/northstar-<slug>.md   (written LAST)
@@ -38,7 +38,7 @@ if [[ -z "$ROOT" || -z "$SPEC" || -z "$SLUG" ]]; then
   exit 2
 fi
 if [[ ! -d "$ROOT/.ai" ]]; then
-  echo "handoff-write: '$ROOT' is not init-ai-repo initialized (no .ai/). Run init-ai-repo first." >&2
+  echo "handoff-write: '$ROOT' is not ai-catapult-init initialized (no .ai/). Run ai-catapult-init first." >&2
   exit 2
 fi
 

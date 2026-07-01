@@ -1,13 +1,13 @@
 ---
 name: northstar
-description: Intake intent into a tracked, sliced plan in an init-ai-repo repo — deep-interview + skippable grill-me, always raise an issue, ralplan, write the A→B handoff.
+description: Intake intent into a tracked, sliced plan in an ai-catapult-init repo — deep-interview + skippable grill-me, always raise an issue, ralplan, write the A→B handoff.
 eval: northstar
 ---
 
 # Northstar
 
 Northstar fixes direction: it converges intent into a crystal-clear, tracked,
-sliced plan inside a repo already initialized with `init-ai-repo` v3. It is a
+sliced plan inside a repo already initialized with `ai-catapult-init` v3. It is a
 lightweight **composer** — it delegates to existing skills and never reimplements
 their loops. The output is the A→B handoff that `autobahn` consumes.
 
@@ -21,7 +21,7 @@ their loops. The output is the A→B handoff that `autobahn` consumes.
 
 ## Prereq (fail-closed)
 
-`northstar` assumes the `init-ai-repo` v3 structure is already present and never
+`northstar` assumes the `ai-catapult-init` v3 structure is already present and never
 bootstraps it. `prereq-check.sh` asserts the `.ai/` structure exists and exits
 non-zero with guidance if absent. Do not proceed past a failed prereq. See
 [modules/prereq.md](modules/prereq.md).
@@ -40,7 +40,7 @@ Delegate to those skills; do not reimplement their loops. See
 After the loop, **always** raise an issue regardless of whether grill-me was
 skipped. Default is **local-first markdown**; a hosted tracker
 (GitHub/ADO/GitLab/Jira) is used only when it is configured **and** authorized,
-fail-closed per the init-ai-repo host-policy. Delegate to `to-issues` and
+fail-closed per the ai-catapult-init host-policy. Delegate to `to-issues` and
 `triage` for canonical state labels and ownership. See
 [modules/issue.md](modules/issue.md).
 
@@ -76,7 +76,7 @@ See [modules/handoff.md](modules/handoff.md).
 
 ## References
 
-- [modules/prereq.md](modules/prereq.md) — init-ai-repo presence contract.
+- [modules/prereq.md](modules/prereq.md) — ai-catapult-init presence contract.
 - [modules/loop.md](modules/loop.md) — deep-interview + grill-me "both satisfied" rule.
 - [modules/issue.md](modules/issue.md) — local-first / hosted-if-authorized issue raising.
 - [modules/handoff.md](modules/handoff.md) — A→B handoff schema and recovery.

@@ -52,10 +52,10 @@ if [[ "$rc_bad" -ne 0 ]]; then
 else
   bad "prereq fails closed against non-initialized dir (got exit 0)"
 fi
-if printf '%s' "$out_bad" | grep -qi "init-ai-repo"; then
-  ok "fail-closed output names init-ai-repo guidance"
+if printf '%s' "$out_bad" | grep -qi "ai-catapult-init"; then
+  ok "fail-closed output names ai-catapult-init guidance"
 else
-  bad "fail-closed output names init-ai-repo guidance"
+  bad "fail-closed output names ai-catapult-init guidance"
 fi
 
 # read-only: the temp dir must remain empty (no mutation).

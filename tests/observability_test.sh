@@ -60,15 +60,15 @@ for variant in standalone umbrella; do
 done
 
 # --- Static-keyword checks on the modules (mirrors host-policy static checks) -
-assert_file_contains "init-ai-repo/modules/ci-policy.md" "token-cost" \
+assert_file_contains "ai-catapult-init/modules/ci-policy.md" "token-cost" \
   "ci-policy.md carries the token-cost checklist keyword"
-assert_file_contains "init-ai-repo/modules/ci-policy.md" "trajectory-audit" \
+assert_file_contains "ai-catapult-init/modules/ci-policy.md" "trajectory-audit" \
   "ci-policy.md carries the trajectory-audit checklist keyword"
-assert_file_contains "init-ai-repo/modules/validation.md" "token-cost" \
+assert_file_contains "ai-catapult-init/modules/validation.md" "token-cost" \
   "validation.md carries the token-cost checklist keyword"
-assert_file_contains "init-ai-repo/modules/validation.md" "trajectory-audit" \
+assert_file_contains "ai-catapult-init/modules/validation.md" "trajectory-audit" \
   "validation.md carries the trajectory-audit checklist keyword"
-assert_file_contains "init-ai-repo/modules/validation.md" ".ai/observability/" \
+assert_file_contains "ai-catapult-init/modules/validation.md" ".ai/observability/" \
   "validation.md structural check names the observability tree"
 
 echo ""

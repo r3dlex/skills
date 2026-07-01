@@ -1,7 +1,7 @@
 # Cascade Issue Closure
 
 Read when closing a goal's issue after its PR merges. Autobahn delegates to the
-cascade engine (`init-ai-repo/modules/cascade.md`) and the `triage` state machine;
+cascade engine (`ai-catapult-init/modules/cascade.md`) and the `triage` state machine;
 it reimplements neither the multi-repo orchestration nor the idempotency keying.
 
 ## What happens on merge
@@ -10,7 +10,7 @@ When a goal's PR merges, autobahn closes the goal's issue across the repos the
 cascade scope covers:
 
 1. Resolve the issue via the cascade stable `idempotency_key`
-   (`init-ai-repo:<repo-id>:cascade`) — never by free-form lookup.
+   (`ai-catapult-init:<repo-id>:cascade`) — never by free-form lookup.
 2. Apply the canonical `triage` status (e.g. closed/done) so issue state stays
    consistent across parent/child repos.
 3. Append the closure to `.ai/cascade/audit.jsonl` and update the reconciliation

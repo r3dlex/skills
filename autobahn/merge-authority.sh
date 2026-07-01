@@ -7,7 +7,7 @@
 #   - NOT the confirmation-token regex (^ct-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{3}$),
 #   - NOT the admin-bypass / non-admin matrix,
 #   - NOT the audit format.
-# Those live in init-ai-repo/modules/host-policy-automation.md.
+# Those live in ai-catapult-init/modules/host-policy-automation.md.
 #
 # The adapter CONSUMES a host-policy verdict (the object host-policy produced —
 # the same shape it writes to .ai/host-policy/<host>/audit.jsonl) verbatim, and

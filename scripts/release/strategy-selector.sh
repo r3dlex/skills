@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # strategy-selector.sh
-# Emit a release.json manifest for the init-ai-repo v3 release/versioning module.
+# Emit a release.json manifest for the ai-catapult-init v3 release/versioning module.
 #
 # Strategy:
 #   hybrid (default) - SemVer base + UTC timestamp + CI trace token

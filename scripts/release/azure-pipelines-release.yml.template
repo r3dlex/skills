@@ -1,5 +1,5 @@
 # Azure Pipelines release workflow template.
-# Emitted by init-ai-repo modules/release-versioning.md.
+# Emitted by ai-catapult-init modules/release-versioning.md.
 # Strategy: Hybrid default (SemVer base + UTC timestamp + CI trace token).
 # Tag creation is guardrail-gated; never bypasses the gate.
 # Assumes protected main and PR-only delivery. Validation CI owns PR checks;

@@ -19,7 +19,7 @@ Infer site/project from existing repo docs, `.jira/`, tracker config, or issue U
 
 When `init-ai-repo` runs a multi-repo cascade, Jira participates through the common cascade operations: `discover_scope`, `plan_parent_item`, `plan_child_item`, `dry_run`, `confirm_first_run`, `apply_confirmed_plan`, `readback_links`, `apply_idempotent_update`, `audit_event`, and `reconcile`.
 
-First externally visible parent/child issue creation or transition requires a confirmation token recorded in the cascade audit. Subsequent updates are idempotent only within the already-confirmed cascade scope and must target known issue keys. Project creation, workflow scheme changes, permission changes, and destructive transitions are not cascade operations; route them through `init-ai-repo/modules/host-policy-automation.md` and require fresh explicit authority.
+First externally visible parent/child issue creation or transition requires a confirmation token recorded in the cascade audit. Subsequent updates are idempotent only within the already-confirmed cascade scope and must target known issue keys. Project creation, workflow scheme changes, permission changes, and destructive transitions are not cascade operations; route them through `ai-catapult-init/modules/host-policy-automation.md` and require fresh explicit authority.
 
 ## When a skill says "publish to the issue tracker"
 

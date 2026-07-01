@@ -294,7 +294,7 @@ for variant in standalone umbrella; do
 done
 
 # 6. The gate is documented with the required wording in the CI policy module.
-CI_POLICY="$REPO_ROOT/init-ai-repo/modules/ci-policy.md"
+CI_POLICY="$REPO_ROOT/ai-catapult-init/modules/ci-policy.md"
 if grep -Fq "structurally valid eval declaration required" "$CI_POLICY"; then
   ok "ci-policy.md PR-merge-gate states the eval-coverage requirement"
 else

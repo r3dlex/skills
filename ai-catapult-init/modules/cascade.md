@@ -102,7 +102,7 @@ Adapter fixtures must never contain API tokens, access/refresh tokens, OAuth sec
 
 ## Cross-skill contracts
 
-- `init-ai-repo` creates the cascade plan, links it from workflow/handoff, and validates no duplicates.
+- `ai-catapult-init` creates the cascade plan, links it from workflow/handoff, and validates no duplicates.
 - `setup-skills` supplies host adapter operation details for GitHub, Azure DevOps, GitLab, Jira, and Local Markdown.
 - `to-issues` creates or updates child work items using the cascade stable IDs instead of free-form duplicates.
 - `triage` preserves parent/child backlinks when issue state changes.

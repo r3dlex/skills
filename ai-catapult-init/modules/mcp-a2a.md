@@ -10,7 +10,7 @@ Adopt open standards now: **MCP** (Model Context Protocol) for tool access and
 **A2A** (Agent2Agent) for cross-agent delegation. Choosing them at init time
 preserves multi-vendor/framework optionality and avoids re-platforming later.
 The generated surface is **offline and deterministic** — a registry stub plus a
-convention doc. `init-ai-repo` resolves no live endpoint and makes no network or
+convention doc. `ai-catapult-init` resolves no live endpoint and makes no network or
 model call at generation time.
 
 ## Generated outputs

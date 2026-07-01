@@ -1,6 +1,6 @@
 # Init AI Repo Modules
 
-Layer 3 modules keep the canonical `init-ai-repo` skill lean. These files live under the canonical `init-ai-repo/` path; `ai-sdlc-init/` is only a deprecated compatibility path/alias shim. Read only the module that matches the current scaffold decision.
+Layer 3 modules keep the canonical `ai-catapult-init` skill lean. These files live under the canonical `ai-catapult-init/` path; `init-ai-repo/` and `ai-sdlc-init/` are deprecated compatibility path/alias shims. Read only the module that matches the current scaffold decision.
 
 | Module | When to read |
 | --- | --- |

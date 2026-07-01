@@ -6,10 +6,10 @@ script always operates on an explicit `--root`.
 
 ## What must be present
 
-Autobahn ships an existing plan; it never bootstraps `init-ai-repo` and never
+Autobahn ships an existing plan; it never bootstraps `ai-catapult-init` and never
 authors the plan. Two conditions must hold, both **fail-closed**:
 
-1. **init-ai-repo v3 structure** — the same presence set northstar requires:
+1. **ai-catapult-init v3 structure** — the same presence set northstar requires:
    `.ai/matrix.json`, `.ai/workflows/repo-workflow.json`, `.ai/traceability/graph.json`,
    and `.ai/handoff/`.
 2. **A valid northstar handoff** — discoverable as BOTH:
@@ -23,7 +23,7 @@ a failed prereq.
 
 ## Why both checks
 
-The init-ai-repo check proves the repo is governed; the handoff check proves
+The ai-catapult-init check proves the repo is governed; the handoff check proves
 northstar (Skill A) actually ran and produced the A→B contract autobahn (Skill B)
 consumes. A governed repo with no handoff means there is nothing to ship — that is
 a fail-closed stop, not a silent no-op.

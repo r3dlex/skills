@@ -61,4 +61,4 @@ If signals conflict, preserve every signal in the audit record and select the hi
 - `to-prd` consumes a BRD link/ID when present and writes it into the PRD Traceability section.
 - `to-issues` copies BRD and PRD backlinks into every generated ticket/work item.
 - `triage` preserves traceability fields while changing state/labels/tags.
-- `init-ai-repo` release versioning consumes PRD/spec prose and optional `versionImpact` metadata as auditable inputs; incompatible explicit claims must be recorded for review before tagging.
+- `ai-catapult-init` release versioning consumes PRD/spec prose and optional `versionImpact` metadata as auditable inputs; incompatible explicit claims must be recorded for review before tagging.

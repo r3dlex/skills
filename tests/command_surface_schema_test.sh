@@ -12,7 +12,7 @@
 #   - the omx invocation uses the $<name> form; the omc invocation uses the
 #     /oh-my-claudecode:<name> form; both point at the same skill
 #   - the schema is documented in the module and cross-referenced from
-#     init-ai-repo/modules/phases/README.md
+#     ai-catapult-init/modules/phases/README.md
 #
 # Offline, deterministic, no model/network.
 #
@@ -87,7 +87,7 @@ for needle in "name" "surface" "invocation" "delegates_to" '$northstar' "/oh-my-
   fi
 done
 
-if grep -q "command-surface" init-ai-repo/modules/phases/README.md 2>/dev/null; then
+if grep -q "command-surface" ai-catapult-init/modules/phases/README.md 2>/dev/null; then
   ok "init-ai-repo phases README cross-references the command-surface schema"
 else
   bad "init-ai-repo phases README cross-references the command-surface schema"

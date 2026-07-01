@@ -7,7 +7,7 @@
 #   - Full copies of net-new files (.agents/, docs/adr/, raw/docs/, etc.)
 #   - Marker-only presence checks for modified files (AGENTS.md, etc.)
 #
-# The developer runs init-ai-repo manually first, then runs this.
+# The developer runs ai-catapult-init manually first, then runs this.
 # This is NOT a CI step -- verification is developer-local.
 
 set -euo pipefail

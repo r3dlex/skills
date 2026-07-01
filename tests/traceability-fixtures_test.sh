@@ -60,11 +60,11 @@ for fixture, repo_id in {"standalone": "standalone-root", "umbrella": "umbrella-
     assert ".ai/traceability/index.md" in handoff
     assert ".ai/traceability/graph.json" in handoff
 
-module = Path("init-ai-repo/modules/traceability.md").read_text()
+module = Path("ai-catapult-init/modules/traceability.md").read_text()
 for skill_name in ["to-prd", "to-issues", "triage", "setup-skills", "publish-semver", "init-ai-repo"]:
     assert skill_name in module
-skill = Path("init-ai-repo/SKILL.md").read_text()
-modules = Path("init-ai-repo/modules/README.md").read_text()
+skill = Path("ai-catapult-init/SKILL.md").read_text()
+modules = Path("ai-catapult-init/modules/README.md").read_text()
 assert "`modules/traceability.md` — read when generating stable traceability IDs" in skill
 assert "traceability.md` | Read when generating stable IDs" in modules
 assert "`modules/cascade.md` — read when generating multi-repo cascade plans" in skill

@@ -2,10 +2,10 @@
 
 Read when generating `.ai/commands/omx/<skill>.json` and
 `.ai/commands/omc/<skill>.json`. No exemplar existed before this skill, so the
-schema is **designed once here** and shared: `init-ai-repo`'s future command
-generator and the catalog skills emit identical shapes. (If `init-ai-repo`'s
+schema is **designed once here** and shared: `ai-catapult-init`'s future command
+generator and the catalog skills emit identical shapes. (If `ai-catapult-init`'s
 generator lands first, adopt its schema instead.) Cross-referenced from
-`init-ai-repo/modules/phases/README.md`.
+`ai-catapult-init/modules/phases/README.md`.
 
 ## Schema
 

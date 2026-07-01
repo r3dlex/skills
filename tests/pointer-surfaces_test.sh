@@ -53,9 +53,9 @@ done
 #     name only AGENTS.md + README.md as the workflow-linking surfaces.
 # ---------------------------------------------------------------------------
 modules=(
-  "init-ai-repo/modules/validation.md"
-  "init-ai-repo/modules/workflow.md"
-  "init-ai-repo/modules/documentation-blueprint.md"
+  "ai-catapult-init/modules/validation.md"
+  "ai-catapult-init/modules/workflow.md"
+  "ai-catapult-init/modules/documentation-blueprint.md"
 )
 
 for m in "${modules[@]}"; do
@@ -75,24 +75,24 @@ for m in "${modules[@]}"; do
 done
 
 # Each module now names the AGENTS.md + README.md workflow-linking contract.
-if grep -Fq 'generated `AGENTS.md` and `README.md` link to both workflow files.' init-ai-repo/modules/validation.md; then
+if grep -Fq 'generated `AGENTS.md` and `README.md` link to both workflow files.' ai-catapult-init/modules/validation.md; then
   ok "validation.md names AGENTS.md + README.md as workflow surfaces"
 else
   bad "validation.md names AGENTS.md + README.md as workflow surfaces"
 fi
-if grep -Fq 'Generated `AGENTS.md` and `README.md` surfaces must link to both the workflow doc and the manifest' init-ai-repo/modules/workflow.md; then
+if grep -Fq 'Generated `AGENTS.md` and `README.md` surfaces must link to both the workflow doc and the manifest' ai-catapult-init/modules/workflow.md; then
   ok "workflow.md names AGENTS.md + README.md as workflow surfaces"
 else
   bad "workflow.md names AGENTS.md + README.md as workflow surfaces"
 fi
-if grep -Fq 'Generated `AGENTS.md` and `README.md` link to `.ai/workflows/repo-workflow.md`' init-ai-repo/modules/documentation-blueprint.md; then
+if grep -Fq 'Generated `AGENTS.md` and `README.md` link to `.ai/workflows/repo-workflow.md`' ai-catapult-init/modules/documentation-blueprint.md; then
   ok "documentation-blueprint.md names AGENTS.md + README.md as workflow surfaces"
 else
   bad "documentation-blueprint.md names AGENTS.md + README.md as workflow surfaces"
 fi
 
 # GEMINI.md is introduced as a new pointer surface in the blueprint tree + rules.
-if grep -Fq "GEMINI.md" init-ai-repo/modules/documentation-blueprint.md; then
+if grep -Fq "GEMINI.md" ai-catapult-init/modules/documentation-blueprint.md; then
   ok "documentation-blueprint.md introduces GEMINI.md pointer surface"
 else
   bad "documentation-blueprint.md introduces GEMINI.md pointer surface"
