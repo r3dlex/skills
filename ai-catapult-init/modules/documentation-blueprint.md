@@ -143,6 +143,28 @@ The six context types, each emitted as a code-fenced cell pointing at its canoni
 
 **Static-vs-dynamic boundary.** Static context is fixed at the start of a task (instructions, knowledge, examples, guardrails) and is reviewed and versioned in-repo; dynamic context is assembled per-run (memory written by local agents, tool/MCP results resolved at call time). The boundary is a reviewed, versioned architectural decision (ADR-0005), not an implicit one: moving a context type across the boundary requires an ADR update.
 
+## Mechanical scaffold templates
+
+The static, deterministic subset of this tree is pre-authored in
+`ai-catapult-init/templates/` and is the SSOT the ai-catapult CLI vendors and
+emits. The boundary between mechanical (templated, deterministic) and
+judgment-laden (generated in-harness after discovery) paths is recorded in
+`ai-catapult-init/templates/boundary-manifest.json`.
+
+- **Mechanical** — directory layout, matrix.json skeleton, phase status stubs,
+  policy/rules stubs, MCP registry stub, observability/review checklists,
+  system-prompt skeletons, entry-file pointers (AGENTS.md/CLAUDE.md/GEMINI.md),
+  Archgate rules (.rules.ts), CI hook config (prek.toml, ci-prek.yml).
+  Template files use `{{TOKEN}}` placeholders for repo-specific values
+  (REPO_ID, TOPOLOGY_TYPE, DATE, UPSTREAM_URL, UPSTREAM_REF).
+- **Judgment-laden** — handoff document, traceability graph and index,
+  ADR bodies, cascade plan, .memory/ human-override content. These are
+  produced in-harness by the plugin after the four discovery phases.
+
+When adding a new `.ai/` path to this blueprint, update
+`ai-catapult-init/templates/boundary-manifest.json` to classify it and, if
+mechanical, add the corresponding template file under `ai-catapult-init/templates/`.
+
 ## Generation rules
 
 1. Existing files are never overwritten silently. If a target path exists, the generator emits a `present-not-overwritten` audit entry and skips the write.
