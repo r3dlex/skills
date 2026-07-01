@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "description": "Mechanical/judgment boundary manifest for the v3 .ai/ scaffold. Every path listed under 'mechanical' has a corresponding static template file in this directory. Paths listed under 'judgment_laden' are produced in-harness by the ai-catapult plugin and are NOT templated here. This manifest is consumed by Slice 3 parity fixtures.",
   "classification_rules": {
-    "mechanical": "Path layout is deterministic and repo-agnostic; content is fixed or contains only well-typed placeholder tokens ({{REPO_ID}}, {{TOPOLOGY_TYPE}}, {{DATE}}, {{UPSTREAM_URL}}, {{UPSTREAM_REF}}, {{REPO_URL}}). No domain knowledge or architecture judgment required.",
+    "mechanical": "Path layout is deterministic and repo-agnostic; content is fixed or contains only well-typed placeholder tokens ({{REPO_ID}}, {{DATE}}, {{UPSTREAM_URL}}, {{UPSTREAM_REF}}). No domain knowledge or architecture judgment required.",
     "judgment_laden": "Content requires interpretation of the specific repo's domain, architecture decisions, cascade topology, or AI-failure-mode analysis. Generated in-harness by the plugin after discovery."
   },
   "paths": [
@@ -10,7 +10,7 @@
       "path": ".ai/matrix.json",
       "classification": "mechanical",
       "template": "dot-ai/matrix.json",
-      "rationale": "Schema is fully specified (topology.md). All required fields are deterministic or placeholder-typed. Topology type and depth default to standalone/0."
+      "rationale": "Template emits the STANDALONE matrix skeleton only (topology_type hardcoded to 'standalone', max_allowed_depth/current_depth fixed at 0, managed_repositories empty). The umbrella matrix — which requires populated managed_repositories and max_allowed_depth=3 — is judgment-laden and plugin-generated, consistent with cascade-plan.json classification."
     },
     {
       "path": ".ai/system-prompts/architect.md",
@@ -82,7 +82,7 @@
       "path": ".ai/policies/model-routing.json",
       "classification": "mechanical",
       "template": "dot-ai/policies/model-routing.json",
-      "rationale": "Provider-neutral tier table (ADR-0003) is fixed; host_aliases are illustrative examples that teams replace — not judgment-laden architecture decisions."
+      "rationale": "Provider-neutral tier table (ADR-0003) is fixed. host_aliases are illustrative examples included as an optional deployment convenience; teams may replace or extend them — replacing host aliases requires no architecture judgment about the repo itself."
     },
     {
       "path": ".ai/mcp/registry.json",
@@ -236,7 +236,7 @@
     }
   ],
   "mechanical_count": 28,
-  "judgment_laden_count": 9,
+  "judgment_laden_count": 10,
   "notes": [
     "Dirs without a named file get a .gitkeep in the template tree so the directory is tracked by git.",
     "The .ai/evals/<set>/ evalset files (evalset.json, rubric.md, judge-config.json) are judgment_laden — the eval set name and rubric content are per-repo.",

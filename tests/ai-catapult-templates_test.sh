@@ -123,6 +123,88 @@ while IFS= read -r line; do
     esac
 done <<< "$JSON_OUTPUT"
 
+# ─── (e) manifest count self-consistency ─────────────────────────────────────
+echo ""
+echo "--- (e) Manifest count self-consistency ---"
+
+set +e
+COUNT_OUTPUT=$(python3 - "$MANIFEST" <<'PYEOF'
+import json, sys
+data = json.load(open(sys.argv[1]))
+mechanical_actual = sum(1 for e in data["paths"] if e["classification"] == "mechanical")
+jl_actual         = sum(1 for e in data["paths"] if e["classification"] == "judgment_laden")
+declared_m  = data.get("mechanical_count")
+declared_jl = data.get("judgment_laden_count")
+fails = []
+if declared_m != mechanical_actual:
+    fails.append(f"mechanical_count declared={declared_m} but actual={mechanical_actual}")
+if declared_jl != jl_actual:
+    fails.append(f"judgment_laden_count declared={declared_jl} but actual={jl_actual}")
+if fails:
+    for f in fails:
+        print(f"  FAIL: {f}")
+    sys.exit(1)
+else:
+    print(f"  PASS: mechanical_count={declared_m} matches {mechanical_actual} entries")
+    print(f"  PASS: judgment_laden_count={declared_jl} matches {jl_actual} entries")
+PYEOF
+)
+COUNT_EXIT=$?
+set -e
+echo "$COUNT_OUTPUT"
+while IFS= read -r line; do
+    case "$line" in
+        "  PASS:"*) PASS=$((PASS + 1)) ;;
+        "  FAIL:"*) FAIL=$((FAIL + 1)) ;;
+    esac
+done <<< "$COUNT_OUTPUT"
+
+# ─── (f) orphan check: every template file on disk appears in the manifest ────
+echo ""
+echo "--- (f) Orphan template files (disk -> manifest direction) ---"
+
+set +e
+ORPHAN_OUTPUT=$(python3 - "$MANIFEST" "$TEMPLATES" <<'PYEOF'
+import json, os, sys
+data      = json.load(open(sys.argv[1]))
+templates = sys.argv[2]
+# Build set of template values declared in manifest
+declared = set()
+for e in data["paths"]:
+    t = e.get("template")
+    if t:
+        declared.add(t)
+fails  = []
+passes = []
+for root, dirs, files in os.walk(templates):
+    dirs.sort()
+    for fname in sorted(files):
+        full = os.path.join(root, fname)
+        rel  = os.path.relpath(full, templates)
+        # Skip boundary-manifest.json itself and .gitkeep placeholders
+        if fname == "boundary-manifest.json" or fname == ".gitkeep":
+            continue
+        if rel in declared:
+            passes.append(rel)
+        else:
+            fails.append(rel)
+for r in passes:
+    print(f"  PASS: manifest covers: {r}")
+for r in fails:
+    print(f"  FAIL: orphan template not in manifest: {r}")
+sys.exit(1 if fails else 0)
+PYEOF
+)
+ORPHAN_EXIT=$?
+set -e
+echo "$ORPHAN_OUTPUT"
+while IFS= read -r line; do
+    case "$line" in
+        "  PASS:"*) PASS=$((PASS + 1)) ;;
+        "  FAIL:"*) FAIL=$((FAIL + 1)) ;;
+    esac
+done <<< "$ORPHAN_OUTPUT"
+
 # ─── (d) required v3 skeleton coverage ────────────────────────────────────────
 echo ""
 echo "--- (d) Required v3 skeleton coverage ---"

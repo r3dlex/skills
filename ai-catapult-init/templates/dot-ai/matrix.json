@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "topology_type": "{{TOPOLOGY_TYPE}}",
+  "topology_type": "standalone",
   "max_allowed_depth": 0,
   "current_depth": 0,
   "sync_strategy": "physical-copy",
