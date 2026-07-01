@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "topology_type": "standalone",
+  "max_allowed_depth": 0,
+  "current_depth": 0,
+  "sync_strategy": "physical-copy",
+  "upstream_authority": {
+    "type": "git",
+    "url": "{{UPSTREAM_URL}}",
+    "ref": "{{UPSTREAM_REF}}"
+  },
+  "managed_repositories": [],
+  "inherited_assets": [],
+  "sync_status": {
+    "last_synced_at": "{{DATE}}",
+    "drift_detected": false,
+    "last_drift_report": ".ai/drift/last-drift.json"
+  }
+}
