@@ -41,13 +41,13 @@ Every audited skill description must make three boundaries explicit so an agent 
 The audit statically validates a skill's referenced surfaces — offline, no network:
 
 - **Broken link check** — every relative Markdown link and `modules/*`/`reference/*` pointer in `SKILL.md` and its modules resolves to a tracked file.
-- **Alias check** — declared aliases/shims (e.g. the `ai-sdlc-init` → `init-ai-repo` compatibility alias) point to a real canonical skill and do not collide with another first-class name.
+- **Alias check** — declared aliases/shims (e.g. the `ai-sdlc-init` → `ai-catapult-init` and `init-ai-repo` → `ai-catapult-init` compatibility aliases) point to a real canonical skill and do not collide with another first-class name.
 - **Referenced-file check** — every file a skill names (templates, fixtures, ADRs, golden outputs) exists at the cited path; cite by content where line numbers would drift.
 - **Script check** — every bundled `scripts/*` a skill invokes exists and passes `bash -n`; the audit does not execute network- or credential-dependent scripts.
 
 ## Cross-skill workflow links
 
-- `init-ai-repo` owns generated workflow, traceability, cascade, and catalog audit artifacts.
+- `ai-catapult-init` owns generated workflow, traceability, cascade, and catalog audit artifacts.
 - `setup-skills` owns tracker/domain-doc configuration that downstream issue and PRD skills consume.
 - `to-prd`, `to-issues`, and `triage` must preserve traceability IDs and tracker backlinks.
 - `publish-semver` must link release evidence to specs, PRs, and tests.

@@ -78,7 +78,7 @@ else
   bad "(b) guidance names the missing handoff"
 fi
 
-# (c) non-initialized -> fail closed naming init-ai-repo.
+# (c) non-initialized -> fail closed naming ai-catapult-init.
 set +e
 out_c="$(bash "$SCRIPT" --root "$tmp_none" 2>&1)"; rc_c=$?
 set -e 2>/dev/null || true
@@ -87,10 +87,10 @@ if [[ "$rc_c" -ne 0 ]]; then
 else
   bad "(c) fails closed against non-initialized dir (got exit 0)"
 fi
-if printf '%s' "$out_c" | grep -qi "init-ai-repo"; then
-  ok "(c) guidance names init-ai-repo"
+if printf '%s' "$out_c" | grep -qi "ai-catapult-init"; then
+  ok "(c) guidance names ai-catapult-init"
 else
-  bad "(c) guidance names init-ai-repo"
+  bad "(c) guidance names ai-catapult-init"
 fi
 
 # read-only: the non-initialized dir must remain empty.

@@ -3,7 +3,7 @@
 # autobahn/prereq-check.sh  (PR-2, A3)
 #
 # Read-only, fail-closed presence gate for autobahn. Asserts BOTH:
-#   1. the init-ai-repo v3 .ai/ structure exists under --root, AND
+#   1. the ai-catapult-init v3 .ai/ structure exists under --root, AND
 #   2. a valid northstar handoff is discoverable:
 #        - a manifest optional_branches entry id-prefixed "northstar-handoff-", and
 #        - the matching handoff file .ai/handoff/northstar-<slug>.md.
@@ -14,8 +14,8 @@
 # Usage:
 #   prereq-check.sh --root <repo-root>
 # Exit:
-#   0  init-ai-repo structure present AND a valid northstar handoff present
-#   1  init-ai-repo absent, or no valid handoff (guidance on stderr)
+#   0  ai-catapult-init structure present AND a valid northstar handoff present
+#   1  ai-catapult-init absent, or no valid handoff (guidance on stderr)
 #   2  usage error
 #
 
@@ -37,7 +37,7 @@ if [[ -z "$ROOT" || ! -d "$ROOT" ]]; then
   exit 2
 fi
 
-# --- 1. init-ai-repo v3 presence set (read-only) -----------------------------
+# --- 1. ai-catapult-init v3 presence set (read-only) -----------------------------
 REQUIRED=(
   ".ai/matrix.json"
   ".ai/workflows/repo-workflow.json"
@@ -48,14 +48,14 @@ REQUIRED=(
 missing=0
 for rel in "${REQUIRED[@]}"; do
   if [[ ! -e "$ROOT/$rel" ]]; then
-    echo "prereq-check: missing required init-ai-repo artifact: $rel" >&2
+    echo "prereq-check: missing required ai-catapult-init artifact: $rel" >&2
     missing=$((missing + 1))
   fi
 done
 
 if [[ "$missing" -gt 0 ]]; then
-  echo "prereq-check: $missing required init-ai-repo artifact(s) absent under '$ROOT'." >&2
-  echo "prereq-check: run the init-ai-repo skill to initialize the repo, then retry." >&2
+  echo "prereq-check: $missing required ai-catapult-init artifact(s) absent under '$ROOT'." >&2
+  echo "prereq-check: run the ai-catapult-init skill to initialize the repo, then retry." >&2
   exit 1
 fi
 
@@ -95,5 +95,5 @@ if [[ -z "$valid_handoff" ]]; then
   exit 1
 fi
 
-echo "prereq-check: init-ai-repo v3 + valid northstar handoff ('$valid_handoff') present under '$ROOT'."
+echo "prereq-check: ai-catapult-init v3 + valid northstar handoff ('$valid_handoff') present under '$ROOT'."
 exit 0

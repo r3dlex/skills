@@ -1,6 +1,6 @@
-# init-ai-repo Phase Modules
+# ai-catapult-init Phase Modules
 
-The canonical `init-ai-repo` workflow exposes four optimized phases so agents and humans can move quickly while still preserving traceability. Each phase writes durable state under `.ai/phases/<phase>/` and links command output back to specs, plans, and validation evidence.
+The canonical `ai-catapult-init` workflow exposes four optimized phases so agents and humans can move quickly while still preserving traceability. Each phase writes durable state under `.ai/phases/<phase>/` and links command output back to specs, plans, and validation evidence.
 
 ## Four optimized phases
 

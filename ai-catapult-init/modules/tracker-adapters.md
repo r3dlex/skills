@@ -1,10 +1,10 @@
 # Tracker Adapters Module
 
-Read when choosing where BRDs, PRDs, tickets, and comments live. The adapter is selected at scaffold time and referenced by `init-ai-repo`; full operation semantics live in `setup-skills`. v3 adds an optional Jira adapter and explicit confirmation boundaries for any host adapter that mutates externally visible state.
+Read when choosing where BRDs, PRDs, tickets, and comments live. The adapter is selected at scaffold time and referenced by `ai-catapult-init`; full operation semantics live in `setup-skills`. v3 adds an optional Jira adapter and explicit confirmation boundaries for any host adapter that mutates externally visible state.
 
 ## Adapter rule
 
-`init-ai-repo` selects and references setup-skills tracker adapters; it does not duplicate their full operation semantics.
+`ai-catapult-init` selects and references setup-skills tracker adapters; it does not duplicate their full operation semantics.
 
 | Host | Adapter | Confirmation-gated operations |
 | --- | --- | --- |

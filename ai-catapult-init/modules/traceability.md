@@ -1,6 +1,6 @@
 # Traceability Graph Module
 
-Read when generating or validating requirement/work-artifact traceability for an `init-ai-repo` target repository. This module owns stable IDs, node/edge schema, backlink validation, graph fixtures, and cross-skill contracts.
+Read when generating or validating requirement/work-artifact traceability for an `ai-catapult-init` target repository. This module owns stable IDs, node/edge schema, backlink validation, graph fixtures, and cross-skill contracts.
 
 ## Generated outputs
 
@@ -127,7 +127,7 @@ Both topologies ship a fixture demonstrating this: `reference/fixtures/v3/standa
 - `triage` must preserve issue node status and host URLs when state changes.
 - `setup-skills` must record tracker adapter source metadata for hosted issue nodes.
 - `publish-semver` must link release/versioning evidence to PRD/spec and PR/test nodes.
-- `init-ai-repo` owns validation and handoff nodes for generated scaffold evidence.
+- `ai-catapult-init` owns validation and handoff nodes for generated scaffold evidence.
 
 ## Safety rules
 
