@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "{{DATE}}",
+  "drift_detected": false,
+  "assets_checked": [],
+  "note": "Initial scaffold — no prior sync to diff against."
+}
