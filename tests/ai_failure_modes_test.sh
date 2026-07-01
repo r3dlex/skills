@@ -85,13 +85,13 @@ for variant in standalone umbrella; do
 done
 
 # --- Blueprint + validation + ci-policy wiring ------------------------------
-assert_file_contains "init-ai-repo/modules/documentation-blueprint.md" "ai-failure-modes.md" \
+assert_file_contains "ai-catapult-init/modules/documentation-blueprint.md" "ai-failure-modes.md" \
   "documentation-blueprint.md tree names the AI-failure-mode checklist"
-assert_file_contains "init-ai-repo/modules/documentation-blueprint.md" ".ai/reviews/" \
+assert_file_contains "ai-catapult-init/modules/documentation-blueprint.md" ".ai/reviews/" \
   "documentation-blueprint.md names the .ai/reviews/ surface"
-assert_file_contains "init-ai-repo/modules/validation.md" "ai-failure-modes.md" \
+assert_file_contains "ai-catapult-init/modules/validation.md" "ai-failure-modes.md" \
   "validation.md structural check names the AI-failure-mode checklist"
-assert_file_contains "init-ai-repo/modules/ci-policy.md" "ai-failure-modes.md" \
+assert_file_contains "ai-catapult-init/modules/ci-policy.md" "ai-failure-modes.md" \
   "ci-policy.md PR merge gate references the AI-failure-mode checklist"
 
 echo ""

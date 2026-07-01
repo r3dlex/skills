@@ -146,7 +146,7 @@ def validate_fixture(name: str, repo_id: str) -> None:
 def main() -> int:
     for fixture, repo_id in FIXTURES.items():
         validate_fixture(fixture, repo_id)
-    module = (ROOT / "init-ai-repo/modules/cascade.md").read_text()
+    module = (ROOT / "ai-catapult-init/modules/cascade.md").read_text()
     for host in ["GitHub", "Azure DevOps", "GitLab", "Jira", "Local Markdown"]:
         assert host in module
     assert "setup-skills" in module

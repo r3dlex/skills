@@ -86,15 +86,15 @@ PY
 done
 
 # --- Module + reference checks (mirrors observability static-keyword style) ---
-assert_nonempty_file "init-ai-repo/modules/mcp-a2a.md" \
+assert_nonempty_file "ai-catapult-init/modules/mcp-a2a.md" \
   "Layer-3 module modules/mcp-a2a.md present + non-empty"
-assert_file_contains "init-ai-repo/SKILL.md" "modules/mcp-a2a.md" \
+assert_file_contains "ai-catapult-init/SKILL.md" "modules/mcp-a2a.md" \
   "SKILL.md Module Map references modules/mcp-a2a.md"
-assert_file_contains "init-ai-repo/modules/documentation-blueprint.md" "mcp-a2a.md" \
+assert_file_contains "ai-catapult-init/modules/documentation-blueprint.md" "mcp-a2a.md" \
   "documentation-blueprint.md references modules/mcp-a2a.md"
-assert_file_contains "init-ai-repo/modules/documentation-blueprint.md" ".ai/mcp/" \
+assert_file_contains "ai-catapult-init/modules/documentation-blueprint.md" ".ai/mcp/" \
   "documentation-blueprint.md tree names the .ai/mcp/ surface"
-assert_file_contains "init-ai-repo/modules/validation.md" ".ai/mcp/" \
+assert_file_contains "ai-catapult-init/modules/validation.md" ".ai/mcp/" \
   "validation.md structural check names the .ai/mcp/ surface"
 
 echo ""

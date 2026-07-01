@@ -6,7 +6,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RELEASE_MODULE="$REPO_ROOT/init-ai-repo/modules/release-versioning.md"
+RELEASE_MODULE="$REPO_ROOT/ai-catapult-init/modules/release-versioning.md"
 TEMPLATE_DIR="$REPO_ROOT/scripts/release"
 
 PASS=0

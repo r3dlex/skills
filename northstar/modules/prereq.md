@@ -1,8 +1,8 @@
 # Northstar Prereq Contract
 
-Read when verifying that the `init-ai-repo` v3 structure is present before
+Read when verifying that the `ai-catapult-init` v3 structure is present before
 running `northstar`. This is a **fail-closed** gate: if the structure is absent,
-stop and tell the user to run `init-ai-repo` first.
+stop and tell the user to run `ai-catapult-init` first.
 
 ## Presence set
 
@@ -23,10 +23,10 @@ target root. The repo root in this catalog has no `.ai/`; tests therefore point
 
 - All paths present → exit `0`, print a one-line confirmation.
 - Any path missing → exit non-zero, print to stderr which artifact is missing and
-  the guidance: run the `init-ai-repo` skill to initialize the repo, then retry.
+  the guidance: run the `ai-catapult-init` skill to initialize the repo, then retry.
 
 ## Safety rules
 
-- Never bootstrap the `.ai/` structure from `northstar`; that is `init-ai-repo`'s
+- Never bootstrap the `.ai/` structure from `northstar`; that is `ai-catapult-init`'s
   responsibility.
 - Never mutate the target root during the check.

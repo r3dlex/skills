@@ -1,12 +1,12 @@
 # Merge Authority — Host-Policy Thin Adapter (C1)
 
 Read when deciding whether a goal's PR may merge. `merge-authority.sh` is a
-**thin adapter** over the init-ai-repo host-policy decision. It re-encodes none of
+**thin adapter** over the ai-catapult-init host-policy decision. It re-encodes none of
 host-policy's rules.
 
 ## What the adapter does NOT own
 
-These are owned by `init-ai-repo/modules/host-policy-automation.md` and must NOT
+These are owned by `ai-catapult-init/modules/host-policy-automation.md` and must NOT
 be re-encoded in the adapter:
 
 - the confirmation-token regex `^ct-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{3}$`,
@@ -47,7 +47,7 @@ merge/ready-for-human/fail-closed outcome. The normalized shape is top-level
 `mode` + `confirmation_token` + outcome `marker`. Normalizing the host-policy
 decision into this object — in particular projecting the host-policy audit line's
 `apply_results[].status` and the `apply-rejected-*`/`apply-blocked-*` markers
-(owned by `init-ai-repo/modules/host-policy-automation.md`) onto the top-level
+(owned by `ai-catapult-init/modules/host-policy-automation.md`) onto the top-level
 `marker` — is the **host-policy consumer's** responsibility (the step that invokes
 the host-policy decision), not this adapter's. The adapter never reads
 `apply_results[]` or re-derives a marker.

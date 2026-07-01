@@ -8,7 +8,7 @@ description: 'Scaffold a structurally valid eval triplet for a target skill unde
 ## Quick Start
 
 Given a TARGET skill, scaffold the eval triplet under `.ai/evals/<skill>/`,
-matching the P0 eval shape (see `init-ai-repo/modules/evals.md` and the golden
+matching the P0 eval shape (see `ai-catapult-init/modules/evals.md` and the golden
 fixture `reference/fixtures/v3/standalone/.ai/evals/example-output-eval/`).
 
 Run the generator:
@@ -36,7 +36,7 @@ target skill. A missing or empty rubric fails the eval-coverage gate.
 In CI the bar is **structural only** and offline: the triplet must exist and be
 well-formed (both JSON files parse and carry their required keys; the rubric is
 non-empty). CI performs no model or network call. This mirrors the eval-coverage
-gate in `init-ai-repo/modules/ci-policy.md`.
+gate in `ai-catapult-init/modules/ci-policy.md`.
 
 Validate the scaffolded triplet structurally:
 
@@ -75,5 +75,5 @@ verdict against the passing threshold.
 
 ## References
 
-- [init-ai-repo/modules/evals.md](../init-ai-repo/modules/evals.md) — eval scaffold spec and the coverage gate.
+- [ai-catapult-init/modules/evals.md](../ai-catapult-init/modules/evals.md) — eval scaffold spec and the coverage gate.
 - [ADR 0002](../docs/architecture/adr/0002-evals-as-verification-gate.md) — evals as a verification gate.

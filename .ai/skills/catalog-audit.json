@@ -6,14 +6,24 @@
     "body_line_limit": 100,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 24,
+  "skill_count": 25,
   "warnings": [],
   "failures": [],
   "skills": [
     {
+      "name": "ai-catapult-init",
+      "path": "ai-catapult-init/SKILL.md",
+      "description_chars": 177,
+      "description_status": "target",
+      "body_lines": 75,
+      "cross_skill_links": "present",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
       "name": "ai-sdlc-init",
       "path": "ai-sdlc-init/SKILL.md",
-      "description_chars": 130,
+      "description_chars": 138,
       "description_status": "target",
       "body_lines": 6,
       "cross_skill_links": "not-required",
@@ -23,7 +33,7 @@
     {
       "name": "autobahn",
       "path": "autobahn/SKILL.md",
-      "description_chars": 177,
+      "description_chars": 174,
       "description_status": "target",
       "body_lines": 99,
       "cross_skill_links": "not-required",
@@ -113,17 +123,17 @@
     {
       "name": "init-ai-repo",
       "path": "init-ai-repo/SKILL.md",
-      "description_chars": 161,
+      "description_chars": 138,
       "description_status": "target",
-      "body_lines": 75,
-      "cross_skill_links": "present",
+      "body_lines": 6,
+      "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
     },
     {
       "name": "northstar",
       "path": "northstar/SKILL.md",
-      "description_chars": 159,
+      "description_chars": 163,
       "description_status": "target",
       "body_lines": 78,
       "cross_skill_links": "not-required",

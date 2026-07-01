@@ -27,7 +27,7 @@ Pick the skill matching the user's request. Each skill has:
 | `ubiquitous-language` | Building DDD-style glossaries |
 | `using-git-worktrees` | Setting up isolated workspaces |
 | `publish-semver` | Publishing packages with semver, GitHub Actions, and multi-ecosystem registries |
-| `init-ai-repo` | Initialize AI-ready repo governance, traceability, cascade, catalog audit, and validation; deprecated alias: `ai-sdlc-init` |
+| `ai-catapult-init` | Initialize AI-ready repo governance, traceability, cascade, catalog audit, and validation; deprecated aliases: `init-ai-repo`, `ai-sdlc-init` |
 | `to-prd` | Turning conversation context into a PRD on the issue tracker |
 | `to-issues` | Breaking a plan or PRD into independently-grabbable tracker issues |
 | `triage` | Triaging issues through a role-driven state machine |
@@ -39,12 +39,12 @@ Pick the skill matching the user's request. Each skill has:
 | `zoom-out` | Explaining broader code or product context before local changes |
 | `handoff` | Compacting the conversation into a handoff document for another agent |
 | `eval-a-skill` | Scaffolding a structurally valid eval triplet for a target skill; CI checks structure, the judge runs out-of-band |
-| `northstar` | Intake intent into a tracked, sliced plan in an init-ai-repo repo and write the A→B handoff |
+| `northstar` | Intake intent into a tracked, sliced plan in an ai-catapult-init repo and write the A→B handoff |
 | `autobahn` | Ship a northstar handoff's sliced goals one PR per goal: ultragoal, engine-pick, peer review, CI gate, fail-closed merge, cascade closure |
 
 ### Pipeline: `northstar` → `autobahn`
 
-In an `init-ai-repo`-initialized repo, the two compose into an intake→ship loop:
+In an `ai-catapult-init`-initialized repo, the two compose into an intake→ship loop:
 
 1. **`northstar "<intent>"`** — deep-interview (primary) + grill-me (adversarial, skippable) one question at a time until both are satisfied → always raises an issue (local-first markdown; hosted only if a tracker is configured and authorized, fail-closed) → `ralplan` → sliced goals. Writes the **A→B handoff** into `.ai/` (workflow manifest `optional_branches` entry, traceability nodes, `.ai/handoff/`).
 2. **`autobahn`** — discovers the handoff and ships each sliced goal as **one PR**: `ultragoal` orchestrates, the engine is auto-picked per goal by a deterministic precedence — `ultraqa` (qa-heavy) > `ultrawork` (parallelizable) > `ralph` (persistence) > `team` (default fallback); override with `--engine` — runs the architect+reviewer+executor peer-review loop, requires remote **and** local CI green, then the merge-authority adapter decides — merge only when host-policy **approves AND** the token is valid (either rejection fails closed → stop at *ready-for-human*) — and closes the issue across repos via the cascade engine with the canonical `triage` status.
@@ -85,7 +85,7 @@ See [write-agent-docs/SKILL.md](write-agent-docs/SKILL.md) for full audit and re
 
 ## AI SDLC Methodology
 
-This repository uses the init-ai-repo methodology. The deprecated `ai-sdlc-init` alias remains valid during path migration.
+This repository uses the ai-catapult-init methodology. The deprecated aliases `init-ai-repo` and `ai-sdlc-init` remain valid during path migration.
 
 ### Architecture Decision Records
 
@@ -136,5 +136,5 @@ Before starting work on an issue:
 
 <!-- v3-ai-sdlc-init:start -->
 ## AI SDLC v3
-This repo follows the v3 AI-SDLC layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules at `r3dlex/skills/init-ai-repo/modules/`.
+This repo follows the v3 AI-SDLC layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules at `r3dlex/skills/ai-catapult-init/modules/`.
 <!-- v3-ai-sdlc-init:end -->

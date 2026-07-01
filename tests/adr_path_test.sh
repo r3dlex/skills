@@ -49,9 +49,9 @@ bad() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 is_allowlisted() {
   case "$1" in
     # Legacy-source column of the migration mapping table (docs/adr -> v3).
-    init-ai-repo/modules/migration.md) return 0 ;;
+    ai-catapult-init/modules/migration.md) return 0 ;;
     # Blueprint defers `docs/adr/` legacy-artifact classification to migration.md.
-    init-ai-repo/modules/documentation-blueprint.md) return 0 ;;
+    ai-catapult-init/modules/documentation-blueprint.md) return 0 ;;
 
     # Still-physical legacy ADR directory in this repo (not yet migrated) and its
     # verbatim golden mirrors — content-diffed by scripts/verify-golden-dir.sh.
@@ -61,8 +61,8 @@ is_allowlisted() {
     scripts/verify-golden-dir.sh) return 0 ;;
 
     # Legacy template bodies that mirror the still-physical `docs/adr/` artifacts.
-    init-ai-repo/REFERENCE.md) return 0 ;;
-    init-ai-repo/modules/foundation.md) return 0 ;;
+    ai-catapult-init/REFERENCE.md) return 0 ;;
+    ai-catapult-init/modules/foundation.md) return 0 ;;
 
     # Fixture that intentionally models a legacy `docs/adr/` SOURCE being copied to v3.
     reference/fixtures/v3/legacy-migration/README.md) return 0 ;;

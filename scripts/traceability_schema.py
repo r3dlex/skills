@@ -2,7 +2,7 @@
 """Shared traceability graph schema validator (offline, deterministic).
 
 Single source of truth for the schema-1.1 contract documented in
-``init-ai-repo/modules/traceability.md``. Both the shipped final-package
+``ai-catapult-init/modules/traceability.md``. Both the shipped final-package
 validator (``scripts/validate-final-package.py``) and the in-test reference
 validator (``tests/traceability-schema-v11_test.sh``) call into this module so
 the doc, the runtime check, and the tests cannot drift.

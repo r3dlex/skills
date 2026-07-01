@@ -11,7 +11,7 @@
 #     event (status updated-existing),
 #   - the closure never invents a status string (uses the triage canonical one).
 #
-# The mock mirrors the cascade host-adapter schema (init-ai-repo/modules/cascade.md)
+# The mock mirrors the cascade host-adapter schema (ai-catapult-init/modules/cascade.md)
 # and the cascade fixtures' second_run.idempotency_key shape. Offline, deterministic.
 #
 
@@ -131,7 +131,7 @@ fi
 # Delegation contract: the mock above is a contract-shape STAND-IN, not the real
 # cascade integration. The integration assertion is that autobahn DELEGATES to the
 # cascade engine rather than owning closure — so assert the module documents
-# delegating to init-ai-repo's cascade engine + canonical triage status + the
+# delegating to ai-catapult-init's cascade engine + canonical triage status + the
 # stable idempotency_key + the audit append.
 CC="autobahn/modules/cascade-closure.md"
 if grep -qi "cascade" "$CC" && grep -qi "idempotency_key" "$CC" \

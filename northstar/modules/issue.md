@@ -6,11 +6,11 @@ Read when raising the tracking issue after the interview loop. An issue is
 ## Local-first, hosted-if-authorized
 
 - **Default: local-first markdown.** Write the issue as a markdown work item
-  under `.ai/work-intake/` (the local fallback the init-ai-repo workflow
+  under `.ai/work-intake/` (the local fallback the ai-catapult-init workflow
   reconciles before final merge).
 - **Hosted only when configured AND authorized.** A hosted tracker
   (GitHub/ADO/GitLab/Jira) is used only when a tracker is configured and the
-  actor is authorized, fail-closed per `init-ai-repo`
+  actor is authorized, fail-closed per `ai-catapult-init`
   `modules/host-policy-automation.md`. If either is missing, stay local and
   record the fallback for reconciliation.
 

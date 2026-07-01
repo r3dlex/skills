@@ -3,7 +3,7 @@
 Read when generating `.ai/commands/omx/autobahn.json` and
 `.ai/commands/omc/autobahn.json`. Autobahn reuses the **shared** command-surface
 schema designed once in `northstar/modules/command-surface.md` (and
-cross-referenced from `init-ai-repo/modules/phases/README.md`); both surfaces emit
+cross-referenced from `ai-catapult-init/modules/phases/README.md`); both surfaces emit
 identical shapes. This module records autobahn's entries only.
 
 ## Schema (recap)

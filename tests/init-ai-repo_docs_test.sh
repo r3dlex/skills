@@ -1,6 +1,8 @@
 #!/bin/bash
 #
-# Regression tests for init-ai-repo canonical naming and deprecated alias docs.
+# Regression tests for ai-catapult-init canonical naming and deprecated alias docs.
+# Canonical skill: ai-catapult-init
+# Deprecated aliases: init-ai-repo, ai-sdlc-init
 #
 
 set -euo pipefail
@@ -35,65 +37,95 @@ catalog_agents_content() {
 
 cd "$REPO_ROOT"
 
-assert_file_contains init-ai-repo/SKILL.md "name: init-ai-repo" "canonical skill frontmatter name"
+# --- Canonical skill: ai-catapult-init ---
+assert_file_contains ai-catapult-init/SKILL.md "name: ai-catapult-init" "canonical skill frontmatter name"
+
+# Deprecated aliases declared in canonical description
+assert_file_contains ai-catapult-init/SKILL.md "init-ai-repo" "canonical skill description mentions init-ai-repo alias"
+assert_file_contains ai-catapult-init/SKILL.md "ai-sdlc-init" "canonical skill description mentions ai-sdlc-init alias"
+
+# --- Deprecated alias: ai-sdlc-init ---
 assert_file_contains ai-sdlc-init/SKILL.md "name: ai-sdlc-init" "legacy shim frontmatter name"
-assert_file_contains ai-sdlc-init/SKILL.md "../init-ai-repo/SKILL.md" "legacy shim points to canonical skill"
-assert_file_contains ai-sdlc-init/README.md "../init-ai-repo/SKILL.md" "legacy shim README points to canonical skill"
-assert_file_contains init-ai-repo/SKILL.md "Deprecated compatibility alias: ai-sdlc-init" "deprecated alias in skill description"
-assert_file_contains README.md "[\`init-ai-repo\`](init-ai-repo/SKILL.md)" "README exposes canonical skill name"
+assert_file_contains ai-sdlc-init/SKILL.md "../ai-catapult-init/SKILL.md" "legacy shim points to canonical skill"
+assert_file_contains ai-sdlc-init/README.md "../ai-catapult-init/SKILL.md" "legacy shim README points to canonical skill"
+
+# --- Deprecated alias: init-ai-repo ---
+assert_file_contains init-ai-repo/SKILL.md "name: init-ai-repo" "init-ai-repo shim frontmatter name"
+assert_file_contains init-ai-repo/SKILL.md "../ai-catapult-init/SKILL.md" "init-ai-repo shim points to canonical skill"
+assert_file_contains init-ai-repo/README.md "../ai-catapult-init/SKILL.md" "init-ai-repo shim README points to canonical skill"
+
+# --- README catalog ---
+assert_file_contains README.md "[\`ai-catapult-init\`](ai-catapult-init/SKILL.md)" "README exposes canonical skill name"
 assert_file_contains README.md "deprecated compatibility alias" "README documents deprecated alias"
-assert_file_contains init-ai-repo/modules/README.md "canonical \`init-ai-repo\`" "module README uses canonical name"
-assert_file_contains init-ai-repo/modules/README.md "deprecated compatibility path/alias" "module README documents compatibility path"
-assert_file_contains init-ai-repo/SKILL.md "protected \`main\` and PR-only delivery" "skill requires protected main and PR-only delivery"
-assert_file_contains init-ai-repo/SKILL.md "provider-specific branch-policy checklist/config artifacts" "skill emits branch-policy checklist/config by default"
-assert_file_contains init-ai-repo/SKILL.md "host policy permits it" "skill documents admin self-approval boundary"
-assert_file_contains init-ai-repo/SKILL.md "admin approve/admin bypass" "skill documents admin approval lane"
-assert_file_contains init-ai-repo/SKILL.md "architect, reviewer, and executor" "skill documents architect/reviewer/executor review loop"
-assert_file_contains init-ai-repo/SKILL.md "local CI plus host SCM CI" "skill requires local and host CI green"
-assert_file_contains init-ai-repo/SKILL.md "do not merge or auto-merge" "skill gates merge and auto-merge"
-assert_file_contains init-ai-repo/modules/ci-policy.md "protected \`main\` and PR-only delivery" "ci-policy assumes protected main and PR-only delivery"
-assert_file_contains init-ai-repo/modules/ci-policy.md "provider-specific checklists/config templates" "ci-policy emits provider checklist/config artifacts by default"
-assert_file_contains init-ai-repo/modules/ci-policy.md "hosted policy mutation remains opt-in and explicit" "ci-policy forbids hidden hosted mutation"
-assert_file_contains init-ai-repo/modules/ci-policy.md "administrators may self-approve PRs" "ci-policy documents admin self-approval"
-assert_file_contains init-ai-repo/modules/ci-policy.md "host/runtime explicitly supports admin approval" "ci-policy requires explicit host support for admin approval"
-assert_file_contains init-ai-repo/modules/ci-policy.md "GitHub hosted PR review rejects same-actor approval" "ci-policy documents GitHub same-actor approval limit"
-assert_file_contains init-ai-repo/modules/ci-policy.md "All actionable PR comments are resolved" "ci-policy requires actionable comments resolved"
-assert_file_contains init-ai-repo/modules/ci-policy.md "Local CI and host SCM CI" "ci-policy requires local and host CI green"
-assert_file_contains init-ai-repo/modules/ci-policy.md "Auto-merge may be enabled only after" "ci-policy gates auto-merge"
+
+# --- modules/README.md ---
+assert_file_contains ai-catapult-init/modules/README.md "canonical \`ai-catapult-init\`" "module README uses canonical name"
+assert_file_contains ai-catapult-init/modules/README.md "deprecated compatibility path/alias" "module README documents compatibility path"
+
+# --- PR merge gate and CI policy in canonical SKILL.md ---
+assert_file_contains ai-catapult-init/SKILL.md "protected \`main\` and PR-only delivery" "skill requires protected main and PR-only delivery"
+assert_file_contains ai-catapult-init/SKILL.md "provider-specific branch-policy checklist/config artifacts" "skill emits branch-policy checklist/config by default"
+assert_file_contains ai-catapult-init/SKILL.md "host policy permits it" "skill documents admin self-approval boundary"
+assert_file_contains ai-catapult-init/SKILL.md "admin approve/admin bypass" "skill documents admin approval lane"
+assert_file_contains ai-catapult-init/SKILL.md "architect, reviewer, and executor" "skill documents architect/reviewer/executor review loop"
+assert_file_contains ai-catapult-init/SKILL.md "local CI plus host SCM CI" "skill requires local and host CI green"
+assert_file_contains ai-catapult-init/SKILL.md "do not merge or auto-merge" "skill gates merge and auto-merge"
+
+# --- ci-policy module ---
+assert_file_contains ai-catapult-init/modules/ci-policy.md "protected \`main\` and PR-only delivery" "ci-policy assumes protected main and PR-only delivery"
+assert_file_contains ai-catapult-init/modules/ci-policy.md "provider-specific checklists/config templates" "ci-policy emits provider checklist/config artifacts by default"
+assert_file_contains ai-catapult-init/modules/ci-policy.md "hosted policy mutation remains opt-in and explicit" "ci-policy forbids hidden hosted mutation"
+assert_file_contains ai-catapult-init/modules/ci-policy.md "administrators may self-approve PRs" "ci-policy documents admin self-approval"
+assert_file_contains ai-catapult-init/modules/ci-policy.md "host/runtime explicitly supports admin approval" "ci-policy requires explicit host support for admin approval"
+assert_file_contains ai-catapult-init/modules/ci-policy.md "GitHub hosted PR review rejects same-actor approval" "ci-policy documents GitHub same-actor approval limit"
+assert_file_contains ai-catapult-init/modules/ci-policy.md "All actionable PR comments are resolved" "ci-policy requires actionable comments resolved"
+assert_file_contains ai-catapult-init/modules/ci-policy.md "Local CI and host SCM CI" "ci-policy requires local and host CI green"
+assert_file_contains ai-catapult-init/modules/ci-policy.md "Auto-merge may be enabled only after" "ci-policy gates auto-merge"
+
+# --- active spec ---
 assert_file_contains docs/specifications/ACTIVE/init-ai-repo-omx-omc-4-phase-sdlc.md "4-Phase AI-SDLC" "active spec captures four-phase AI SDLC"
 assert_file_contains docs/specifications/ACTIVE/init-ai-repo-omx-omc-4-phase-sdlc.md "admin approval mode" "active spec captures admin approval mode"
-assert_file_contains init-ai-repo/SKILL.md "### Phase 1 — Discover & Decide" "skill exposes phase 1"
-assert_file_contains init-ai-repo/SKILL.md "### Phase 2 — Govern & Plan" "skill exposes phase 2"
-assert_file_contains init-ai-repo/SKILL.md "### Phase 3 — Configure & Generate" "skill exposes phase 3"
-assert_file_contains init-ai-repo/SKILL.md "### Phase 4 — Validate & Handoff" "skill exposes phase 4"
-assert_file_contains init-ai-repo/SKILL.md "### Internal checkpoints" "skill preserves internal checkpoints"
-assert_file_contains init-ai-repo/SKILL.md "1. Detect repo state" "skill preserves checkpoint 1"
-assert_file_contains init-ai-repo/modules/README.md "phases/01-discover-decide.md" "module README links phase 1 module"
-assert_file_contains init-ai-repo/modules/phases/README.md "Eight internal checkpoints" "phase README preserves checkpoint mapping"
-assert_file_contains init-ai-repo/modules/phases/01-discover-decide.md ".ai/phases/01-discover-decide/" "phase 1 module emits phase state folder"
-assert_file_contains init-ai-repo/SKILL.md '`modules/cascade.md` — read when generating multi-repo cascade plans' 'skill module map names active cascade module after PR 6D'
-assert_file_contains init-ai-repo/modules/README.md "workflow.md" "module README names active workflow module"
-assert_file_contains init-ai-repo/modules/README.md "traceability.md" "module README names active traceability module"
-assert_file_contains init-ai-repo/modules/README.md "cascade.md" "module README names active cascade module"
-assert_file_contains init-ai-repo/modules/README.md "skill-modernization.md" "module README names active skill modernization module"
-assert_file_contains init-ai-repo/REFERENCE.md "/init-ai-repo" "reference uses canonical invocation"
-assert_file_contains init-ai-repo/REFERENCE.md "four-phase workflow" "reference documents four-phase workflow"
-assert_file_contains init-ai-repo/REFERENCE.md 'Legacy `/ai-sdlc-init` remains an alias/path only' "reference preserves legacy alias"
 
+# --- Four-phase workflow in canonical SKILL.md ---
+assert_file_contains ai-catapult-init/SKILL.md "### Phase 1 — Discover & Decide" "skill exposes phase 1"
+assert_file_contains ai-catapult-init/SKILL.md "### Phase 2 — Govern & Plan" "skill exposes phase 2"
+assert_file_contains ai-catapult-init/SKILL.md "### Phase 3 — Configure & Generate" "skill exposes phase 3"
+assert_file_contains ai-catapult-init/SKILL.md "### Phase 4 — Validate & Handoff" "skill exposes phase 4"
+assert_file_contains ai-catapult-init/SKILL.md "### Internal checkpoints" "skill preserves internal checkpoints"
+assert_file_contains ai-catapult-init/SKILL.md "1. Detect repo state" "skill preserves checkpoint 1"
+
+# --- module README links ---
+assert_file_contains ai-catapult-init/modules/README.md "phases/01-discover-decide.md" "module README links phase 1 module"
+assert_file_contains ai-catapult-init/modules/phases/README.md "Eight internal checkpoints" "phase README preserves checkpoint mapping"
+assert_file_contains ai-catapult-init/modules/phases/01-discover-decide.md ".ai/phases/01-discover-decide/" "phase 1 module emits phase state folder"
+assert_file_contains ai-catapult-init/SKILL.md '`modules/cascade.md` — read when generating multi-repo cascade plans' 'skill module map names active cascade module after PR 6D'
+assert_file_contains ai-catapult-init/modules/README.md "workflow.md" "module README names active workflow module"
+assert_file_contains ai-catapult-init/modules/README.md "traceability.md" "module README names active traceability module"
+assert_file_contains ai-catapult-init/modules/README.md "cascade.md" "module README names active cascade module"
+assert_file_contains ai-catapult-init/modules/README.md "skill-modernization.md" "module README names active skill modernization module"
+
+# --- REFERENCE.md ---
+assert_file_contains ai-catapult-init/REFERENCE.md "/init-ai-repo" "reference uses legacy invocation path (for reference completeness)"
+assert_file_contains ai-catapult-init/REFERENCE.md "four-phase workflow" "reference documents four-phase workflow"
+assert_file_contains ai-catapult-init/REFERENCE.md 'Legacy `/ai-sdlc-init` remains an alias/path only' "reference preserves legacy alias"
+
+# --- AGENTS catalog ---
 agents_content="$(catalog_agents_content)"
-assert_text_contains "$agents_content" "\`init-ai-repo\`" "AGENTS catalog exposes canonical skill"
-assert_text_contains "$agents_content" "deprecated alias: \`ai-sdlc-init\`" "AGENTS catalog preserves deprecated alias"
+assert_text_contains "$agents_content" "\`ai-catapult-init\`" "AGENTS catalog exposes canonical skill"
+assert_text_contains "$agents_content" "deprecated aliases:" "AGENTS catalog preserves deprecated aliases label"
+assert_text_contains "$agents_content" "\`init-ai-repo\`" "AGENTS catalog lists init-ai-repo deprecated alias"
+assert_text_contains "$agents_content" "\`ai-sdlc-init\`" "AGENTS catalog lists ai-sdlc-init deprecated alias"
 
-if grep -F "only supported" init-ai-repo/SKILL.md README.md init-ai-repo/modules/README.md ai-sdlc-init/SKILL.md ai-sdlc-init/README.md >/dev/null; then
-  bad "catalog docs must not imply ai-sdlc-init is the only supported name"
+if grep -F "only supported" ai-catapult-init/SKILL.md README.md ai-catapult-init/modules/README.md ai-sdlc-init/SKILL.md ai-sdlc-init/README.md init-ai-repo/SKILL.md init-ai-repo/README.md >/dev/null; then
+  bad "catalog docs must not imply any alias is the only supported name"
 else
-  ok "catalog docs do not imply ai-sdlc-init is the only supported name"
+  ok "catalog docs do not imply any alias is the only supported name"
 fi
 
-if grep -F "repository path remains" README.md AGENTS.md init-ai-repo/SKILL.md init-ai-repo/modules/README.md >/dev/null; then
-  bad "catalog docs must not claim ai-sdlc-init remains the canonical repository path"
+if grep -F "repository path remains" README.md AGENTS.md ai-catapult-init/SKILL.md ai-catapult-init/modules/README.md >/dev/null; then
+  bad "catalog docs must not claim any deprecated path remains the canonical repository path"
 else
-  ok "catalog docs use init-ai-repo as canonical repository path"
+  ok "catalog docs use ai-catapult-init as canonical repository path"
 fi
 
 # --- P0-2: this repo's CLAUDE.md is a thin pointer to AGENTS.md (ADR-0004) ---

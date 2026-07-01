@@ -17,7 +17,7 @@ Each skill is a self-contained directory with a `SKILL.md` that tells the agent 
 | [`edit-article`](edit-article/SKILL.md) | Restructure and tighten prose section by section, max 240 chars per paragraph |
 | [`write-a-skill`](write-a-skill/SKILL.md) | Create new skills with proper structure and progressive disclosure |
 | [`write-agent-docs`](write-agent-docs/SKILL.md) | Write and audit agent-facing Markdown using progressive disclosure principles |
-| [`init-ai-repo`](init-ai-repo/SKILL.md) | Canonical AI-ready repo initialization skill; `ai-sdlc-init` remains a deprecated compatibility alias during path migration |
+| [`ai-catapult-init`](ai-catapult-init/SKILL.md) | Canonical AI-ready repo initialization skill; `init-ai-repo` and `ai-sdlc-init` remain deprecated compatibility aliases |
 
 ## Installation
 
@@ -45,11 +45,11 @@ The `description` frontmatter in `SKILL.md` is what the agent reads to decide wh
 
 ## AI SDLC Methodology
 
-This project uses the [init-ai-repo methodology](https://github.com/r3dlex/skills/tree/main/init-ai-repo)
+This project uses the [ai-catapult-init methodology](https://github.com/r3dlex/skills/tree/main/ai-catapult-init)
 to maintain architectural governance alongside AI-assisted development.
 
-Migration note: `init-ai-repo` is the canonical skill name and path. The
-`ai-sdlc-init/` directory remains only as a deprecated compatibility alias/shim
+Migration note: `ai-catapult-init` is the canonical skill name and path. The
+`init-ai-repo/` and `ai-sdlc-init/` directories remain only as deprecated compatibility aliases/shims
 until downstream skill loaders have migrated.
 
 Key practices:
@@ -65,6 +65,6 @@ Contributing? Read [`AGENTS.md`](AGENTS.md) for agent-facing methodology details
 <!-- ai-sdlc-init:end -->
 
 <!-- v3-ai-sdlc-init:start -->
-## init-ai-repo v3
-This repo follows the v3 AI-ready repository layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules currently live at `r3dlex/skills/init-ai-repo/modules/` while the deprecated path alias is preserved.
+## ai-catapult-init v3
+This repo follows the v3 AI-ready repository layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules currently live at `r3dlex/skills/ai-catapult-init/modules/`; deprecated alias paths (`init-ai-repo/`, `ai-sdlc-init/`) are preserved.
 <!-- v3-ai-sdlc-init:end -->

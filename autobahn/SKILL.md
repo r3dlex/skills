@@ -1,6 +1,6 @@
 ---
 name: autobahn
-description: Ship a northstar handoff's sliced goals in an init-ai-repo repo — ultragoal one-PR-per-goal, deterministic engine-pick, peer review, CI gate, fail-closed merge, cascade closure.
+description: Ship a northstar handoff's goals in an ai-catapult-init repo — ultragoal one-PR-per-goal, deterministic engine-pick, peer review, CI gate, fail-closed merge, cascade closure.
 eval: autobahn
 ---
 
@@ -21,7 +21,7 @@ reimplements their loops, merge policy, or cascade logic.
 
 ## Prereq (fail-closed)
 
-Autobahn assumes `init-ai-repo` v3 **and** a valid northstar handoff are present;
+Autobahn assumes `ai-catapult-init` v3 **and** a valid northstar handoff are present;
 it never bootstraps either. `prereq-check.sh` asserts the `.ai/` structure exists
 and a discoverable handoff (manifest `optional_branches` entry + handoff file) is
 present, exiting non-zero with guidance otherwise. Do not proceed past a failed
@@ -64,7 +64,7 @@ holds the merge. See [modules/review-loop.md](modules/review-loop.md).
 
 ## Merge authority (configurable, fail-closed)
 
-Merge authority is a **thin adapter** over the init-ai-repo host-policy decision:
+Merge authority is a **thin adapter** over the ai-catapult-init host-policy decision:
 `merge-authority.sh` invokes host-policy, consumes its verdict + `confirmation_token`,
 and wraps only the fail-closed exit-code contract. Admin-bypass merges only on a
 host-policy-approved verdict with a valid token; otherwise stop at

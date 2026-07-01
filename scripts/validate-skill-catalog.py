@@ -11,7 +11,7 @@ TARGET_DESCRIPTION_CHARS = 180
 HARD_DESCRIPTION_CHARS = 280
 EXCLUDED_DIRS = {'.git', '.omx', '.omc', '.claude', '.agents', 'reference', 'tests', 'scripts', 'docs', '.ai', '.memory'}
 REQUIRED_CROSS_SKILL = {
-    'init-ai-repo': ['workflow', 'traceability', 'cascade', 'catalog'],
+    'ai-catapult-init': ['workflow', 'traceability', 'cascade', 'catalog'],
     'setup-skills': ['tracker'],
     'to-prd': ['PRD'],
     'to-issues': ['issue'],
