@@ -237,15 +237,15 @@ if [ -f "$WRAPPER" ]; then
         fail "graph-refresh.sh missing per-engine _engine_run dispatch"
     fi
 
-    # graphify case: python one-liner with _rebuild_code
-    if grep -q '_rebuild_code' "$WRAPPER" 2>/dev/null; then
+    # graphify case: python one-liner with _rebuild_code (anchor to code form, not comment)
+    if grep -q 'from graphify.watch import _rebuild_code' "$WRAPPER" 2>/dev/null; then
         pass "graph-refresh.sh contains graphify _rebuild_code python one-liner"
     else
         fail "graph-refresh.sh missing graphify _rebuild_code python one-liner"
     fi
 
-    # graphwiki case: graphwiki build . --update
-    if grep -q 'graphwiki build' "$WRAPPER" 2>/dev/null; then
+    # graphwiki case: graphwiki build . --update (anchor to code form, not comment)
+    if grep -q 'graphwiki build \. --update' "$WRAPPER" 2>/dev/null; then
         pass "graph-refresh.sh contains graphwiki build dispatch"
     else
         fail "graph-refresh.sh missing graphwiki build dispatch"
@@ -277,20 +277,22 @@ if [ -f "$WRAPPER" ]; then
     sed 's/{{ENGINE}}/graphify/g' "$WRAPPER" > "$TMPDIR_TEST/scripts/graph-refresh.sh"
     chmod +x "$TMPDIR_TEST/scripts/graph-refresh.sh"
 
-    # Create a fake engine binary that records invocations
-    FAKE_ENGINE="$TMPDIR_TEST/fake-graphify"
+    # Create a fake engine binary named `graphify` so `command -v graphify` resolves
+    # hermetically without relying on the host having graphify installed.
+    # GRAPH_REFRESH_ENGINE_CMD bypasses the python interpreter detection block.
+    FAKE_ENGINE="$TMPDIR_TEST/graphify"
+    MARKER_FILE="$TMPDIR_TEST/fake-engine-ran"
     cat > "$FAKE_ENGINE" <<'FAKEEOF'
 #!/usr/bin/env bash
-echo "fake-engine-ran" >> "${TMPDIR_TEST_MARKER:-/tmp/fake-engine-ran}"
+echo "fake-engine-ran" >> "${TMPDIR_TEST_MARKER:?TMPDIR_TEST_MARKER must be set}"
 FAKEEOF
     chmod +x "$FAKE_ENGINE"
-    MARKER_FILE="$TMPDIR_TEST/fake-engine-ran"
 
-    # Run with ENGINE=graphify pointing to our fake binary, using
-    # GRAPH_REFRESH_ENGINE_CMD seam to bypass python interpreter logic.
-    # We need ENGINE on PATH for the command -v check.
+    # Run with a minimal PATH that has $TMPDIR_TEST first (and nothing else that
+    # might have a real graphify). The engine-absent guard `command -v graphify`
+    # finds our fake binary; GRAPH_REFRESH_ENGINE_CMD routes execution through it.
     set +e
-    PATH="$TMPDIR_TEST:$PATH" \
+    PATH="$TMPDIR_TEST:/usr/bin:/bin" \
       ENGINE=graphify \
       GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
       TMPDIR_TEST_MARKER="$MARKER_FILE" \
@@ -308,21 +310,25 @@ FAKEEOF
 
     if [ -f "$MARKER_FILE" ]; then
         RUN_COUNT=$(wc -l < "$MARKER_FILE" | tr -d ' ')
-        pass "lock/coalesce: fake engine ran $RUN_COUNT time(s) after single trigger"
+        if [ "$RUN_COUNT" -ge 1 ]; then
+            pass "lock/coalesce: fake engine ran $RUN_COUNT time(s) after single trigger"
+        else
+            fail "lock/coalesce: fake engine marker exists but empty (engine never ran)"
+        fi
     else
         fail "lock/coalesce: fake engine marker not found (engine never ran)"
     fi
 
     # Second trigger while first may still be running: coalesce burst test
-    # (run twice concurrently — total runs should be <=2)
+    # (run twice concurrently — total runs must be >=1 and <=2)
     rm -f "$MARKER_FILE"
     set +e
-    PATH="$TMPDIR_TEST:$PATH" \
+    PATH="$TMPDIR_TEST:/usr/bin:/bin" \
       ENGINE=graphify \
       GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
       TMPDIR_TEST_MARKER="$MARKER_FILE" \
       bash "$TMPDIR_TEST/scripts/graph-refresh.sh" &
-    PATH="$TMPDIR_TEST:$PATH" \
+    PATH="$TMPDIR_TEST:/usr/bin:/bin" \
       ENGINE=graphify \
       GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
       TMPDIR_TEST_MARKER="$MARKER_FILE" \
@@ -333,13 +339,13 @@ FAKEEOF
 
     if [ -f "$MARKER_FILE" ]; then
         BURST_COUNT=$(wc -l < "$MARKER_FILE" | tr -d ' ')
-        if [ "$BURST_COUNT" -le 2 ]; then
-            pass "lock/coalesce: burst of 2 triggers produced $BURST_COUNT engine run(s) (<=2)"
+        if [ "$BURST_COUNT" -ge 1 ] && [ "$BURST_COUNT" -le 2 ]; then
+            pass "lock/coalesce: burst of 2 triggers produced $BURST_COUNT engine run(s) (1<=count<=2)"
         else
-            fail "lock/coalesce: burst of 2 triggers produced $BURST_COUNT engine runs (expected <=2)"
+            fail "lock/coalesce: burst of 2 triggers produced $BURST_COUNT engine runs (expected 1<=count<=2)"
         fi
     else
-        fail "lock/coalesce: burst test: fake engine marker not found"
+        fail "lock/coalesce: burst test: fake engine marker not found (engine never ran)"
     fi
 
     rm -rf "$TMPDIR_TEST"
