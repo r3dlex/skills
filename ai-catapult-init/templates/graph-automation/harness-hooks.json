@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "description": "Harness hook config snippets for graph automation. Merge these entries into the appropriate harness config files during `ai-catapult graph-hooks install`. Engine-absent no-op: both commands route through the wrapper which checks `command -v {{ENGINE}}` before running.",
+  "hooks": {
+    "claude_code": {
+      "config_file": ".claude/settings.json",
+      "note": "Merge the hooks array entries below into the top-level 'hooks' array in .claude/settings.json.",
+      "entries": [
+        {
+          "event": "Stop",
+          "command": "bash scripts/graph-refresh.sh",
+          "description": "Background graph refresh after each agent session stop. Routes through lock+coalesce wrapper; exits 0 always."
+        },
+        {
+          "event": "SessionStart",
+          "command": "bash scripts/graph-refresh.sh",
+          "description": "Validate/refresh graph at session start. Same wrapper; no-op when engine absent."
+        }
+      ]
+    },
+    "codex": {
+      "config_file": ".codex/hooks.json",
+      "note": "Merge the hooks object entries below into .codex/hooks.json (or set as the file body if absent).",
+      "entries": {
+        "post_response": "bash scripts/graph-refresh.sh",
+        "pre_session": "bash scripts/graph-refresh.sh"
+      }
+    }
+  },
+  "engine_token": "{{ENGINE}}",
+  "engine_default": "graphify",
+  "engine_alternative": "graphwiki"
+}

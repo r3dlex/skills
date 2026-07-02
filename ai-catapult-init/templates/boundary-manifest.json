@@ -233,9 +233,33 @@
       "classification": "judgment_laden",
       "template": null,
       "rationale": "Written only by local agents at runtime, not scaffolded."
+    },
+    {
+      "path": "scripts/graph-refresh.sh",
+      "classification": "mechanical",
+      "template": "graph-automation/graph-refresh.sh",
+      "rationale": "Lock+coalesce wrapper for background graph engine refresh. Body is fixed; only the {{ENGINE}} token is substituted at install time (default: graphify). Engine-absent no-op, exits 0 always."
+    },
+    {
+      "path": "scripts/graph-hook-body.sh",
+      "classification": "mechanical",
+      "template": "graph-automation/hook-body.sh",
+      "rationale": "Git hook body (post-commit/post-checkout). <=15 active lines; rebase/merge/cherry-pick skip guards verbatim from graphify hooks.py:51-55; resolve-then-delegate to wrapper. Never tracked in child repos."
+    },
+    {
+      "path": "graph-automation/harness-hooks.json",
+      "classification": "mechanical",
+      "template": "graph-automation/harness-hooks.json",
+      "rationale": "Harness hook config snippets for Claude Code Stop+SessionStart and Codex post_response+pre_session events. Placeholders fine; merged into .claude/settings.json and .codex/hooks.json at install time."
+    },
+    {
+      "path": "graph-automation/config.json",
+      "classification": "mechanical",
+      "template": "graph-automation/config.json",
+      "rationale": "Engine knob: engine=graphify default, graphwiki as documented alternative. Fixed JSON shape; teams update engine value then re-run install."
     }
   ],
-  "mechanical_count": 28,
+  "mechanical_count": 32,
   "judgment_laden_count": 10,
   "notes": [
     "Dirs without a named file get a .gitkeep in the template tree so the directory is tracked by git.",

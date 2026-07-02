@@ -15,7 +15,7 @@
       "path": "ai-catapult-init/SKILL.md",
       "description_chars": 177,
       "description_status": "target",
-      "body_lines": 75,
+      "body_lines": 76,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
