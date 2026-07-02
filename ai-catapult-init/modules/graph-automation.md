@@ -86,14 +86,20 @@ The filenames are disjoint; both can coexist in `.git/hooks/` without conflict.
 
 ## Mechanical templates
 
-All four template files are classified as **mechanical** in `boundary-manifest.json` — their bodies are fixed (or contain only well-typed `{{TOKEN}}` placeholders) and require no per-repo judgment to emit:
+All four template files are classified as **mechanical** in `boundary-manifest.json` — their bodies are fixed (or contain only well-typed `{{TOKEN}}` placeholders) and require no per-repo judgment to emit.
 
-| Template | Target |
+### Stage-then-activate convention
+
+`ai-catapult init` **stages** all four templates under `graph-automation/` in the target repo. The `path` field in `boundary-manifest.json` records this init-emit (staging) location for every graph-automation entry.
+
+`ai-catapult graph-hooks install` then **activates** them: the wrapper is stamped with `{{ENGINE}}` and written to `scripts/graph-refresh.sh`; hook bodies are written to `.git/hooks/post-commit` and `.git/hooks/post-checkout`. These activation destinations are recorded in each entry's `install_destination` field in the manifest.
+
+| Template (staged under `graph-automation/`) | Activation destination |
 | --- | --- |
-| `graph-automation/graph-refresh.sh` | `scripts/graph-refresh.sh` |
-| `graph-automation/hook-body.sh` | `.git/hooks/post-commit`, `.git/hooks/post-checkout` |
+| `graph-automation/graph-refresh.sh` | `scripts/graph-refresh.sh` (committed) |
+| `graph-automation/hook-body.sh` | `.git/hooks/post-commit`, `.git/hooks/post-checkout` (not committed) |
 | `graph-automation/harness-hooks.json` | merged into `.claude/settings.json` + `.codex/hooks.json` |
-| `graph-automation/config.json` | `graph-automation/config.json` |
+| `graph-automation/config.json` | `graph-automation/config.json` (in-place, no move) |
 
 ## Non-goals
 

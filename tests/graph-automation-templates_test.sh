@@ -96,6 +96,81 @@ PYEOF
     fi
 fi
 
+# ─── (b2) Every graph-automation entry's path starts with graph-automation/ ──
+echo ""
+echo "--- (b2) graph-automation entry path prefix ---"
+
+if [ -f "$MANIFEST" ]; then
+    set +e
+    PATH_CHECK=$(python3 - "$MANIFEST" <<'PYEOF'
+import json, sys
+data = json.load(open(sys.argv[1]))
+ga_entries = [e for e in data.get("paths", []) if (e.get("template") or "").startswith("graph-automation/")]
+failures = []
+for e in ga_entries:
+    p = e.get("path", "")
+    if not p.startswith("graph-automation/"):
+        failures.append(f"entry template={e['template']!r} has path={p!r} (expected graph-automation/ prefix)")
+if failures:
+    for f in failures:
+        print(f"  FAIL: {f}")
+    sys.exit(1)
+else:
+    print(f"  PASS: all {len(ga_entries)} graph-automation entries have path starting with graph-automation/")
+PYEOF
+)
+    PATH_EXIT=$?
+    set -e
+    echo "$PATH_CHECK"
+    if [ "$PATH_EXIT" -eq 0 ]; then
+        PASS=$((PASS + 1))
+    else
+        FAIL=$((FAIL + 1))
+    fi
+fi
+
+# ─── (b3) Wrapper and hook-body entries carry install_destination ─────────────
+echo ""
+echo "--- (b3) Wrapper and hook-body entries carry install_destination ---"
+
+if [ -f "$MANIFEST" ]; then
+    set +e
+    IDEST_CHECK=$(python3 - "$MANIFEST" <<'PYEOF'
+import json, sys
+data = json.load(open(sys.argv[1]))
+# wrapper: template=graph-automation/graph-refresh.sh
+# hook-body: template=graph-automation/hook-body.sh
+required = {"graph-automation/graph-refresh.sh", "graph-automation/hook-body.sh"}
+found = {}
+for e in data.get("paths", []):
+    t = e.get("template", "")
+    if t in required:
+        found[t] = e.get("install_destination", "")
+failures = []
+for t in sorted(required):
+    if t not in found:
+        failures.append(f"no manifest entry found for template={t!r}")
+    elif not found[t]:
+        failures.append(f"template={t!r} has empty install_destination")
+if failures:
+    for f in failures:
+        print(f"  FAIL: {f}")
+    sys.exit(1)
+else:
+    for t in sorted(required):
+        print(f"  PASS: {t} carries install_destination")
+PYEOF
+)
+    IDEST_EXIT=$?
+    set -e
+    echo "$IDEST_CHECK"
+    if [ "$IDEST_EXIT" -eq 0 ]; then
+        PASS=$((PASS + 2))
+    else
+        FAIL=$((FAIL + 2))
+    fi
+fi
+
 # ─── (c) hook-body.sh is <=15 non-comment, non-blank lines ───────────────────
 echo ""
 echo "--- (c) hook-body.sh line count (<=15 non-comment non-blank lines) ---"
