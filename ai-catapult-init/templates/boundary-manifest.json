@@ -241,9 +241,10 @@
       "rationale": "Lock+coalesce wrapper for background graph engine refresh. Body is fixed; only the {{ENGINE}} token is substituted at install time (default: graphify). Engine-absent no-op, exits 0 always."
     },
     {
-      "path": "scripts/graph-hook-body.sh",
+      "path": "graph-automation/hook-body.sh",
       "classification": "mechanical",
       "template": "graph-automation/hook-body.sh",
+      "install_destination": ".git/hooks/post-commit and .git/hooks/post-checkout — git metadata only, never committed to the repo. The template staging path (graph-automation/hook-body.sh) is the source slot; the Slice-5 installer reads from there and writes to .git/hooks/.",
       "rationale": "Git hook body (post-commit/post-checkout). <=15 active lines; rebase/merge/cherry-pick skip guards verbatim from graphify hooks.py:51-55; resolve-then-delegate to wrapper. Never tracked in child repos."
     },
     {

@@ -17,7 +17,7 @@ This module is activated when:
 | Lock+coalesce wrapper | `scripts/graph-refresh.sh` | Yes — committed to the repo |
 | Git hook bodies | `.git/hooks/post-commit`, `.git/hooks/post-checkout` | No — git metadata only |
 | Claude Code hooks | `.claude/settings.json` (Stop + SessionStart entries) | Yes |
-| Codex hooks | `.codex/hooks.json` (post_response + pre_session entries) | Yes |
+| Codex hooks | `.codex/hooks.json` (Stop + SessionStart entries) | Yes |
 | Engine knob | `graph-automation/config.json` | Yes |
 
 Git hook bodies are installed idempotently into `.git/hooks/` — they are never committed to child repos. The wrapper and harness configs are committed (tracked content).
@@ -27,12 +27,16 @@ Git hook bodies are installed idempotently into `.git/hooks/` — they are never
 The wrapper implements the **lock+coalesce** contract:
 
 1. **Engine-absent no-op.** `command -v {{ENGINE}} || exit 0` — safe on machines without the engine.
-2. **Lock.** Acquires `$TMPDIR/graph-refresh-<repo-hash>.lock` (mkdir, POSIX-atomic). If already held, touches a `.pending` marker and exits 0 immediately.
-3. **Run.** Executes `{{ENGINE}} . --update` with stdout/stderr appended to `graphify-out/refresh.log` (fallback: `.git/graph-refresh.log`).
-4. **Coalesce.** On exit, checks for the `.pending` marker; if present, removes it and runs the engine once more. This collapses bursts: N triggers → at most 2 engine runs.
+2. **Lock.** Acquires `${ENGINE}-out/graph-refresh-lock` (mkdir, POSIX-atomic, co-located with the log file in the repo root — no TMPDIR). Write a `"RUNNING"` sentinel to `pid` immediately; the background subshell overwrites it with its real PID. If the lock is already held (and the holder PID is live), touches a `.pending` marker and exits 0. Stale locks (empty or dead PID) are reclaimed with a single retry.
+3. **Run.** Executes `{{ENGINE}} . --update` from `REPO_ROOT` with stdout/stderr appended to `${ENGINE}-out/refresh.log`.
+4. **Coalesce.** Inside the background runner, after each engine run, if a new `.pending` marker appeared during the run, the loop continues (clearing the marker first). After the run loop exits the lock is released; a bounded post-release re-check handles the lost-update window. N triggers → at most 2 engine runs total.
 5. **Always exits 0.** Never blocks a git operation or harness session.
+6. **`.git`-dir precondition.** The sentinel walk in `hook-body.sh` only stops at a directory that has both `scripts/graph-refresh.sh` and a `.git/` dir. This wrapper is therefore always invoked from a git repository root. Invocations outside a git repo are unsupported.
+7. **`--status` flag.** Prints lock/pending/log-tail info and exits 0 without running the engine. Used by the `SessionStart` hook for a validate-only check.
 
 The `{{ENGINE}}` token is substituted by `ai-catapult graph-hooks install` using the value in `graph-automation/config.json`.
+
+**Engine output directory** — derived in shell as `${ENGINE}-out` (e.g. `graphify-out` or `graphwiki-out`). No separate `{{ENGINE_OUT_DIR}}` token is needed; the shell derivation handles both engine choices automatically, and Slice 6 token normalization only needs to track `{{ENGINE}}`.
 
 ## Engine knob
 
