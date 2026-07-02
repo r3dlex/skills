@@ -208,18 +208,54 @@ if [ -f "$WRAPPER" ]; then
         fail "graph-refresh.sh missing coalesce/pending rerun marker"
     fi
 
-    # {{ENGINE}} token present
+    # {{ENGINE}} token present (in the default-value position only)
     if grep -q '{{ENGINE}}' "$WRAPPER" 2>/dev/null; then
         pass "graph-refresh.sh contains {{ENGINE}} token"
     else
         fail "graph-refresh.sh missing {{ENGINE}} token"
     fi
 
-    # Engine-absent guard: command -v {{ENGINE}} || exit 0
+    # {{ENGINE}} token is ONLY in the ENGINE default line, not in invocation
+    TOKEN_LINES=$(grep -c '{{ENGINE}}' "$WRAPPER" 2>/dev/null || echo 0)
+    if [ "$TOKEN_LINES" -eq 1 ]; then
+        pass "graph-refresh.sh {{ENGINE}} token appears exactly once (engine default only)"
+    else
+        fail "graph-refresh.sh {{ENGINE}} token appears $TOKEN_LINES times (expected 1)"
+    fi
+
+    # Engine-absent guard: command -v "$ENGINE" || exit 0
     if grep -q 'command -v' "$WRAPPER" 2>/dev/null; then
         pass "graph-refresh.sh contains engine-absent guard (command -v)"
     else
         fail "graph-refresh.sh missing engine-absent guard (command -v)"
+    fi
+
+    # Per-engine dispatch: _engine_run function with case block
+    if grep -q '_engine_run' "$WRAPPER" 2>/dev/null; then
+        pass "graph-refresh.sh contains per-engine _engine_run dispatch"
+    else
+        fail "graph-refresh.sh missing per-engine _engine_run dispatch"
+    fi
+
+    # graphify case: python one-liner with _rebuild_code (anchor to code form, not comment)
+    if grep -q 'from graphify.watch import _rebuild_code' "$WRAPPER" 2>/dev/null; then
+        pass "graph-refresh.sh contains graphify _rebuild_code python one-liner"
+    else
+        fail "graph-refresh.sh missing graphify _rebuild_code python one-liner"
+    fi
+
+    # graphwiki case: graphwiki build . --update (anchor to code form, not comment)
+    if grep -q 'graphwiki build \. --update' "$WRAPPER" 2>/dev/null; then
+        pass "graph-refresh.sh contains graphwiki build dispatch"
+    else
+        fail "graph-refresh.sh missing graphwiki build dispatch"
+    fi
+
+    # GRAPH_REFRESH_ENGINE_CMD test seam present
+    if grep -q 'GRAPH_REFRESH_ENGINE_CMD' "$WRAPPER" 2>/dev/null; then
+        pass "graph-refresh.sh contains GRAPH_REFRESH_ENGINE_CMD test seam"
+    else
+        fail "graph-refresh.sh missing GRAPH_REFRESH_ENGINE_CMD test seam"
     fi
 
     # Exits 0 always (background execution pattern)
@@ -228,8 +264,95 @@ if [ -f "$WRAPPER" ]; then
     else
         fail "graph-refresh.sh missing exit 0"
     fi
+
+    # ── (d2) Token-substitution runnability: substituted template + fake engine
+    #        burst proves lock/coalesce via GRAPH_REFRESH_ENGINE_CMD seam ────────
+    echo ""
+    echo "--- (d2) graph-refresh.sh token-substitution + lock/coalesce runnability ---"
+
+    TMPDIR_TEST="$(mktemp -d)"
+    # Create a fake repo layout
+    mkdir -p "$TMPDIR_TEST/scripts" "$TMPDIR_TEST/.git"
+    # Substitute {{ENGINE}} → graphify and write to temp location
+    sed 's/{{ENGINE}}/graphify/g' "$WRAPPER" > "$TMPDIR_TEST/scripts/graph-refresh.sh"
+    chmod +x "$TMPDIR_TEST/scripts/graph-refresh.sh"
+
+    # Create a fake engine binary named `graphify` so `command -v graphify` resolves
+    # hermetically without relying on the host having graphify installed.
+    # GRAPH_REFRESH_ENGINE_CMD bypasses the python interpreter detection block.
+    FAKE_ENGINE="$TMPDIR_TEST/graphify"
+    MARKER_FILE="$TMPDIR_TEST/fake-engine-ran"
+    cat > "$FAKE_ENGINE" <<'FAKEEOF'
+#!/usr/bin/env bash
+echo "fake-engine-ran" >> "${TMPDIR_TEST_MARKER:?TMPDIR_TEST_MARKER must be set}"
+FAKEEOF
+    chmod +x "$FAKE_ENGINE"
+
+    # Run with a minimal PATH that has $TMPDIR_TEST first (and nothing else that
+    # might have a real graphify). The engine-absent guard `command -v graphify`
+    # finds our fake binary; GRAPH_REFRESH_ENGINE_CMD routes execution through it.
+    set +e
+    PATH="$TMPDIR_TEST:/usr/bin:/bin" \
+      ENGINE=graphify \
+      GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
+      TMPDIR_TEST_MARKER="$MARKER_FILE" \
+      bash "$TMPDIR_TEST/scripts/graph-refresh.sh"
+    RUN1_EXIT=$?
+    # Give the detached background subshell time to run
+    sleep 1
+    set -e
+
+    if [ "$RUN1_EXIT" -eq 0 ]; then
+        pass "substituted graph-refresh.sh exits 0 (non-blocking)"
+    else
+        fail "substituted graph-refresh.sh exited $RUN1_EXIT (expected 0)"
+    fi
+
+    if [ -f "$MARKER_FILE" ]; then
+        RUN_COUNT=$(wc -l < "$MARKER_FILE" | tr -d ' ')
+        if [ "$RUN_COUNT" -ge 1 ]; then
+            pass "lock/coalesce: fake engine ran $RUN_COUNT time(s) after single trigger"
+        else
+            fail "lock/coalesce: fake engine marker exists but empty (engine never ran)"
+        fi
+    else
+        fail "lock/coalesce: fake engine marker not found (engine never ran)"
+    fi
+
+    # Second trigger while first may still be running: coalesce burst test
+    # (run twice concurrently — total runs must be >=1 and <=2)
+    rm -f "$MARKER_FILE"
+    set +e
+    PATH="$TMPDIR_TEST:/usr/bin:/bin" \
+      ENGINE=graphify \
+      GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
+      TMPDIR_TEST_MARKER="$MARKER_FILE" \
+      bash "$TMPDIR_TEST/scripts/graph-refresh.sh" &
+    PATH="$TMPDIR_TEST:/usr/bin:/bin" \
+      ENGINE=graphify \
+      GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
+      TMPDIR_TEST_MARKER="$MARKER_FILE" \
+      bash "$TMPDIR_TEST/scripts/graph-refresh.sh" &
+    wait
+    sleep 1
+    set -e
+
+    if [ -f "$MARKER_FILE" ]; then
+        BURST_COUNT=$(wc -l < "$MARKER_FILE" | tr -d ' ')
+        if [ "$BURST_COUNT" -ge 1 ] && [ "$BURST_COUNT" -le 2 ]; then
+            pass "lock/coalesce: burst of 2 triggers produced $BURST_COUNT engine run(s) (1<=count<=2)"
+        else
+            fail "lock/coalesce: burst of 2 triggers produced $BURST_COUNT engine runs (expected 1<=count<=2)"
+        fi
+    else
+        fail "lock/coalesce: burst test: fake engine marker not found (engine never ran)"
+    fi
+
+    rm -rf "$TMPDIR_TEST"
 else
-    for msg in "lockfile marker" "coalesce marker" "{{ENGINE}} token" "engine-absent guard" "exit 0"; do
+    for msg in "lockfile marker" "coalesce marker" "{{ENGINE}} token" "{{ENGINE}} token count" \
+               "engine-absent guard" "_engine_run dispatch" "_rebuild_code one-liner" \
+               "graphwiki build dispatch" "GRAPH_REFRESH_ENGINE_CMD seam" "exit 0"; do
         fail "graph-refresh.sh not found (cannot check $msg)"
     done
 fi
