@@ -19,6 +19,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/.."
 GEMINI_SKILLS="$HOME/.gemini/skills"
 
+# Shared discovery seam: list_skills, is_excluded_dir, frontmatter helpers.
+. "$SCRIPT_DIR/lib-skill-discovery.sh"
+
 # Check if gemini CLI is available
 GEMINI_BIN=""
 if command -v gemini &> /dev/null; then
@@ -42,7 +45,7 @@ convert_skill_for_gemini() {
     fi
 
     # Extract description from frontmatter
-    local description=$(grep -A1 '^description:' "$source_dir/SKILL.md" 2>/dev/null | tail -1 | sed 's/^ *//' || echo "")
+    local description=$(skill_frontmatter_description "$source_dir/SKILL.md" || echo "")
 
     mkdir -p "$(dirname "$dest_file")"
 
@@ -55,7 +58,7 @@ convert_skill_for_gemini() {
         echo "---"
         echo ""
         # Skip YAML frontmatter, output rest
-        sed -n '/^---$/,/^---$/d;p' "$source_dir/SKILL.md"
+        skill_body_without_frontmatter "$source_dir/SKILL.md"
     } > "$dest_file"
 
     echo "  ✓ $skill_name"
@@ -68,15 +71,9 @@ install_all_as_files() {
 
     mkdir -p "$GEMINI_SKILLS"
 
-    for skill_dir in "$SKILLS_DIR"/*/; do
-        skill_name=$(basename "$skill_dir")
-        if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
-            continue
-        fi
-        if [ -f "${skill_dir}SKILL.md" ]; then
-            convert_skill_for_gemini "$skill_name"
-        fi
-    done
+    while IFS= read -r skill_name; do
+        convert_skill_for_gemini "$skill_name"
+    done < <(list_skills "$SKILLS_DIR")
 
     echo ""
     echo "Installed to: $GEMINI_SKILLS"
@@ -96,17 +93,11 @@ gemini_skill_install() {
     echo "Installing skills via gemini skills CLI..."
     echo ""
 
-    for skill_dir in "$SKILLS_DIR"/*/; do
-        skill_name=$(basename "$skill_dir")
-        if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
-            continue
-        fi
-        if [ -f "${skill_dir}SKILL.md" ]; then
-            echo "  → Linking $skill_name..."
-            # Create temp file with converted content
-            convert_skill_for_gemini "$skill_name"
-        fi
-    done
+    while IFS= read -r skill_name; do
+        echo "  → Linking $skill_name..."
+        # Create temp file with converted content
+        convert_skill_for_gemini "$skill_name"
+    done < <(list_skills "$SKILLS_DIR")
 
     echo ""
     echo "Skills are now linked. Verify with:"

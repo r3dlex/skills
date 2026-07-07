@@ -14,6 +14,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/.."
 
+# Shared discovery seam: list_skills, is_excluded_dir, frontmatter helpers.
+. "$SCRIPT_DIR/lib-skill-discovery.sh"
+
 # Default: install to user-level
 SCOPE="${1:-user}"
 
@@ -24,22 +27,15 @@ install_to_user() {
     echo "Installing skills to Claude Code (user-level) at $dest"
 
     # Copy all skill directories (each has SKILL.md and optional REFERENCE.md, scripts/)
-    for skill_dir in "$SKILLS_DIR"/*/; do
-        if [ -f "${skill_dir}SKILL.md" ]; then
-            skill_name=$(basename "$skill_dir")
-            # Skip internal dirs
-            if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
-                continue
-            fi
-            # Copy to an explicit destination path (no trailing slash on the
-            # source). `cp -r "$skill_dir" "$dest/"` would copy the directory's
-            # CONTENTS into $dest on macOS/BSD (the glob appends a trailing
-            # slash), flattening every skill into one merged blob.
-            rm -rf "${dest}/${skill_name}"
-            cp -r "${skill_dir%/}" "${dest}/${skill_name}"
-            echo "  ✓ $skill_name"
-        fi
-    done
+    while IFS= read -r skill_name; do
+        # Copy to an explicit destination path (no trailing slash on the
+        # source). `cp -r "$skill_dir" "$dest/"` would copy the directory's
+        # CONTENTS into $dest on macOS/BSD (the glob appends a trailing
+        # slash), flattening every skill into one merged blob.
+        rm -rf "${dest}/${skill_name}"
+        cp -r "$SKILLS_DIR/$skill_name" "${dest}/${skill_name}"
+        echo "  ✓ $skill_name"
+    done < <(list_skills "$SKILLS_DIR")
 
     echo ""
     echo "Installed to: $dest"
@@ -52,21 +48,15 @@ install_to_project() {
 
     echo "Installing skills to Claude Code (project-level) at $dest"
 
-    for skill_dir in "$SKILLS_DIR"/*/; do
-        if [ -f "${skill_dir}SKILL.md" ]; then
-            skill_name=$(basename "$skill_dir")
-            if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
-                continue
-            fi
-            # Copy to an explicit destination path (no trailing slash on the
-            # source). `cp -r "$skill_dir" "$dest/"` would copy the directory's
-            # CONTENTS into $dest on macOS/BSD (the glob appends a trailing
-            # slash), flattening every skill into one merged blob.
-            rm -rf "${dest}/${skill_name}"
-            cp -r "${skill_dir%/}" "${dest}/${skill_name}"
-            echo "  ✓ $skill_name"
-        fi
-    done
+    while IFS= read -r skill_name; do
+        # Copy to an explicit destination path (no trailing slash on the
+        # source). `cp -r "$skill_dir" "$dest/"` would copy the directory's
+        # CONTENTS into $dest on macOS/BSD (the glob appends a trailing
+        # slash), flattening every skill into one merged blob.
+        rm -rf "${dest}/${skill_name}"
+        cp -r "$SKILLS_DIR/$skill_name" "${dest}/${skill_name}"
+        echo "  ✓ $skill_name"
+    done < <(list_skills "$SKILLS_DIR")
 
     echo ""
     echo "Installed to: $dest"

@@ -15,6 +15,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/.."
 AUGGIE_RULES="$HOME/.auggie/rules"
 
+# Shared discovery seam: list_skills, is_excluded_dir, frontmatter helpers.
+. "$SCRIPT_DIR/lib-skill-discovery.sh"
+
 mkdir -p "$AUGGIE_RULES"
 
 # Convert a skill's SKILL.md to an Auggie rule format
@@ -30,7 +33,7 @@ convert_skill_to_rule() {
     fi
 
     # Extract description from frontmatter
-    local description=$(grep -A1 '^description:' "$source_dir/SKILL.md" 2>/dev/null | tail -1 | sed 's/^ *//' || echo "")
+    local description=$(skill_frontmatter_description "$source_dir/SKILL.md" || echo "")
 
     # Write rule file with Auggie format
     cat > "$dest_file" << EOF
@@ -43,7 +46,7 @@ platform: auggie
 EOF
 
     # Append the skill content (skipping YAML frontmatter)
-    sed -n '/^---$/,/^---$/d;p' "$source_dir/SKILL.md" >> "$dest_file" 2>/dev/null || cat "$source_dir/SKILL.md" >> "$dest_file"
+    skill_body_without_frontmatter "$source_dir/SKILL.md" >> "$dest_file" 2>/dev/null || cat "$source_dir/SKILL.md" >> "$dest_file"
 
     echo "  ✓ $skill_name (as rule)"
 }
@@ -53,15 +56,9 @@ install_all() {
     echo "(Auggie uses --rules flag to load these)"
     echo ""
 
-    for skill_dir in "$SKILLS_DIR"/*/; do
-        skill_name=$(basename "$skill_dir")
-        if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
-            continue
-        fi
-        if [ -f "${skill_dir}SKILL.md" ]; then
-            convert_skill_to_rule "$skill_name"
-        fi
-    done
+    while IFS= read -r skill_name; do
+        convert_skill_to_rule "$skill_name"
+    done < <(list_skills "$SKILLS_DIR")
 
     echo ""
     echo "Installed to: $AUGGIE_RULES"
