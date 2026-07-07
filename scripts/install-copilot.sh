@@ -45,6 +45,7 @@ This file contains agent-facing instructions synthesized from the skills library
 EOF
 
     # Process each skill
+    local skill_name skill_dir
     while IFS= read -r skill_name; do
         skill_dir="$SKILLS_DIR/$skill_name/"
         echo "## $skill_name" >> "$output_file"
@@ -72,6 +73,7 @@ create_per_skill_instructions() {
     echo "  $output_dir"
     echo ""
 
+    local skill_name skill_dir
     while IFS= read -r skill_name; do
         skill_dir="$SKILLS_DIR/$skill_name/"
         local output_file="$output_dir/${skill_name}.md"

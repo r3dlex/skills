@@ -66,6 +66,8 @@ list_skills() {
 # Prints the frontmatter `description:` value of a SKILL.md (the shared
 # grep/tail/sed pipeline the installers previously inlined). Prints nothing
 # if the field or file is missing.
+# Note: always exits 0 (the pipeline ends in sed), so callers' `|| echo ...`
+# fallbacks never fire — they are kept only to preserve the pre-extraction shape.
 skill_frontmatter_description() {
     grep -A1 '^description:' "$1" 2>/dev/null | tail -1 | sed 's/^ *//'
 }

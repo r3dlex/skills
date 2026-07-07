@@ -54,8 +54,7 @@ done
 fixture="$(mktemp -d)"
 trap 'rm -rf "$fixture"' EXIT
 
-mkdir -p "$fixture/skill-alpha" "$fixture/skill-beta" "$fixture/not-a-skill" \
-         "$fixture/scripts" "$fixture/docs" "$fixture/raw" "$fixture/tests"
+mkdir -p "$fixture/skill-alpha" "$fixture/skill-beta" "$fixture/not-a-skill"
 
 cat > "$fixture/skill-alpha/SKILL.md" << 'EOF'
 ---
@@ -79,11 +78,13 @@ description: >-
 # skill-beta
 EOF
 
-# Excluded dirs that DO contain a SKILL.md must still be skipped.
-echo "# decoy" > "$fixture/scripts/SKILL.md"
-echo "# decoy" > "$fixture/docs/SKILL.md"
-echo "# decoy" > "$fixture/raw/SKILL.md"
-echo "# decoy" > "$fixture/tests/SKILL.md"
+# Every excluded dir gets a decoy SKILL.md and must still be skipped. Driven
+# by SKILL_DISCOVERY_EXCLUDES itself so future additions to the exclusion list
+# (e.g. .github, tests, docs, reference) are automatically covered.
+for excluded in "${SKILL_DISCOVERY_EXCLUDES[@]}"; do
+  mkdir -p "$fixture/$excluded"
+  echo "# decoy" > "$fixture/$excluded/SKILL.md"
+done
 # Dir without SKILL.md must be skipped.
 echo "readme" > "$fixture/not-a-skill/README.md"
 # Stray root-level file must be ignored (list_skills walks dirs only).
@@ -102,7 +103,7 @@ case "$actual" in
   *) ok "list_skills skips dirs without SKILL.md" ;;
 esac
 
-for excluded in scripts docs raw tests; do
+for excluded in "${SKILL_DISCOVERY_EXCLUDES[@]}"; do
   case "$actual" in
     *"$excluded"*) bad "list_skills should skip excluded dir '$excluded' despite SKILL.md" ;;
     *) ok "list_skills skips excluded dir '$excluded' despite SKILL.md" ;;
@@ -135,6 +136,12 @@ case "$body" in
 esac
 
 # --- live-repo parity with the legacy inline installer logic ------------------
+# The oracle intentionally encodes the HISTORICAL 4-entry skip list the five
+# installers inlined before the extraction. It asserts the widened
+# SKILL_DISCOVERY_EXCLUDES still yields the same skill set on the live repo;
+# if a SKILL.md ever lands in a newly-excluded dir (tests/, docs/, ...), this
+# fails and forces a conscious decision. Fixture coverage for the widened list
+# is asserted above, driven by SKILL_DISCOVERY_EXCLUDES itself.
 legacy_inline_discovery() {
   local d s
   for d in "$REPO_ROOT"/*/; do
