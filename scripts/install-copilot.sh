@@ -18,6 +18,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/.."
 TARGET_REPO="${2:-$SCRIPT_DIR/../..}"  # Default to parent of skills dir (assumes repo root)
 
+# Shared discovery seam: list_skills, is_excluded_dir, frontmatter helpers.
+. "$SCRIPT_DIR/lib-skill-discovery.sh"
+
 # Parse args
 MODE="${1:-}"
 if [ -z "$MODE" ]; then
@@ -42,26 +45,18 @@ This file contains agent-facing instructions synthesized from the skills library
 EOF
 
     # Process each skill
-    for skill_dir in "$SKILLS_DIR"/*/; do
-        skill_name=$(basename "$skill_dir")
-        if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
-            continue
-        fi
-        if [ -f "${skill_dir}SKILL.md" ]; then
-            echo "## $skill_name" >> "$output_file"
-            echo "" >> "$output_file"
+    while IFS= read -r skill_name; do
+        skill_dir="$SKILLS_DIR/$skill_name/"
+        echo "## $skill_name" >> "$output_file"
+        echo "" >> "$output_file"
 
-            # Extract content (skip frontmatter)
-            sed -n '/^---$/,/^---$/d;p' "$source_dir/SKILL.md" 2>/dev/null || true
+        # Write skill content (frontmatter skipped), indented
+        while IFS= read -r line; do
+            echo "  $line" >> "$output_file"
+        done < <(skill_body_without_frontmatter "${skill_dir}SKILL.md" 2>/dev/null)
 
-            # Write skill content, indented
-            while IFS= read -r line; do
-                echo "  $line" >> "$output_file"
-            done < <(sed -n '/^---$/,/^---$/d;p' "${skill_dir}SKILL.md" 2>/dev/null)
-
-            echo "" >> "$output_file"
-        fi
-    done
+        echo "" >> "$output_file"
+    done < <(list_skills "$SKILLS_DIR")
 
     echo "✓ Created $output_file"
     echo ""
@@ -77,30 +72,25 @@ create_per_skill_instructions() {
     echo "  $output_dir"
     echo ""
 
-    for skill_dir in "$SKILLS_DIR"/*/; do
-        skill_name=$(basename "$skill_dir")
-        if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
-            continue
-        fi
-        if [ -f "${skill_dir}SKILL.md" ]; then
-            local output_file="$output_dir/${skill_name}.md"
+    while IFS= read -r skill_name; do
+        skill_dir="$SKILLS_DIR/$skill_name/"
+        local output_file="$output_dir/${skill_name}.md"
 
-            # Extract description for header
-            local description=$(grep -A1 '^description:' "${skill_dir}SKILL.md" 2>/dev/null | tail -1 | sed 's/^ *//' || echo "Skill: $skill_name")
+        # Extract description for header
+        local description=$(skill_frontmatter_description "${skill_dir}SKILL.md" || echo "Skill: $skill_name")
 
-            cat > "$output_file" << EOF
+        cat > "$output_file" << EOF
 # $skill_name
 
 $description
 
 EOF
 
-            # Append skill content (skip frontmatter)
-            sed -n '/^---$/,/^---$/d;p' "${skill_dir}SKILL.md" >> "$output_file" 2>/dev/null
+        # Append skill content (skip frontmatter)
+        skill_body_without_frontmatter "${skill_dir}SKILL.md" >> "$output_file" 2>/dev/null
 
-            echo "  ✓ $skill_name"
-        fi
-    done
+        echo "  ✓ $skill_name"
+    done < <(list_skills "$SKILLS_DIR")
 
     echo ""
     echo "Per-skill instructions created. You can reference these"

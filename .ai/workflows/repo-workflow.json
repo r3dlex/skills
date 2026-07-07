@@ -1,0 +1,20 @@
+{
+  "entry_surfaces": [
+    "AGENTS.md",
+    "README.md"
+  ],
+  "handoff": ".ai/handoff/",
+  "human_doc": ".ai/workflows/repo-workflow.md",
+  "manifest": ".ai/workflows/repo-workflow.json",
+  "optional_branches": [
+    {
+      "id": "northstar-handoff-installer-skill-discovery-seam",
+      "enabled_when": "northstar_handoff_present",
+      "status": "available"
+    }
+  ],
+  "phases": [],
+  "schema_version": "1.0",
+  "topology_type": "standalone",
+  "workflow_id": "ai-catapult-init"
+}

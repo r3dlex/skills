@@ -15,6 +15,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/.."
 CODEX_SKILLS="$HOME/.codex/skills"
 
+# Shared discovery seam: list_skills, is_excluded_dir, frontmatter helpers.
+. "$SCRIPT_DIR/lib-skill-discovery.sh"
+
 mkdir -p "$CODEX_SKILLS"
 
 install_skill() {
@@ -41,16 +44,9 @@ install_skill() {
 install_all() {
     echo "Installing all skills to Codex at $CODEX_SKILLS"
 
-    for skill_dir in "$SKILLS_DIR"/*/; do
-        skill_name=$(basename "$skill_dir")
-        # Skip internal dirs
-        if [[ "$skill_name" == ".claude" || "$skill_name" == ".omc" || "$skill_name" == "scripts" || "$skill_name" == "raw" ]]; then
-            continue
-        fi
-        if [ -f "${skill_dir}SKILL.md" ]; then
-            install_skill "$skill_name"
-        fi
-    done
+    while IFS= read -r skill_name; do
+        install_skill "$skill_name"
+    done < <(list_skills "$SKILLS_DIR")
 
     echo ""
     echo "Installed to: $CODEX_SKILLS"
