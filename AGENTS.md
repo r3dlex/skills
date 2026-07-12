@@ -48,6 +48,15 @@ deprecated aliases: `init-ai-repo` and `ai-sdlc-init` remain compatibility entri
 | [`zoom-out`](zoom-out/SKILL.md) | Explain broader code or product context around a focused area. Use when the user needs a higher-level perspective before local changes. | `stable` | `01-discover-decide` |
 <!-- GENERATED:SKILL-CATALOG:END -->
 
+### Pipeline: `northstar` → `autobahn`
+
+In an `ai-catapult-init`-initialized repo, the two compose into an intake→ship loop:
+
+1. **`northstar "<intent>"`** — deep-interview (primary) + grill-me (adversarial, skippable) one question at a time until both are satisfied → always raises an issue (local-first markdown; hosted only if a tracker is configured and authorized, fail-closed) → `ralplan` → sliced goals. Writes the **A→B handoff** into `.ai/` (workflow manifest `optional_branches` entry, traceability nodes, `.ai/handoff/`).
+2. **`autobahn`** — discovers the handoff, or accepts one evidence-complete direct-ready goal when discovery is already finished, and ships each goal as **one PR**. Before engine selection it chooses standard or legacy-safe TDD: coverage under 30% always uses legacy-safe mode, and the running agent may also select it for recorded context-specific blast-radius risk. `ultragoal` orchestrates; deterministic engine precedence is `ultraqa` > `ultrawork` > `ralph` > `team`; peer review, remote + local CI, fail-closed merge authority, and cascade closure remain mandatory.
+
+Both are lightweight composers: they delegate to the existing skills/engines and never reimplement them. Each runs identically under OMC (`/oh-my-claudecode:<name>`) and OMX (`$<name>`) via the generated `.ai/commands/{omc,omx}/` surfaces.
+
 ## Writing Rules
 
 Description budget: target <=160 characters; an audited exception may reach 180, the absolute maximum. Run `python3 scripts/validate-skill-catalog.py` after changing metadata.
