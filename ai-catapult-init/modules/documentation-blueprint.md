@@ -182,4 +182,4 @@ When the cascade branch is enabled, generate `.ai/cascade/cascade-plan.json`, `.
 
 ## Skill catalog outputs
 
-When the target repo owns a skill catalog, generate `.ai/skills/catalog-audit.json`, `.ai/skills/description-exceptions.json`, and `.ai/skills/modernization-report.md`. These artifacts enforce compact descriptions, progressive disclosure, trigger boundaries, cross-skill links, and AI-SDLC compatibility.
+When the target repo owns a skill catalog, generate `.ai/skills/catalog-audit.json`, `.ai/skills/description-exceptions.json`, `.ai/skills/body-line-exceptions.json`, and `.ai/skills/modernization-report.md`. These artifacts enforce compact descriptions, progressive disclosure, trigger boundaries, cross-skill links, and AI-SDLC compatibility.

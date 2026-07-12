@@ -1,10 +1,11 @@
 {
   "schema_version": "1.0",
   "policy": {
-    "target_description_chars": 180,
-    "hard_fail_description_chars": 280,
-    "body_line_limit": 100,
-    "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
+    "target_description_chars": 160,
+    "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs",
+    "max_description_chars": 180,
+    "target_body_lines": 100,
+    "max_body_lines_with_exception": 180
   },
   "skill_count": 21,
   "warnings": [],
@@ -18,7 +19,8 @@
       "body_lines": 6,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "design-an-api-or-interface",
@@ -28,7 +30,8 @@
       "body_lines": 55,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "diagnose",
@@ -38,7 +41,8 @@
       "body_lines": 68,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "edit-article",
@@ -48,7 +52,8 @@
       "body_lines": 30,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "grill-me",
@@ -58,7 +63,8 @@
       "body_lines": 4,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "grill-with-docs",
@@ -68,7 +74,8 @@
       "body_lines": 82,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "handoff",
@@ -78,7 +85,8 @@
       "body_lines": 10,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "improve-codebase-architecture",
@@ -88,17 +96,19 @@
       "body_lines": 67,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "init-ai-repo",
       "path": "init-ai-repo/SKILL.md",
-      "description_chars": 161,
+      "description_chars": 160,
       "description_status": "target",
       "body_lines": 71,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "prototype",
@@ -108,7 +118,8 @@
       "body_lines": 26,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "publish-semver",
@@ -118,7 +129,8 @@
       "body_lines": 69,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "setup-skills",
@@ -128,7 +140,8 @@
       "body_lines": 42,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "tdd",
@@ -138,7 +151,8 @@
       "body_lines": 70,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "to-issues",
@@ -148,7 +162,8 @@
       "body_lines": 76,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "to-prd",
@@ -158,7 +173,8 @@
       "body_lines": 79,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "triage",
@@ -168,7 +184,8 @@
       "body_lines": 99,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "ubiquitous-language",
@@ -178,7 +195,8 @@
       "body_lines": 87,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "using-git-worktrees",
@@ -188,7 +206,8 @@
       "body_lines": 77,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "write-a-skill",
@@ -198,7 +217,8 @@
       "body_lines": 34,
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "progressive-disclosure-docs",
@@ -208,7 +228,8 @@
       "body_lines": 57,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     },
     {
       "name": "zoom-out",
@@ -218,7 +239,8 @@
       "body_lines": 2,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
-      "status": "pass"
+      "status": "pass",
+      "body_status": "target"
     }
   ],
   "status": "pass"

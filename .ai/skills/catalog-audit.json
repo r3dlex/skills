@@ -1,9 +1,10 @@
 {
   "schema_version": "1.0",
   "policy": {
-    "target_description_chars": 180,
-    "hard_fail_description_chars": 280,
-    "body_line_limit": 100,
+    "target_description_chars": 160,
+    "max_description_chars": 180,
+    "target_body_lines": 100,
+    "max_body_lines_with_exception": 180,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
   "skill_count": 25,
@@ -13,9 +14,10 @@
     {
       "name": "ai-catapult-init",
       "path": "ai-catapult-init/SKILL.md",
-      "description_chars": 177,
+      "description_chars": 154,
       "description_status": "target",
       "body_lines": 76,
+      "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -26,6 +28,7 @@
       "description_chars": 138,
       "description_status": "target",
       "body_lines": 6,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -33,9 +36,10 @@
     {
       "name": "autobahn",
       "path": "autobahn/SKILL.md",
-      "description_chars": 174,
+      "description_chars": 149,
       "description_status": "target",
-      "body_lines": 99,
+      "body_lines": 96,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -46,6 +50,7 @@
       "description_chars": 151,
       "description_status": "target",
       "body_lines": 55,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -56,6 +61,7 @@
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 68,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -66,6 +72,7 @@
       "description_chars": 92,
       "description_status": "target",
       "body_lines": 30,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -76,6 +83,7 @@
       "description_chars": 149,
       "description_status": "target",
       "body_lines": 75,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -86,6 +94,7 @@
       "description_chars": 136,
       "description_status": "target",
       "body_lines": 4,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -96,6 +105,7 @@
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 82,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -106,6 +116,7 @@
       "description_chars": 86,
       "description_status": "target",
       "body_lines": 10,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -116,6 +127,7 @@
       "description_chars": 130,
       "description_status": "target",
       "body_lines": 67,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -126,6 +138,7 @@
       "description_chars": 138,
       "description_status": "target",
       "body_lines": 6,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -136,6 +149,7 @@
       "description_chars": 142,
       "description_status": "target",
       "body_lines": 91,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -146,6 +160,7 @@
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 26,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -156,6 +171,7 @@
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 69,
+      "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -166,6 +182,7 @@
       "description_chars": 141,
       "description_status": "target",
       "body_lines": 42,
+      "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -175,7 +192,8 @@
       "path": "tdd/SKILL.md",
       "description_chars": 127,
       "description_status": "target",
-      "body_lines": 70,
+      "body_lines": 80,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -186,6 +204,7 @@
       "description_chars": 131,
       "description_status": "target",
       "body_lines": 76,
+      "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -196,6 +215,7 @@
       "description_chars": 155,
       "description_status": "target",
       "body_lines": 79,
+      "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -206,6 +226,7 @@
       "description_chars": 141,
       "description_status": "target",
       "body_lines": 99,
+      "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -216,6 +237,7 @@
       "description_chars": 137,
       "description_status": "target",
       "body_lines": 87,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -226,6 +248,7 @@
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 77,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -236,6 +259,7 @@
       "description_chars": 153,
       "description_status": "target",
       "body_lines": 58,
+      "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -246,6 +270,7 @@
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 57,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
@@ -256,6 +281,7 @@
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 2,
+      "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"

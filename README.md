@@ -1,6 +1,6 @@
 # skills
 
-A collection of reusable agent skills for Claude Code and compatible AI agents.
+A collection of reusable agent skills for Codex, Claude Code, and compatible AI agents.
 
 Each skill is a self-contained directory with a `SKILL.md` that tells the agent what to do and when to trigger. Skills follow [progressive disclosure](write-agent-docs/SKILL.md) — lean core instructions, with detail in reference files loaded on demand.
 
@@ -21,12 +21,14 @@ Each skill is a self-contained directory with a `SKILL.md` that tells the agent 
 
 ## Installation
 
-Copy the skill directories you want into your project's `.claude/skills/` folder (or wherever your agent loads skills from):
+Install the same catalog for either host:
 
 ```bash
-cp -r tdd ~/.claude/skills/
-cp -r publish-semver ~/.claude/skills/
+./scripts/install-codex.sh --all
+./scripts/install-claude-code.sh --user
 ```
+
+Both installers copy the complete skill directory, including `SKILL.md`, references, and bundled scripts. `tests/install_cross_host_parity_test.sh` verifies identical `SKILL.md` content across both destinations.
 
 ## Structure
 
@@ -34,12 +36,12 @@ Each skill follows:
 
 ```
 skill-name/
-├── SKILL.md        # Trigger conditions + core workflow (< 100 lines)
+├── SKILL.md        # Trigger conditions + core workflow (target <=100 lines)
 ├── REFERENCE.md    # Deep detail, loaded on demand
 └── scripts/        # Utility scripts if needed
 ```
 
-The `description` frontmatter in `SKILL.md` is what the agent reads to decide whether to load the skill. Keep it specific, trigger-focused, target <=180 characters, and hard-fail >280 characters unless `.ai/skills/description-exceptions.json` records an audited exception.
+The `description` frontmatter is routing metadata consumed by Codex and Claude Code. Keep it trigger-focused and <=160 characters; an audited exception may reach 180. `SKILL.md` bodies target <=100 lines, with reviewed exceptions capped at 180 in `.ai/skills/body-line-exceptions.json`.
 
 <!-- ai-sdlc-init:start -->
 

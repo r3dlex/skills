@@ -94,6 +94,7 @@ def check_v3_fixtures() -> None:
             '.ai/cascade/cascade-plan.json',
             '.ai/skills/catalog-audit.json',
             '.ai/skills/description-exceptions.json',
+            '.ai/skills/body-line-exceptions.json',
         ]:
             if not (fixture / path).is_file():
                 fail(f'missing fixture output: {fixture.relative_to(ROOT) / path}')
@@ -121,14 +122,21 @@ def check_v3_fixtures() -> None:
 def check_root_catalog() -> None:
     catalog = read_json(assert_file('.ai/skills/catalog-audit.json'))
     exceptions = read_json(assert_file('.ai/skills/description-exceptions.json'))
+    body_exceptions = read_json(assert_file('.ai/skills/body-line-exceptions.json'))
     if catalog.get('status') != 'pass':
         fail('root catalog audit must pass')
-    if catalog.get('policy', {}).get('target_description_chars') != 180:
-        fail('catalog target description budget must be 180')
-    if catalog.get('policy', {}).get('hard_fail_description_chars') != 280:
-        fail('catalog hard-fail description budget must be 280')
+    if catalog.get('policy', {}).get('target_description_chars') != 160:
+        fail('catalog target description budget must be 160')
+    if catalog.get('policy', {}).get('max_description_chars') != 180:
+        fail('catalog maximum description budget must be 180')
+    if catalog.get('policy', {}).get('target_body_lines') != 100:
+        fail('catalog target body budget must be 100')
+    if catalog.get('policy', {}).get('max_body_lines_with_exception') != 180:
+        fail('catalog maximum body budget must be 180')
     if exceptions.get('exceptions') != []:
         fail('description exceptions must be empty unless explicitly reviewed')
+    if body_exceptions.get('exceptions') != []:
+        fail('body-line exceptions must be empty unless explicitly reviewed')
 
 
 def iter_text_files() -> list[Path]:

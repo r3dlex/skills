@@ -44,7 +44,7 @@ Carried forward from the archived spec; these remain required:
 - Generated repo **workflow doc** + machine-readable **workflow/status manifest**, linked from repo entrypoints (see §4.C for the corrected linking rule).
 - **Traceability graph**: stable IDs and backlinks across BRD/PRD/ADR/plans/issues/PRs/tests/validation/handoff.
 - **Multi-repo cascade engine** (`modules/cascade.md`): mother/sub-repo detection, first-run confirmation, idempotent re-runs, reconciliation/audit output, all configured hosts (GitHub, ADO, GitLab, Jira, local).
-- **Catalog modernization audit** (skill-modernization module): compact-description budget (target ≤180 chars, hard-fail >280 unless audited exception), progressive disclosure, clear trigger/non-trigger/fallback boundaries, link/alias/referenced-file/script validation, cross-skill workflow links.
+- **Catalog modernization audit** (skill-modernization module): compact descriptions target ≤160 characters and SKILL.md bodies target ≤100 lines; audited exceptions for either are capped at 180, alongside trigger/non-trigger/fallback and link/alias/script validation.
 - **Validation package**: runnable checks for frontmatter, descriptions, broken links, aliases, referenced files, scripts, generated fixtures, traceability, cascade reconciliation, AI-SDLC compatibility.
 
 ### 4.B Whitepaper net-new (in scope)
@@ -103,7 +103,7 @@ Absorbed PR6 criteria (still required):
 - [ ] Generated workflow doc + machine-readable manifest exist and validate.
 - [ ] Traceability graph: stable IDs + backlinks across requirements/plans/issues/PRs/tests/handoff.
 - [ ] Multi-repo cascade: first-run confirmation, idempotent, audit/reconciliation output, all configured hosts; no duplicate linked items on re-run.
-- [ ] Full catalog audit runs in CI/local; description budget ≤180 target / >280 hard-fail (audited exceptions only); SKILL.md body limits enforced; trigger/non-trigger/fallback boundaries present.
+- [ ] Full catalog audit runs in CI/local; descriptions target ≤160 characters and bodies target ≤100 lines; audited exceptions remain ≤180; trigger/non-trigger/fallback boundaries are present.
 
 Whitepaper net-new criteria:
 - [ ] `modules/evals.md` + `.ai/evals/` scaffold generated; eval-coverage gate present and wired into the PR merge gate.

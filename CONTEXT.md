@@ -86,7 +86,7 @@ _Avoid_: API design, contract design
 
 **Dev**: Workflow — it's a step-by-step deployment process.
 
-**Domain expert**: Then keep Layer 2 under 100 lines. Put environment-specific config in a REFERENCE.md at Layer 3. Make sure the frontmatter `description` clearly states when this skill triggers so agents don't invoke it for production deploys. Is this AFK (fully automated deploy) or HITL (needs human approval)?
+**Domain expert**: Then target Layer 2 at 100 lines or fewer. Put environment-specific config in a REFERENCE.md at Layer 3. Make sure the frontmatter `description` clearly states when this skill triggers so agents don't invoke it for production deploys. Is this AFK (fully automated deploy) or HITL (needs human approval)?
 
 **Dev**: HITL — someone needs to approve before it hits production.
 

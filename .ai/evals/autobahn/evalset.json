@@ -27,6 +27,18 @@
       "input": "autobahn closes the originating issue after a goal merges, and the closure step runs twice.",
       "expected_behavior": "Delegates closure to the cascade engine with the canonical triage status. The second close resolves by the stable idempotency key, creates no duplicate, and still appends an audit event. Closure never invents a status string.",
       "trajectory": ["merge", "cascade-closure", "verify-idempotent"]
+    },
+    {
+      "case_id": "case-005-direct-implementation-ready",
+      "input": "autobahn is invoked without a northstar handoff but with one goal record whose context, root causes, evidence, solution, acceptance criteria, scope, verification, issue reference, and coverage are complete.",
+      "expected_behavior": "Runs the direct readiness gate, creates one durable goal, and proceeds through the normal TDD, engine, review, CI, merge-authority, and closure gates. If any readiness evidence is missing or contradictory, it stops and routes to northstar or diagnose rather than discovering during implementation.",
+      "trajectory": ["readiness-check", "tdd-mode", "ultragoal", "engine-pick", "review-loop", "ci-green", "merge-authority", "cascade-closure"]
+    },
+    {
+      "case_id": "case-006-legacy-safe-tdd",
+      "input": "autobahn receives one goal with 18% relevant coverage, and another with 72% coverage plus agent-recorded high coupling at the change seam.",
+      "expected_behavior": "Selects legacy-safe TDD for both goals: automatically for coverage under 30%, and by the recorded contextual risk override at 72%. It characterizes only one change seam, writes a failing behavior test, sprouts new behavior behind a narrow interface, makes the minimum call-site edit, and avoids broad refactoring or a coverage campaign.",
+      "trajectory": ["read-coverage-and-risk", "select-legacy-safe", "characterize-seam", "red", "sprout", "green", "focused-regression"]
     }
   ]
 }

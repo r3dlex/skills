@@ -1,10 +1,6 @@
 ---
 name: karpathy-guidelines
-description: >
-  Enforce Karpathy software engineering principles: think before coding,
-  prefer simplicity, make surgical changes, stay goal-driven. Use when
-  reviewing code quality, planning implementation approach, or auditing
-  for over-engineering.
+description: Apply think-before-coding, simplicity, surgical-change, and goal-driven engineering rules. Use when planning, implementing, or reviewing code.
 ---
 
 # Karpathy Guidelines

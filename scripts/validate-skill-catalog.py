@@ -7,8 +7,10 @@ import json
 import sys
 from pathlib import Path
 
-TARGET_DESCRIPTION_CHARS = 180
-HARD_DESCRIPTION_CHARS = 280
+TARGET_DESCRIPTION_CHARS = 160
+MAX_DESCRIPTION_CHARS = 180
+TARGET_BODY_LINES = 100
+MAX_BODY_LINES = 180
 EXCLUDED_DIRS = {'.git', '.omx', '.omc', '.claude', '.agents', 'reference', 'tests', 'scripts', 'docs', '.ai', '.memory'}
 REQUIRED_CROSS_SKILL = {
     'ai-catapult-init': ['workflow', 'traceability', 'cascade', 'catalog'],
@@ -50,24 +52,25 @@ def frontmatter(path: Path) -> tuple[dict[str, str], list[str]]:
     return data, lines[end + 1:]
 
 
-def load_exceptions(root: Path) -> dict[str, dict]:
-    path = root / '.ai/skills/description-exceptions.json'
+def load_exceptions(root: Path, filename: str, label: str) -> dict[str, dict]:
+    path = root / '.ai/skills' / filename
     if not path.exists():
         return {'schema_version': '1.0', 'exceptions': []}
     payload = json.loads(path.read_text())
-    assert payload.get('schema_version') == '1.0', 'description exceptions schema_version must be 1.0'
+    assert payload.get('schema_version') == '1.0', f'{label} exceptions schema_version must be 1.0'
     exceptions = payload.get('exceptions')
-    assert isinstance(exceptions, list), 'description exceptions must be a list'
+    assert isinstance(exceptions, list), f'{label} exceptions must be a list'
     by_skill = {}
     for entry in exceptions:
         for field in ['skill', 'owner', 'reason', 'expires']:
-            assert entry.get(field), f'description exception missing {field}'
+            assert entry.get(field), f'{label} exception missing {field}'
         by_skill[entry['skill']] = entry
     return {'schema_version': '1.0', 'exceptions': exceptions, 'by_skill': by_skill}
 
 
 def audit(root: Path) -> dict:
-    exceptions = load_exceptions(root).get('by_skill', {})
+    description_exceptions = load_exceptions(root, 'description-exceptions.json', 'description').get('by_skill', {})
+    body_exceptions = load_exceptions(root, 'body-line-exceptions.json', 'body-line').get('by_skill', {})
     skills = []
     failures = []
     warnings = []
@@ -81,18 +84,32 @@ def audit(root: Path) -> dict:
         if not desc:
             failures.append(f'{rel}: missing description')
         desc_len = len(desc)
-        exception = exceptions.get(name)
+        description_exception = description_exceptions.get(name)
+        body_exception = body_exceptions.get(name)
         status = 'pass'
-        if desc_len > HARD_DESCRIPTION_CHARS and not exception:
+        if desc_len > MAX_DESCRIPTION_CHARS:
             status = 'fail'
-            failures.append(f'{rel}: description length {desc_len} exceeds hard limit {HARD_DESCRIPTION_CHARS}')
+            failures.append(f'{rel}: description length {desc_len} exceeds maximum {MAX_DESCRIPTION_CHARS}')
         elif desc_len > TARGET_DESCRIPTION_CHARS:
-            status = 'warn'
-            warnings.append(f'{rel}: description length {desc_len} exceeds target {TARGET_DESCRIPTION_CHARS}')
+            if description_exception:
+                warnings.append(f'{rel}: description length {desc_len} uses audited exception above target {TARGET_DESCRIPTION_CHARS}')
+            else:
+                status = 'fail'
+                failures.append(f'{rel}: description length {desc_len} exceeds target {TARGET_DESCRIPTION_CHARS} without audited exception')
         body_len = len(body)
-        if body_len > 100:
+        body_status = 'target'
+        if body_len > MAX_BODY_LINES:
             status = 'fail'
-            failures.append(f'{rel}: body length {body_len} exceeds 100')
+            body_status = 'over-maximum'
+            failures.append(f'{rel}: body length {body_len} exceeds maximum {MAX_BODY_LINES}')
+        elif body_len > TARGET_BODY_LINES:
+            if body_exception:
+                body_status = 'exception'
+                warnings.append(f'{rel}: body length {body_len} uses audited exception above target {TARGET_BODY_LINES}')
+            else:
+                status = 'fail'
+                body_status = 'over-target'
+                failures.append(f'{rel}: body length {body_len} exceeds target {TARGET_BODY_LINES} without audited exception')
         lowered = '\n'.join(body).lower()
         cross_skill = 'not-required'
         for required in REQUIRED_CROSS_SKILL.get(name, []):
@@ -105,8 +122,9 @@ def audit(root: Path) -> dict:
             'name': name,
             'path': rel,
             'description_chars': desc_len,
-            'description_status': 'target' if desc_len <= TARGET_DESCRIPTION_CHARS else ('exception' if exception else 'over-target'),
+            'description_status': 'target' if desc_len <= TARGET_DESCRIPTION_CHARS else ('exception' if description_exception and desc_len <= MAX_DESCRIPTION_CHARS else 'over-target'),
             'body_lines': body_len,
+            'body_status': body_status,
             'cross_skill_links': cross_skill,
             'ai_sdlc_compatible': True,
             'status': status,
@@ -115,8 +133,9 @@ def audit(root: Path) -> dict:
         'schema_version': '1.0',
         'policy': {
             'target_description_chars': TARGET_DESCRIPTION_CHARS,
-            'hard_fail_description_chars': HARD_DESCRIPTION_CHARS,
-            'body_line_limit': 100,
+            'max_description_chars': MAX_DESCRIPTION_CHARS,
+            'target_body_lines': TARGET_BODY_LINES,
+            'max_body_lines_with_exception': MAX_BODY_LINES,
             'catalog_scope': 'first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs',
         },
         'skill_count': len(skills),
@@ -139,9 +158,10 @@ def compare_committed(root: Path, payload: dict) -> None:
 def write_artifacts(root: Path, payload: dict) -> None:
     out = root / '.ai/skills'
     out.mkdir(parents=True, exist_ok=True)
-    exc = out / 'description-exceptions.json'
-    if not exc.exists():
-        exc.write_text(json.dumps({'schema_version': '1.0', 'exceptions': []}, indent=2) + '\n')
+    for filename in ('description-exceptions.json', 'body-line-exceptions.json'):
+        exc = out / filename
+        if not exc.exists():
+            exc.write_text(json.dumps({'schema_version': '1.0', 'exceptions': []}, indent=2) + '\n')
     (out / 'catalog-audit.json').write_text(json.dumps(payload, indent=2) + '\n')
     lines = [
         '# Skill Modernization Report',
@@ -149,11 +169,13 @@ def write_artifacts(root: Path, payload: dict) -> None:
         'status: `pass`' if payload['status'] == 'pass' else 'status: `fail`',
         f"skill_count: `{payload['skill_count']}`",
         f"target_description_chars: `{TARGET_DESCRIPTION_CHARS}`",
-        f"hard_fail_description_chars: `{HARD_DESCRIPTION_CHARS}`",
+        f"max_description_chars: `{MAX_DESCRIPTION_CHARS}`",
+        f"target_body_lines: `{TARGET_BODY_LINES}`",
+        f"max_body_lines_with_exception: `{MAX_BODY_LINES}`",
         f"warnings: `{len(payload['warnings'])}`",
         f"failures: `{len(payload['failures'])}`",
         '',
-        'All first-class skill descriptions are at or below the target budget unless explicitly excepted.',
+        'All first-class descriptions and bodies meet their normal budgets unless explicitly excepted; 180 is absolute.',
     ]
     (out / 'modernization-report.md').write_text('\n'.join(lines) + '\n')
 

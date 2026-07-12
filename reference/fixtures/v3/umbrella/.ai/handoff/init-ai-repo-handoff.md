@@ -18,5 +18,5 @@ Update this handoff after Validate & Handoff records complete evidence.
 ## Skill catalog links
 
 - Catalog audit: `.ai/skills/catalog-audit.json`
-- Description exceptions: `.ai/skills/description-exceptions.json`
+- Progressive-disclosure exceptions: `.ai/skills/description-exceptions.json`, `.ai/skills/body-line-exceptions.json`
 - Modernization report: `.ai/skills/modernization-report.md`

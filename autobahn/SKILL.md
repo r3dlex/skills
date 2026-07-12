@@ -1,38 +1,35 @@
 ---
 name: autobahn
-description: Ship a northstar handoff's goals in an ai-catapult-init repo — ultragoal one-PR-per-goal, deterministic engine-pick, peer review, CI gate, fail-closed merge, cascade closure.
+description: "Ship implementation-ready goals from a northstar handoff or evidence-complete direct record, with review, CI, fail-closed merge, and cascade closure."
 eval: autobahn
 ---
 
 # Autobahn
 
-Autobahn drives a northstar A→B handoff to shipped code: one PR per sliced goal,
-each peer-reviewed, CI-green, and merged only under explicit authority. It is a
-lightweight **composer** — it delegates to existing engines and skills and never
-reimplements their loops, merge policy, or cascade logic.
+Autobahn ships implementation-ready goals one PR at a time. It delegates engines,
+review, merge policy, and cascade logic rather than reimplementing their loops.
 
 ## Quick Start
 
-1. Run the prereq gate (fail-closed) against the repo root:
-   `bash autobahn/prereq-check.sh --root .`
-2. Consume the sliced goals from the northstar handoff.
-3. For each goal: pick an engine, implement, peer-review, gate CI, decide merge.
+1. Gate either a northstar handoff or one direct implementation-ready goal:
+   `bash autobahn/prereq-check.sh --root . [--goal <goal.json>]`.
+2. Select standard or legacy-safe TDD, then pick the execution engine.
+3. Implement one goal per PR, peer-review, gate CI, and decide merge.
 4. On merge, cascade-close the goal's issue with a triage status.
 
 ## Prereq (fail-closed)
 
-Autobahn assumes `ai-catapult-init` v3 **and** a valid northstar handoff are present;
-it never bootstraps either. `prereq-check.sh` asserts the `.ai/` structure exists
-and a discoverable handoff (manifest `optional_branches` entry + handoff file) is
-present, exiting non-zero with guidance otherwise. Do not proceed past a failed
-prereq. See [modules/prereq.md](modules/prereq.md).
+Autobahn requires `ai-catapult-init` v3 plus either a valid northstar handoff or
+an evidence-complete direct goal that passes `readiness-check.sh`. Direct intake
+is for already-understood work, not a shortcut around discovery; missing context,
+root-cause evidence, solution, scope, acceptance criteria, or verification fails
+closed. See [modules/prereq.md](modules/prereq.md) and
+[modules/readiness.md](modules/readiness.md).
 
 ## Orchestration (ultragoal, one PR per goal)
 
-Delegate to `ultragoal` for durable, ledger-backed orchestration: consume the
-sliced goals from the handoff and ship **one PR per goal**. `ultragoal` owns the
-ledger and goal loop; autobahn only feeds it the sliced goals and reads back
-status. See [modules/orchestration.md](modules/orchestration.md).
+Delegate durable orchestration to `ultragoal` and ship **one PR per goal**.
+See [modules/orchestration.md](modules/orchestration.md).
 
 ## Engine auto-pick + override
 
@@ -41,13 +38,17 @@ Per goal, pick a sub-engine **deterministically** from the goal record's shape
 `ultrawork` for parallelizable goals, `ralph` for persistence-needing goals,
 `team` by default. A user `--engine <name>` override wins over auto-pick.
 
-<!-- codex:optional -->
-The override is the first interactive point. If no override is supplied, fall back
-to the deterministic auto-pick below; to override, pass `--engine <name>` to
-`autobahn/engine-pick.sh` (`ultraqa|ultrawork|ralph|team`).
+Use `autobahn/engine-pick.sh`; see
+[modules/engine-pick.md](modules/engine-pick.md).
 
-See [modules/engine-pick.md](modules/engine-pick.md) and
-`autobahn/engine-pick.sh`.
+## TDD blast-radius gate
+
+Before implementation, `tdd-mode.sh` selects **legacy-safe** TDD automatically
+when coverage is under 30%. The running agent may also select it at any coverage
+level when the specific change has high coupling, weak seams, or elevated blast
+radius; record `legacy_safe_tdd: true` and `legacy_risk_reason` in the goal. This
+changes the TDD technique, never the review or CI bar. See
+[modules/tdd-safety.md](modules/tdd-safety.md).
 
 ## Peer-review loop
 
@@ -84,21 +85,17 @@ across repos and apply the canonical `triage` status. Closure is audited and
 re-runnable without creating duplicates. See
 [modules/cascade-closure.md](modules/cascade-closure.md).
 
-## Command surface
-
-`autobahn` registers as a first-class command in both harnesses under
-`.ai/commands/omx/` and `.ai/commands/omc/` using the shared schema northstar
-designed. See [modules/command-surface.md](modules/command-surface.md).
-
 ## Safety rules
 
 - Fail closed: missing prereq, missing handoff, red CI, or unauthorized merge
   stops with guidance — never silently merge or mutate.
+- Direct intake must pass the evidence-complete readiness gate.
+- Low coverage or agent-observed legacy risk must use legacy-safe TDD.
 - Compose, never reimplement: delegate every loop, merge policy, and cascade.
 - Default merge authority is **ready-for-human**; admin-bypass only on an
   explicit, host-policy-approved, valid-token verdict.
 
 ## References
 
-- [modules/prereq.md](modules/prereq.md), [modules/orchestration.md](modules/orchestration.md), [modules/engine-pick.md](modules/engine-pick.md).
+- [modules/prereq.md](modules/prereq.md), [modules/readiness.md](modules/readiness.md), [modules/orchestration.md](modules/orchestration.md), [modules/engine-pick.md](modules/engine-pick.md), [modules/tdd-safety.md](modules/tdd-safety.md).
 - [modules/review-loop.md](modules/review-loop.md), [modules/merge-authority.md](modules/merge-authority.md), [modules/cascade-closure.md](modules/cascade-closure.md), [modules/command-surface.md](modules/command-surface.md).
