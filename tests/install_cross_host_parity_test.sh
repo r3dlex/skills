@@ -16,15 +16,18 @@ codex_root="$tmp_codex/.codex/skills"
 claude_root="$tmp_claude/.claude/skills/omc-learned"
 
 python3 - "$REPO_ROOT" "$codex_root" "$claude_root" <<'PY'
-import hashlib, sys
+import hashlib, json, sys
 from pathlib import Path
 
 repo, codex, claude = map(Path, sys.argv[1:])
-skills = sorted(p.parent.name for p in repo.glob('*/SKILL.md'))
+catalog = json.loads((repo / 'catalog.json').read_text())
+entries = sorted(catalog['skills'], key=lambda item: item['name'])
+skills = [entry['name'] for entry in entries]
 assert skills, 'catalog must not be empty'
 
-for name in skills:
-    source = repo / name / 'SKILL.md'
+for entry in entries:
+    name = entry['name']
+    source = repo / entry['source_path'] / 'SKILL.md'
     codex_copy = codex / name / 'SKILL.md'
     claude_copy = claude / name / 'SKILL.md'
     assert codex_copy.is_file(), f'Codex missing {name}'

@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from catalog import load_catalog
 
 TARGET_DESCRIPTION_CHARS = 160
 MAX_DESCRIPTION_CHARS = 180
@@ -25,14 +26,8 @@ REQUIRED_CROSS_SKILL = {
 
 
 def first_class_skill_paths(root: Path) -> list[Path]:
-    paths: list[Path] = []
-    for path in root.iterdir():
-        if not path.is_dir() or path.name.startswith('.') or path.name in EXCLUDED_DIRS:
-            continue
-        skill = path / 'SKILL.md'
-        if skill.is_file():
-            paths.append(skill)
-    return sorted(paths)
+    catalog = load_catalog(root)
+    return [root / entry['source_path'] / 'SKILL.md' for entry in sorted(catalog['skills'], key=lambda item: item['name'])]
 
 
 def frontmatter(path: Path) -> tuple[dict[str, str], list[str]]:
