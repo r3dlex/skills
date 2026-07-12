@@ -20,3 +20,6 @@ upstream-pocock/
 # Python build artifacts
 __pycache__/
 *.pyc
+
+# Moon local runtime cache
+.moon/cache/

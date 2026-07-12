@@ -11,7 +11,47 @@ Read when the target repo is a standalone repository or an umbrella repository t
 
 `max_allowed_depth` is fixed at `3` for `umbrella` topologies. `current_depth` is the maximum path depth observed across managed repositories. When `current_depth > max_allowed_depth`, validation must fail or block the apply path; the error must identify the offending repo path and the offending depth.
 
-## `.ai/matrix.json` schema (v1.0)
+## `.ai/matrix.json` dual-reader contract
+
+Readers must accept both v1.0 and v1.1 during the rollout. Writers preserve
+v1.0 until the distribution layer advertises v1.1 support; they never silently
+upgrade an existing matrix. A v1.0 entry remains `path`, `depth`, and
+`inherits_assets_from`. A v1.1 entry adds stable binding fields while keeping
+the same membership semantics:
+
+```json
+{
+  "repo_id": "auth-service",
+  "path": "services/auth",
+  "depth": 2,
+  "inherits_assets_from": ".",
+  "canonical_origin": "https://github.com/example/auth-service.git",
+  "canonical_upstream": null,
+  "default_ref": "main",
+  "disposable": true,
+  "moon_project_id": "auth-service",
+  "dependencies": [],
+  "profile_refs": {
+    "checkout": {"type": "checkout", "id": "full-history", "version": "1.0"},
+    "execution": {"type": "execution", "id": "production-default", "version": "1.0"},
+    "toolchain": {"type": "toolchain", "id": "managed", "version": "1.0"},
+    "cas": {"type": "cas", "id": "pull-only", "version": "1.0"}
+  }
+}
+```
+
+- `repo_id` is a stable lowercase identifier, unique independently of `path`.
+- Canonical remotes, the default ref, and disposable-checkout policy make checkout intent explicit.
+- `moon_project_id` is stable and unique; dependencies reference other `repo_id` values and must form an acyclic graph.
+- Each typed, versioned profile reference resolves below
+  `.ai/execution/profiles/<type>/<id>.json`; policy bodies do not live in the matrix.
+- Paths, IDs, and references are unique, relative, traversal-free, and fail closed on unknown fields or versions.
+
+The executable reference reader is `scripts/matrix-contract.py validate`. It
+rejects unknown versions rather than guessing. This repository remains v1.0
+until the downstream ai-catapult distribution supports the dual reader.
+
+### v1.0 compatibility example
 
 ```json
 {
@@ -54,7 +94,8 @@ Read when the target repo is a standalone repository or an umbrella repository t
 
 ### Required fields and types
 
-- `schema_version` (string) — fixed at `"1.0"` until v2 is introduced.
+- `schema_version` (string) — `"1.0"` or additive `"1.1"`; readers support
+  both, while writers preserve the input version unless migration is explicit.
 - `topology_type` (string enum) — `standalone` or `umbrella`.
 - `max_allowed_depth` (integer) — `0` for standalone, `3` for umbrella. Other values are rejected.
 - `current_depth` (integer) — `0` for standalone, computed for umbrella.
@@ -68,6 +109,43 @@ Read when the target repo is a standalone repository or an umbrella repository t
 
 - `migration` (object) — references the legacy-to-v3 migration manifest; see `modules/migration.md` for the migration manifest format.
 - `exclusions` (array of strings) — managed repos or paths that opt out of inheritance. Exclusions must be explicit and listed in the matrix, not inferred from `.gitignore`.
+
+## Execution profile contract
+
+Checkout, execution, toolchain, and CAS profiles share a versioned envelope:
+`schema_version`, `profile_type`, `profile_id`, `version`, and `settings`.
+Execution settings select `self-hosted` or `hosted`, supported hosts (GitHub,
+ADO, and GitLab), and hosted fallback. Lore is reserved for future support and
+is not selectable. Profile type, ID, and version must match the binding and
+filename. Credentials and repository membership are forbidden in profiles.
+
+Override precedence is terminal human policy (where allowed), child-local
+schema-declared override, root-bound profile, then ai-catapult default. The
+only child-local keys are `runner_preference`, `host_selection`, and
+`toolchain_tier`. Membership, canonical remote, repository identity, and protected
+fallback eligibility cannot be overridden.
+
+## Child-safe parent projection
+
+`scripts/matrix-contract.py project` emits one binding document per child. A
+projection contains only that child's `repo_id`, parent-relative path, profile
+references, profile versions, the inheritance digest, and permitted local overrides. It never contains
+another child identity, upstream authority, credentials, or profile policy
+bodies. Generation rejects a forbidden override before writing anything.
+
+## Transactional generation
+
+Projection generation is set-transactional:
+
+1. Acquire an exclusive sibling lock.
+2. Validate the matrix, every profile reference, and existing local overrides.
+3. Render and validate the complete set in a sibling temporary directory.
+4. Promote by directory rename, retaining the previous set as a rollback copy.
+5. Restore the previous set if promotion fails; remove temporary state and the
+   lock on every terminal path.
+
+`--check` performs a byte-for-byte readback without mutation. Failure injection
+and recovery tests prove a mid-render failure leaves the prior set unchanged.
 
 ## Umbrella depth rule
 

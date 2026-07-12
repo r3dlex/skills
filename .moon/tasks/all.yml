@@ -1,0 +1,26 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+tasks:
+  validate-matrix:
+    command: 'python scripts/matrix-contract.py validate --matrix .ai/matrix.json --profiles .ai/execution/profiles'
+    inputs:
+      - '.ai/matrix.json'
+      - 'scripts/matrix-contract.py'
+
+  test-matrix-contract:
+    command: 'bash tests/matrix-v11-contract_test.sh'
+    inputs:
+      - '03-configure-generate/ai-catapult-init/modules/topology.md'
+      - 'scripts/matrix-contract.py'
+      - 'tests/matrix-v11-contract_test.sh'
+
+  lint-matrix-contract:
+    command: 'python -m py_compile scripts/matrix-contract.py'
+    inputs:
+      - 'scripts/matrix-contract.py'
+
+  ci:
+    deps:
+      - 'skills:validate-matrix'
+      - 'skills:test-matrix-contract'
+      - 'skills:lint-matrix-contract'
