@@ -70,3 +70,33 @@ Contributing? Read [`AGENTS.md`](AGENTS.md) for agent-facing methodology details
 ## ai-catapult-init v3
 This repo follows the v3 AI-ready repository layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules currently live at `r3dlex/skills/ai-catapult-init/modules/`; deprecated alias paths (`init-ai-repo/`, `ai-sdlc-init/`) are preserved.
 <!-- v3-ai-sdlc-init:end -->
+
+<!-- GENERATED:SKILL-CATALOG:START -->
+| Skill | Lifecycle | Owner phase |
+|---|---|---|
+| [`ai-catapult-init`](ai-catapult-init/SKILL.md) | `stable` | `03-configure-generate` |
+| [`ai-sdlc-init`](ai-sdlc-init/SKILL.md) | `compatibility` | `03-configure-generate` |
+| [`autobahn`](autobahn/SKILL.md) | `stable` | `04-validate-handoff` |
+| [`design-an-api-or-interface`](design-an-api-or-interface/SKILL.md) | `stable` | `02-govern-plan` |
+| [`diagnose`](diagnose/SKILL.md) | `stable` | `04-validate-handoff` |
+| [`edit-article`](edit-article/SKILL.md) | `stable` | `03-configure-generate` |
+| [`eval-a-skill`](eval-a-skill/SKILL.md) | `stable` | `04-validate-handoff` |
+| [`grill-me`](grill-me/SKILL.md) | `stable` | `02-govern-plan` |
+| [`grill-with-docs`](grill-with-docs/SKILL.md) | `stable` | `02-govern-plan` |
+| [`handoff`](handoff/SKILL.md) | `stable` | `04-validate-handoff` |
+| [`improve-codebase-architecture`](improve-codebase-architecture/SKILL.md) | `stable` | `02-govern-plan` |
+| [`init-ai-repo`](init-ai-repo/SKILL.md) | `compatibility` | `03-configure-generate` |
+| [`northstar`](northstar/SKILL.md) | `stable` | `02-govern-plan` |
+| [`prototype`](prototype/SKILL.md) | `stable` | `03-configure-generate` |
+| [`publish-semver`](publish-semver/SKILL.md) | `stable` | `04-validate-handoff` |
+| [`setup-skills`](setup-skills/SKILL.md) | `stable` | `03-configure-generate` |
+| [`tdd`](tdd/SKILL.md) | `stable` | `03-configure-generate` |
+| [`to-issues`](to-issues/SKILL.md) | `stable` | `02-govern-plan` |
+| [`to-prd`](to-prd/SKILL.md) | `stable` | `02-govern-plan` |
+| [`triage`](triage/SKILL.md) | `stable` | `02-govern-plan` |
+| [`ubiquitous-language`](ubiquitous-language/SKILL.md) | `stable` | `01-discover-decide` |
+| [`using-git-worktrees`](using-git-worktrees/SKILL.md) | `stable` | `03-configure-generate` |
+| [`write-a-skill`](write-a-skill/SKILL.md) | `stable` | `03-configure-generate` |
+| [`write-agent-docs`](write-agent-docs/SKILL.md) | `stable` | `03-configure-generate` |
+| [`zoom-out`](zoom-out/SKILL.md) | `stable` | `01-discover-decide` |
+<!-- GENERATED:SKILL-CATALOG:END -->

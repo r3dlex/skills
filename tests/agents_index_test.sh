@@ -41,10 +41,9 @@ fi
 # Full catalog: every top-level */SKILL.md, discovered dynamically so this
 # test stays consistent with the live catalog with no allowlist (decision D5).
 catalog=()
-for body in */SKILL.md; do
-  [[ -f "$body" ]] || continue
-  catalog+=("${body%/SKILL.md}")
-done
+while IFS=$'\t' read -r name source; do
+  catalog+=("$name")
+done < <(python3 scripts/catalog-query.py --host codex)
 
 if [[ "${#catalog[@]}" -eq 0 ]]; then
   bad "catalog has at least one skill (*/SKILL.md)"
@@ -66,7 +65,7 @@ done
 while IFS= read -r row; do
   name="$(printf '%s' "$row" | sed -n 's/^| *`\([^`]*\)`.*/\1/p')"
   [[ -n "$name" ]] || continue
-  if [[ -f "$name/SKILL.md" ]]; then
+  if python3 scripts/catalog-query.py --host codex --skill "$name" >/dev/null 2>&1; then
     ok "AGENTS.md row '$name' maps to a real skill dir"
   else
     bad "AGENTS.md row '$name' maps to a real skill dir (orphan row?)"

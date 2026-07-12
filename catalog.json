@@ -1,0 +1,440 @@
+{
+  "schema_version": "1.0",
+  "phases": [
+    "01-discover-decide",
+    "02-govern-plan",
+    "03-configure-generate",
+    "04-validate-handoff"
+  ],
+  "skills": [
+    {
+      "name": "ai-catapult-init",
+      "source_path": "ai-catapult-init",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan",
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "ai-sdlc-init",
+      "source_path": "ai-sdlc-init",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan",
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "compatibility",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "autobahn",
+      "source_path": "autobahn",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "design-an-api-or-interface",
+      "source_path": "design-an-api-or-interface",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "diagnose",
+      "source_path": "diagnose",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "edit-article",
+      "source_path": "edit-article",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "eval-a-skill",
+      "source_path": "eval-a-skill",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "grill-me",
+      "source_path": "grill-me",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "grill-with-docs",
+      "source_path": "grill-with-docs",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "handoff",
+      "source_path": "handoff",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "improve-codebase-architecture",
+      "source_path": "improve-codebase-architecture",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan",
+        "03-configure-generate"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "init-ai-repo",
+      "source_path": "init-ai-repo",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan",
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "compatibility",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "northstar",
+      "source_path": "northstar",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "prototype",
+      "source_path": "prototype",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "03-configure-generate"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "publish-semver",
+      "source_path": "publish-semver",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "setup-skills",
+      "source_path": "setup-skills",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan",
+        "03-configure-generate"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "tdd",
+      "source_path": "tdd",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "to-issues",
+      "source_path": "to-issues",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "to-prd",
+      "source_path": "to-prd",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "triage",
+      "source_path": "triage",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "ubiquitous-language",
+      "source_path": "ubiquitous-language",
+      "owner_phase": "01-discover-decide",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "using-git-worktrees",
+      "source_path": "using-git-worktrees",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "03-configure-generate"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "write-a-skill",
+      "source_path": "write-a-skill",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "02-govern-plan",
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "write-agent-docs",
+      "source_path": "write-agent-docs",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "02-govern-plan",
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "zoom-out",
+      "source_path": "zoom-out",
+      "owner_phase": "01-discover-decide",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    }
+  ]
+}

@@ -31,10 +31,9 @@ bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 #     this suite stays consistent with the live catalog with no allowlist.
 # ---------------------------------------------------------------------------
 catalog=()
-for body in */SKILL.md; do
-  [[ -f "$body" ]] || continue
-  catalog+=("${body%/SKILL.md}")
-done
+while IFS=$'\t' read -r name source; do
+  catalog+=("$source")
+done < <(python3 scripts/catalog-query.py --host codex)
 
 if [[ "${#catalog[@]}" -eq 0 ]]; then
   bad "catalog has at least one skill (*/SKILL.md)"
