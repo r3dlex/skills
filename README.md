@@ -2,7 +2,7 @@
 
 A collection of reusable agent skills for Codex, Claude Code, and compatible AI agents.
 
-Each skill is a self-contained directory with a `SKILL.md` that tells the agent what to do and when to trigger. Skills follow [progressive disclosure](write-agent-docs/SKILL.md) — lean core instructions, with detail in reference files loaded on demand.
+Each skill is a self-contained directory with a `SKILL.md` that tells the agent what to do and when to trigger. Skills follow [progressive disclosure](03-configure-generate/write-agent-docs/SKILL.md) — lean core instructions, with detail in reference files loaded on demand.
 
 ## Skills
 

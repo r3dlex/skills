@@ -85,7 +85,7 @@ Skill bodies must be tool-agnostic across Claude Code and Codex. Do not hard-dep
 
 [CONTEXT.md](CONTEXT.md) defines the canonical vocabulary for the skills ecosystem — terms like _skill_, _progressive disclosure_, _AFK_, _HITL_, _tracer bullet_, _deep module_. Use these terms exactly in all agent output. When skills operate on target repos, they read that repo's CONTEXT.md and use its vocabulary.
 
-See [write-agent-docs/SKILL.md](write-agent-docs/SKILL.md) for full audit and refactor workflow.
+See [write-agent-docs/SKILL.md](03-configure-generate/write-agent-docs/SKILL.md) for full audit and refactor workflow.
 
 <!-- ai-sdlc-init:start -->
 

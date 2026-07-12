@@ -6,7 +6,7 @@
     "design-an-api-or-interface.md": "47b02d3a2f31db1241ff4efe818f679604015d1107a9fde1eef52bb826a1e3bd",
     "diagnose.md": "be1eb4b2691d1532dc68b98b9aa9fdbb12ab2b8f9c419757ef7b3509b2f691bc",
     "edit-article.md": "aed625f24cfeedc150a9927d1ceb7b6851179f2cafdf79596b3f7e4e361efdda",
-    "eval-a-skill.md": "58235ea94b957cca123b4a3f30ffa07b9f202e26f6242b3bc26a1db922e0a319",
+    "eval-a-skill.md": "94abb04b84f50679c55044ef64d96f7ee25a3ab36b96eae09be9fcbef199e878",
     "grill-me.md": "d1ff894c4dd93fbc116c3d7e7093ec9644ee46fc5a818c0c894d1560ef0fa676",
     "grill-with-docs.md": "4a67c32280638eb3f9fea4dbc1e309c0c2b42a5b2d53d57f4756ee2d63f30225",
     "handoff.md": "a90533bd0a67977f3ed577c05c0fb58f681c3caaaa03e73b83b72c93d3d3f492",
@@ -27,7 +27,7 @@
     "zoom-out.md": "6671e34d6936b14395fb4f0ca93ab8db3a4d2cd204c296563fafd2f42ae4a9b8"
   },
   "copilot": {
-    "copilot-instructions.md": "b223050f1dad3ac85fd810e393fc50cb4f98bc6128851440df71a07acacdccf0"
+    "copilot-instructions.md": "bb57a2a49c57e6d2a5c6fac17c9b802de53c32e010f92df1a531588ce89d59d1"
   },
   "gemini": {
     "ai-catapult-init.md": "12bb65ed8ded895e216a2ae27e36544e2a3ad8dcc8f372a20453c5fef82f9b4c",
@@ -36,7 +36,7 @@
     "design-an-api-or-interface.md": "095005e11ffa57ff29bf9dcfcdbec3fc03eb047d1f157f6b5638ed99d5a6b9b3",
     "diagnose.md": "96fb7f2e20561727a5347ff3991e0db3237d1a87fcdc32a34d855dd42d016225",
     "edit-article.md": "84ee074f157e32dd6f54268b3bdffae529fb3285a313217516173cc676399840",
-    "eval-a-skill.md": "eccf287bfee2c5be49af1b242c3932e40a19320d2d9aa814b26d903eeda56e74",
+    "eval-a-skill.md": "204f724b7d86a43284f68143d5d7dfb51488702b3ecc2e656ef5d863d878f7f9",
     "grill-me.md": "fc6d266f54e52e0883715d1b1c8be22472a813df0830e58e3d755d17281e1811",
     "grill-with-docs.md": "e5554e082af55f3def95eccce0d8051bd3634052e5c8643c72b31bef54d0b162",
     "handoff.md": "c5e30e5fa10a033636b89c13e377cb7c073b70a33dee9124ed992028aaf9b713",
