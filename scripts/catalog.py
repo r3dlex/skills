@@ -24,7 +24,9 @@ def load_catalog(root: Path) -> dict:
         raise CatalogError("catalog schema_version must be 1.0")
     phases = payload.get("phases")
     skills = payload.get("skills")
-    if not isinstance(phases, list) or not phases or len(phases) != len(set(phases)):
+    if (not isinstance(phases, list) or not phases or
+            not all(isinstance(phase, str) and phase for phase in phases) or
+            len(phases) != len(set(phases))):
         raise CatalogError("phases must be a non-empty unique list")
     if not isinstance(skills, list):
         raise CatalogError("skills must be a list")
@@ -34,17 +36,24 @@ def load_catalog(root: Path) -> dict:
         if not isinstance(entry, dict) or not required <= entry.keys():
             raise CatalogError("catalog skill entry is missing required fields")
         name, source = entry["name"], entry["source_path"]
-        source_path = Path(source)
         if not isinstance(name, str) or not name or name in names:
             raise CatalogError(f"duplicate or invalid skill name: {name!r}")
-        if not isinstance(source, str) or source_path.is_absolute() or ".." in source_path.parts or source in paths:
+        if not isinstance(source, str) or not source:
+            raise CatalogError(f"invalid source_path for {name}: {source!r}")
+        source_path = Path(source)
+        if source_path.is_absolute() or ".." in source_path.parts or source in paths:
             raise CatalogError(f"duplicate or unsafe source_path: {source!r}")
-        if entry["owner_phase"] not in phases or not set(entry["applies_to_phases"]) <= set(phases):
-            raise CatalogError(f"invalid phase metadata for {name}")
-        if entry["lifecycle"] not in LIFECYCLES:
-            raise CatalogError(f"invalid lifecycle for {name}")
+        owner = entry["owner_phase"]
+        applies = entry["applies_to_phases"]
+        lifecycle = entry["lifecycle"]
         hosts = entry["supported_hosts"]
-        if not isinstance(hosts, list) or not hosts or not set(hosts) <= HOSTS:
+        if not isinstance(owner, str) or not isinstance(applies, list) or not all(isinstance(x, str) for x in applies):
+            raise CatalogError(f"invalid phase metadata types for {name}")
+        if owner not in phases or not set(applies) <= set(phases):
+            raise CatalogError(f"invalid phase metadata for {name}")
+        if not isinstance(lifecycle, str) or lifecycle not in LIFECYCLES:
+            raise CatalogError(f"invalid lifecycle for {name}")
+        if not isinstance(hosts, list) or not hosts or not all(isinstance(x, str) for x in hosts) or not set(hosts) <= HOSTS:
             raise CatalogError(f"invalid supported_hosts for {name}")
         skill_file = root / source / "SKILL.md"
         if not skill_file.is_file():

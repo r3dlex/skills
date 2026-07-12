@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "phases": [
+    "test"
+  ],
+  "skills": [
+    {
+      "name": "stable-skill",
+      "source_path": "stable-skill",
+      "owner_phase": "test",
+      "applies_to_phases": [
+        "test"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "experimental-skill",
+      "source_path": "experimental-skill",
+      "owner_phase": "test",
+      "applies_to_phases": [
+        "test"
+      ],
+      "lifecycle": "experimental",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "deprecated-skill",
+      "source_path": "deprecated-skill",
+      "owner_phase": "test",
+      "applies_to_phases": [
+        "test"
+      ],
+      "lifecycle": "deprecated",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    }
+  ]
+}

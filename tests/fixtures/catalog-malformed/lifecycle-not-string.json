@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "phases": [
+    "test"
+  ],
+  "skills": [
+    {
+      "name": "skill",
+      "source_path": "skill",
+      "owner_phase": "test",
+      "applies_to_phases": [
+        "test"
+      ],
+      "lifecycle": [
+        "stable"
+      ],
+      "supported_hosts": [
+        "codex"
+      ]
+    }
+  ]
+}
