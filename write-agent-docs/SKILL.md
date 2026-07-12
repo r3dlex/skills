@@ -1,5 +1,5 @@
 ---
-name: progressive-disclosure-docs
+name: write-agent-docs
 description: 'Write or audit agent-facing Markdown with progressive disclosure. Use when editing SKILL.md, AGENTS.md, README.md, or other agent docs.'
 ---
 

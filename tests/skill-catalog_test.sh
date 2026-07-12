@@ -9,7 +9,6 @@ python3 scripts/validate-skill-catalog.py
 
 python3 - <<'PY'
 import json
-from glob import glob
 from pathlib import Path
 
 # Expected live-catalog skill count per root. The repo root tracks the live
@@ -17,7 +16,7 @@ from pathlib import Path
 # so adding a skill needs no manual edit and PRs stay order-independent. The v3
 # fixtures model a frozen generated target repo and stay pinned.
 expected_count = {
-    Path('.'): len(glob('*/SKILL.md')),
+    Path('.'): len(json.loads(Path('catalog.json').read_text())['skills']),
     Path('reference/fixtures/v3/standalone'): 21,
     Path('reference/fixtures/v3/umbrella'): 21,
 }

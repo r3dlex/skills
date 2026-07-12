@@ -265,13 +265,13 @@
       "status": "pass"
     },
     {
-      "name": "progressive-disclosure-docs",
+      "name": "write-agent-docs",
       "path": "write-agent-docs/SKILL.md",
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 57,
       "body_status": "target",
-      "cross_skill_links": "not-required",
+      "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
       "status": "pass"
     },

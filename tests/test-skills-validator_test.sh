@@ -24,6 +24,19 @@ write_skill() {
     } > "$dir/SKILL.md"
 }
 
+write_catalog() {
+    local root="$1"
+    local source_path="$2"
+    python3 - "$root" "$source_path" <<'PY'
+import json, re, sys
+from pathlib import Path
+root=Path(sys.argv[1]); source_path=sys.argv[2]; skill=root/source_path/'SKILL.md'
+text=skill.read_text(); match=re.search(r'^name:\s*(\S+)', text, re.M); assert match
+entries=[{'name':match.group(1),'source_path':source_path,'owner_phase':'test','applies_to_phases':['test'],'lifecycle':'stable','supported_hosts':['codex']}]
+(root/'catalog.json').write_text(json.dumps({'schema_version':'1.0','phases':['test'],'skills':entries},indent=2)+'\n')
+PY
+}
+
 run_validator() {
     local fixture_root="$1"
     set +e
@@ -121,6 +134,7 @@ PY
     echo '---'
     echo 'Body'
 } > "$catalog_root/too-long/SKILL.md"
+write_catalog "$catalog_root" too-long
 set +e
 catalog_output=$(python3 "$REPO_ROOT/scripts/validate-skill-catalog.py" --root "$catalog_root" 2>&1)
 catalog_exit=$?
@@ -145,6 +159,7 @@ PY
     echo '---'
     echo 'Body'
 } > "$catalog_warn/warn-skill/SKILL.md"
+write_catalog "$catalog_warn" warn-skill
 set +e
 warn_output=$(python3 "$REPO_ROOT/scripts/validate-skill-catalog.py" --root "$catalog_warn" 2>&1)
 warn_exit=$?
@@ -165,6 +180,7 @@ assert_contains "$exception_output" "skill catalog validation passed"
 # Fixture F: body exceptions permit 101..180 lines but never 181.
 body_exception="$TMP_ROOT/body-exception"
 write_skill "$body_exception/fixture" 180
+write_catalog "$body_exception" fixture
 mkdir -p "$body_exception/.ai/skills"
 cat > "$body_exception/.ai/skills/body-line-exceptions.json" <<'JSON'
 {"schema_version":"1.0","exceptions":[{"skill":"fixture","owner":"test","reason":"irreducible workflow","expires":"2099-01-01"}]}

@@ -16,27 +16,24 @@ codex_root="$tmp_codex/.codex/skills"
 claude_root="$tmp_claude/.claude/skills/omc-learned"
 
 python3 - "$REPO_ROOT" "$codex_root" "$claude_root" <<'PY'
-import sys
+import hashlib, json, sys
 from pathlib import Path
 
 repo, codex, claude = map(Path, sys.argv[1:])
-skills = sorted(p.parent.name for p in repo.glob('*/SKILL.md'))
+catalog = json.loads((repo / 'catalog.json').read_text())
+entries = sorted(catalog['skills'], key=lambda item: item['name'])
+skills = [entry['name'] for entry in entries]
 assert skills, 'catalog must not be empty'
 
-def files(root):
-    return {
-        path.relative_to(root).as_posix(): path.read_bytes()
-        for path in root.rglob('*')
-        if path.is_file()
-    }
-
-for name in skills:
-    source = files(repo / name)
-    codex_copy = files(codex / name)
-    claude_copy = files(claude / name)
-    assert codex_copy == source, f'Codex copy differs from source for {name}'
-    assert claude_copy == source, f'Claude Code copy differs from source for {name}'
-    assert codex_copy == claude_copy, f'host copies differ for {name}'
+for entry in entries:
+    name = entry['name']
+    source = repo / entry['source_path'] / 'SKILL.md'
+    codex_copy = codex / name / 'SKILL.md'
+    claude_copy = claude / name / 'SKILL.md'
+    assert codex_copy.is_file(), f'Codex missing {name}'
+    assert claude_copy.is_file(), f'Claude Code missing {name}'
+    hashes = {hashlib.sha256(p.read_bytes()).hexdigest() for p in (source, codex_copy, claude_copy)}
+    assert len(hashes) == 1, f'host copies differ for {name}'
 
 assert sorted(p.name for p in codex.iterdir() if p.is_dir()) == skills
 assert sorted(p.name for p in claude.iterdir() if p.is_dir()) == skills

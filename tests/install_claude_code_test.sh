@@ -60,9 +60,9 @@ fi
 # Every entry at the destination root must be a directory (a proper skill dir),
 # and each must contain a SKILL.md. A flattened install would leave stray files
 # (SKILL.md, *.sh, *.md) directly at the root.
-stray="$(find "$dest" -maxdepth 1 -type f | wc -l | tr -d ' ')"
-if [[ "$stray" -eq 0 ]]; then
-  ok "no stray files at destination root (no flattening)"
+stray="$(find "$dest" -maxdepth 1 -type f ! -name catalog.json | wc -l | tr -d ' ')"
+if [[ "$stray" -eq 0 && -f "$dest/catalog.json" ]]; then
+  ok "only the installed catalog projection is present at destination root"
 else
   bad "destination root has $stray stray file(s) — install flattened the skills"
 fi
