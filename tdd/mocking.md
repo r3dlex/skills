@@ -13,6 +13,21 @@ Don't mock:
 - Internal collaborators
 - Anything you control
 
+## LLM harness boundaries
+
+**Mock the network, not the model wrapper.** Intercept raw HTTP requests and
+return provider-shaped responses so authentication, serialization, status-code,
+retry, token-metadata, and finish-reason handling are exercised together.
+
+- Keep fixture-driven raw JSON responses captured from real provider shapes,
+  with secrets and user data removed.
+- Keep routing, schema validation, markdown-fence parsing, retry/backoff decisions,
+  and banned-topic guards deterministic in unit tests.
+- Keep probabilistic model quality and live LLM-as-a-judge calls in integration
+  or eval pipelines; unit-test their orchestration with raw HTTP fixtures.
+- For retry tests, inject or fake the clock so exponential backoff is verified
+  without sleeping.
+
 ## Designing for Mockability
 
 At system boundaries, design interfaces that are easy to mock:

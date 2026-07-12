@@ -22,6 +22,15 @@ Before writing code:
 
 Ask: "What should the public interface look like? Which behaviors are most important to test?"
 
+## Legacy-safe mode
+
+Use legacy-safe TDD automatically when relevant unit-test coverage is under 30%. Use it at
+any coverage level when the specific change has high coupling, weak seams, or a
+high observed blast radius; record the reason rather than relying on a silent
+confidence judgment. Characterize only the change seam, then use a Sprout Method,
+Sprout Class, or equivalent module to keep new behavior isolated. Read
+[legacy-systems.md](legacy-systems.md) before editing legacy production code.
+
 ## Red-Green Loop
 
 ### 1. Tracer bullet
@@ -70,5 +79,6 @@ Never refactor while red.
 
 - [tests.md](tests.md) — examples of behavior-focused tests.
 - [mocking.md](mocking.md) — when mocks help or harm.
+- [legacy-systems.md](legacy-systems.md) — low-coverage and high-risk change strategy.
 - [deep-modules.md](deep-modules.md) — identifying deep modules.
 - [interface-design.md](interface-design.md) — designing testable interfaces.

@@ -1,6 +1,6 @@
 # Autobahn Orchestration Contract
 
-Read when driving the sliced goals from a northstar handoff to shipped PRs.
+Read when driving goals from a northstar handoff or direct-ready record to PRs.
 Autobahn delegates durable orchestration to `ultragoal` and never reimplements
 the ledger or goal loop.
 
@@ -22,17 +22,17 @@ contract is strict: **one PR per goal**, never a mega-PR spanning slices.
 | Merge authority | `merge-authority.sh` thin adapter (see merge-authority.md) |
 | Issue closure | cascade engine (see cascade-closure.md) |
 
-Autobahn is the composer that sequences these per goal; it reads the handoff,
-hands each goal to `ultragoal`, and reads back status. It does not duplicate
-`ultragoal`'s ledger.
+Autobahn sequences each goal through `ultragoal`. A direct-ready record becomes
+one ledger goal; a northstar handoff supplies one or more. Autobahn does not
+duplicate `ultragoal`'s ledger.
 
 ## Per-goal sequence
 
 For each sliced goal, in order:
 
-1. Resolve the goal record from the handoff.
-2. Pick the engine deterministically (or honor `--engine`).
-3. Implement via the picked engine.
+1. Resolve the goal record from the handoff or readiness gate.
+2. Select standard or legacy-safe TDD, then pick the engine.
+3. Implement via the picked engine and selected TDD posture.
 4. Peer-review until all comments resolved.
 5. Gate on remote + local CI green.
 6. Decide merge via the host-policy thin adapter (else ready-for-human).

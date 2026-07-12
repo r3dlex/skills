@@ -35,7 +35,7 @@ install_to_user() {
             # source). `cp -r "$skill_dir" "$dest/"` would copy the directory's
             # CONTENTS into $dest on macOS/BSD (the glob appends a trailing
             # slash), flattening every skill into one merged blob.
-            rm -rf "${dest}/${skill_name}"
+            rm -rf "${dest:?}/${skill_name}"
             cp -r "${skill_dir%/}" "${dest}/${skill_name}"
             echo "  ✓ $skill_name"
         fi
@@ -62,7 +62,7 @@ install_to_project() {
             # source). `cp -r "$skill_dir" "$dest/"` would copy the directory's
             # CONTENTS into $dest on macOS/BSD (the glob appends a trailing
             # slash), flattening every skill into one merged blob.
-            rm -rf "${dest}/${skill_name}"
+            rm -rf "${dest:?}/${skill_name}"
             cp -r "${skill_dir%/}" "${dest}/${skill_name}"
             echo "  ✓ $skill_name"
         fi

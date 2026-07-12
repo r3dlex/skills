@@ -26,28 +26,35 @@ for root in [Path('.'), Path('reference/fixtures/v3/standalone'), Path('referenc
     count = expected_count[root]
     audit_path = root / '.ai/skills/catalog-audit.json'
     exceptions_path = root / '.ai/skills/description-exceptions.json'
+    body_exceptions_path = root / '.ai/skills/body-line-exceptions.json'
     report_path = root / '.ai/skills/modernization-report.md'
     assert audit_path.is_file(), f'missing {audit_path}'
     assert exceptions_path.is_file(), f'missing {exceptions_path}'
+    assert body_exceptions_path.is_file(), f'missing {body_exceptions_path}'
     assert report_path.is_file(), f'missing {report_path}'
     audit = json.loads(audit_path.read_text())
     exceptions = json.loads(exceptions_path.read_text())
+    body_exceptions = json.loads(body_exceptions_path.read_text())
     assert audit['schema_version'] == '1.0'
     assert audit['status'] == 'pass'
     assert audit['skill_count'] == count
-    assert audit['policy']['target_description_chars'] == 180
-    assert audit['policy']['hard_fail_description_chars'] == 280
+    assert audit['policy']['target_description_chars'] == 160
+    assert audit['policy']['max_description_chars'] == 180
+    assert audit['policy']['target_body_lines'] == 100
+    assert audit['policy']['max_body_lines_with_exception'] == 180
     assert not audit['failures']
-    assert all(skill['description_chars'] <= 180 for skill in audit['skills'])
+    assert all(skill['description_chars'] <= 160 or skill['description_status'] == 'exception' for skill in audit['skills'])
     assert exceptions['schema_version'] == '1.0'
     assert exceptions['exceptions'] == []
+    assert body_exceptions['schema_version'] == '1.0'
+    assert body_exceptions['exceptions'] == []
     report = report_path.read_text()
     assert 'status: `pass`' in report
     assert f'skill_count: `{count}`' in report
 
 workflow = Path('reference/fixtures/v3/standalone/.ai/workflows/repo-workflow.md').read_text()
 handoff = Path('reference/fixtures/v3/standalone/.ai/handoff/init-ai-repo-handoff.md').read_text()
-for linked in ['.ai/skills/catalog-audit.json', '.ai/skills/description-exceptions.json', '.ai/skills/modernization-report.md']:
+for linked in ['.ai/skills/catalog-audit.json', '.ai/skills/description-exceptions.json', '.ai/skills/body-line-exceptions.json', '.ai/skills/modernization-report.md']:
     assert linked in workflow
     assert linked in handoff
 PY

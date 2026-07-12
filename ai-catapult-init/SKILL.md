@@ -1,6 +1,6 @@
 ---
 name: ai-catapult-init
-description: 'Bootstrap AI-ready repo governance, traceability, cascade, catalog audits, validation. Deprecated compatibility aliases: init-ai-repo, ai-sdlc-init. Use when setting up AI SDLC.'
+description: 'Bootstrap AI-ready governance, traceability, cascade, catalog audits, and validation. Use when setting up AI SDLC; aliases: init-ai-repo and ai-sdlc-init.'
 ---
 
 # Init AI Repo
