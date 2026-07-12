@@ -17,8 +17,10 @@ def replace(path, body, check):
  return True
 def main():
  p=argparse.ArgumentParser(); p.add_argument('--check',action='store_true'); a=p.parse_args(); root=Path(__file__).resolve().parent.parent; c=load_catalog(root)
- rows=['| Skill | Lifecycle | Owner phase |','|---|---|---|']
- for e in sorted(c['skills'],key=lambda x:x['name']): rows.append(f"| [`{e['name']}`]({e['source_path']}/SKILL.md) | `{e['lifecycle']}` | `{e['owner_phase']}` |")
+ rows=['| Skill | When to use | Lifecycle | Owner phase |','|---|---|---|---|']
+ for e in sorted(c['skills'],key=lambda x:x['name']):
+  desc=description(root/e['source_path']/'SKILL.md').replace('|','\\|')
+  rows.append(f"| [`{e['name']}`]({e['source_path']}/SKILL.md) | {desc} | `{e['lifecycle']}` | `{e['owner_phase']}` |")
  ok=replace(root/'README.md','\n'.join(rows),a.check) & replace(root/'AGENTS.md','\n'.join(rows),a.check)
  for phase in c['phases']:
   lines=[f'# {phase}','', '| Skill | Applies to phases |','|---|---|']

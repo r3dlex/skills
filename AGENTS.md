@@ -16,40 +16,37 @@ Pick the skill matching the user's request. Each skill has:
 
 ## Skills
 
-| Skill | When to Use |
-|-------|-------------|
-| `write-agent-docs` | Creating or auditing agent-facing .md files |
-| `write-a-skill` | Creating new skills |
-| `design-an-api-or-interface` | Designing APIs, interfaces, modules |
-| `improve-codebase-architecture` | Finding refactoring opportunities, deepening modules |
-| `tdd` | Test-driven development with red-green-refactor |
-| `edit-article` | Editing articles, tightening prose |
-| `ubiquitous-language` | Building DDD-style glossaries |
-| `using-git-worktrees` | Setting up isolated workspaces |
-| `publish-semver` | Publishing packages with semver, GitHub Actions, and multi-ecosystem registries |
-| `ai-catapult-init` | Initialize AI-ready repo governance, traceability, cascade, catalog audit, and validation; deprecated aliases: `init-ai-repo`, `ai-sdlc-init` |
-| `to-prd` | Turning conversation context into a PRD on the issue tracker |
-| `to-issues` | Breaking a plan or PRD into independently-grabbable tracker issues |
-| `triage` | Triaging issues through a role-driven state machine |
-| `diagnose` | Disciplined diagnosis loop for hard bugs and performance regressions |
-| `grill-me` | Stress-testing a plan or design through relentless interview |
-| `grill-with-docs` | Stress-testing a plan against repo docs, ADRs, and CONTEXT.md |
-| `setup-skills` | Configuring AGENTS/CLAUDE and docs/agents before issue, PRD, triage, TDD, or diagnosis skills |
-| `prototype` | Building a throwaway terminal or UI prototype to test state, logic, or design options |
-| `zoom-out` | Explaining broader code or product context before local changes |
-| `handoff` | Compacting the conversation into a handoff document for another agent |
-| `eval-a-skill` | Scaffolding a structurally valid eval triplet for a target skill; CI checks structure, the judge runs out-of-band |
-| `northstar` | Intake intent into a tracked, sliced plan in an ai-catapult-init repo and write the A→B handoff |
-| `autobahn` | Ship goals from a northstar handoff or evidence-complete direct record; select legacy-safe TDD for low coverage or contextual risk, then review, CI-gate, merge fail-closed, and cascade-close |
+deprecated aliases: `init-ai-repo` and `ai-sdlc-init` remain compatibility entries in the generated catalog.
 
-### Pipeline: `northstar` → `autobahn`
-
-In an `ai-catapult-init`-initialized repo, the two compose into an intake→ship loop:
-
-1. **`northstar "<intent>"`** — deep-interview (primary) + grill-me (adversarial, skippable) one question at a time until both are satisfied → always raises an issue (local-first markdown; hosted only if a tracker is configured and authorized, fail-closed) → `ralplan` → sliced goals. Writes the **A→B handoff** into `.ai/` (workflow manifest `optional_branches` entry, traceability nodes, `.ai/handoff/`).
-2. **`autobahn`** — discovers the handoff, or accepts one evidence-complete direct-ready goal when discovery is already finished, and ships each goal as **one PR**. Before engine selection it chooses standard or legacy-safe TDD: coverage under 30% always uses legacy-safe mode, and the running agent may also select it for recorded context-specific blast-radius risk. `ultragoal` orchestrates; deterministic engine precedence is `ultraqa` > `ultrawork` > `ralph` > `team`; peer review, remote + local CI, fail-closed merge authority, and cascade closure remain mandatory.
-
-Both are lightweight composers: they delegate to the existing skills/engines and never reimplement them. Each runs identically under OMC (`/oh-my-claudecode:<name>`) and OMX (`$<name>`) via the generated `.ai/commands/{omc,omx}/` surfaces.
+<!-- GENERATED:SKILL-CATALOG:START -->
+| Skill | When to use | Lifecycle | Owner phase |
+|---|---|---|---|
+| [`ai-catapult-init`](ai-catapult-init/SKILL.md) | Bootstrap AI-ready governance, traceability, cascade, catalog audits, and validation. Use when setting up AI SDLC; aliases: init-ai-repo and ai-sdlc-init. | `stable` | `03-configure-generate` |
+| [`ai-sdlc-init`](ai-sdlc-init/SKILL.md) | Deprecated compatibility alias for ai-catapult-init. Use only when legacy prompts invoke "ai-sdlc-init"; otherwise use "ai-catapult-init". | `compatibility` | `03-configure-generate` |
+| [`autobahn`](autobahn/SKILL.md) | Ship implementation-ready goals from a northstar handoff or evidence-complete direct record, with review, CI, fail-closed merge, and cascade closure. | `stable` | `04-validate-handoff` |
+| [`design-an-api-or-interface`](design-an-api-or-interface/SKILL.md) | Design APIs/interfaces with Design It Twice: create alternatives, compare tradeoffs, choose one. Use when designing an API, module, class, or boundary. | `stable` | `02-govern-plan` |
+| [`diagnose`](diagnose/SKILL.md) | Run a reproduce-minimize-hypothesize-instrument-fix loop. Use when debugging bugs, failures, thrown errors, or performance regressions. | `stable` | `04-validate-handoff` |
+| [`edit-article`](edit-article/SKILL.md) | Edit and improve articles by restructuring sections, improving clarity, and tightening prose | `stable` | `03-configure-generate` |
+| [`eval-a-skill`](eval-a-skill/SKILL.md) | Scaffold a structurally valid eval triplet for a target skill under .ai/evals/. CI checks structure only; the LM-judge runs out-of-band, never in CI. | `stable` | `04-validate-handoff` |
+| [`grill-me`](grill-me/SKILL.md) | Interview the user to stress-test a plan or design until decisions are clear. Use when the user wants to be grilled or challenge a plan. | `stable` | `02-govern-plan` |
+| [`grill-with-docs`](grill-with-docs/SKILL.md) | Stress-test a plan against repo docs and update decisions inline. Use when challenging a design against documented language, ADRs, or CONTEXT.md. | `stable` | `02-govern-plan` |
+| [`handoff`](handoff/SKILL.md) | Compact the current conversation into a handoff document for another agent to pick up. | `stable` | `04-validate-handoff` |
+| [`improve-codebase-architecture`](improve-codebase-architecture/SKILL.md) | Find deepening opportunities from CONTEXT.md and ADRs. Use when refactoring shallow modules, boundaries, coupling, or testability. | `stable` | `02-govern-plan` |
+| [`init-ai-repo`](init-ai-repo/SKILL.md) | Deprecated compatibility alias for ai-catapult-init. Use only when legacy prompts invoke "init-ai-repo"; otherwise use "ai-catapult-init". | `compatibility` | `03-configure-generate` |
+| [`northstar`](northstar/SKILL.md) | Planning-only intake: turn intent into a tracked, sliced plan and A→B handoff; never implement product changes. Use before autobahn execution. | `stable` | `02-govern-plan` |
+| [`prototype`](prototype/SKILL.md) | Build a throwaway terminal or UI prototype to test state, logic, or design options. Use when the user wants a playable prototype or design trial. | `stable` | `03-configure-generate` |
+| [`publish-semver`](publish-semver/SKILL.md) | Set up semantic or calendar versioning and package publishing across supported ecosystems. Use when configuring release automation or changelogs. | `stable` | `04-validate-handoff` |
+| [`setup-skills`](setup-skills/SKILL.md) | Configure AGENTS/CLAUDE and docs/agents for tracker, triage labels, and domain docs. Use before issue, PRD, triage, TDD, or diagnosis skills. | `stable` | `03-configure-generate` |
+| [`tdd`](tdd/SKILL.md) | Run red-green-refactor with one failing test, one implementation, then cleanup. Use when building features or fixes test-first. | `stable` | `03-configure-generate` |
+| [`to-issues`](to-issues/SKILL.md) | Break a plan, spec, or PRD into traceable implementation issues. Use when converting requirements into tickets or agent-ready work. | `stable` | `02-govern-plan` |
+| [`to-prd`](to-prd/SKILL.md) | Turn the current conversation context into a PRD and publish it to the project issue tracker. Use when user wants to create a PRD from the current context. | `stable` | `02-govern-plan` |
+| [`triage`](triage/SKILL.md) | Triage issues through canonical state labels and ownership roles. Use when creating, reviewing, prioritizing, or preparing issues for agents. | `stable` | `02-govern-plan` |
+| [`ubiquitous-language`](ubiquitous-language/SKILL.md) | Extract and save a DDD glossary, flag ambiguities, and propose canonical terms. Use when defining domain language or a shared vocabulary. | `stable` | `01-discover-decide` |
+| [`using-git-worktrees`](using-git-worktrees/SKILL.md) | Create isolated git worktrees with safety checks and setup guidance. Use when starting feature work that needs separation from the main checkout. | `stable` | `03-configure-generate` |
+| [`write-a-skill`](write-a-skill/SKILL.md) | Create new agent skills with proper structure, progressive disclosure, and bundled resources. Use when user wants to create, write, or build a new skill. | `stable` | `03-configure-generate` |
+| [`write-agent-docs`](write-agent-docs/SKILL.md) | Write or audit agent-facing Markdown with progressive disclosure. Use when editing SKILL.md, AGENTS.md, README.md, or other agent docs. | `stable` | `03-configure-generate` |
+| [`zoom-out`](zoom-out/SKILL.md) | Explain broader code or product context around a focused area. Use when the user needs a higher-level perspective before local changes. | `stable` | `01-discover-decide` |
+<!-- GENERATED:SKILL-CATALOG:END -->
 
 ## Writing Rules
 
@@ -138,33 +135,3 @@ Before starting work on an issue:
 ## AI SDLC v3
 This repo follows the v3 AI-SDLC layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules at `r3dlex/skills/ai-catapult-init/modules/`.
 <!-- v3-ai-sdlc-init:end -->
-
-<!-- GENERATED:SKILL-CATALOG:START -->
-| Skill | Lifecycle | Owner phase |
-|---|---|---|
-| [`ai-catapult-init`](ai-catapult-init/SKILL.md) | `stable` | `03-configure-generate` |
-| [`ai-sdlc-init`](ai-sdlc-init/SKILL.md) | `compatibility` | `03-configure-generate` |
-| [`autobahn`](autobahn/SKILL.md) | `stable` | `04-validate-handoff` |
-| [`design-an-api-or-interface`](design-an-api-or-interface/SKILL.md) | `stable` | `02-govern-plan` |
-| [`diagnose`](diagnose/SKILL.md) | `stable` | `04-validate-handoff` |
-| [`edit-article`](edit-article/SKILL.md) | `stable` | `03-configure-generate` |
-| [`eval-a-skill`](eval-a-skill/SKILL.md) | `stable` | `04-validate-handoff` |
-| [`grill-me`](grill-me/SKILL.md) | `stable` | `02-govern-plan` |
-| [`grill-with-docs`](grill-with-docs/SKILL.md) | `stable` | `02-govern-plan` |
-| [`handoff`](handoff/SKILL.md) | `stable` | `04-validate-handoff` |
-| [`improve-codebase-architecture`](improve-codebase-architecture/SKILL.md) | `stable` | `02-govern-plan` |
-| [`init-ai-repo`](init-ai-repo/SKILL.md) | `compatibility` | `03-configure-generate` |
-| [`northstar`](northstar/SKILL.md) | `stable` | `02-govern-plan` |
-| [`prototype`](prototype/SKILL.md) | `stable` | `03-configure-generate` |
-| [`publish-semver`](publish-semver/SKILL.md) | `stable` | `04-validate-handoff` |
-| [`setup-skills`](setup-skills/SKILL.md) | `stable` | `03-configure-generate` |
-| [`tdd`](tdd/SKILL.md) | `stable` | `03-configure-generate` |
-| [`to-issues`](to-issues/SKILL.md) | `stable` | `02-govern-plan` |
-| [`to-prd`](to-prd/SKILL.md) | `stable` | `02-govern-plan` |
-| [`triage`](triage/SKILL.md) | `stable` | `02-govern-plan` |
-| [`ubiquitous-language`](ubiquitous-language/SKILL.md) | `stable` | `01-discover-decide` |
-| [`using-git-worktrees`](using-git-worktrees/SKILL.md) | `stable` | `03-configure-generate` |
-| [`write-a-skill`](write-a-skill/SKILL.md) | `stable` | `03-configure-generate` |
-| [`write-agent-docs`](write-agent-docs/SKILL.md) | `stable` | `03-configure-generate` |
-| [`zoom-out`](zoom-out/SKILL.md) | `stable` | `01-discover-decide` |
-<!-- GENERATED:SKILL-CATALOG:END -->
