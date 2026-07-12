@@ -121,8 +121,8 @@ PY
   fi
 }
 
-validate_triplet "northstar" "$(eval_key northstar/SKILL.md)"
-validate_triplet "autobahn"  "$(eval_key autobahn/SKILL.md)"
+validate_triplet "northstar" "$(eval_key 02-govern-plan/northstar/SKILL.md)"
+validate_triplet "autobahn"  "$(eval_key 04-validate-handoff/autobahn/SKILL.md)"
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"

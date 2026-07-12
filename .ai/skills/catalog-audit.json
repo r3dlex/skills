@@ -13,7 +13,7 @@
   "skills": [
     {
       "name": "ai-catapult-init",
-      "path": "ai-catapult-init/SKILL.md",
+      "path": "03-configure-generate/ai-catapult-init/SKILL.md",
       "description_chars": 154,
       "description_status": "target",
       "body_lines": 76,
@@ -24,7 +24,7 @@
     },
     {
       "name": "ai-sdlc-init",
-      "path": "ai-sdlc-init/SKILL.md",
+      "path": "03-configure-generate/ai-sdlc-init/SKILL.md",
       "description_chars": 138,
       "description_status": "target",
       "body_lines": 6,
@@ -35,7 +35,7 @@
     },
     {
       "name": "autobahn",
-      "path": "autobahn/SKILL.md",
+      "path": "04-validate-handoff/autobahn/SKILL.md",
       "description_chars": 149,
       "description_status": "target",
       "body_lines": 96,
@@ -46,7 +46,7 @@
     },
     {
       "name": "design-an-api-or-interface",
-      "path": "design-an-api-or-interface/SKILL.md",
+      "path": "02-govern-plan/design-an-api-or-interface/SKILL.md",
       "description_chars": 151,
       "description_status": "target",
       "body_lines": 55,
@@ -57,7 +57,7 @@
     },
     {
       "name": "diagnose",
-      "path": "diagnose/SKILL.md",
+      "path": "04-validate-handoff/diagnose/SKILL.md",
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 68,
@@ -68,7 +68,7 @@
     },
     {
       "name": "edit-article",
-      "path": "edit-article/SKILL.md",
+      "path": "03-configure-generate/edit-article/SKILL.md",
       "description_chars": 92,
       "description_status": "target",
       "body_lines": 30,
@@ -79,7 +79,7 @@
     },
     {
       "name": "eval-a-skill",
-      "path": "eval-a-skill/SKILL.md",
+      "path": "04-validate-handoff/eval-a-skill/SKILL.md",
       "description_chars": 149,
       "description_status": "target",
       "body_lines": 75,
@@ -90,7 +90,7 @@
     },
     {
       "name": "grill-me",
-      "path": "grill-me/SKILL.md",
+      "path": "02-govern-plan/grill-me/SKILL.md",
       "description_chars": 136,
       "description_status": "target",
       "body_lines": 4,
@@ -101,7 +101,7 @@
     },
     {
       "name": "grill-with-docs",
-      "path": "grill-with-docs/SKILL.md",
+      "path": "02-govern-plan/grill-with-docs/SKILL.md",
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 82,
@@ -112,7 +112,7 @@
     },
     {
       "name": "handoff",
-      "path": "handoff/SKILL.md",
+      "path": "04-validate-handoff/handoff/SKILL.md",
       "description_chars": 86,
       "description_status": "target",
       "body_lines": 10,
@@ -123,7 +123,7 @@
     },
     {
       "name": "improve-codebase-architecture",
-      "path": "improve-codebase-architecture/SKILL.md",
+      "path": "02-govern-plan/improve-codebase-architecture/SKILL.md",
       "description_chars": 130,
       "description_status": "target",
       "body_lines": 67,
@@ -134,7 +134,7 @@
     },
     {
       "name": "init-ai-repo",
-      "path": "init-ai-repo/SKILL.md",
+      "path": "03-configure-generate/init-ai-repo/SKILL.md",
       "description_chars": 138,
       "description_status": "target",
       "body_lines": 6,
@@ -145,7 +145,7 @@
     },
     {
       "name": "northstar",
-      "path": "northstar/SKILL.md",
+      "path": "02-govern-plan/northstar/SKILL.md",
       "description_chars": 142,
       "description_status": "target",
       "body_lines": 91,
@@ -156,7 +156,7 @@
     },
     {
       "name": "prototype",
-      "path": "prototype/SKILL.md",
+      "path": "03-configure-generate/prototype/SKILL.md",
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 26,
@@ -167,7 +167,7 @@
     },
     {
       "name": "publish-semver",
-      "path": "publish-semver/SKILL.md",
+      "path": "04-validate-handoff/publish-semver/SKILL.md",
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 69,
@@ -178,7 +178,7 @@
     },
     {
       "name": "setup-skills",
-      "path": "setup-skills/SKILL.md",
+      "path": "03-configure-generate/setup-skills/SKILL.md",
       "description_chars": 141,
       "description_status": "target",
       "body_lines": 42,
@@ -189,7 +189,7 @@
     },
     {
       "name": "tdd",
-      "path": "tdd/SKILL.md",
+      "path": "03-configure-generate/tdd/SKILL.md",
       "description_chars": 127,
       "description_status": "target",
       "body_lines": 80,
@@ -200,7 +200,7 @@
     },
     {
       "name": "to-issues",
-      "path": "to-issues/SKILL.md",
+      "path": "02-govern-plan/to-issues/SKILL.md",
       "description_chars": 131,
       "description_status": "target",
       "body_lines": 76,
@@ -211,7 +211,7 @@
     },
     {
       "name": "to-prd",
-      "path": "to-prd/SKILL.md",
+      "path": "02-govern-plan/to-prd/SKILL.md",
       "description_chars": 155,
       "description_status": "target",
       "body_lines": 79,
@@ -222,7 +222,7 @@
     },
     {
       "name": "triage",
-      "path": "triage/SKILL.md",
+      "path": "02-govern-plan/triage/SKILL.md",
       "description_chars": 141,
       "description_status": "target",
       "body_lines": 99,
@@ -233,7 +233,7 @@
     },
     {
       "name": "ubiquitous-language",
-      "path": "ubiquitous-language/SKILL.md",
+      "path": "01-discover-decide/ubiquitous-language/SKILL.md",
       "description_chars": 137,
       "description_status": "target",
       "body_lines": 87,
@@ -244,7 +244,7 @@
     },
     {
       "name": "using-git-worktrees",
-      "path": "using-git-worktrees/SKILL.md",
+      "path": "03-configure-generate/using-git-worktrees/SKILL.md",
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 77,
@@ -255,7 +255,7 @@
     },
     {
       "name": "write-a-skill",
-      "path": "write-a-skill/SKILL.md",
+      "path": "03-configure-generate/write-a-skill/SKILL.md",
       "description_chars": 153,
       "description_status": "target",
       "body_lines": 58,
@@ -266,7 +266,7 @@
     },
     {
       "name": "write-agent-docs",
-      "path": "write-agent-docs/SKILL.md",
+      "path": "03-configure-generate/write-agent-docs/SKILL.md",
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 57,
@@ -277,7 +277,7 @@
     },
     {
       "name": "zoom-out",
-      "path": "zoom-out/SKILL.md",
+      "path": "01-discover-decide/zoom-out/SKILL.md",
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 2,

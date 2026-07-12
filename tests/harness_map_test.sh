@@ -83,7 +83,7 @@ done
 # (b) The blueprint module carries the Harness Map generation rule, so the
 #     generated AGENTS.md is guaranteed to emit it.
 # ---------------------------------------------------------------------------
-blueprint="ai-catapult-init/modules/documentation-blueprint.md"
+blueprint="03-configure-generate/ai-catapult-init/modules/documentation-blueprint.md"
 if grep -Fq "Harness Map" "$blueprint"; then
   ok "documentation-blueprint.md carries the Harness Map generation rule"
 else

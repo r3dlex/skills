@@ -30,15 +30,8 @@ if [[ ! -f "$INSTALLER" ]]; then
   echo ""; echo "Results: PASS=$PASS FAIL=$FAIL"; exit 1
 fi
 
-# Count catalog skills (first-class dirs with SKILL.md), excluding internal dirs.
-expected=0
-for d in "$REPO_ROOT"/*/; do
-  s="$(basename "$d")"
-  # Mirror the installer's exact skip-list (.claude/.omc never match the */ glob
-  # but are listed for intent parity with install-claude-code.sh).
-  case "$s" in .claude|.omc|scripts|raw) continue;; esac
-  [[ -f "$d/SKILL.md" ]] && expected=$((expected + 1))
-done
+# Count catalog-selected default skills.
+expected="$(python3 scripts/catalog-query.py --host claude-code | wc -l | tr -d ' ')"
 
 tmphome="$(mktemp -d)"
 trap 'rm -rf "$tmphome"' EXIT

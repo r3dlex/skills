@@ -5,7 +5,7 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
-SCRIPT="autobahn/tdd-mode.sh"
+SCRIPT="04-validate-handoff/autobahn/tdd-mode.sh"
 PASS=0
 FAIL=0
 ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }

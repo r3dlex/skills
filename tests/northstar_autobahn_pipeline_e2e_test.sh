@@ -11,14 +11,14 @@
 # dry-run" — no GitHub PRs, no model, no network.
 #
 # Pipeline exercised, in order:
-#   1. northstar/prereq-check.sh   -> init-ai-repo present                (exit 0)
-#   2. northstar/handoff-write.sh  -> writes the A->B handoff             (exit 0)
-#   3. autobahn/prereq-check.sh    -> DISCOVERS northstar's handoff       (exit 0)
+#   1. 02-govern-plan/northstar/prereq-check.sh   -> init-ai-repo present                (exit 0)
+#   2. 02-govern-plan/northstar/handoff-write.sh  -> writes the A->B handoff             (exit 0)
+#   3. 04-validate-handoff/autobahn/prereq-check.sh    -> DISCOVERS northstar's handoff       (exit 0)
 #      + the slug autobahn discovers == the slug northstar wrote (handshake)
 #   4. NEGATIVE control: a fresh init-ai-repo with NO northstar run ->
-#      autobahn/prereq-check.sh fails closed                             (exit 1)
-#   5. autobahn/engine-pick.sh     -> selects a ship engine per goal signal
-#   6. autobahn/merge-authority.sh -> merge decision on an approved verdict(exit 0)
+#      04-validate-handoff/autobahn/prereq-check.sh fails closed                             (exit 1)
+#   5. 04-validate-handoff/autobahn/engine-pick.sh     -> selects a ship engine per goal signal
+#   6. 04-validate-handoff/autobahn/merge-authority.sh -> merge decision on an approved verdict(exit 0)
 #
 
 set -uo pipefail
@@ -27,11 +27,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
 FIXTURE="$REPO_ROOT/reference/fixtures/v3/standalone"
-N_PREREQ="$REPO_ROOT/northstar/prereq-check.sh"
-N_HANDOFF="$REPO_ROOT/northstar/handoff-write.sh"
-A_PREREQ="$REPO_ROOT/autobahn/prereq-check.sh"
-A_ENGINE="$REPO_ROOT/autobahn/engine-pick.sh"
-A_MERGE="$REPO_ROOT/autobahn/merge-authority.sh"
+N_PREREQ="$REPO_ROOT/02-govern-plan/northstar/prereq-check.sh"
+N_HANDOFF="$REPO_ROOT/02-govern-plan/northstar/handoff-write.sh"
+A_PREREQ="$REPO_ROOT/04-validate-handoff/autobahn/prereq-check.sh"
+A_ENGINE="$REPO_ROOT/04-validate-handoff/autobahn/engine-pick.sh"
+A_MERGE="$REPO_ROOT/04-validate-handoff/autobahn/merge-authority.sh"
 VERDICT="$REPO_ROOT/reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json"
 
 PASS=0

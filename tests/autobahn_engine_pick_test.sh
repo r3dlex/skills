@@ -2,7 +2,7 @@
 #
 # autobahn_engine_pick_test.sh  (PR-2, A2/A3; M3)
 #
-# Feeds fixture goal-shapes to autobahn/engine-pick.sh and asserts the chosen
+# Feeds fixture goal-shapes to 04-validate-handoff/autobahn/engine-pick.sh and asserts the chosen
 # engine for each signal, the precedence ties, and the --engine override path.
 # The mapping is a pure function of the goal record — deterministic, offline.
 #
@@ -12,7 +12,7 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
-SCRIPT="autobahn/engine-pick.sh"
+SCRIPT="04-validate-handoff/autobahn/engine-pick.sh"
 
 PASS=0
 FAIL=0

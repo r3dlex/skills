@@ -103,8 +103,8 @@ for fixture, topology in fixtures.items():
     assert "README.md" in manifest["entry_surfaces"]
 
 # Module/read-order surfaces must expose workflow as active, not planned-only.
-skill = Path("ai-catapult-init/SKILL.md").read_text()
-modules = Path("ai-catapult-init/modules/README.md").read_text()
+skill = Path("03-configure-generate/ai-catapult-init/SKILL.md").read_text()
+modules = Path("03-configure-generate/ai-catapult-init/modules/README.md").read_text()
 assert "`modules/workflow.md` — read when generating repo workflow docs" in skill
 assert "workflow.md` | Read when generating repo workflow docs" in modules
 assert "`modules/traceability.md` — read when generating stable traceability IDs" in skill

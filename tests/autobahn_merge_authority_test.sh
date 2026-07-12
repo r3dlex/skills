@@ -2,7 +2,7 @@
 #
 # autobahn_merge_authority_test.sh  (PR-2, A4; C1)
 #
-# Drives autobahn/merge-authority.sh against MOCKED host-policy verdict fixtures
+# Drives 04-validate-handoff/autobahn/merge-authority.sh against MOCKED host-policy verdict fixtures
 # (the same shape host-policy writes to .ai/host-policy/<host>/audit.jsonl) and
 # asserts the fail-closed exit-code contract:
 #   (a) approved verdict (mode=apply) + valid token -> merge          (exit 0)
@@ -23,7 +23,7 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
-SCRIPT="autobahn/merge-authority.sh"
+SCRIPT="04-validate-handoff/autobahn/merge-authority.sh"
 
 PASS=0
 FAIL=0

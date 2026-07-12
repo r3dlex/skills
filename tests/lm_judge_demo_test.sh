@@ -267,7 +267,7 @@ fi
 # -----------------------------------------------------------------------------
 # 7. modules/evals.md references the worked example.
 # -----------------------------------------------------------------------------
-EVALS_MD="$REPO_ROOT/ai-catapult-init/modules/evals.md"
+EVALS_MD="$REPO_ROOT/03-configure-generate/ai-catapult-init/modules/evals.md"
 if grep -Fq "judgment-demo.json" "$EVALS_MD"; then
   ok "modules/evals.md references the worked-example demonstration artifact"
 else

@@ -56,13 +56,13 @@ done
 #     teaching the marker convention, yet must PASS (mentions are in
 #     backticks / fenced blocks, not invocations).
 # ---------------------------------------------------------------------------
-if grep -Fq "AskUserQuestion" write-a-skill/SKILL.md \
-   && grep -Fq "codex:optional" write-a-skill/SKILL.md; then
+if grep -Fq "AskUserQuestion" 03-configure-generate/write-a-skill/SKILL.md \
+   && grep -Fq "codex:optional" 03-configure-generate/write-a-skill/SKILL.md; then
   ok "write-a-skill body documents the marker convention (mentions denylist strings)"
 else
   bad "write-a-skill body documents the marker convention (mentions denylist strings)"
 fi
-if bash "$CHECK" write-a-skill/SKILL.md >/dev/null 2>&1; then
+if bash "$CHECK" 03-configure-generate/write-a-skill/SKILL.md >/dev/null 2>&1; then
   ok "write-a-skill passes parity despite documenting denylist strings (self-reference guard)"
 else
   bad "write-a-skill passes parity despite documenting denylist strings (self-reference guard)"

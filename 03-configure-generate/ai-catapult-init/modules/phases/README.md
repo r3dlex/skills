@@ -29,5 +29,5 @@ The old eight-step model remains as internal checkpoint metadata, not as the pub
 Phase 3 generates `.ai/commands/omx/` and `.ai/commands/omc/` entries. The
 shared command-surface schema (fields, `.json` extension, and the omx `$name`
 vs omc `/oh-my-claudecode:name` invocation forms) is defined once in
-[`northstar/modules/command-surface.md`](../../../northstar/modules/command-surface.md);
+[`northstar/modules/command-surface.md`](../../../../02-govern-plan/northstar/modules/command-surface.md);
 this generator and the catalog skills emit identical shapes.

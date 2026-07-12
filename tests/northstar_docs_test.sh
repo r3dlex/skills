@@ -5,7 +5,7 @@
 # Proves the northstar skill docs are lean, Codex-parity-clean, and carry the
 # required delegation/contract keywords.
 #
-#   1. SKILL.md AND every northstar/modules/*.md pass check-codex-parity.sh.
+#   1. SKILL.md AND every 02-govern-plan/northstar/modules/*.md pass check-codex-parity.sh.
 #      (The existing codex_parity_test.sh globs */SKILL.md only and does NOT
 #       cover modules — this is the explicit per-skill module-parity gate, M1.)
 #   2. The SKILL.md + modules document the delegation contract (deep-interview
@@ -22,7 +22,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
 PARITY="scripts/check-codex-parity.sh"
-SKILL="northstar/SKILL.md"
+SKILL="02-govern-plan/northstar/SKILL.md"
 
 PASS=0
 FAIL=0
@@ -31,12 +31,12 @@ bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
 # --- 1. codex parity over SKILL.md + every module (M1) -----------------------
 docs=("$SKILL")
-for m in northstar/modules/*.md; do
+for m in 02-govern-plan/northstar/modules/*.md; do
   [[ -f "$m" ]] && docs+=("$m")
 done
 
 if [[ "${#docs[@]}" -le 1 ]]; then
-  bad "northstar/modules/*.md exist for the module-parity loop"
+  bad "02-govern-plan/northstar/modules/*.md exist for the module-parity loop"
 fi
 
 for doc in "${docs[@]}"; do
@@ -85,12 +85,12 @@ else
 fi
 
 # --- module content contracts ------------------------------------------------
-require_in "northstar/modules/loop.md" "both satisfied"
-require_in "northstar/modules/issue.md" "local-first"
-require_in "northstar/modules/handoff.md" "schema_version"
-require_in "northstar/modules/handoff.md" "optional_branches"
-require_in "northstar/modules/command-surface.md" "omx"
-require_in "northstar/modules/command-surface.md" "omc"
+require_in "02-govern-plan/northstar/modules/loop.md" "both satisfied"
+require_in "02-govern-plan/northstar/modules/issue.md" "local-first"
+require_in "02-govern-plan/northstar/modules/handoff.md" "schema_version"
+require_in "02-govern-plan/northstar/modules/handoff.md" "optional_branches"
+require_in "02-govern-plan/northstar/modules/command-surface.md" "omx"
+require_in "02-govern-plan/northstar/modules/command-surface.md" "omc"
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
