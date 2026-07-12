@@ -146,13 +146,13 @@ def validate_fixture(name: str, repo_id: str) -> None:
 def main() -> int:
     for fixture, repo_id in FIXTURES.items():
         validate_fixture(fixture, repo_id)
-    module = (ROOT / "ai-catapult-init/modules/cascade.md").read_text()
+    module = (ROOT / "03-configure-generate/ai-catapult-init/modules/cascade.md").read_text()
     for host in ["GitHub", "Azure DevOps", "GitLab", "Jira", "Local Markdown"]:
         assert host in module
     assert "setup-skills" in module
     assert "host-policy-automation.md" in module
-    assert (ROOT / "setup-skills/issue-tracker-jira.md").is_file()
-    setup_skill = (ROOT / "setup-skills/SKILL.md").read_text()
+    assert (ROOT / "03-configure-generate/setup-skills/issue-tracker-jira.md").is_file()
+    setup_skill = (ROOT / "03-configure-generate/setup-skills/SKILL.md").read_text()
     for required in ["Jira", "issue-tracker-jira.md", ".jira/", "Jira issue URLs", "Explicit tracker evidence wins"]:
         assert required in setup_skill, f"setup-skills missing Jira discoverability text: {required}"
     print("cascade fixture validation passed")

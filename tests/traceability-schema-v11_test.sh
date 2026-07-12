@@ -175,7 +175,7 @@ else:
     sys.exit(1)
 
 # --- 4. Module documents schema 1.1 and the two new types ---------------------
-module = (ROOT / "ai-catapult-init/modules/traceability.md").read_text()
+module = (ROOT / "03-configure-generate/ai-catapult-init/modules/traceability.md").read_text()
 assert "schema v1.1" in module or '"1.1"' in module, "module must document schema 1.1"
 assert "eval-result" in module, "module must document eval-result type"
 assert "trajectory-trace" in module, "module must document trajectory-trace type"

@@ -28,30 +28,30 @@ assert_file_exists() {
 }
 
 # (a) ai-catapult-init is the canonical skill
-assert_file_exists  "ai-catapult-init/SKILL.md"              "ai-catapult-init/SKILL.md exists"
-assert_file_contains "ai-catapult-init/SKILL.md" "name: ai-catapult-init" "ai-catapult-init canonical frontmatter name"
+assert_file_exists  "03-configure-generate/ai-catapult-init/SKILL.md"              "03-configure-generate/ai-catapult-init/SKILL.md exists"
+assert_file_contains "03-configure-generate/ai-catapult-init/SKILL.md" "name: ai-catapult-init" "ai-catapult-init canonical frontmatter name"
 
 # Canonical skill mentions both deprecated aliases in its description
-assert_file_contains "ai-catapult-init/SKILL.md" "init-ai-repo"   "ai-catapult-init description mentions init-ai-repo alias"
-assert_file_contains "ai-catapult-init/SKILL.md" "ai-sdlc-init"   "ai-catapult-init description mentions ai-sdlc-init alias"
+assert_file_contains "03-configure-generate/ai-catapult-init/SKILL.md" "init-ai-repo"   "ai-catapult-init description mentions init-ai-repo alias"
+assert_file_contains "03-configure-generate/ai-catapult-init/SKILL.md" "ai-sdlc-init"   "ai-catapult-init description mentions ai-sdlc-init alias"
 
 # (b) init-ai-repo is a deprecated alias -> ai-catapult-init
-assert_file_exists  "init-ai-repo/SKILL.md"                   "init-ai-repo/SKILL.md exists (alias)"
-assert_file_contains "init-ai-repo/SKILL.md" "name: init-ai-repo" "init-ai-repo alias frontmatter name preserved"
-assert_file_contains "init-ai-repo/SKILL.md" "../ai-catapult-init/SKILL.md" "init-ai-repo alias points to ai-catapult-init"
-assert_file_contains "init-ai-repo/README.md" "../ai-catapult-init/SKILL.md" "init-ai-repo README points to ai-catapult-init"
+assert_file_exists  "03-configure-generate/init-ai-repo/SKILL.md"                   "03-configure-generate/init-ai-repo/SKILL.md exists (alias)"
+assert_file_contains "03-configure-generate/init-ai-repo/SKILL.md" "name: init-ai-repo" "init-ai-repo alias frontmatter name preserved"
+assert_file_contains "03-configure-generate/init-ai-repo/SKILL.md" "../ai-catapult-init/SKILL.md" "init-ai-repo alias points to ai-catapult-init"
+assert_file_contains "03-configure-generate/init-ai-repo/README.md" "../ai-catapult-init/SKILL.md" "init-ai-repo README points to ai-catapult-init"
 
 # (c) ai-sdlc-init is a deprecated alias -> ai-catapult-init
-assert_file_exists  "ai-sdlc-init/SKILL.md"                   "ai-sdlc-init/SKILL.md exists (alias)"
-assert_file_contains "ai-sdlc-init/SKILL.md" "name: ai-sdlc-init" "ai-sdlc-init alias frontmatter name preserved"
-assert_file_contains "ai-sdlc-init/SKILL.md" "../ai-catapult-init/SKILL.md" "ai-sdlc-init alias points to ai-catapult-init"
-assert_file_contains "ai-sdlc-init/README.md" "../ai-catapult-init/SKILL.md" "ai-sdlc-init README points to ai-catapult-init"
+assert_file_exists  "03-configure-generate/ai-sdlc-init/SKILL.md"                   "03-configure-generate/ai-sdlc-init/SKILL.md exists (alias)"
+assert_file_contains "03-configure-generate/ai-sdlc-init/SKILL.md" "name: ai-sdlc-init" "ai-sdlc-init alias frontmatter name preserved"
+assert_file_contains "03-configure-generate/ai-sdlc-init/SKILL.md" "../ai-catapult-init/SKILL.md" "ai-sdlc-init alias points to ai-catapult-init"
+assert_file_contains "03-configure-generate/ai-sdlc-init/README.md" "../ai-catapult-init/SKILL.md" "ai-sdlc-init README points to ai-catapult-init"
 
 # Old canonical must NOT still claim to be canonical
-if grep -Fq "name: init-ai-repo" "ai-catapult-init/SKILL.md" 2>/dev/null; then
-  bad "ai-catapult-init/SKILL.md must not have name: init-ai-repo (it is the new canonical)"
+if grep -Fq "name: init-ai-repo" "03-configure-generate/ai-catapult-init/SKILL.md" 2>/dev/null; then
+  bad "03-configure-generate/ai-catapult-init/SKILL.md must not have name: init-ai-repo (it is the new canonical)"
 else
-  ok "ai-catapult-init/SKILL.md does not have stale name: init-ai-repo"
+  ok "03-configure-generate/ai-catapult-init/SKILL.md does not have stale name: init-ai-repo"
 fi
 
 echo ""

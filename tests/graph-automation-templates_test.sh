@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # graph-automation-templates_test.sh
-# Slice 4 structural checks for ai-catapult-init/templates/graph-automation/
+# Slice 4 structural checks for 03-configure-generate/ai-catapult-init/templates/graph-automation/
 #
 # Checks:
 #   (a) Template files exist
@@ -14,7 +14,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TEMPLATES="$REPO_ROOT/ai-catapult-init/templates"
+TEMPLATES="$REPO_ROOT/03-configure-generate/ai-catapult-init/templates"
 MANIFEST="$TEMPLATES/boundary-manifest.json"
 GA="$TEMPLATES/graph-automation"
 
@@ -421,9 +421,9 @@ fi
 echo ""
 echo "--- (g) Module prose and documentation wiring ---"
 
-MODULE="$REPO_ROOT/ai-catapult-init/modules/graph-automation.md"
-MODULES_README="$REPO_ROOT/ai-catapult-init/modules/README.md"
-SKILL_MD="$REPO_ROOT/ai-catapult-init/SKILL.md"
+MODULE="$REPO_ROOT/03-configure-generate/ai-catapult-init/modules/graph-automation.md"
+MODULES_README="$REPO_ROOT/03-configure-generate/ai-catapult-init/modules/README.md"
+SKILL_MD="$REPO_ROOT/03-configure-generate/ai-catapult-init/SKILL.md"
 
 if [ -f "$MODULE" ]; then
     pass "graph-automation.md module exists"

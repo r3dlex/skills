@@ -5,7 +5,7 @@
 # Proves the autobahn skill docs are lean, Codex-parity-clean, and carry the
 # required delegation/contract keywords.
 #
-#   1. SKILL.md AND every autobahn/modules/*.md pass check-codex-parity.sh.
+#   1. SKILL.md AND every 04-validate-handoff/autobahn/modules/*.md pass check-codex-parity.sh.
 #      (The existing codex_parity_test.sh globs */SKILL.md only and does NOT
 #       cover modules — this is the explicit per-skill module-parity gate, M1.)
 #   2. The SKILL.md + modules document the delegation contract (ultragoal
@@ -23,7 +23,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
 PARITY="scripts/check-codex-parity.sh"
-SKILL="autobahn/SKILL.md"
+SKILL="04-validate-handoff/autobahn/SKILL.md"
 
 PASS=0
 FAIL=0
@@ -32,12 +32,12 @@ bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
 # --- 1. codex parity over SKILL.md + every module (M1) -----------------------
 docs=("$SKILL")
-for m in autobahn/modules/*.md; do
+for m in 04-validate-handoff/autobahn/modules/*.md; do
   [[ -f "$m" ]] && docs+=("$m")
 done
 
 if [[ "${#docs[@]}" -le 1 ]]; then
-  bad "autobahn/modules/*.md exist for the module-parity loop"
+  bad "04-validate-handoff/autobahn/modules/*.md exist for the module-parity loop"
 fi
 
 for doc in "${docs[@]}"; do
@@ -86,26 +86,26 @@ else
 fi
 
 # --- module content contracts ------------------------------------------------
-require_in "autobahn/modules/engine-pick.md" "ultraqa"
-require_in "autobahn/modules/engine-pick.md" "ultrawork"
-require_in "autobahn/modules/engine-pick.md" "ralph"
-require_in "autobahn/modules/engine-pick.md" "precedence"
-require_in "autobahn/modules/engine-pick.md" "override"
-require_in "autobahn/modules/orchestration.md" "one PR per goal"
-require_in "autobahn/modules/readiness.md" "root_causes"
-require_in "autobahn/modules/readiness.md" "evidence"
-require_in "autobahn/modules/tdd-safety.md" "any coverage level"
-require_in "autobahn/modules/tdd-safety.md" "legacy_risk_reason"
-require_in "autobahn/modules/tdd-safety.md" "blast-radius"
-require_in "autobahn/modules/review-loop.md" "code-reviewer"
-require_in "autobahn/modules/review-loop.md" "architect"
-require_in "autobahn/modules/merge-authority.md" "ready-for-human"
-require_in "autobahn/modules/merge-authority.md" "thin adapter"
-require_in "autobahn/modules/merge-authority.md" "host-policy"
-require_in "autobahn/modules/cascade-closure.md" "idempotent"
-require_in "autobahn/modules/cascade-closure.md" "triage"
-require_in "autobahn/modules/command-surface.md" "omx"
-require_in "autobahn/modules/command-surface.md" "omc"
+require_in "04-validate-handoff/autobahn/modules/engine-pick.md" "ultraqa"
+require_in "04-validate-handoff/autobahn/modules/engine-pick.md" "ultrawork"
+require_in "04-validate-handoff/autobahn/modules/engine-pick.md" "ralph"
+require_in "04-validate-handoff/autobahn/modules/engine-pick.md" "precedence"
+require_in "04-validate-handoff/autobahn/modules/engine-pick.md" "override"
+require_in "04-validate-handoff/autobahn/modules/orchestration.md" "one PR per goal"
+require_in "04-validate-handoff/autobahn/modules/readiness.md" "root_causes"
+require_in "04-validate-handoff/autobahn/modules/readiness.md" "evidence"
+require_in "04-validate-handoff/autobahn/modules/tdd-safety.md" "any coverage level"
+require_in "04-validate-handoff/autobahn/modules/tdd-safety.md" "legacy_risk_reason"
+require_in "04-validate-handoff/autobahn/modules/tdd-safety.md" "blast-radius"
+require_in "04-validate-handoff/autobahn/modules/review-loop.md" "code-reviewer"
+require_in "04-validate-handoff/autobahn/modules/review-loop.md" "architect"
+require_in "04-validate-handoff/autobahn/modules/merge-authority.md" "ready-for-human"
+require_in "04-validate-handoff/autobahn/modules/merge-authority.md" "thin adapter"
+require_in "04-validate-handoff/autobahn/modules/merge-authority.md" "host-policy"
+require_in "04-validate-handoff/autobahn/modules/cascade-closure.md" "idempotent"
+require_in "04-validate-handoff/autobahn/modules/cascade-closure.md" "triage"
+require_in "04-validate-handoff/autobahn/modules/command-surface.md" "omx"
+require_in "04-validate-handoff/autobahn/modules/command-surface.md" "omc"
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"

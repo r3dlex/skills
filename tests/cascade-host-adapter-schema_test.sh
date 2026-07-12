@@ -89,7 +89,7 @@ for fixture in ("standalone", "umbrella"):
 print("PASS: all adapter fixtures declare 10 ops, idempotency key, link fields, no credentials")
 
 # --- 2. Module documents the host-adapter JSON schema -----------------------
-module = (ROOT / "ai-catapult-init/modules/cascade.md").read_text()
+module = (ROOT / "03-configure-generate/ai-catapult-init/modules/cascade.md").read_text()
 required_doc = [
     ".ai/cascade/host-adapters/<host>.json",
     "schema_version",

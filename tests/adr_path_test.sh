@@ -49,9 +49,9 @@ bad() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 is_allowlisted() {
   case "$1" in
     # Legacy-source column of the migration mapping table (docs/adr -> v3).
-    ai-catapult-init/modules/migration.md) return 0 ;;
+    03-configure-generate/ai-catapult-init/modules/migration.md) return 0 ;;
     # Blueprint defers `docs/adr/` legacy-artifact classification to migration.md.
-    ai-catapult-init/modules/documentation-blueprint.md) return 0 ;;
+    03-configure-generate/ai-catapult-init/modules/documentation-blueprint.md) return 0 ;;
 
     # Still-physical legacy ADR directory in this repo (not yet migrated) and its
     # verbatim golden mirrors — content-diffed by scripts/verify-golden-dir.sh.
@@ -61,8 +61,8 @@ is_allowlisted() {
     scripts/verify-golden-dir.sh) return 0 ;;
 
     # Legacy template bodies that mirror the still-physical `docs/adr/` artifacts.
-    ai-catapult-init/REFERENCE.md) return 0 ;;
-    ai-catapult-init/modules/foundation.md) return 0 ;;
+    03-configure-generate/ai-catapult-init/REFERENCE.md) return 0 ;;
+    03-configure-generate/ai-catapult-init/modules/foundation.md) return 0 ;;
 
     # Fixture that intentionally models a legacy `docs/adr/` SOURCE being copied to v3.
     reference/fixtures/v3/legacy-migration/README.md) return 0 ;;
@@ -74,10 +74,10 @@ is_allowlisted() {
     tests/adr_path_test.sh) return 0 ;;
 
     # Generic skill prose teaching the conventional ADR location for ARBITRARY repos.
-    grill-with-docs/ADR-FORMAT.md) return 0 ;;
-    grill-with-docs/SKILL.md) return 0 ;;
-    setup-skills/SKILL.md) return 0 ;;
-    setup-skills/domain.md) return 0 ;;
+    02-govern-plan/grill-with-docs/ADR-FORMAT.md) return 0 ;;
+    02-govern-plan/grill-with-docs/SKILL.md) return 0 ;;
+    03-configure-generate/setup-skills/SKILL.md) return 0 ;;
+    03-configure-generate/setup-skills/domain.md) return 0 ;;
   esac
   return 1
 }

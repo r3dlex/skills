@@ -15,7 +15,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-MODULE="ai-catapult-init/modules/skill-modernization.md"
+MODULE="03-configure-generate/ai-catapult-init/modules/skill-modernization.md"
 
 fail=0
 assert_contains() {

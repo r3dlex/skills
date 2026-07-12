@@ -2,7 +2,7 @@
 #
 # northstar_prereq_test.sh  (PR-1, N3)
 #
-# Proves northstar/prereq-check.sh is a read-only, fail-closed presence gate:
+# Proves 02-govern-plan/northstar/prereq-check.sh is a read-only, fail-closed presence gate:
 #   (a) against the standalone fixture (real .ai/) -> PASS (exit 0).
 #   (b) against a non-initialized temp dir         -> FAIL closed (non-zero)
 #       with actionable guidance on stderr.
@@ -16,7 +16,7 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
-SCRIPT="northstar/prereq-check.sh"
+SCRIPT="02-govern-plan/northstar/prereq-check.sh"
 FIXTURE="reference/fixtures/v3/standalone"
 
 PASS=0

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ai-catapult-templates_test.sh
-# Structural checks for ai-catapult-init/templates/
+# Structural checks for 03-configure-generate/ai-catapult-init/templates/
 #
 # Checks:
-#   (a) ai-catapult-init/templates/ directory exists
+#   (a) 03-configure-generate/ai-catapult-init/templates/ directory exists
 #   (b) boundary-manifest.json is present, parses as valid JSON, and every
 #       "mechanical" path has a corresponding template file
 #   (c) all *.json files under templates/ are valid JSON (placeholder tokens
@@ -17,7 +17,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TEMPLATES="$REPO_ROOT/ai-catapult-init/templates"
+TEMPLATES="$REPO_ROOT/03-configure-generate/ai-catapult-init/templates"
 MANIFEST="$TEMPLATES/boundary-manifest.json"
 
 FAIL=0
@@ -32,9 +32,9 @@ echo ""
 # ─── (a) templates/ directory exists ──────────────────────────────────────────
 echo "--- (a) Directory presence ---"
 if [ -d "$TEMPLATES" ]; then
-    pass "ai-catapult-init/templates/ exists"
+    pass "03-configure-generate/ai-catapult-init/templates/ exists"
 else
-    fail "ai-catapult-init/templates/ directory missing"
+    fail "03-configure-generate/ai-catapult-init/templates/ directory missing"
 fi
 
 # ─── (b) boundary-manifest.json present, valid JSON, mechanical paths covered ─

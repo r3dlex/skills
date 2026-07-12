@@ -9,7 +9,7 @@
   "skills": [
     {
       "name": "ai-catapult-init",
-      "source_path": "ai-catapult-init",
+      "source_path": "03-configure-generate/ai-catapult-init",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "01-discover-decide",
@@ -28,7 +28,7 @@
     },
     {
       "name": "ai-sdlc-init",
-      "source_path": "ai-sdlc-init",
+      "source_path": "03-configure-generate/ai-sdlc-init",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "01-discover-decide",
@@ -47,7 +47,7 @@
     },
     {
       "name": "autobahn",
-      "source_path": "autobahn",
+      "source_path": "04-validate-handoff/autobahn",
       "owner_phase": "04-validate-handoff",
       "applies_to_phases": [
         "03-configure-generate",
@@ -64,7 +64,7 @@
     },
     {
       "name": "design-an-api-or-interface",
-      "source_path": "design-an-api-or-interface",
+      "source_path": "02-govern-plan/design-an-api-or-interface",
       "owner_phase": "02-govern-plan",
       "applies_to_phases": [
         "02-govern-plan"
@@ -80,7 +80,7 @@
     },
     {
       "name": "diagnose",
-      "source_path": "diagnose",
+      "source_path": "04-validate-handoff/diagnose",
       "owner_phase": "04-validate-handoff",
       "applies_to_phases": [
         "01-discover-decide",
@@ -98,7 +98,7 @@
     },
     {
       "name": "edit-article",
-      "source_path": "edit-article",
+      "source_path": "03-configure-generate/edit-article",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "03-configure-generate",
@@ -115,7 +115,7 @@
     },
     {
       "name": "eval-a-skill",
-      "source_path": "eval-a-skill",
+      "source_path": "04-validate-handoff/eval-a-skill",
       "owner_phase": "04-validate-handoff",
       "applies_to_phases": [
         "03-configure-generate",
@@ -132,7 +132,7 @@
     },
     {
       "name": "grill-me",
-      "source_path": "grill-me",
+      "source_path": "02-govern-plan/grill-me",
       "owner_phase": "02-govern-plan",
       "applies_to_phases": [
         "02-govern-plan"
@@ -148,7 +148,7 @@
     },
     {
       "name": "grill-with-docs",
-      "source_path": "grill-with-docs",
+      "source_path": "02-govern-plan/grill-with-docs",
       "owner_phase": "02-govern-plan",
       "applies_to_phases": [
         "02-govern-plan"
@@ -164,7 +164,7 @@
     },
     {
       "name": "handoff",
-      "source_path": "handoff",
+      "source_path": "04-validate-handoff/handoff",
       "owner_phase": "04-validate-handoff",
       "applies_to_phases": [
         "04-validate-handoff"
@@ -180,7 +180,7 @@
     },
     {
       "name": "improve-codebase-architecture",
-      "source_path": "improve-codebase-architecture",
+      "source_path": "02-govern-plan/improve-codebase-architecture",
       "owner_phase": "02-govern-plan",
       "applies_to_phases": [
         "02-govern-plan",
@@ -197,7 +197,7 @@
     },
     {
       "name": "init-ai-repo",
-      "source_path": "init-ai-repo",
+      "source_path": "03-configure-generate/init-ai-repo",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "01-discover-decide",
@@ -216,7 +216,7 @@
     },
     {
       "name": "northstar",
-      "source_path": "northstar",
+      "source_path": "02-govern-plan/northstar",
       "owner_phase": "02-govern-plan",
       "applies_to_phases": [
         "01-discover-decide",
@@ -233,7 +233,7 @@
     },
     {
       "name": "prototype",
-      "source_path": "prototype",
+      "source_path": "03-configure-generate/prototype",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "01-discover-decide",
@@ -250,7 +250,7 @@
     },
     {
       "name": "publish-semver",
-      "source_path": "publish-semver",
+      "source_path": "04-validate-handoff/publish-semver",
       "owner_phase": "04-validate-handoff",
       "applies_to_phases": [
         "03-configure-generate",
@@ -267,7 +267,7 @@
     },
     {
       "name": "setup-skills",
-      "source_path": "setup-skills",
+      "source_path": "03-configure-generate/setup-skills",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "01-discover-decide",
@@ -285,7 +285,7 @@
     },
     {
       "name": "tdd",
-      "source_path": "tdd",
+      "source_path": "03-configure-generate/tdd",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "03-configure-generate",
@@ -302,7 +302,7 @@
     },
     {
       "name": "to-issues",
-      "source_path": "to-issues",
+      "source_path": "02-govern-plan/to-issues",
       "owner_phase": "02-govern-plan",
       "applies_to_phases": [
         "02-govern-plan"
@@ -318,7 +318,7 @@
     },
     {
       "name": "to-prd",
-      "source_path": "to-prd",
+      "source_path": "02-govern-plan/to-prd",
       "owner_phase": "02-govern-plan",
       "applies_to_phases": [
         "02-govern-plan"
@@ -334,7 +334,7 @@
     },
     {
       "name": "triage",
-      "source_path": "triage",
+      "source_path": "02-govern-plan/triage",
       "owner_phase": "02-govern-plan",
       "applies_to_phases": [
         "01-discover-decide",
@@ -352,7 +352,7 @@
     },
     {
       "name": "ubiquitous-language",
-      "source_path": "ubiquitous-language",
+      "source_path": "01-discover-decide/ubiquitous-language",
       "owner_phase": "01-discover-decide",
       "applies_to_phases": [
         "01-discover-decide",
@@ -369,7 +369,7 @@
     },
     {
       "name": "using-git-worktrees",
-      "source_path": "using-git-worktrees",
+      "source_path": "03-configure-generate/using-git-worktrees",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "03-configure-generate"
@@ -385,7 +385,7 @@
     },
     {
       "name": "write-a-skill",
-      "source_path": "write-a-skill",
+      "source_path": "03-configure-generate/write-a-skill",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "02-govern-plan",
@@ -403,7 +403,7 @@
     },
     {
       "name": "write-agent-docs",
-      "source_path": "write-agent-docs",
+      "source_path": "03-configure-generate/write-agent-docs",
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "02-govern-plan",
@@ -421,7 +421,7 @@
     },
     {
       "name": "zoom-out",
-      "source_path": "zoom-out",
+      "source_path": "01-discover-decide/zoom-out",
       "owner_phase": "01-discover-decide",
       "applies_to_phases": [
         "01-discover-decide",

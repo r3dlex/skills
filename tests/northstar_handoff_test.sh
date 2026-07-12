@@ -2,7 +2,7 @@
 #
 # northstar_handoff_test.sh  (PR-1, N4)
 #
-# Proves northstar/handoff-write.sh writes a valid A->B handoff into a temp copy
+# Proves 02-govern-plan/northstar/handoff-write.sh writes a valid A->B handoff into a temp copy
 # of the standalone fixture (.ai/), and that the result satisfies:
 #   1. a handoff entry file in <root>/.ai/handoff/ referencing spec + sliced goals
 #   2. the workflow manifest gains a resolvable optional_branches record AND the
@@ -21,7 +21,7 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
-SCRIPT="$REPO_ROOT/northstar/handoff-write.sh"
+SCRIPT="$REPO_ROOT/02-govern-plan/northstar/handoff-write.sh"
 FIXTURE="$REPO_ROOT/reference/fixtures/v3/standalone"
 
 PASS=0

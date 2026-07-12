@@ -16,7 +16,7 @@
 #                        execution=out-of-band)
 #
 # This test asserts:
-#   1. eval-a-skill/SKILL.md exists with valid frontmatter (name + description).
+#   1. 04-validate-handoff/eval-a-skill/SKILL.md exists with valid frontmatter (name + description).
 #   2. The skill documents the structural-CI-vs-out-of-band split: a
 #      structurally-valid triplet matching the P0 shape (structure-only in CI)
 #      AND an opt-in out-of-band runner that actually invokes the judge, never in
@@ -34,7 +34,7 @@ FAIL=0
 ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
 bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
-SKILL_DIR="$REPO_ROOT/eval-a-skill"
+SKILL_DIR="$REPO_ROOT/04-validate-handoff/eval-a-skill"
 SKILL_MD="$SKILL_DIR/SKILL.md"
 
 echo "eval-a-skill Capability Tests"
@@ -78,9 +78,9 @@ triplet_is_valid() {
 # 1. SKILL.md exists with valid frontmatter (name + description).
 # -----------------------------------------------------------------------------
 if [ -f "$SKILL_MD" ]; then
-  ok "eval-a-skill/SKILL.md exists"
+  ok "04-validate-handoff/eval-a-skill/SKILL.md exists"
 else
-  bad "eval-a-skill/SKILL.md must exist ($SKILL_MD)"
+  bad "04-validate-handoff/eval-a-skill/SKILL.md must exist ($SKILL_MD)"
   echo ""
   echo "Results: PASS=$PASS FAIL=$FAIL"
   exit 1

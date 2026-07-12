@@ -135,9 +135,11 @@ import json, os, sys
 artifact, repo_root = sys.argv[1:3]
 d = json.load(open(artifact))
 skill = d.get("skill_under_test", "")
-skill_dir = os.path.join(repo_root, skill)
+catalog = json.load(open(os.path.join(repo_root, "catalog.json")))
+entry = next((item for item in catalog["skills"] if item["name"] == skill), None)
+skill_dir = os.path.join(repo_root, entry["source_path"]) if entry else ""
 skill_md = os.path.join(skill_dir, "SKILL.md")
-print("yes" if skill and os.path.isdir(skill_dir) and os.path.isfile(skill_md) else "no")
+print("yes" if skill_dir and os.path.isdir(skill_dir) and os.path.isfile(skill_md) else "no")
 PY
 )"
   if [ "$SKILL_OK" = "yes" ]; then

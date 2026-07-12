@@ -5,8 +5,8 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
-READINESS="autobahn/readiness-check.sh"
-PREREQ="autobahn/prereq-check.sh"
+READINESS="04-validate-handoff/autobahn/readiness-check.sh"
+PREREQ="04-validate-handoff/autobahn/prereq-check.sh"
 FIXTURE="reference/fixtures/v3/standalone"
 PASS=0
 FAIL=0
@@ -99,7 +99,7 @@ else
 fi
 
 # An explicit direct goal must be validated even when an unrelated handoff exists.
-bash northstar/handoff-write.sh --root "$tmp/repo" \
+bash 02-govern-plan/northstar/handoff-write.sh --root "$tmp/repo" \
   --spec "docs/specifications/ACTIVE/direct-ready-test.md" --slug "other-work" >/dev/null 2>&1
 if bash "$PREREQ" --root "$tmp/repo" --goal "$tmp/vague.json" >/dev/null 2>&1; then
   bad "explicit vague goal cannot fall through to an existing handoff"

@@ -3,7 +3,7 @@
 # command_surface_schema_test.sh  (PR-1, N5a/N5b; C2)
 #
 # Validates the command-surface schema designed once in
-# northstar/modules/command-surface.md and the generated northstar entries:
+# 02-govern-plan/northstar/modules/command-surface.md and the generated northstar entries:
 #   - .ai/commands/omx/northstar.json and .ai/commands/omc/northstar.json
 #     (in the standalone fixture root) parse as JSON
 #   - both carry the required fields: name, surface, skill, invocation, args,
@@ -12,7 +12,7 @@
 #   - the omx invocation uses the $<name> form; the omc invocation uses the
 #     /oh-my-claudecode:<name> form; both point at the same skill
 #   - the schema is documented in the module and cross-referenced from
-#     ai-catapult-init/modules/phases/README.md
+#     03-configure-generate/ai-catapult-init/modules/phases/README.md
 #
 # Offline, deterministic, no model/network.
 #
@@ -78,7 +78,7 @@ else
 fi
 
 # schema documented + cross-referenced
-MODULE="northstar/modules/command-surface.md"
+MODULE="02-govern-plan/northstar/modules/command-surface.md"
 for needle in "name" "surface" "invocation" "delegates_to" '$northstar' "/oh-my-claudecode:northstar"; do
   if grep -qF -- "$needle" "$MODULE" 2>/dev/null; then
     ok "command-surface module documents '$needle'"
@@ -87,7 +87,7 @@ for needle in "name" "surface" "invocation" "delegates_to" '$northstar' "/oh-my-
   fi
 done
 
-if grep -q "command-surface" ai-catapult-init/modules/phases/README.md 2>/dev/null; then
+if grep -q "command-surface" 03-configure-generate/ai-catapult-init/modules/phases/README.md 2>/dev/null; then
   ok "init-ai-repo phases README cross-references the command-surface schema"
 else
   bad "init-ai-repo phases README cross-references the command-surface schema"
@@ -142,7 +142,7 @@ else
   bad "autobahn omx/omc schema validation"
 fi
 
-A_MODULE="autobahn/modules/command-surface.md"
+A_MODULE="04-validate-handoff/autobahn/modules/command-surface.md"
 for needle in '$autobahn' "/oh-my-claudecode:autobahn"; do
   if grep -qF -- "$needle" "$A_MODULE" 2>/dev/null; then
     ok "autobahn command-surface module documents '$needle'"

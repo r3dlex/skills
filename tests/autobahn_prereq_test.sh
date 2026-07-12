@@ -2,7 +2,7 @@
 #
 # autobahn_prereq_test.sh  (PR-2, A3)
 #
-# Proves autobahn/prereq-check.sh is a read-only, fail-closed gate that requires
+# Proves 04-validate-handoff/autobahn/prereq-check.sh is a read-only, fail-closed gate that requires
 # BOTH init-ai-repo structure AND a valid northstar handoff. Also exercises the
 # A->B contract end-to-end: the handoff this consumes is the one northstar's
 # handoff-write.sh produces (shared fixture).
@@ -20,8 +20,8 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
-SCRIPT="autobahn/prereq-check.sh"
-NORTHSTAR_WRITE="northstar/handoff-write.sh"
+SCRIPT="04-validate-handoff/autobahn/prereq-check.sh"
+NORTHSTAR_WRITE="02-govern-plan/northstar/handoff-write.sh"
 FIXTURE="reference/fixtures/v3/standalone"
 
 PASS=0
