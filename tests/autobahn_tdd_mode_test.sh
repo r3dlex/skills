@@ -11,6 +11,26 @@ FAIL=0
 ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
 bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
+assert_missing_value() {
+  local flag="$1" output rc
+  output="$(python3 - "$SCRIPT" "$flag" <<'PY'
+import subprocess, sys
+try:
+    result = subprocess.run(["bash", sys.argv[1], sys.argv[2]], capture_output=True, text=True, timeout=2)
+except subprocess.TimeoutExpired:
+    print("124|")
+else:
+    print(f"{result.returncode}|{result.stderr}")
+PY
+)"
+  rc="${output%%|*}"
+  if [[ "$rc" -eq 2 && "$output" == *"usage:"* ]]; then
+    ok "tdd-mode missing $flag value returns usage without hanging"
+  else
+    bad "tdd-mode missing $flag value returns usage without hanging (result: $output)"
+  fi
+}
+
 assert_mode() {
   local want="$1"; shift
   local got rc
@@ -27,6 +47,10 @@ assert_mode legacy-safe --coverage-percent 29.99
 assert_mode standard --coverage-percent 30
 assert_mode standard --coverage-percent 85.4
 assert_mode legacy-safe --coverage-percent 85.4 --legacy-risk true --legacy-risk-reason "High coupling at the change seam"
+
+for flag in --goal --coverage-percent --legacy-risk --legacy-risk-reason; do
+  assert_missing_value "$flag"
+done
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

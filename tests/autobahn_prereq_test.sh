@@ -29,10 +29,33 @@ FAIL=0
 ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
 bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
+assert_missing_value() {
+  local flag="$1" output rc
+  output="$(python3 - "$SCRIPT" "$flag" <<'PY'
+import subprocess, sys
+try:
+    result = subprocess.run(["bash", sys.argv[1], sys.argv[2]], capture_output=True, text=True, timeout=2)
+except subprocess.TimeoutExpired:
+    print("124|")
+else:
+    print(f"{result.returncode}|{result.stderr}")
+PY
+)"
+  rc="${output%%|*}"
+  if [[ "$rc" -eq 2 && "$output" == *"usage:"* ]]; then
+    ok "prereq-check missing $flag value returns usage without hanging"
+  else
+    bad "prereq-check missing $flag value returns usage without hanging (result: $output)"
+  fi
+}
+
 if [[ ! -f "$SCRIPT" ]]; then
   bad "prereq-check.sh exists"
   echo ""; echo "Results: PASS=$PASS FAIL=$FAIL"; exit 1
 fi
+
+assert_missing_value --root
+assert_missing_value --goal
 
 tmp_root="$(mktemp -d)"   # (a) initialized + handoff
 tmp_noh="$(mktemp -d)"    # (b) initialized, no handoff
