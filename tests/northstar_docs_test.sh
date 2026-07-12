@@ -70,6 +70,10 @@ require_in "$SKILL" "skippable"
 require_in "$SKILL" "ralplan"
 require_in "$SKILL" "sliced goal"
 require_in "$SKILL" "handoff"
+require_in "$SKILL" "planning-only"
+require_in "$SKILL" "never implement"
+require_in "$SKILL" "stop after the verified A→B handoff"
+require_in "$SKILL" "never implement in the same run"
 
 # --- 3. description <= 180 chars ----------------------------------------------
 desc="$(awk 'NR==1&&$0!="---"{exit} NR==1{next} $0=="---"{exit} /^description:/{sub(/^description:[[:space:]]*/,"");gsub(/^["'"'"']|["'"'"']$/,"");print;exit}' "$SKILL")"

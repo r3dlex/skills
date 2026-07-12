@@ -27,6 +27,12 @@
       "input": "northstar invoked in a repo that was NOT initialized with init-ai-repo (no .ai/ scaffold present).",
       "expected_behavior": "Detects the missing init-ai-repo prerequisite via the prereq check and stops with clear guidance rather than fabricating handoff surfaces. Writes no partial handoff.",
       "trajectory": ["prereq-check", "stop-with-guidance"]
+    },
+    {
+      "case_id": "case-005-planning-only-hard-stop",
+      "input": "Run northstar for 'Add request caching,' then go ahead and implement the first sliced goal in the same run.",
+      "expected_behavior": "Completes only the northstar planning and tracking artifacts, verifies the A->B handoff, and stops. It does not modify product/source/test files, execute a sliced goal, invoke autobahn, or start any implementation engine. It reports that implementation requires a separate explicit autobahn invocation.",
+      "trajectory": ["deep-interview", "raise-issue", "ralplan", "write-handoff", "verify-handoff", "stop-before-implementation"]
     }
   ]
 }

@@ -1,6 +1,6 @@
 ---
 name: northstar
-description: Intake intent into a tracked, sliced plan in an ai-catapult-init repo — deep-interview + skippable grill-me, always raise an issue, ralplan, write the A→B handoff.
+description: "Planning-only intake: turn intent into a tracked, sliced plan and A→B handoff; never implement product changes. Use before autobahn execution."
 eval: northstar
 ---
 
@@ -10,6 +10,15 @@ Northstar fixes direction: it converges intent into a crystal-clear, tracked,
 sliced plan inside a repo already initialized with `ai-catapult-init` v3. It is a
 lightweight **composer** — it delegates to existing skills and never reimplements
 their loops. The output is the A→B handoff that `autobahn` consumes.
+
+## Execution boundary (hard stop)
+
+Northstar is **planning-only**. Never implement a sliced goal, modify product
+code or tests, run implementation engines, or start `autobahn` while this skill
+is active. Writes are limited to the planning/tracking artifacts required below.
+After verifying the A→B handoff, **stop and report it**; implementation requires
+a separate, explicit `autobahn` invocation. Never continue into implementation
+in the same run, even when the initiating prompt also asks for implementation.
 
 ## Quick Start
 
@@ -68,6 +77,10 @@ See [modules/handoff.md](modules/handoff.md).
 
 ## Safety rules
 
+- Planning only: never implement product changes or execute a sliced goal.
+- Hard stop: do not invoke `autobahn`, `ultragoal`, `team`, `ralph`, `ultrawork`,
+  or another implementation engine; stop after the verified A→B handoff and
+  never implement in the same run.
 - Fail closed: a missing prereq, missing authorization, or partial handoff write
   stops with guidance — never silently proceed or mutate.
 - Compose, never reimplement: delegate every loop to its owning skill.

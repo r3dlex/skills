@@ -133,9 +133,9 @@
     {
       "name": "northstar",
       "path": "northstar/SKILL.md",
-      "description_chars": 163,
+      "description_chars": 142,
       "description_status": "target",
-      "body_lines": 78,
+      "body_lines": 91,
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
       "status": "pass"
