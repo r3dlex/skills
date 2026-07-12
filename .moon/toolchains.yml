@@ -1,0 +1,6 @@
+$schema: 'https://moonrepo.dev/schemas/toolchain.json'
+
+# Moon v2 delegates language resolution to the Proto version and tool pins in
+# .prototools; tasks invoke `python` so the Proto shim is used.
+proto:
+  version: '0.58.2'

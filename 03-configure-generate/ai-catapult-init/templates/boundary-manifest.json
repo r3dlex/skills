@@ -10,7 +10,7 @@
       "path": ".ai/matrix.json",
       "classification": "mechanical",
       "template": "dot-ai/matrix.json",
-      "rationale": "Template emits the STANDALONE matrix skeleton only (topology_type hardcoded to 'standalone', max_allowed_depth/current_depth fixed at 0, managed_repositories empty). The umbrella matrix — which requires populated managed_repositories and max_allowed_depth=3 — is judgment-laden and plugin-generated, consistent with cascade-plan.json classification."
+      "rationale": "Template emits the STANDALONE matrix skeleton only (topology_type hardcoded to 'standalone', max_allowed_depth/current_depth fixed at 0, managed_repositories empty). The umbrella matrix \u2014 which requires populated managed_repositories and max_allowed_depth=3 \u2014 is judgment-laden and plugin-generated, consistent with cascade-plan.json classification."
     },
     {
       "path": ".ai/system-prompts/architect.md",
@@ -82,7 +82,7 @@
       "path": ".ai/policies/model-routing.json",
       "classification": "mechanical",
       "template": "dot-ai/policies/model-routing.json",
-      "rationale": "Provider-neutral tier table (ADR-0003) is fixed. host_aliases are illustrative examples included as an optional deployment convenience; teams may replace or extend them — replacing host aliases requires no architecture judgment about the repo itself."
+      "rationale": "Provider-neutral tier table (ADR-0003) is fixed. host_aliases are illustrative examples included as an optional deployment convenience; teams may replace or extend them \u2014 replacing host aliases requires no architecture judgment about the repo itself."
     },
     {
       "path": ".ai/mcp/registry.json",
@@ -136,7 +136,7 @@
       "path": ".ai/reviews/ai-failure-modes.md",
       "classification": "mechanical",
       "template": "dot-ai/reviews/ai-failure-modes.md",
-      "rationale": "AI-failure-mode review checklist (spec §4.B) is fixed; failure mode categories are invariant."
+      "rationale": "AI-failure-mode review checklist (spec \u00a74.B) is fixed; failure mode categories are invariant."
     },
     {
       "path": "AGENTS.md",
@@ -238,14 +238,14 @@
       "path": "graph-automation/graph-refresh.sh",
       "classification": "mechanical",
       "template": "graph-automation/graph-refresh.sh",
-      "install_destination": "scripts/graph-refresh.sh — committed to the repo. ai-catapult init stages the template under graph-automation/; ai-catapult graph-hooks install activates it by stamping {{ENGINE}} and writing to scripts/graph-refresh.sh (stage-then-activate).",
+      "install_destination": "scripts/graph-refresh.sh \u2014 committed to the repo. ai-catapult init stages the template under graph-automation/; ai-catapult graph-hooks install activates it by stamping {{ENGINE}} and writing to scripts/graph-refresh.sh (stage-then-activate).",
       "rationale": "Lock+coalesce wrapper for background graph engine refresh. Body is fixed; only the {{ENGINE}} token is substituted at install time (default: graphify). Engine-absent no-op, exits 0 always."
     },
     {
       "path": "graph-automation/hook-body.sh",
       "classification": "mechanical",
       "template": "graph-automation/hook-body.sh",
-      "install_destination": ".git/hooks/post-commit and .git/hooks/post-checkout — git metadata only, never committed to the repo. The template staging path (graph-automation/hook-body.sh) is the source slot; the Slice-5 installer reads from there and writes to .git/hooks/.",
+      "install_destination": ".git/hooks/post-commit and .git/hooks/post-checkout \u2014 git metadata only, never committed to the repo. The template staging path (graph-automation/hook-body.sh) is the source slot; the Slice-5 installer reads from there and writes to .git/hooks/.",
       "rationale": "Git hook body (post-commit/post-checkout). <=15 active lines; rebase/merge/cherry-pick skip guards verbatim from graphify hooks.py:51-55; resolve-then-delegate to wrapper. Never tracked in child repos."
     },
     {
@@ -259,14 +259,32 @@
       "classification": "mechanical",
       "template": "graph-automation/config.json",
       "rationale": "Engine knob: engine=graphify default, graphwiki as documented alternative. Fixed JSON shape; teams update engine value then re-run install."
+    },
+    {
+      "path": ".ai/execution/schemas/matrix-v1.1.schema.json",
+      "classification": "mechanical",
+      "template": "dot-ai/execution/matrix-v1.1.schema.json",
+      "rationale": "Additive matrix binding schema; fixed and repo-agnostic."
+    },
+    {
+      "path": ".ai/execution/schemas/execution-profile.schema.json",
+      "classification": "mechanical",
+      "template": "dot-ai/execution/execution-profile.schema.json",
+      "rationale": "Execution profile policy schema; fixed and repo-agnostic."
+    },
+    {
+      "path": ".ai/execution/schemas/child-binding.schema.json",
+      "classification": "mechanical",
+      "template": "dot-ai/execution/child-binding.schema.json",
+      "rationale": "Sanitized child binding projection schema; fixed and repo-agnostic."
     }
   ],
-  "mechanical_count": 32,
+  "mechanical_count": 35,
   "judgment_laden_count": 10,
   "notes": [
     "Dirs without a named file get a .gitkeep in the template tree so the directory is tracked by git.",
     "Stage-then-activate convention (graph-automation entries): ai-catapult init stages all four graph-automation templates under graph-automation/ in the target repo. ai-catapult graph-hooks install then activates them: the wrapper is stamped with {{ENGINE}} and written to scripts/graph-refresh.sh; hook bodies are written to .git/hooks/post-commit and .git/hooks/post-checkout. The path field in each entry therefore reflects the init-emit (staging) location; install_destination records the activation target.",
-    "The .ai/evals/<set>/ evalset files (evalset.json, rubric.md, judge-config.json) are judgment_laden — the eval set name and rubric content are per-repo.",
+    "The .ai/evals/<set>/ evalset files (evalset.json, rubric.md, judge-config.json) are judgment_laden \u2014 the eval set name and rubric content are per-repo.",
     "The .ai/drift/backups/ dir is runtime-only (written by sync path), not scaffolded.",
     "The .ai/skills/catalog-audit.json, description-exceptions.json, and body-line-exceptions.json are generated by the skill-catalog branch, not the base scaffold.",
     "upstream.lock is omitted: it requires resolving a live git SHA at scaffold time and is written by foundation.md artifacts, not the .ai/ tree."
