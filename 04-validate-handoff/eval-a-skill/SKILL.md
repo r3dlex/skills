@@ -75,5 +75,5 @@ verdict against the passing threshold.
 
 ## References
 
-- [ai-catapult-init/modules/evals.md](../../03-configure-generate/ai-catapult-init/modules/evals.md) — eval scaffold spec and the coverage gate.
-- [ADR 0002](../../docs/architecture/adr/0002-evals-as-verification-gate.md) — evals as a verification gate.
+- [ai-catapult-init/modules/evals.md](../ai-catapult-init/modules/evals.md) — eval scaffold spec and the coverage gate.
+- [ADR 0002](../docs/architecture/adr/0002-evals-as-verification-gate.md) — evals as a verification gate.
