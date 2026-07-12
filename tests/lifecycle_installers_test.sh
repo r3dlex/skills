@@ -7,6 +7,18 @@ import json,sys
 assert [e['name'] for e in json.load(open(sys.argv[1]))['skills']] == sys.argv[2].split(',')
 PY
 }
+# Default bulk installs exclude opt-in lifecycle entries on every host.
+for host in codex claude gemini auggie copilot; do
+ tmp=$(mktemp -d)
+ case $host in
+  codex) run "$tmp" scripts/install-codex.sh --all; catpath="$tmp/.codex/skills/catalog.json"; [[ -d "$tmp/.codex/skills/stable-skill" && ! -e "$tmp/.codex/skills/experimental-skill" && ! -e "$tmp/.codex/skills/deprecated-skill" ]];;
+  claude) run "$tmp" scripts/install-claude-code.sh --user; catpath="$tmp/.claude/skills/omc-learned/catalog.json"; [[ -d "$tmp/.claude/skills/omc-learned/stable-skill" && ! -e "$tmp/.claude/skills/omc-learned/experimental-skill" && ! -e "$tmp/.claude/skills/omc-learned/deprecated-skill" ]];;
+  gemini) run "$tmp" scripts/install-gemini.sh --link; catpath="$tmp/.gemini/skills/catalog.json"; [[ -f "$tmp/.gemini/skills/stable-skill.md" && ! -e "$tmp/.gemini/skills/experimental-skill.md" && ! -e "$tmp/.gemini/skills/deprecated-skill.md" ]];;
+  auggie) run "$tmp" scripts/install-auggie.sh --all; catpath="$tmp/.auggie/rules/catalog.json"; [[ -f "$tmp/.auggie/rules/stable-skill.md" && ! -e "$tmp/.auggie/rules/experimental-skill.md" && ! -e "$tmp/.auggie/rules/deprecated-skill.md" ]];;
+  copilot) target="$tmp/repo"; run "$tmp" scripts/install-copilot.sh --repo "$target"; catpath="$target/.github/skills-catalog.json"; grep -q '^## stable-skill$' "$target/.github/copilot-instructions.md"; ! grep -q '^## \(experimental\|deprecated\)-skill$' "$target/.github/copilot-instructions.md";;
+ esac
+ assert_projection "$catpath" stable-skill; rm -rf "$tmp"
+done
 for order in 'experimental deprecated' 'deprecated experimental'; do
  read -r first second <<< "$order"
  for host in codex claude gemini auggie copilot; do
