@@ -13,6 +13,26 @@ FAIL=0
 ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
 bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
+assert_missing_value() {
+  local output rc
+  output="$(python3 - "$READINESS" <<'PY'
+import subprocess, sys
+try:
+    result = subprocess.run(["bash", sys.argv[1], "--goal"], capture_output=True, text=True, timeout=2)
+except subprocess.TimeoutExpired:
+    print("124|")
+else:
+    print(f"{result.returncode}|{result.stderr}")
+PY
+)"
+  rc="${output%%|*}"
+  if [[ "$rc" -eq 2 && "$output" == *"usage:"* ]]; then
+    ok "readiness-check missing --goal value returns usage without hanging"
+  else
+    bad "readiness-check missing --goal value returns usage without hanging (result: $output)"
+  fi
+}
+
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 cp -R "$FIXTURE/." "$tmp/repo"
@@ -51,6 +71,8 @@ cat > "$tmp/vague.json" <<'JSON'
   "acceptance_criteria": ["It works."]
 }
 JSON
+
+assert_missing_value
 
 if bash "$READINESS" --goal "$tmp/ready.json" >/dev/null 2>&1; then
   ok "evidence-complete goal is implementation-ready"

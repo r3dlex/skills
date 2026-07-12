@@ -11,10 +11,19 @@ LEGACY_RISK=""
 LEGACY_RISK_REASON=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --goal) GOAL="${2:-}"; shift 2 ;;
-    --coverage-percent) COVERAGE="${2:-}"; shift 2 ;;
-    --legacy-risk) LEGACY_RISK="${2:-}"; shift 2 ;;
-    --legacy-risk-reason) LEGACY_RISK_REASON="${2:-}"; shift 2 ;;
+    --goal|--coverage-percent|--legacy-risk|--legacy-risk-reason)
+      [[ $# -ge 2 ]] || {
+        echo "usage: tdd-mode.sh [--goal <json>] [--coverage-percent <0..100>] [--legacy-risk true|false] [--legacy-risk-reason <text>]" >&2
+        exit 2
+      }
+      case "$1" in
+        --goal) GOAL="$2" ;;
+        --coverage-percent) COVERAGE="$2" ;;
+        --legacy-risk) LEGACY_RISK="$2" ;;
+        --legacy-risk-reason) LEGACY_RISK_REASON="$2" ;;
+      esac
+      shift 2
+      ;;
     *) echo "usage: tdd-mode.sh [--goal <json>] [--coverage-percent <0..100>] [--legacy-risk true|false] [--legacy-risk-reason <text>]" >&2; exit 2 ;;
   esac
 done

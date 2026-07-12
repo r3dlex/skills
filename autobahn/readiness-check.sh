@@ -8,7 +8,10 @@ command -v python3 >/dev/null 2>&1 || { echo "readiness-check: python3 is requir
 GOAL=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --goal) GOAL="${2:-}"; shift 2 ;;
+    --goal)
+      [[ $# -ge 2 ]] || { echo "usage: readiness-check.sh --goal <goal-record.json>" >&2; exit 2; }
+      GOAL="$2"; shift 2
+      ;;
     --goal=*) GOAL="${1#--goal=}"; shift ;;
     *) echo "usage: readiness-check.sh --goal <goal-record.json>" >&2; exit 2 ;;
   esac

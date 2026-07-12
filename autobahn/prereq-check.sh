@@ -28,9 +28,15 @@ ROOT="."
 GOAL=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --root) ROOT="${2:-}"; shift 2 ;;
+    --root)
+      [[ $# -ge 2 ]] || { echo "usage: prereq-check.sh --root <repo-root> [--goal <implementation-ready.json>]" >&2; exit 2; }
+      ROOT="$2"; shift 2
+      ;;
     --root=*) ROOT="${1#--root=}"; shift ;;
-    --goal) GOAL="${2:-}"; shift 2 ;;
+    --goal)
+      [[ $# -ge 2 ]] || { echo "usage: prereq-check.sh --root <repo-root> [--goal <implementation-ready.json>]" >&2; exit 2; }
+      GOAL="$2"; shift 2
+      ;;
     --goal=*) GOAL="${1#--goal=}"; shift ;;
     *) echo "usage: prereq-check.sh --root <repo-root> [--goal <implementation-ready.json>]" >&2; exit 2 ;;
   esac
