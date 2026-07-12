@@ -17,7 +17,7 @@ Create the smallest useful `SKILL.md` first, then split details into references 
 4. **Split Layer 3** — move templates, examples, schemas, provider variants, and advanced behavior into content-specific files.
 5. **Add scripts when useful** — use scripts for deterministic validation, formatting, repeated transforms, or precise error handling.
 6. **Review with the user** — check coverage, missing cases, unclear steps, and whether any section is too detailed or too thin.
-7. **Validate** — ensure `SKILL.md` body is under 100 lines, references have when-to-read context, and terminology matches the repo.
+7. **Validate** — target <=100 body lines; use a reviewed exception only when splitting cannot preserve the workflow, and never exceed 180.
 
 ## Structure
 
@@ -31,7 +31,7 @@ skill-name/
 
 ## Rules
 
-- Keep Layer 2 under 100 body lines.
+- Target Layer 2 at <=100 body lines. Exceptions require owner, reason, and expiry in `.ai/skills/body-line-exceptions.json`; 180 is absolute.
 - Put one concern per reference file; avoid vague names like `details.md`.
 - Do not bury common workflow steps in references.
 - Do not include time-sensitive claims unless they can be maintained.
@@ -41,10 +41,10 @@ skill-name/
 
 The frontmatter `description` is loaded into every agent's context, so keep it compact (Codex/Claude metadata policy):
 
-- **Target:** `description` ≤ 180 characters. Spend the budget on concrete trigger phrases, not prose.
-- **Hard limit:** > 280 characters fails `tests/test-skills.sh`. 181–280 passes but warns — trim it if you can.
+- **Target:** `description` ≤ 160 characters. Spend the budget on concrete trigger phrases, not prose.
+- **Exceptional maximum:** 180 characters with owner, reason, and expiry; >180 always fails.
 - **Progressive disclosure first:** if a description is growing past target, the detail belongs in the body or a reference file, not the metadata.
-- **Audited exception:** only when a longer description is genuinely required, add an entry (`skill`, `owner`, `reason`, `expires`) to `.ai/skills/description-exceptions.json`. Do not weaken the check; exceptions are tracked and reviewed.
+- **Audited exception:** only when routing clarity requires 161–180 characters, add the skill to `.ai/skills/description-exceptions.json`.
 
 ## Codex Parity
 

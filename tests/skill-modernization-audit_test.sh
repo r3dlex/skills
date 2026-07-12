@@ -2,7 +2,7 @@
 # P1-6: skill-modernization module documents every §4.A modernization-audit dimension.
 #
 # §4.A audit dimensions (end-state spec):
-#   1. compact-description budget (target <=180, hard-fail >280 unless audited exception)
+#   1. compact descriptions plus progressive body budgets
 #   2. progressive disclosure
 #   3. clear trigger / non-trigger / fallback boundaries
 #   4. link / alias / referenced-file / script validation
@@ -32,9 +32,11 @@ echo "skill-modernization audit-dimension coverage"
 echo "============================================"
 
 # 1. description budget
-assert_contains "180" "documents <=180 target description budget"
-assert_contains "280" "documents >280 hard-fail budget"
+assert_contains "160" "documents compact description target"
+assert_contains "180" "documents absolute exception ceiling"
 assert_contains "description-exceptions" "documents audited exception path"
+assert_contains "body-line-exceptions" "documents body-line exception path"
+assert_contains "100" "documents normal SKILL.md body target"
 
 # 2. progressive disclosure
 assert_contains "progressive disclosure" "documents progressive disclosure"

@@ -12,7 +12,7 @@ Agent-facing documentation has a single job: give the agent exactly what it need
 | Layer | File | When loaded | Size target |
 |---|---|---|---|
 | 1 – Signal | frontmatter `description` | Always | < 150 words |
-| 2 – Core | SKILL.md / AGENTS.md body | On trigger | < 100 lines |
+| 2 – Core | SKILL.md / AGENTS.md body | On trigger | target <=100 lines; max 180 by exception |
 | 3 – Detail | REFERENCE.md, domain files | On demand | Unlimited |
 
 Never put Layer 3 content in Layer 2. Never put Layer 2 content in Layer 1.
@@ -21,7 +21,7 @@ Never put Layer 3 content in Layer 2. Never put Layer 2 content in Layer 1.
 
 1. **Identify the layer** — is this a trigger description, a workflow body, or reference detail?
 2. **Write only what belongs in that layer.**
-3. If writing a SKILL.md body: over 100 lines? **Split now.**
+3. If a SKILL.md body exceeds 100 lines, split it unless an audited exception is necessary; never exceed 180.
 4. Add explicit pointers to Layer 3 files with "when to read" context.
 
 ## Writing Rules
@@ -36,7 +36,7 @@ Never put Layer 3 content in Layer 2. Never put Layer 2 content in Layer 1.
 - Use numbered steps for workflows. Bullet points for options.
 - Every reference to a deeper file must include when to read it: `See REFERENCE.md if you need schema details.`
 - No history. No rationale. No "Overview" or "Background" sections.
-- Hard limit: 100 lines. If you hit it, split.
+- Target <=100 lines. Exceptions require owner, reason, and expiry in `.ai/skills/body-line-exceptions.json`; 180 is absolute.
 
 **Layer 3 – reference files**
 - One file per domain or concern. Include a table of contents if over 80 lines.
@@ -44,7 +44,7 @@ Never put Layer 3 content in Layer 2. Never put Layer 2 content in Layer 1.
 
 ## Splitting Rules
 
-Split when: body exceeds 100 lines, two distinct domains coexist, or a section is needed in fewer than half of all use cases.
+Split when: body exceeds 100 lines without a justified exception, two distinct domains coexist, or a section is needed in fewer than half of all use cases.
 
 Do not split when: content is under 100 lines and covers one domain, or splitting creates a reference file under 20 lines.
 

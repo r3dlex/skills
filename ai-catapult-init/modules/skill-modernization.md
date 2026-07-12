@@ -7,22 +7,23 @@ Read when auditing or updating a skill catalog for compact metadata, progressive
 | Output | Purpose |
 | --- | --- |
 | `.ai/skills/catalog-audit.json` | Machine-readable audit of every first-class skill description, body length, trigger boundary, and compatibility status. |
-| `.ai/skills/description-exceptions.json` | Explicit exceptions for descriptions that exceed the hard budget; default is no exceptions. |
+| `.ai/skills/description-exceptions.json` | Reviewed exceptions above the 160-character target; 180 remains absolute. |
+| `.ai/skills/body-line-exceptions.json` | Reviewed exceptions above the 100-line body target; 180 remains absolute. |
 | `.ai/skills/modernization-report.md` | Human report summarizing fixes, warnings, and remaining follow-up. |
 
 ## Budget policy
 
-- Target description length: `<= 180` characters.
-- Hard-fail description length: `> 280` characters unless listed in `.ai/skills/description-exceptions.json` with owner, reason, and expiry.
-- `SKILL.md` body stays under 100 lines.
+- Target description length: `<= 160` characters; audited exceptions may reach 180, the absolute maximum.
+- `SKILL.md` body target: `<= 100` lines; audited exceptions may reach 180, the absolute maximum.
+- Every exception records skill, owner, reason, and expiry.
 - Descriptions state capability plus concrete trigger conditions; move examples, background, and variants to modules or references.
 
 ## Required checks
 
 1. Audit only first-class catalog skill directories plus the `ai-sdlc-init` compatibility shim; exclude `.agents/`, hidden/runtime directories, reference fixtures, and golden outputs.
 2. Verify every first-class skill has `name` and `description` frontmatter.
-3. Warn when a description exceeds the 180-character target; fail when it exceeds 280 without an audited exception.
-4. Verify body line limits and progressive-disclosure anti-patterns through `tests/test-skills.sh`.
+3. Fail descriptions above 160 without an audited exception and always fail above 180.
+4. Fail bodies above 100 without an audited exception and always fail above 180; verify other progressive-disclosure anti-patterns through `tests/test-skills.sh`.
 5. Verify trigger/non-trigger/fallback boundaries are present in each first-class description (see "Trigger boundaries").
 6. Validate referenced surfaces: no broken relative links, aliases resolve to a real canonical skill, every referenced file exists, and every bundled script passes `bash -n` (see "Link, alias, referenced-file, and script validation").
 7. Verify generated workflow links remain discoverable for skills that create PRDs, issues, releases, traces, or AI-SDLC artifacts.

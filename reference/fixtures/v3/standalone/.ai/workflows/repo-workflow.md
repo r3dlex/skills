@@ -37,5 +37,5 @@ Generated `AGENTS.md` and `README.md` must link to this workflow doc and `.ai/wo
 ## Skill catalog links
 
 - Catalog audit: `.ai/skills/catalog-audit.json`
-- Description exceptions: `.ai/skills/description-exceptions.json`
+- Progressive-disclosure exceptions: `.ai/skills/description-exceptions.json`, `.ai/skills/body-line-exceptions.json`
 - Modernization report: `.ai/skills/modernization-report.md`

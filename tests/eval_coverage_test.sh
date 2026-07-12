@@ -12,7 +12,7 @@
 #   - A changed shippable skill must reference a structurally valid evalset
 #     (an `.ai/evals/<set>/` directory containing evalset.json + rubric.md +
 #     judge-config.json, each structurally valid).
-#   - An audited-exception token (mirroring the >280-char description exception)
+#   - An audited-exception token (the same fail-closed exception pattern used by catalog budgets)
 #     lets a doc-only / non-shippable change bypass the gate.
 #
 # This test exercises a self-contained reference implementation of the gate
@@ -117,7 +117,7 @@ eval_coverage_gate() {
   local exception_token="${3:-}"
 
   # Audited-exception path: a non-empty token bypasses the gate (mirrors the
-  # >280-char description-exception escape hatch).
+  # catalog-budget exception pattern).
   if [ -n "$exception_token" ]; then
     return 0
   fi

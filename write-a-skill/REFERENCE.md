@@ -52,12 +52,12 @@ Add utility scripts when an operation is deterministic, repeated often, or needs
 
 ## When to split files
 
-Split when `SKILL.md` exceeds 100 body lines, content has distinct domains, or advanced details are rarely needed. Keep references one level deep unless a script/template directory is necessary.
+Split when `SKILL.md` exceeds the 100-line target, content has distinct domains, or advanced details are rarely needed. Use a reviewed exception only when splitting harms the core workflow; 180 lines is absolute.
 
 ## Review checklist
 
 - [ ] Description includes concrete triggers.
-- [ ] `SKILL.md` body is under 100 lines.
+- [ ] `SKILL.md` body is <=100 lines, or has a reviewed exception and remains <=180.
 - [ ] Quick Start appears before deep detail.
 - [ ] No time-sensitive claims unless sourced and maintainable.
 - [ ] Terminology is consistent with the target repo.

@@ -6,10 +6,9 @@
 # Checks:
 #   - YAML frontmatter is present and well-formed
 #   - Required frontmatter fields: name, description
-#   - File body (after frontmatter) is under 100 lines
+#   - File body target <=100 lines; audited exceptions may reach 180
 #   - Progressive disclosure compliance (no Overview/Background sections)
-#   - Description budget: target <=180 chars (warn over), hard-fail >280 chars
-#     unless the skill is listed in .ai/skills/description-exceptions.json
+#   - Description target <=160 chars; audited exceptions may reach 180
 #
 # Exit 0 on all pass, non-zero on any failure.
 #
@@ -32,16 +31,6 @@ log_pass() {
 log_fail() {
     echo "  FAIL: $1"
     FAIL_COUNT=$((FAIL_COUNT + 1))
-}
-
-log_skip() {
-    echo "  SKIP: $1"
-    SKIP_COUNT=$((SKIP_COUNT + 1))
-}
-
-log_warn() {
-    echo "  WARN: $1"
-    WARN_COUNT=$((WARN_COUNT + 1))
 }
 
 # -----------------------------------------------------------------------------
@@ -99,13 +88,13 @@ validate_frontmatter() {
 }
 
 # -----------------------------------------------------------------------------
-# Check that the body (after frontmatter) is under 100 lines.
+# Check the 100-line body target and audited 180-line exception ceiling.
 # Returns 0 and prints "pass" when under limit; returns 1 and prints reason
 # when over limit or parsing fails.
 # -----------------------------------------------------------------------------
 validate_line_count() {
     local file="$1"
-    local body_line_count
+    local body_line_count skill_name
     body_line_count=$(awk '
         NR == 1 && $0 == "---" { in_fm = 1; next }
         NR == 1 { parse_error = "missing opening ---"; exit }
@@ -129,8 +118,22 @@ validate_line_count() {
             ;;
     esac
 
+    skill_name=$(awk '
+        NR == 1 { next }
+        $0 == "---" { exit }
+        /^name:/ { sub(/^name:[[:space:]]*/, ""); gsub(/^["'\'']|["'\'']$/, ""); print; exit }
+    ' "$file")
+
+    if [ "$body_line_count" -gt 180 ]; then
+        echo "body has $body_line_count lines (maximum: 180)"
+        return 1
+    fi
     if [ "$body_line_count" -gt 100 ]; then
-        echo "body has $body_line_count lines (limit: 100)"
+        if is_body_excepted "$skill_name"; then
+            echo "exception:$body_line_count"
+            return 0
+        fi
+        echo "body has $body_line_count lines (target: 100); not in exception manifest"
         return 1
     fi
     echo "pass:$body_line_count"
@@ -164,22 +167,21 @@ validate_no_anti_patterns() {
 
 # -----------------------------------------------------------------------------
 # Description-length budget (compact Codex/Claude metadata policy).
-# Target <=180 chars (warn when over), hard-fail >280 chars unless the skill
-# name is listed in the audited-exception manifest:
+# Target <=160 chars; audited exceptions may reach the absolute 180-char maximum.
 #   .ai/skills/description-exceptions.json
 # Pure-shell / offline, consistent with the other checks in this file.
 #
 # Prints one of:
 #   pass:<len>           description within target
-#   warn:<len>           over target (<=280); non-failing
-#   exception:<len>      over hard limit but listed in exception manifest
+#   exception:<len>      over target but within 180 and listed in the manifest
 #   ERROR:<reason>       parse failure (treated as failure by caller)
-#   FAIL:<reason>        over hard limit and not excepted
-# Returns 0 for pass/warn/exception, 1 for ERROR/FAIL.
+#   FAIL:<reason>        over target without exception, or over maximum
+# Returns 0 for pass/exception, 1 for ERROR/FAIL.
 # -----------------------------------------------------------------------------
-DESCRIPTION_TARGET_CHARS=180
-DESCRIPTION_HARD_CHARS=280
+DESCRIPTION_TARGET_CHARS=160
+DESCRIPTION_MAX_CHARS=180
 EXCEPTIONS_FILE="$REPO_ROOT/.ai/skills/description-exceptions.json"
+BODY_EXCEPTIONS_FILE="$REPO_ROOT/.ai/skills/body-line-exceptions.json"
 
 # Returns 0 if the given skill name is listed in the exception manifest.
 is_description_excepted() {
@@ -187,6 +189,12 @@ is_description_excepted() {
     [ -f "$EXCEPTIONS_FILE" ] || return 1
     # Match a JSON entry of the form: "skill": "<name>" (manifest is line-oriented).
     grep -Eq "\"skill\"[[:space:]]*:[[:space:]]*\"${skill_name}\"" "$EXCEPTIONS_FILE"
+}
+
+is_body_excepted() {
+    local skill_name="$1"
+    [ -f "$BODY_EXCEPTIONS_FILE" ] || return 1
+    grep -Eq "\"skill\"[[:space:]]*:[[:space:]]*\"${skill_name}\"" "$BODY_EXCEPTIONS_FILE"
 }
 
 validate_description_budget() {
@@ -247,18 +255,18 @@ validate_description_budget() {
 
     len=${#desc}
 
-    if [ "$len" -gt "$DESCRIPTION_HARD_CHARS" ]; then
-        if is_description_excepted "$skill_name"; then
-            echo "exception:$len"
-            return 0
-        fi
-        echo "FAIL:description has $len chars (hard limit: $DESCRIPTION_HARD_CHARS); not in exception manifest"
+    if [ "$len" -gt "$DESCRIPTION_MAX_CHARS" ]; then
+        echo "FAIL:description has $len chars (maximum: $DESCRIPTION_MAX_CHARS)"
         return 1
     fi
 
     if [ "$len" -gt "$DESCRIPTION_TARGET_CHARS" ]; then
-        echo "warn:$len"
-        return 0
+        if is_description_excepted "$skill_name"; then
+            echo "exception:$len"
+            return 0
+        fi
+        echo "FAIL:description has $len chars (target: $DESCRIPTION_TARGET_CHARS); not in exception manifest"
+        return 1
     fi
 
     echo "pass:$len"
@@ -282,7 +290,7 @@ fi
 while IFS= read -r skill_file; do
     [ -z "$skill_file" ] && continue
 
-    relative_path="${skill_file#$REPO_ROOT/}"
+    relative_path="${skill_file#"$REPO_ROOT"/}"
     echo ""
     echo "[ $relative_path ]"
 
@@ -301,8 +309,10 @@ while IFS= read -r skill_file; do
     count_exit=$?
     set -e
     if [ "$count_exit" -eq 0 ]; then
-        lines=$(echo "$count_result" | cut -d: -f2)
-        log_pass "line count $lines (under 100)"
+        case "$count_result" in
+            exception:*) log_pass "line count ${count_result#exception:} (audited exception; maximum 180)" ;;
+            *) lines=$(echo "$count_result" | cut -d: -f2); log_pass "line count $lines (under 100)" ;;
+        esac
     else
         log_fail "line count: $count_result"
     fi
@@ -323,11 +333,8 @@ while IFS= read -r skill_file; do
     set -e
     if [ "$budget_exit" -eq 0 ]; then
         case "$budget_result" in
-            warn:*)
-                log_warn "description length ${budget_result#warn:} over target (${DESCRIPTION_TARGET_CHARS}); under hard limit (${DESCRIPTION_HARD_CHARS})"
-                ;;
             exception:*)
-                log_pass "description length ${budget_result#exception:} over hard limit but audited (exception manifest)"
+                log_pass "description length ${budget_result#exception:} over target but audited (maximum ${DESCRIPTION_MAX_CHARS})"
                 ;;
             *)
                 log_pass "description length ${budget_result#pass:} (within target ${DESCRIPTION_TARGET_CHARS})"

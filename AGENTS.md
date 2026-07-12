@@ -40,20 +40,20 @@ Pick the skill matching the user's request. Each skill has:
 | `handoff` | Compacting the conversation into a handoff document for another agent |
 | `eval-a-skill` | Scaffolding a structurally valid eval triplet for a target skill; CI checks structure, the judge runs out-of-band |
 | `northstar` | Intake intent into a tracked, sliced plan in an ai-catapult-init repo and write the A→B handoff |
-| `autobahn` | Ship a northstar handoff's sliced goals one PR per goal: ultragoal, engine-pick, peer review, CI gate, fail-closed merge, cascade closure |
+| `autobahn` | Ship goals from a northstar handoff or evidence-complete direct record; select legacy-safe TDD for low coverage or contextual risk, then review, CI-gate, merge fail-closed, and cascade-close |
 
 ### Pipeline: `northstar` → `autobahn`
 
 In an `ai-catapult-init`-initialized repo, the two compose into an intake→ship loop:
 
 1. **`northstar "<intent>"`** — deep-interview (primary) + grill-me (adversarial, skippable) one question at a time until both are satisfied → always raises an issue (local-first markdown; hosted only if a tracker is configured and authorized, fail-closed) → `ralplan` → sliced goals. Writes the **A→B handoff** into `.ai/` (workflow manifest `optional_branches` entry, traceability nodes, `.ai/handoff/`).
-2. **`autobahn`** — discovers the handoff and ships each sliced goal as **one PR**: `ultragoal` orchestrates, the engine is auto-picked per goal by a deterministic precedence — `ultraqa` (qa-heavy) > `ultrawork` (parallelizable) > `ralph` (persistence) > `team` (default fallback); override with `--engine` — runs the architect+reviewer+executor peer-review loop, requires remote **and** local CI green, then the merge-authority adapter decides — merge only when host-policy **approves AND** the token is valid (either rejection fails closed → stop at *ready-for-human*) — and closes the issue across repos via the cascade engine with the canonical `triage` status.
+2. **`autobahn`** — discovers the handoff, or accepts one evidence-complete direct-ready goal when discovery is already finished, and ships each goal as **one PR**. Before engine selection it chooses standard or legacy-safe TDD: coverage under 30% always uses legacy-safe mode, and the running agent may also select it for recorded context-specific blast-radius risk. `ultragoal` orchestrates; deterministic engine precedence is `ultraqa` > `ultrawork` > `ralph` > `team`; peer review, remote + local CI, fail-closed merge authority, and cascade closure remain mandatory.
 
 Both are lightweight composers: they delegate to the existing skills/engines and never reimplement them. Each runs identically under OMC (`/oh-my-claudecode:<name>`) and OMX (`$<name>`) via the generated `.ai/commands/{omc,omx}/` surfaces.
 
 ## Writing Rules
 
-Description budget: target <=180 characters; hard-fail >280 characters unless `.ai/skills/description-exceptions.json` records an audited exception. Run `python3 scripts/validate-skill-catalog.py` after changing skill metadata.
+Description budget: target <=160 characters; an audited exception may reach 180, the absolute maximum. Run `python3 scripts/validate-skill-catalog.py` after changing metadata.
 
 All skills follow Layer 2 guidelines:
 - Quick Start first
@@ -61,7 +61,7 @@ All skills follow Layer 2 guidelines:
 - Bullet points for options
 - Reference deeper files with "when to read" context
 - No "Overview" or "Background" sections
-- Under 100 lines
+- Target <=100 body lines; audited exceptions may reach 180
 
 ### Codex parity
 
@@ -72,7 +72,7 @@ Skill bodies must be tool-agnostic across Claude Code and Codex. Do not hard-dep
 | Layer | File | Size |
 |-------|------|------|
 | 1 – Signal | frontmatter `description` | < 150 words |
-| 2 – Core | SKILL.md body | < 100 lines |
+| 2 – Core | SKILL.md body | target <=100 lines; audited maximum 180 |
 | 3 – Detail | REFERENCE.md | unlimited |
 
 ## Domain Language
