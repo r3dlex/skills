@@ -6,8 +6,8 @@ Read when initializing, augmenting, or rewriting a repo's `README.md` so the res
 
 | Mode | Trigger | Behavior |
 | --- | --- | --- |
-| Template | Repo is new, empty, or the existing `README.md` is sparse/stub. | Generate a full GitHub-style README from the section catalogue below. |
-| Augmentation | Repo already has a meaningful `README.md` (one or more populated sections matching the catalogue). | Preserve project-specific facts, augment gaps with template sections, never overwrite existing content without backup/audit. |
+| Template | Repo is new, empty, or the existing `README.md` is sparse/stub. | Generate a complete README from supplied, project-specific onboarding facts. |
+| Augmentation | Repo already has a meaningful `README.md` (one or more populated sections matching the catalogue). | Preserve project-specific facts and append only complete sections backed by supplied facts. Never overwrite existing content without backup/audit. |
 
 Sparseness classification MUST run before any write. Do not pick a mode from vibes.
 
@@ -38,13 +38,44 @@ A full template README contains, in order:
 10. **Real star history (when applicable)** — link to public star history (e.g. star-history.com) only when the repo is public and the link resolves; do not fabricate.
 11. **Concise AI-SDLC governance block** — one short block linking to `AGENTS.md`, `CONTRIBUTING.md`, ADRs, and the BRD/PRD traceability chain. Do not dump the entire governance payload into the README.
 
-Sections 1, 3, 7, 8, 9, and 11 are mandatory in template mode. Sections 2, 4, 5, 6, and 10 are mandatory when their prerequisites are met (e.g. real star history only when public).
+The hero, runnable Quick Start, observable first-success evidence, value statement,
+and archetype mental model are mandatory. Requirements, update, community,
+license, governance, and public history sections are emitted only when their
+repository facts or explicit inputs exist. Missing optional facts are omitted;
+they are never represented by placeholders.
+
+## Executable generator contract
+
+`scripts/readme-generate.sh` supports two deliberately narrow archetypes:
+`cli-tool` and `skill-catalog`. Template and augmentation modes require:
+
+- `--project` and `--tagline` for identity and value.
+- `--archetype cli-tool|skill-catalog` for the minimum mental model.
+- `--install-command` and `--first-success-command`, each containing an
+  executable, non-comment command.
+- `--success-evidence` naming observable output or a generated artifact.
+
+Use `--requirements` and `--update-command` when those facts are known. For
+example:
+
+```sh
+bash scripts/readme-generate.sh --mode template --repo . \
+  --project "Example CLI" --tagline "Checks an example repository." \
+  --archetype cli-tool --install-command "npm install -g example-cli" \
+  --first-success-command "example-cli doctor" \
+  --success-evidence 'prints "example repository ready"' \
+  --out README.md
+```
+
+Generation fails with actionable missing-input guidance instead of emitting an
+incomplete README. Output validation rejects unresolved angle-bracket content,
+template tokens, filler text, and invented static proof badges.
 
 ## Augmentation behavior (existing mode)
 
 - Run a backup step before any rewrite. See "Backup and audit manifest" below.
 - Preserve every existing section verbatim unless the user explicitly asks for reorganization.
-- Detect missing catalogue sections and append them in the right order, separated by horizontal rules, without disturbing existing content.
+- Detect missing onboarding sections and append them in the right order without disturbing existing content. Use the same required project, archetype, command, and success-evidence inputs as template mode.
 - Detect duplicate or near-duplicate sections (e.g. two installation blocks); consolidate by adding a pointer to the canonical section, but do not delete user content without an explicit confirmation step.
 - Reject augmentation when the existing README contains private/internal markers unless the host is private; surface a confirmation prompt before any rewrite.
 
@@ -52,7 +83,7 @@ Sections 1, 3, 7, 8, 9, and 11 are mandatory in template mode. Sections 2, 4, 5,
 
 A proof signal is any badge, count, link, or claim that depends on external state (host stars, package downloads, license file, build status, release version). All proof signals MUST satisfy these rules:
 
-- **Real data only.** Pull badges and counts from real, currently resolving sources. Reject hardcoded badge URLs, fake star counts, fabricated downloads, or invented release versions.
+- **Real data only.** Reject hardcoded status, release, coverage, or download claims. The deterministic generator emits only a license badge backed by a real `LICENSE` file; add other badges separately only after deriving their URLs from real host or registry configuration.
 - **Public-only leakage guard.** Star history, downloads, public contributors, and social links appear only when the repo is public. Private/internal repos get a neutral version badge at most.
 - **License accuracy.** The license badge must match the actual `LICENSE` file in the repo. Do not assume a default.
 - **No marketing tone for internal or library-only repos.** Internal tooling and small libraries get accurate, restrained documentation; no "blazing fast", "production ready", or other unverified adjectives.
@@ -63,7 +94,7 @@ A proof signal is any badge, count, link, or claim that depends on external stat
 - Detect host visibility from the host API or explicit user input. Default to private if the host cannot be reached.
 - Public repos: full template, real star history, public contributors, social links allowed.
 - Private/internal repos: suppress star history, downloads counts, public contributor lists, and any social proof; keep license, build, and version badges only when real and applicable.
-- Non-GitHub hosts: gracefully degrade. Use the host's own badge/CI mechanisms or omit the section with a comment that the host does not provide it.
+- Non-GitHub hosts: gracefully degrade. Use the host's own badge/CI mechanisms or omit the section. Do not add explanatory filler to the generated README.
 
 ## Backup and audit manifest
 

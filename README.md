@@ -1,10 +1,77 @@
 # skills
 
-A collection of reusable agent skills for Codex, Claude Code, and compatible AI agents.
+Portable, reusable workflows for Codex, Claude Code, and compatible AI agents.
+Each skill packages trigger metadata, a focused `SKILL.md` workflow, and optional
+reference material so an agent can load only the guidance needed for the task.
 
-Each skill is a self-contained directory with a `SKILL.md` that tells the agent what to do and when to trigger. Skills follow [progressive disclosure](03-configure-generate/write-agent-docs/SKILL.md) — lean core instructions, with detail in reference files loaded on demand.
+## Quick Start
 
-## Skills
+Requirements: Git, Bash, and an installed Codex or Claude Code host.
+
+Install one representative skill for Codex:
+
+```bash
+git clone git@github.com:r3dlex/skills.git
+cd skills
+./scripts/install-codex.sh --skill diagnose
+test -f "$HOME/.codex/skills/diagnose/SKILL.md"
+```
+
+Start Codex and invoke the installed workflow:
+
+```bash
+codex
+```
+
+```text
+$diagnose "why does this command fail?"
+```
+
+**Expected result:** Codex discovers `diagnose/SKILL.md` and begins the
+reproduce-minimize-hypothesize-instrument-fix loop.
+
+## Install for another host
+
+| Host | Recommended command | Installed catalog |
+| --- | --- | --- |
+| Codex | `./scripts/install-codex.sh --all` | `~/.codex/skills/` |
+| Claude Code | `./scripts/install-claude-code.sh --user` | `~/.claude/skills/omc-learned/` |
+| Auggie | `./scripts/install-auggie.sh --all` | `~/.auggie/rules/` |
+| Gemini | `./scripts/install-gemini.sh --all` | `~/.gemini/skills/` |
+| GitHub Copilot | `./scripts/install-copilot.sh --repo /path/to/repo` | `/path/to/repo/.github/` |
+
+The installers copy the complete skill directory, including its references and
+bundled scripts. `tests/install_cross_host_parity_test.sh` verifies matching
+`SKILL.md` content across supported destinations.
+
+## How the catalog works
+
+Skills are organized by the workflow stage they own:
+
+1. **Discover and decide** — establish vocabulary and context.
+2. **Govern and plan** — turn intent into reviewed, traceable work.
+3. **Configure and generate** — create or modify repository artifacts.
+4. **Validate and hand off** — verify, ship, or transfer completed work.
+
+A skill's frontmatter description controls discovery. Its `SKILL.md` contains the
+lean execution path; deeper detail lives in referenced files and is loaded only
+when needed. See [`CONTEXT.md`](CONTEXT.md) for the shared domain language.
+
+## Featured workflows
+
+- [`northstar`](02-govern-plan/northstar/SKILL.md) turns intent into a tracked,
+  sliced plan and A-to-B handoff without implementing it.
+- [`autobahn`](04-validate-handoff/autobahn/SKILL.md) ships an implementation-ready
+  handoff through TDD, review, CI, and fail-closed merge gates.
+- [`write-a-skill`](03-configure-generate/write-a-skill/SKILL.md) creates a skill
+  with progressive disclosure and portable host behavior.
+- [`diagnose`](04-validate-handoff/diagnose/SKILL.md) runs a disciplined debugging
+  loop from reproduction through verified fix.
+
+## Complete catalog
+
+The table below is generated from `catalog.json`. Preserve its marker comments
+when editing this README.
 
 <!-- GENERATED:SKILL-CATALOG:START -->
 | Skill | When to use | Lifecycle | Owner phase |
@@ -36,54 +103,49 @@ Each skill is a self-contained directory with a `SKILL.md` that tells the agent 
 | [`zoom-out`](01-discover-decide/zoom-out/SKILL.md) | Explain broader code or product context around a focused area. Use when the user needs a higher-level perspective before local changes. | `stable` | `01-discover-decide` |
 <!-- GENERATED:SKILL-CATALOG:END -->
 
-## Installation
+## Update
 
-Install the same catalog for either host:
+Refresh the repository and reinstall the catalog for your host:
 
 ```bash
+git pull --ff-only
 ./scripts/install-codex.sh --all
-./scripts/install-claude-code.sh --user
 ```
 
-Both installers copy the complete skill directory, including `SKILL.md`, references, and bundled scripts. `tests/install_cross_host_parity_test.sh` verifies identical `SKILL.md` content across both destinations.
+Use the corresponding host installer from the table above when you do not use
+Codex. Each deprecated compatibility alias remains installable for legacy
+prompts, but new workflows should use the canonical skill name.
 
-## Structure
+## Contributing
 
-Each skill follows:
+Read [`AGENTS.md`](AGENTS.md) for repository conventions and
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the protected-main delivery contract.
+Validate catalog metadata with:
 
+```bash
+python3 scripts/validate-skill-catalog.py
 ```
+
+Each skill follows this structure:
+
+```text
 skill-name/
-├── SKILL.md        # Trigger conditions + core workflow (target <=100 lines)
-├── REFERENCE.md    # Deep detail, loaded on demand
-└── scripts/        # Utility scripts if needed
+├── SKILL.md        # Trigger metadata and core workflow
+├── REFERENCE.md    # Optional detail loaded on demand
+└── scripts/        # Optional deterministic utilities
 ```
 
-The `description` frontmatter is routing metadata consumed by Codex and Claude Code. Keep it trigger-focused and <=160 characters; an audited exception may reach 180. `SKILL.md` bodies target <=100 lines, with reviewed exceptions capped at 180 in `.ai/skills/body-line-exceptions.json`.
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE).
 
 <!-- ai-sdlc-init:start -->
-
-## AI SDLC Methodology
-
-This project uses the [ai-catapult-init methodology](https://github.com/r3dlex/skills/tree/main/ai-catapult-init)
-to maintain architectural governance alongside AI-assisted development.
-
-Migration note: `ai-catapult-init` is the canonical skill name and path. The
-`init-ai-repo/` and `ai-sdlc-init/` directories remain only as deprecated compatibility aliases/shims
-until downstream skill loaders have migrated.
-
-Key practices:
-- **Architecture Decision Records** in [`docs/architecture/adr/`](docs/architecture/adr/) — significant
-  decisions are version-controlled with context and rationale.
-- **Archgate rules** in [`.rules.ts`](.rules.ts) — code quality constraints
-  across five domains, validated in CI.
-- **Karpathy baseline** — four engineering heuristics loaded by all agents
-  operating in this repo (think, simplify, be surgical, stay on goal).
-
-Contributing? Read [`AGENTS.md`](AGENTS.md) for agent-facing methodology details.
-
+This repository follows the AI-SDLC methodology. See [`AGENTS.md`](AGENTS.md) for
+the operating contract and [`docs/architecture/adr/`](docs/architecture/adr/) for
+architectural decisions.
 <!-- ai-sdlc-init:end -->
 
 <!-- v3-ai-sdlc-init:start -->
-## ai-catapult-init v3
-This repo follows the v3 AI-ready repository layout. See `.ai/matrix.json`, `.memory/human-override/`, and `docs/architecture/adr/`. Modules currently live at `r3dlex/skills/ai-catapult-init/modules/`; deprecated alias paths (`init-ai-repo/`, `ai-sdlc-init/`) are preserved.
+The v3 scaffold is indexed by [`.ai/matrix.json`](.ai/matrix.json); human
+overrides remain under [`.memory/human-override/`](.memory/human-override/).
 <!-- v3-ai-sdlc-init:end -->
