@@ -98,7 +98,7 @@ sha256_file() {
 }
 
 file_mode() {
-  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1"
+  stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1"
 }
 
 is_sparse() {
@@ -222,7 +222,11 @@ EOF
 
 governance_section() {
   local links=() joined="" link
-  [[ ! -f "$REPO/AGENTS.md" ]] || links+=("[AGENTS.md](AGENTS.md)")
+  if [[ -f "$REPO/AGENTS.md" ]]; then
+    links+=("[AGENTS.md](AGENTS.md)")
+  elif [[ -f "$REPO/CLAUDE.md" ]]; then
+    links+=("[CLAUDE.md](CLAUDE.md)")
+  fi
   [[ ! -f "$REPO/CONTRIBUTING.md" ]] || links+=("[CONTRIBUTING.md](CONTRIBUTING.md)")
   [[ ! -d "$REPO/docs/architecture/adr" ]] || links+=("[docs/architecture/adr/](docs/architecture/adr/)")
   if [[ -d "$REPO/docs/specifications" ]]; then

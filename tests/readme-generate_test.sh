@@ -48,7 +48,7 @@ assert_not_grep() {
 }
 
 stat_mode() {
-  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1"
+  stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1"
 }
 
 # -----------------------------------------------------------------------------
@@ -347,6 +347,20 @@ grep -q "public-contributors" README.md && bad "private template should not incl
 grep -q "AI-SDLC:start" README.md \
   && bad "template should omit governance block when no governance surfaces exist" \
   || ok "template omits governance block when no governance surfaces exist"
+
+# CLAUDE.md is the documented fallback when AGENTS.md is absent.
+mkdir -p "$TMPDIR/claude-only" && cd "$TMPDIR/claude-only"
+printf '# Claude guidance\n' > CLAUDE.md
+bash "$SCRIPT" --mode template --project "Claude Only" --tagline "Uses the available governance surface." \
+  --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-claude-only" \
+  --first-success-command "claude-only doctor" --success-evidence "prints ready" \
+  --visibility private --out README.md >/dev/null
+grep -Fq '[CLAUDE.md](CLAUDE.md)' README.md \
+  && ok "template governance falls back to CLAUDE.md" \
+  || bad "template governance falls back to CLAUDE.md"
+grep -Fq '[AGENTS.md](AGENTS.md)' README.md \
+  && bad "CLAUDE-only governance must not invent AGENTS.md" \
+  || ok "CLAUDE-only governance does not invent AGENTS.md"
 
 # -----------------------------------------------------------------------------
 # Test 10: skill-catalog archetype explains discovery without placeholders.
