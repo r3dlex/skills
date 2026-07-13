@@ -35,22 +35,28 @@ A full template README contains, in order:
 7. **Why / who / features / workflows / mental model** — explain the problem, audience, key features, and how the pieces fit.
 8. **Community** — maintainers, contributors, code of conduct, contributing link, support channels.
 9. **License / support** — license file link, support policy, sponsorship or commercial support if applicable.
-10. **Real star history (when applicable)** — link to public star history (e.g. star-history.com) only when the repo is public and the link resolves; do not fabricate.
-11. **Concise AI-SDLC governance block** — one short block linking to `AGENTS.md`, `CONTRIBUTING.md`, ADRs, and the BRD/PRD traceability chain. Do not dump the entire governance payload into the README.
+10. **Concise AI-SDLC governance block** — one short block linking to `AGENTS.md`, `CONTRIBUTING.md`, ADRs, and the BRD/PRD traceability chain. Do not dump the entire governance payload into the README.
 
 The hero, runnable Quick Start, observable first-success evidence, value statement,
 and archetype mental model are mandatory. Requirements, update, community,
-license, governance, and public history sections are emitted only when their
+license, and governance sections are emitted only when their
 repository facts or explicit inputs exist. Missing optional facts are omitted;
 they are never represented by placeholders.
 
 ## Executable generator contract
 
-`scripts/readme-generate.sh` supports two deliberately narrow archetypes:
+`scripts/readme-generate.sh` is a repository convenience wrapper. The canonical,
+installed implementation and template live at
+`03-configure-generate/ai-catapult-init/scripts/readme-generate.sh` and
+`03-configure-generate/ai-catapult-init/assets/readme/template.md`.
+
+The generator supports two deliberately narrow archetypes:
 `cli-tool` and `skill-catalog`. Template and augmentation modes require:
 
 - `--project` and `--tagline` for identity and value.
-- `--archetype cli-tool|skill-catalog` for the minimum mental model.
+- `--why`, distinct from the tagline, for the repository-specific value case.
+- `--archetype cli-tool|skill-catalog`, `--primary-surface`, and
+  `--mental-model` for the repository-specific operating model.
 - `--install-command` and `--first-success-command`, each containing an
   executable, non-comment command.
 - `--success-evidence` naming observable output or a generated artifact.
@@ -61,18 +67,24 @@ example:
 ```sh
 bash scripts/readme-generate.sh --mode template --repo . \
   --project "Example CLI" --tagline "Checks an example repository." \
-  --archetype cli-tool --install-command "npm install -g example-cli" \
+  --why "Catch invalid repository state before publishing." \
+  --archetype cli-tool --primary-surface 'example-cli <command>' \
+  --mental-model "Each command validates one repository and reports evidence." \
+  --install-command "npm install -g example-cli" \
   --first-success-command "example-cli doctor" \
   --success-evidence 'prints "example repository ready"' \
   --out README.md
 ```
 
 Generation fails with actionable missing-input guidance instead of emitting an
-incomplete README. Output validation rejects unresolved angle-bracket content,
-template tokens, filler text, and invented static proof badges.
+incomplete README. Output validation rejects explicit placeholder syntax,
+template tokens, filler text, and invented static proof badges while preserving
+valid HTML tags and Markdown autolinks.
 
 ## Augmentation behavior (existing mode)
 
+- Pass `--source-sha <sha256>` for the reviewed README. The write is rejected if
+  that SHA changes before backup or replacement.
 - Run a backup step before any rewrite. See "Backup and audit manifest" below.
 - Preserve every existing section verbatim unless the user explicitly asks for reorganization.
 - Detect missing onboarding sections and append them in the right order without disturbing existing content. Use the same required project, archetype, command, and success-evidence inputs as template mode.
@@ -84,7 +96,9 @@ template tokens, filler text, and invented static proof badges.
 A proof signal is any badge, count, link, or claim that depends on external state (host stars, package downloads, license file, build status, release version). All proof signals MUST satisfy these rules:
 
 - **Real data only.** Reject hardcoded status, release, coverage, or download claims. The deterministic generator emits only a license badge backed by a real `LICENSE` file; add other badges separately only after deriving their URLs from real host or registry configuration.
-- **Public-only leakage guard.** Star history, downloads, public contributors, and social links appear only when the repo is public. Private/internal repos get a neutral version badge at most.
+- **No synthesized dynamic proof.** Star history, downloads, build state,
+  releases, and contributor claims are outside this offline generator's
+  contract. Add them separately only from current host or registry evidence.
 - **License accuracy.** The license badge must match the actual `LICENSE` file in the repo. Do not assume a default.
 - **No marketing tone for internal or library-only repos.** Internal tooling and small libraries get accurate, restrained documentation; no "blazing fast", "production ready", or other unverified adjectives.
 - **Validation.** Tests MUST reject invented claims, fake badges, fake star history, and any private/internal marker that leaks into a public README.
@@ -92,7 +106,7 @@ A proof signal is any badge, count, link, or claim that depends on external stat
 ## Public/private host awareness
 
 - Detect host visibility from the host API or explicit user input. Default to private if the host cannot be reached.
-- Public repos: full template, real star history, public contributors, social links allowed.
+- Public repos: full template; externally verified dynamic proof may be added outside this generator.
 - Private/internal repos: suppress star history, downloads counts, public contributor lists, and any social proof; keep license, build, and version badges only when real and applicable.
 - Non-GitHub hosts: gracefully degrade. Use the host's own badge/CI mechanisms or omit the section. Do not add explanatory filler to the generated README.
 
@@ -100,16 +114,19 @@ A proof signal is any badge, count, link, or claim that depends on external stat
 
 Before any augmentation or rewrite:
 
-1. Copy the existing `README.md` (and any related doc snippets) to a timestamped backup path. Default pattern: `.ai/drift/readme-backups/README-<ISO8601-timestamp>.bak`.
-2. Emit an audit manifest at `.ai/drift/readme-backups/audit-<ISO8601-timestamp>.json` with:
+1. Compute the reviewed README SHA-256 and pass it as `--source-sha`. This is
+   required for augmentation and `template --force`.
+2. Copy the existing `README.md` to a timestamped backup path. Default pattern: `.ai/drift/readme-backups/README-<ISO8601-timestamp>.bak`.
+3. Emit an audit manifest at `.ai/drift/readme-backups/audit-<ISO8601-timestamp>.json` with:
    - Source path, source SHA, byte size, line count, section heading list.
    - Detected mode (template or augmentation), reason.
    - Planned additions (section title, intended content summary).
    - Planned modifications (section title, before/after summary).
    - Planned deletions (none in v1; the augmenter never deletes without explicit confirmation).
    - Operator-visible confirmation prompt and the user's response.
-3. Refuse to write when the audit manifest is missing or when the source SHA changed between backup and write.
-4. Tests MUST assert that a backup path and audit manifest both exist for every augmentation/rewrite and that the audit manifest's section list matches the actual pre-write README.
+4. Refuse to write when the source SHA changes before backup, when the backup
+   SHA differs from the reviewed SHA, or when the source changes before write.
+5. Tests MUST assert that a backup path and audit manifest both exist for every augmentation/rewrite and that the manifest records the reviewed source SHA.
 
 ## Concise AI-SDLC governance block
 

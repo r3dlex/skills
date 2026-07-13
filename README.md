@@ -11,7 +11,7 @@ Requirements: Git, Bash, and an installed Codex or Claude Code host.
 Install one representative skill for Codex:
 
 ```bash
-git clone git@github.com:r3dlex/skills.git
+git clone https://github.com/r3dlex/skills.git
 cd skills
 ./scripts/install-codex.sh --skill diagnose
 test -f "$HOME/.codex/skills/diagnose/SKILL.md"
