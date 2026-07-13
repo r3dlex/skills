@@ -20,6 +20,12 @@ projection, never a second policy authority.
   adapter retry path.
 - ADO selects one conditional pool job. GitLab dispatches one child pipeline
   whose variable selects one tagged workload. Selector failure fails closed.
+- Render into an initialized workspace root or a new empty directory. The
+  renderer owns only paths recorded in its digest manifest, rejects collisions
+  or out-of-band edits, and never replaces the workspace directory.
+- A workspace lock plus fsynced journal, staging tree, and per-file rollback
+  make concurrent runs fail closed and recover interrupted promotion. ADO pool,
+  image, and demand tokens and GitLab tags use a restricted YAML-safe grammar.
 - Adapter status is `supported` only after disposable-host smoke and readback.
   Structural/golden proof alone leaves the adapter `experimental` or `blocked`.
 

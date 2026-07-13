@@ -61,6 +61,25 @@ grep -q -- '--max-retries 1' "$TMP/ado/azure-pipelines.yml" \
 grep -q -- '--max-retries 1' "$TMP/gitlab/.gitlab/dpua-child.yml" \
   && grep -q 'resolve-and-dispatch' "$TMP/gitlab/.gitlab-ci.yml" \
   && pass 'GitLab one same-executor retry and child dispatch' || fail 'GitLab retry/dispatch contract missing'
+[[ $(grep -c 'actions/checkout@34e114' "$TMP/github/.github/workflows/dpua-validation.yml") -eq 3 ]] \
+  && [[ $(grep -c 'moonrepo/setup-toolchain@261c62' "$TMP/github/.github/workflows/dpua-validation.yml") -eq 3 ]] \
+  && pass 'GitHub jobs checkout source and install pinned toolchain' || fail 'GitHub runtime setup missing'
+
+mkdir -p "$TMP/smoke/tools/ci-engine" "$TMP/smoke/.ai/execution/profiles/execution"
+cp "$PROFILE" "$TMP/smoke/.ai/execution/profiles/execution/default.json"
+cat > "$TMP/smoke/tools/ci-engine/provider_selector.py" <<'PY'
+#!/usr/bin/env python3
+import subprocess,sys
+if '--' in sys.argv:
+    marker=sys.argv.index('--')
+    raise SystemExit(subprocess.run(sys.argv[marker+1:]).returncode)
+if sys.argv[1] not in {'resolve','resolve-and-dispatch'}:
+    raise SystemExit(2)
+PY
+python3 "$TMP/smoke/tools/ci-engine/provider_selector.py" resolve --provider github --profile "$TMP/smoke/.ai/execution/profiles/execution/default.json" --task-class validation --preference self-hosted \
+  && python3 "$TMP/smoke/tools/ci-engine/provider_selector.py" execute --provider github --attempt 0 -- python3 -c 'print("smoke")' >/dev/null \
+  && python3 "$TMP/smoke/tools/ci-engine/provider_selector.py" retry-transient --provider github --max-retries 1 -- python3 -c 'print("retry-smoke")' >/dev/null \
+  && pass 'GitHub projected command contract executable smoke' || fail 'GitHub projected command smoke failed'
 
 python3 - "$PROFILE" <<'PY' && pass 'canonical Goal 6 compatibility invariants' || fail 'Goal 6 compatibility invariants drifted'
 import json,sys
@@ -102,17 +121,57 @@ elif op=='protected':s['host_selection']=['ado'];s['ado']['fallback_excluded_tas
 elif op=='threshold':s['host_selection']=['gitlab'];s['gitlab']['queue_age_threshold_seconds']=0
 elif op=='permission':s['host_selection']=['ado'];s['ado']['required_read_permission']='admin'
 elif op=='github-scope':s['host_selection']=['github'];s['github']['runner_scope']='organization';s['github']['required_read_permission']='self-hosted-runners:read'
+elif op=='ado-demand-injection':s['host_selection']=['ado'];s['ado']['self_hosted_demands']=['Agent.OS -equals Linux\njobs:']
+elif op=='ado-pool-injection':s['host_selection']=['ado'];s['ado']['self_hosted_pool']='safe\nsteps:'
+elif op=='gitlab-tag-injection':s['host_selection']=['gitlab'];s['gitlab']['self_hosted_tags']=['safe, injected]']
 elif op=='unknown':s['mystery']=True
 json.dump(p,open(output,'w'))
 PY
 }
-for operation in lore duplicate retry protected threshold permission github-scope unknown; do
+for operation in lore duplicate retry protected threshold permission github-scope ado-demand-injection ado-pool-injection gitlab-tag-injection unknown; do
   mutate "$operation" "$TMP/bad-$operation.json"
   expect "$operation fails closed" fail python3 "$RENDER" --profile "$TMP/bad-$operation.json" --output "$TMP/bad-$operation"
 done
 
 printf '\n' >> "$TMP/github/.github/workflows/dpua-validation.yml"
 expect 'check rejects CI projection drift' fail python3 "$RENDER" --profile "$TMP/github.json" --output "$TMP/github" --check
+
+# Existing workspaces retain unrelated files and only prior manifest-owned files
+# are removed when host selection changes.
+mkdir -p "$TMP/workspace/.ai"
+printf '{}\n' > "$TMP/workspace/.ai/matrix.json"
+printf 'keep-me\n' > "$TMP/workspace/KEEP.txt"
+python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace" >/dev/null
+python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" >/dev/null
+[[ $(cat "$TMP/workspace/KEEP.txt") == keep-me && ! -e "$TMP/workspace/azure-pipelines.yml" && -f "$TMP/workspace/.gitlab-ci.yml" ]] \
+  && pass 'renderer preserves unrelated files and removes only stale owned output' || fail 'renderer mutated unrelated workspace content'
+
+cp -R "$TMP/workspace" "$TMP/workspace-before-failure"
+expect 'mid-promotion failure rolls back immediately' fail python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace" --fail-after-promote 2
+if diff -ru "$TMP/workspace-before-failure" "$TMP/workspace" >/dev/null; then pass 'mid-promotion rollback restores exact files'; else fail 'mid-promotion rollback left partial files'; fi
+
+expect 'injected process crash exits non-zero' fail python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace" --crash-after-promote 2
+expect 'post-crash rerun recovers and converges' pass python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace"
+[[ $(cat "$TMP/workspace/KEEP.txt") == keep-me && -f "$TMP/workspace/azure-pipelines.yml" && ! -e "$TMP/workspace/.gitlab-ci.yml" ]] \
+  && pass 'crash recovery preserves unrelated files' || fail 'crash recovery damaged workspace'
+expect 'post-intent crash exits non-zero' fail python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" --crash-at after-intent
+expect 'post-intent rerun recovers prior set' pass python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace"
+expect 'post-commit crash exits non-zero' fail python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" --crash-at after-commit
+expect 'post-commit rerun retains committed set and cleans journal' pass python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" --check
+[[ ! -e "$TMP/workspace/.ai/execution/generated/.ci-adapters.journal.json" ]] \
+  && pass 'committed recovery removes durable journal' || fail 'committed journal was not cleaned'
+
+python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" --hold-lock-seconds 2 >/dev/null 2>&1 & lock_pid=$!
+sleep .2
+expect 'workspace lock rejects concurrent renderer' fail python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace"
+wait "$lock_pid" && pass 'workspace lock owner completes' || fail 'workspace lock owner failed'
+
+mkdir -p "$TMP/collision/.ai"; printf '{}\n' > "$TMP/collision/.ai/matrix.json"; printf 'manual\n' > "$TMP/collision/azure-pipelines.yml"
+expect 'unowned target collision fails closed' fail python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/collision"
+[[ $(cat "$TMP/collision/azure-pipelines.yml") == manual ]] && pass 'unowned collision remains unchanged' || fail 'unowned collision was overwritten'
+mkdir -p "$TMP/unsafe"; printf 'keep\n' > "$TMP/unsafe/KEEP.txt"
+expect 'arbitrary non-workspace output rejected' fail python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/unsafe"
+[[ $(cat "$TMP/unsafe/KEEP.txt") == keep ]] && pass 'unsafe output rejection is non-mutating' || fail 'unsafe output was mutated'
 
 printf '\n%d passed; %d failed\n' "$passed" "$failed"
 [[ $failed -eq 0 ]]

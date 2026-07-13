@@ -106,7 +106,7 @@
                     "required": ["self_hosted_labels", "hosted_image", "fallback_eligible_tasks", "fallback_excluded_tasks", "runner_scope", "required_read_permission", "minimum_healthy_runners", "queue_age_threshold_seconds", "max_redispatch_count", "adapter_status"],
                     "properties": {
                       "self_hosted_labels": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-                      "hosted_image": {"type": "string", "minLength": 1},
+                      "hosted_image": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
                       "fallback_eligible_tasks": {"$ref": "#/$defs/taskClasses"},
                       "fallback_excluded_tasks": {"$ref": "#/$defs/protectedClasses"},
                       "runner_scope": {"enum": ["organization", "repository"]},
@@ -128,9 +128,9 @@
                     "additionalProperties": false,
                     "required": ["self_hosted_pool", "self_hosted_demands", "hosted_vm_image", "fallback_eligible_tasks", "fallback_excluded_tasks", "required_read_permission", "minimum_healthy_agents", "queue_age_threshold_seconds", "max_redispatch_count", "adapter_status"],
                     "properties": {
-                      "self_hosted_pool": {"type": "string", "minLength": 1},
-                      "self_hosted_demands": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-                      "hosted_vm_image": {"type": "string", "minLength": 1},
+                      "self_hosted_pool": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+                      "self_hosted_demands": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63} -(equals|notEquals) [A-Za-z0-9][A-Za-z0-9._-]{0,127}$"}},
+                      "hosted_vm_image": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
                       "fallback_eligible_tasks": {"$ref": "#/$defs/taskClasses"},
                       "fallback_excluded_tasks": {"$ref": "#/$defs/protectedClasses"},
                       "required_read_permission": {"const": "agent-pools:read"},
@@ -149,8 +149,8 @@
                     "additionalProperties": false,
                     "required": ["self_hosted_tags", "hosted_tags", "child_pipeline_file", "fallback_eligible_tasks", "fallback_excluded_tasks", "required_read_permission", "minimum_healthy_runners", "queue_age_threshold_seconds", "max_redispatch_count", "adapter_status"],
                     "properties": {
-                      "self_hosted_tags": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-                      "hosted_tags": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+                      "self_hosted_tags": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"}},
+                      "hosted_tags": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"}},
                       "child_pipeline_file": {"const": ".gitlab/dpua-child.yml"},
                       "fallback_eligible_tasks": {"$ref": "#/$defs/taskClasses"},
                       "fallback_excluded_tasks": {"$ref": "#/$defs/protectedClasses"},
