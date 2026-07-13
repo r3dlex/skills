@@ -342,7 +342,14 @@ def load_journal(path: Path, output: Path) -> dict[str, object]:
     return journal
 
 
-def recover(output: Path, journal: Path, stage: Path, backup: Path) -> None:
+def recover(
+    output: Path,
+    journal: Path,
+    stage: Path,
+    backup: Path,
+    *,
+    crash_after_restore: int | None = None,
+) -> None:
     if not journal.exists():
         shutil.rmtree(stage, ignore_errors=True)
         shutil.rmtree(backup, ignore_errors=True)
@@ -351,15 +358,21 @@ def recover(output: Path, journal: Path, stage: Path, backup: Path) -> None:
     affected = state["affected"]
     present = set(state["originally_present"])
     if state["phase"] != "committed":
+        restored = 0
         for name in affected:
             target = ensure_safe_target(output, name)
             saved = backup / name
             if name in present:
-                if not saved.is_file():
+                if saved.is_symlink() or not saved.is_file():
                     raise ContractError(f"transaction backup is incomplete: {name}")
+                restore = backup / ".restore" / name
+                durable_write(restore, saved.read_bytes())
                 target.parent.mkdir(parents=True, exist_ok=True)
-                os.replace(saved, target)
+                os.replace(restore, target)
                 fsync_directory(target.parent)
+                restored += 1
+                if crash_after_restore and restored >= crash_after_restore:
+                    os._exit(88)
             elif target.exists():
                 if not target.is_file():
                     raise ContractError(f"transaction target changed type: {name}")
@@ -401,12 +414,17 @@ def managed_check(output: Path, expected: dict[str, bytes]) -> None:
             raise ContractError("selected-host CI projection drift detected")
 
 
-def check_transaction(output: Path, expected: dict[str, bytes]) -> None:
+def check_transaction(
+    output: Path,
+    expected: dict[str, bytes],
+    *,
+    crash_after_restore: int | None,
+) -> None:
     output = validate_output_root(output)
     lock, journal, stage, backup = state_paths(output)
     descriptor = acquire_workspace_lock(lock)
     try:
-        recover(output, journal, stage, backup)
+        recover(output, journal, stage, backup, crash_after_restore=crash_after_restore)
         managed_check(output, expected)
     finally:
         release_workspace_lock(descriptor, lock)
@@ -419,13 +437,14 @@ def write_transaction(
     fail_after: int | None,
     crash_after: int | None,
     crash_at: str | None,
+    crash_after_restore: int | None,
     hold_lock_seconds: float,
 ) -> None:
     output = validate_output_root(output)
     lock, journal, stage, backup = state_paths(output)
     descriptor = acquire_workspace_lock(lock)
     try:
-        recover(output, journal, stage, backup)
+        recover(output, journal, stage, backup, crash_after_restore=crash_after_restore)
         if hold_lock_seconds:
             time.sleep(hold_lock_seconds)
         previous = load_owned_manifest(output)
@@ -488,13 +507,18 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--fail-after-promote", type=int)
     parser.add_argument("--crash-after-promote", type=int)
+    parser.add_argument("--crash-after-rollback-restore", type=int)
     parser.add_argument("--crash-at", choices=["after-intent", "after-commit"])
     parser.add_argument("--hold-lock-seconds", type=float, default=0)
     args = parser.parse_args()
     try:
         expected = render(load_profile(args.profile))
         if args.check:
-            check_transaction(args.output, expected)
+            check_transaction(
+                args.output,
+                expected,
+                crash_after_restore=args.crash_after_rollback_restore,
+            )
         else:
             write_transaction(
                 args.output,
@@ -502,6 +526,7 @@ def main() -> int:
                 fail_after=args.fail_after_promote,
                 crash_after=args.crash_after_promote,
                 crash_at=args.crash_at,
+                crash_after_restore=args.crash_after_rollback_restore,
                 hold_lock_seconds=args.hold_lock_seconds,
             )
         return 0

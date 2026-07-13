@@ -154,6 +154,11 @@ expect 'injected process crash exits non-zero' fail python3 "$RENDER" --profile 
 expect 'post-crash rerun recovers and converges' pass python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace"
 [[ $(cat "$TMP/workspace/KEEP.txt") == keep-me && -f "$TMP/workspace/azure-pipelines.yml" && ! -e "$TMP/workspace/.gitlab-ci.yml" ]] \
   && pass 'crash recovery preserves unrelated files' || fail 'crash recovery damaged workspace'
+cp -R "$TMP/workspace" "$TMP/workspace-before-repeated-recovery"
+expect 'second promotion crash leaves rollback journal' fail python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" --crash-after-promote 2
+expect 'interrupted rollback recovery exits non-zero' fail python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace" --check --crash-after-rollback-restore 1
+expect 'repeated rollback recovery restores prior set' pass python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace" --check
+if diff -ru "$TMP/workspace-before-repeated-recovery" "$TMP/workspace" >/dev/null; then pass 'repeated rollback recovery restores exact files'; else fail 'repeated rollback recovery did not converge'; fi
 expect 'post-intent crash exits non-zero' fail python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" --crash-at after-intent
 expect 'post-intent rerun recovers prior set' pass python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/workspace"
 expect 'post-commit crash exits non-zero' fail python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" --crash-at after-commit
