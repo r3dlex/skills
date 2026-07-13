@@ -9,6 +9,7 @@ except ImportError:fcntl=None
 ID=re.compile(r'^[a-z0-9][a-z0-9-]{0,62}$'); VERSION=re.compile(r'^\d+\.\d+$'); REF=re.compile(r'^[A-Za-z0-9][A-Za-z0-9._/-]*$')
 URL=re.compile(r'^(?:https://(?:github\.com|gitlab\.com)/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?|git@(?:github\.com|gitlab\.com):[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git|https://dev\.azure\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/_git/[A-Za-z0-9_.-]+)$')
 PROFILE_TYPES=('checkout','execution','toolchain','cas'); HOSTS={'github','ado','gitlab'}; OVERRIDE_KEYS={'runner_preference','host_selection','toolchain_tier'}
+EXECUTION_BASE={'runner_preference','host_selection','hosted_fallback'}; EXECUTION_EXTENDED=EXECUTION_BASE|HOSTS|{'transient_retry'}
 TOP_KEYS={'schema_version','topology_type','max_allowed_depth','current_depth','sync_strategy','upstream_authority','managed_repositories','inherited_assets','sync_status'}
 TOP_OPTIONAL={'memory','migration','exclusions'}; V11_KEYS=TOP_KEYS|{'repository_id'}
 V10_REPO={'path','depth','inherits_assets_from'}; V11_REPO=V10_REPO|{'repo_id','canonical_origin','canonical_upstream','default_ref','disposable','moon_project_id','dependencies','profile_refs'}
@@ -38,12 +39,22 @@ def validate_profile(path:Path,kind:str,ref:dict[str,Any])->dict[str,Any]:
  body=load(path/kind/f"{ref['id']}.json"); exact(body,{'schema_version','profile_type','profile_id','version','settings'},label=f'{kind} profile')
  if body['schema_version']!='1.0' or body['profile_type']!=kind or body['profile_id']!=ref['id'] or body['version']!=ref['version'] or not isinstance(body['settings'],dict):raise ValueError(f'{kind} profile version/type skew')
  settings=body['settings']
- allowed={'checkout':{'history','disposable'},'execution':{'runner_preference','host_selection','hosted_fallback'},'toolchain':{'tier'},'cas':{'mode'}}[kind]
- if set(settings)!=allowed:raise ValueError(f'{kind} profile settings unknown/missing')
+ allowed={'checkout':{'history','disposable'},'toolchain':{'tier'},'cas':{'mode'}}.get(kind)
+ if allowed is not None and set(settings)!=allowed:raise ValueError(f'{kind} profile settings unknown/missing')
  if kind=='checkout' and (settings['history'] not in {'full','shallow'} or not isinstance(settings['disposable'],bool)):raise ValueError('invalid checkout profile')
  if kind=='execution':
+  if not EXECUTION_BASE<=set(settings) or not set(settings)<=EXECUTION_EXTENDED:raise ValueError('execution profile settings unknown/missing')
   if settings['runner_preference'] not in {'self-hosted','hosted'} or not isinstance(settings['hosted_fallback'],bool):raise ValueError('invalid execution profile')
   if not isinstance(settings['host_selection'],list) or not settings['host_selection'] or len(settings['host_selection'])!=len(set(settings['host_selection'])) or any(h not in HOSTS for h in settings['host_selection']):raise ValueError('Lore is reserved/unsupported and hosts must be explicitly supported without duplicates')
+  extended=set(settings)-EXECUTION_BASE
+  if extended:
+   if 'transient_retry' not in settings or any(host not in settings for host in settings['host_selection']):raise ValueError('selected execution adapters and transient retry policy are required')
+   retry=settings['transient_retry']
+   if not isinstance(retry,dict) or set(retry)!={'max_retries','classes'} or retry.get('max_retries')!=1 or set(retry.get('classes',[]))!={'provider-timed-out','executor-incomplete-after-heartbeat'}:raise ValueError('invalid same-executor transient retry policy')
+   protected={'release','publish','deployment','cas-write'}
+   for host in settings['host_selection']:
+    adapter=settings[host]
+    if not isinstance(adapter,dict) or set(adapter.get('fallback_excluded_tasks',[]))!=protected or adapter.get('max_redispatch_count')!=0:raise ValueError(f'invalid protected fallback contract for {host}')
  if kind=='toolchain' and settings['tier'] not in {'managed','system','unsupported'}:raise ValueError('invalid toolchain profile')
  if kind=='cas' and settings['mode'] not in {'disabled','pull-only','protected-write'}:raise ValueError('invalid CAS profile')
  return body

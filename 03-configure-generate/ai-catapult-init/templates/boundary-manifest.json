@@ -277,9 +277,39 @@
       "classification": "mechanical",
       "template": "dot-ai/execution/child-binding.schema.json",
       "rationale": "Sanitized child binding projection schema; fixed and repo-agnostic."
+    },
+    {
+      "path": "ci/ado/azure-pipelines.yml.template",
+      "classification": "mechanical",
+      "template": "ci/ado/azure-pipelines.yml.template",
+      "rationale": "Canonical Azure Pipelines adapter template rendered only when ADO is selected."
+    },
+    {
+      "path": "ci/github/dpua-validation.yml.template",
+      "classification": "mechanical",
+      "template": "ci/github/dpua-validation.yml.template",
+      "rationale": "GitHub compatibility adapter template preserving the shared DPUA policy shape."
+    },
+    {
+      "path": "ci/gitlab/gitlab-ci.yml.template",
+      "classification": "mechanical",
+      "template": "ci/gitlab/gitlab-ci.yml.template",
+      "rationale": "Canonical GitLab hosted-selector parent template rendered only when GitLab is selected."
+    },
+    {
+      "path": "ci/gitlab/dpua-child.yml.template",
+      "classification": "mechanical",
+      "template": "ci/gitlab/dpua-child.yml.template",
+      "rationale": "Canonical GitLab one-executor child-pipeline template."
+    },
+    {
+      "path": ".ai/execution/profiles/execution/default.json",
+      "classification": "mechanical",
+      "template": "dot-ai/execution/profiles/execution/default.json",
+      "rationale": "Provider-neutral DPUA execution profile with self-hosted-first defaults and bounded retry/fallback policy."
     }
   ],
-  "mechanical_count": 35,
+  "mechanical_count": 40,
   "judgment_laden_count": 10,
   "notes": [
     "Dirs without a named file get a .gitkeep in the template tree so the directory is tracked by git.",

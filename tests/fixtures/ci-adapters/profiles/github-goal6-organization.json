@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "profile_type": "execution",
+  "profile_id": "goal6-organization",
+  "version": "1.4",
+  "settings": {
+    "runner_preference": "self-hosted",
+    "host_selection": ["github"],
+    "hosted_fallback": true,
+    "github": {
+      "self_hosted_labels": ["self-hosted", "Linux", "x64", "dpua-validation"],
+      "hosted_image": "ubuntu-24.04",
+      "fallback_eligible_tasks": ["validation", "test"],
+      "fallback_excluded_tasks": ["release", "publish", "deployment", "cas-write"],
+      "runner_scope": "organization",
+      "required_read_permission": "self-hosted-runners:read",
+      "minimum_healthy_runners": 1,
+      "queue_age_threshold_seconds": 300,
+      "max_redispatch_count": 0,
+      "adapter_status": "supported",
+      "runner_organization": "r3dlex",
+      "runner_group_id": 1
+    },
+    "transient_retry": {
+      "max_retries": 1,
+      "classes": ["provider-timed-out", "executor-incomplete-after-heartbeat"]
+    }
+  }
+}

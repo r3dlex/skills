@@ -9,6 +9,7 @@ Layer 3 modules keep the canonical `ai-catapult-init` skill lean. These files li
 | `brd-prd-traceability.md` | Read when adding BRD, PRD, issue/ticket, agent brief, and drift-report backlinks. |
 | `tracker-adapters.md` | Read when choosing GitHub, ADO, GitLab, Jira, or local markdown tracker integration. |
 | `ci-policy.md` | Read when adding GitHub/ADO/GitLab CI and branch-policy/ruleset checklist artifacts. |
+| `ci-adapters.md` | Read when rendering selected-host DPUA CI with self-hosted-first execution, bounded hosted fallback, and same-executor retry. |
 | `host-policy-automation.md` | Read when applying hosted branch/PR/policy mutations to GitHub, ADO, GitLab, or Jira, or when emitting dry-run diffs and confirmation gates. |
 | `archgate.md` | Read when configuring structural `.rules.ts` validation or optional semantic/drift checks. |
 | `language-packs.md` | Read when selecting local/CI checks for TypeScript, Python, Rust, Go, JVM, .NET Core/EF Core, legacy .NET/EF, or polyglot repos. |
@@ -36,7 +37,7 @@ Layer 3 modules keep the canonical `ai-catapult-init` skill lean. These files li
 3. `memory.md` — wire `.memory/` schemas.
 4. `sync.md` — wire physical-copy propagation and drift.
 5. `tracker-adapters.md` + `host-policy-automation.md` — choose tracker and apply path.
-6. `ci-policy.md` — CI workflow and branch-policy checklist.
+6. `ci-policy.md` + `ci-adapters.md` — CI policy, selected-host adapter, and branch-policy checklist.
 7. `language-packs.md` — choose checks.
 8. `validation.md` — verify the scaffold matches the blueprint and golden fixtures.
 9. `foundation.md` + `brd-prd-traceability.md` + `archgate.md` + `migration.md` — supporting modules as needed (migration only when a legacy scaffold is present).

@@ -1,0 +1,11 @@
+{
+  "files": {
+    ".github/workflows/dpua-validation.yml": "3337274a347bced34b44230748b734a845ada98a95fbb44a7216394cbd1dea71"
+  },
+  "profile_id": "default",
+  "profile_version": "1.4",
+  "schema_version": "1.0",
+  "selected_hosts": [
+    "github"
+  ]
+}

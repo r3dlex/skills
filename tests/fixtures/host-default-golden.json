@@ -1,6 +1,6 @@
 {
   "auggie": {
-    "ai-catapult-init.md": "e642e0f30a7818bd0312830d472af0fc80842d421fafce5b9cf50e6571f0b44e",
+    "ai-catapult-init.md": "36ce77d267fb06d0dc06e7d042d5176a17c069bcd3e78e283a8800e3fbca977c",
     "ai-sdlc-init.md": "57f521487e58f5324f6f0a880f58f5f39a12bcb42355dbe7a25e89d050ed1914",
     "autobahn.md": "5eff15cf6ad83fb80e811c69635f67b4d3041991dfb63b149f7272f57ea728f8",
     "design-an-api-or-interface.md": "47b02d3a2f31db1241ff4efe818f679604015d1107a9fde1eef52bb826a1e3bd",
@@ -27,10 +27,10 @@
     "zoom-out.md": "6671e34d6936b14395fb4f0ca93ab8db3a4d2cd204c296563fafd2f42ae4a9b8"
   },
   "copilot": {
-    "copilot-instructions.md": "b223050f1dad3ac85fd810e393fc50cb4f98bc6128851440df71a07acacdccf0"
+    "copilot-instructions.md": "252be31496c003233e9f701e4e24cf5a2717c438aa563677d52315c5c0a2efac"
   },
   "gemini": {
-    "ai-catapult-init.md": "12bb65ed8ded895e216a2ae27e36544e2a3ad8dcc8f372a20453c5fef82f9b4c",
+    "ai-catapult-init.md": "1bee30ffad3440051578dbede0b0597fe25f82ec87d77a13576b17f140d60b7d",
     "ai-sdlc-init.md": "e120a50e7867d3b54eb810681489a02bc351125dcfd37d1773c5dd7971a8fa61",
     "autobahn.md": "daace24693ac71ee598b64bb039e62745d84749c4382729508e0acf879410246",
     "design-an-api-or-interface.md": "095005e11ffa57ff29bf9dcfcdbec3fc03eb047d1f157f6b5638ed99d5a6b9b3",
