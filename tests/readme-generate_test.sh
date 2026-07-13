@@ -51,6 +51,14 @@ stat_mode() {
   stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1"
 }
 
+sha256_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
+  fi
+}
+
 # -----------------------------------------------------------------------------
 # Test 1: template mode produces a full README.
 # -----------------------------------------------------------------------------
@@ -137,7 +145,7 @@ ec=$?
 set -e
 assert_eq "$ec" "1" "template refuses to overwrite existing file without --force"
 
-force_source_sha=$(shasum -a 256 README.md | awk '{print $1}')
+force_source_sha=$(sha256_file README.md)
 bash "$SCRIPT" --mode template --project "T2" --tagline "Second tool" \
   --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-t2" \
   --first-success-command "t2 doctor" --success-evidence "prints ready" \
@@ -147,9 +155,9 @@ ok "template --force overwrites"
 # -----------------------------------------------------------------------------
 # Test 3: audit-only mode emits a manifest without modifying README.
 # -----------------------------------------------------------------------------
-sha_before=$(shasum -a 256 README.md | awk '{print $1}')
+sha_before=$(sha256_file README.md)
 bash "$SCRIPT" --mode audit-only --out README.md >/dev/null
-sha_after=$(shasum -a 256 README.md | awk '{print $1}')
+sha_after=$(sha256_file README.md)
 assert_eq "$sha_before" "$sha_after" "audit-only does not modify README"
 ls .ai/drift/readme-backups/audit-*.json >/dev/null 2>&1 && ok "audit-only emits manifest" || bad "audit-only did not emit manifest"
 
@@ -185,7 +193,7 @@ chmod 640 existing.md
 wc -c existing.md | awk '{ if ($1 < 600) exit 1 }' && ok "fixture existing.md exceeds sparse threshold" || bad "fixture existing.md is too small"
 
 set +e
-existing_sha=$(shasum -a 256 existing.md | awk '{print $1}')
+existing_sha=$(sha256_file existing.md)
 bash "$SCRIPT" --mode augment --project "Existing" --tagline "Existing tool tagline" \
   --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-existing" \
   --first-success-command "existing doctor" --success-evidence "prints ready" \
@@ -259,7 +267,7 @@ assert_eq "$ec" "1" "augment refuses sparse README"
   echo "[![Fake](https://img.shields.io/badge/license-fake-blue)](LICENSE)"
 } > fake-badges.md
 set +e
-fake_sha=$(shasum -a 256 fake-badges.md | awk '{print $1}')
+fake_sha=$(sha256_file fake-badges.md)
 bash "$SCRIPT" --mode augment --project "Fake" --tagline "Fake project" \
   --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-fake" \
   --first-success-command "fake doctor" --success-evidence "prints ready" \
@@ -292,7 +300,7 @@ assert_eq "$ec" "3" "guard rejects fake badge (exit 3)"
   echo "internal-only workflows documented here."
 } > public-private-leak.md
 set +e
-public_sha=$(shasum -a 256 public-private-leak.md | awk '{print $1}')
+public_sha=$(sha256_file public-private-leak.md)
 bash "$SCRIPT" --mode augment --project "Public" --tagline "Public project" \
   --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-public" \
   --first-success-command "public doctor" --success-evidence "prints ready" \
@@ -325,7 +333,7 @@ assert_eq "$ec" "3" "guard rejects private/internal marker in public visibility 
   echo "Check our public contributors and star-history here."
 } > private-with-public-leak.md
 set +e
-private_sha=$(shasum -a 256 private-with-public-leak.md | awk '{print $1}')
+private_sha=$(sha256_file private-with-public-leak.md)
 bash "$SCRIPT" --mode augment --project "Private" --tagline "Private project" \
   --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-private" \
   --first-success-command "private doctor" --success-evidence "prints ready" \
@@ -465,9 +473,17 @@ assert_eq "$star_ec" "1" "deterministic generator rejects star-history input"
 # Forced replacement must require the reviewed source SHA and retain evidence.
 mkdir -p "$TMPDIR/guarded-force" && cd "$TMPDIR/guarded-force"
 printf '# Reviewed README\n\nOriginal facts.\n' > README.md
-force_sha=$(shasum -a 256 README.md | awk '{print $1}')
+force_sha=$(sha256_file README.md)
+
+# The Linux force path must work when coreutils sha256sum is available and
+# Perl's shasum is not installed.
+linux_path="$TMPDIR/linux-bin"
+mkdir -p "$linux_path"
+for command_name in awk cat chmod cp date dirname grep mkdir mktemp mv rm sed sha256sum stat tr wc; do
+  ln -s "$(command -v "$command_name")" "$linux_path/$command_name"
+done
 set +e
-bash "$SCRIPT" --mode template --project "Guarded CLI" --tagline "Guarded writes." \
+PATH="$linux_path" /bin/bash "$SCRIPT" --mode template --project "Guarded CLI" --tagline "Guarded writes." \
   --why "Protect reviewed README content from stale overwrites." \
   --archetype cli-tool --primary-surface 'guarded <command>' \
   --mental-model "A reviewed source hash gates the replacement." \
@@ -482,6 +498,34 @@ ls .ai/drift/readme-backups/README-*.bak >/dev/null 2>&1 \
 grep -Rqs "\"source_sha256\": \"$force_sha\"" .ai/drift/readme-backups/audit-*.json \
   && ok "force audit records reviewed source SHA" || bad "force audit records reviewed source SHA"
 
+mkdir -p "$TMPDIR/no-sha-force" && cd "$TMPDIR/no-sha-force"
+printf '# Reviewed without a provider\n' > README.md
+no_sha_source=$(sha256_file README.md)
+no_sha_path="$TMPDIR/no-sha-bin"
+mkdir -p "$no_sha_path"
+for command_name in awk cat chmod cp date dirname grep mkdir mktemp mv rm sed stat tr wc; do
+  ln -s "$(command -v "$command_name")" "$no_sha_path/$command_name"
+done
+set +e
+PATH="$no_sha_path" /bin/bash "$SCRIPT" --mode template \
+  --project "No SHA CLI" --tagline "Rejects unverified writes." \
+  --why "Prevent guarded writes without a SHA-256 implementation." \
+  --archetype cli-tool --primary-surface 'no-sha <command>' \
+  --mental-model "A checksum provider gates the replacement." \
+  --install-command "install-no-sha" --first-success-command "no-sha doctor" \
+  --success-evidence "prints no-sha ready" --source-sha "$no_sha_source" \
+  --out README.md --force >/dev/null 2>no-sha.err
+no_sha_ec=$?
+set -e
+assert_eq "$no_sha_ec" "2" "force fails closed without a SHA-256 provider"
+grep -q 'requires sha256sum or shasum' no-sha.err \
+  && ok "missing SHA-256 provider reports the portability requirement" \
+  || bad "missing SHA-256 provider reports the portability requirement"
+grep -q '^# Reviewed without a provider$' README.md \
+  && ok "missing SHA-256 provider preserves the reviewed README" \
+  || bad "missing SHA-256 provider preserves the reviewed README"
+
+cd "$TMPDIR/guarded-force"
 printf '# Changed behind reviewer\n' > README.md
 set +e
 bash "$SCRIPT" --mode template --project "Guarded CLI" --tagline "Guarded writes." \
@@ -515,7 +559,7 @@ BSD 3-Clause License
 Redistribution and use in source and binary forms, with or without modification, are permitted.
 Neither the name of the copyright holder nor the names of its contributors may be used to endorse products.
 EOF
-augment_sha=$(shasum -a 256 README.md | awk '{print $1}')
+augment_sha=$(sha256_file README.md)
 set +e
 bash "$SCRIPT" --mode augment --project "Existing Catalog" --tagline "Reusable workflows." \
   --why "Install only the workflows your host needs." \
@@ -542,7 +586,7 @@ grep -Rqs "\"source_sha256\": \"$augment_sha\"" .ai/drift/readme-backups/audit-*
   && ok "augment audit records reviewed source SHA" \
   || bad "augment audit records reviewed source SHA"
 augment_backup=$(find .ai/drift/readme-backups -name 'README-*.bak' -print -quit)
-[[ -n "$augment_backup" && "$(shasum -a 256 "$augment_backup" | awk '{print $1}')" == "$augment_sha" ]] \
+[[ -n "$augment_backup" && "$(sha256_file "$augment_backup")" == "$augment_sha" ]] \
   && ok "augment backup matches reviewed source SHA" \
   || bad "augment backup matches reviewed source SHA"
 
