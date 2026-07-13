@@ -1,0 +1,37 @@
+parameters:
+  - name: runnerPreference
+    type: string
+    default: self-hosted
+    values: [self-hosted, hosted]
+
+stages:
+  - stage: select
+    jobs:
+      - job: trusted_selector
+        pool:
+          vmImage: 'ubuntu-24.04'
+        steps:
+          - script: >-
+              python3 tools/ci-engine/provider_selector.py resolve
+              --provider ado --profile .ai/execution/profiles/execution/default.json
+              --task-class validation --preference ${{ parameters.runnerPreference }}
+            name: selector
+
+  - stage: execute
+    dependsOn: select
+    jobs:
+      - job: self_hosted_workload
+        condition: eq(stageDependencies.select.trusted_selector.outputs['selector.executor'], 'self-hosted')
+        pool:
+          name: 'dpua-self-hosted'
+          demands:
+            - Agent.OS -equals Linux
+            - dpua-validation -equals true
+        steps:
+          - script: python3 tools/ci-engine/provider_selector.py execute-with-transient-retry --provider ado --max-retries 1 -- moon ci
+      - job: hosted_workload
+        condition: eq(stageDependencies.select.trusted_selector.outputs['selector.executor'], 'hosted')
+        pool:
+          vmImage: 'ubuntu-24.04'
+        steps:
+          - script: python3 tools/ci-engine/provider_selector.py execute-with-transient-retry --provider ado --max-retries 1 -- moon ci

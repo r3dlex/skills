@@ -1,0 +1,14 @@
+stages: [select]
+
+dpua-selector:
+  stage: select
+  tags: [saas-linux-small-amd64]
+  script:
+    - >-
+      python3 tools/ci-engine/provider_selector.py resolve-and-dispatch
+      --provider gitlab --profile .ai/execution/profiles/execution/default.json
+      --child-pipeline '.gitlab/dpua-child.yml' --task-class validation
+      --preference 'self-hosted'
+  artifacts:
+    when: always
+    paths: [dpua-selector-audit.json]

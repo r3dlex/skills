@@ -1,0 +1,11 @@
+{
+  "files": {
+    "azure-pipelines.yml": "db678e12e36eed21e857aa9136faaeb74bd42b4d286a0d297d7bc3a26e35f2a6"
+  },
+  "profile_id": "default",
+  "profile_version": "1.4",
+  "schema_version": "1.0",
+  "selected_hosts": [
+    "ado"
+  ]
+}

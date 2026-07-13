@@ -55,6 +55,7 @@ When this skill creates or updates PR workflow guidance, require merge only afte
 - `modules/README.md` — read when choosing which Layer 3 module applies.
 - `modules/phases/README.md` — read when mapping the four public phases to internal checkpoints.
 - `modules/topology.md` — read when generating `.ai/matrix.json` or validating umbrella depth.
+- `modules/ci-adapters.md` — read when an umbrella renders selected GitHub, ADO, or GitLab CI from its execution profile.
 - `modules/documentation-blueprint.md` — read when generating the v3 `.ai/`, `.memory/`, and `docs/` trees.
 - `modules/memory.md` — read when defining `.memory/human-override/` and `.memory/self-learned` schemas.
 - `modules/sync.md` — read when implementing physical-copy sync and drift detection.

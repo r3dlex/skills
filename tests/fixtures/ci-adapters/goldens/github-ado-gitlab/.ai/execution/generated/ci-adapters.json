@@ -1,0 +1,16 @@
+{
+  "files": {
+    ".github/workflows/dpua-validation.yml": "61a9415b66af82724f972b586f4452ff347417608fe5a8271cb0b6c138903172",
+    ".gitlab-ci.yml": "6ad0be3e6b8a820af6a317cb14280799b22c25f4c0843f831f2828929e204e96",
+    ".gitlab/dpua-child.yml": "f4e7fd1d69b4dc3481a9d1f009d9079c46820402e2ce903fea23582c3eb2745d",
+    "azure-pipelines.yml": "db678e12e36eed21e857aa9136faaeb74bd42b4d286a0d297d7bc3a26e35f2a6"
+  },
+  "profile_id": "default",
+  "profile_version": "1.4",
+  "schema_version": "1.0",
+  "selected_hosts": [
+    "github",
+    "ado",
+    "gitlab"
+  ]
+}

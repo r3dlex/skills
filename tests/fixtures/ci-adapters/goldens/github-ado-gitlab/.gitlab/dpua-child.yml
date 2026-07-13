@@ -1,0 +1,17 @@
+stages: [validate]
+
+dpua-self-hosted:
+  stage: validate
+  rules:
+    - if: '$DPUA_EXECUTOR == "self-hosted"'
+  tags: [self-hosted, linux, dpua-validation]
+  script:
+    - python3 tools/ci-engine/provider_selector.py execute-with-transient-retry --provider gitlab --max-retries 1 -- moon ci
+
+dpua-hosted:
+  stage: validate
+  rules:
+    - if: '$DPUA_EXECUTOR == "hosted"'
+  tags: [saas-linux-small-amd64]
+  script:
+    - python3 tools/ci-engine/provider_selector.py execute-with-transient-retry --provider gitlab --max-retries 1 -- moon ci

@@ -19,8 +19,25 @@ tasks:
     inputs:
       - 'scripts/matrix-contract.py'
 
+  test-ci-adapters:
+    command: 'bash tests/ci-adapters-contract_test.sh'
+    inputs:
+      - '03-configure-generate/ai-catapult-init/modules/ci-adapters.md'
+      - '03-configure-generate/ai-catapult-init/templates/ci/**/*'
+      - '03-configure-generate/ai-catapult-init/templates/dot-ai/execution/**/*'
+      - 'scripts/render-ci-adapters.py'
+      - 'tests/ci-adapters-contract_test.sh'
+      - 'tests/fixtures/ci-adapters/**/*'
+
+  lint-ci-adapters:
+    command: 'python -m py_compile scripts/render-ci-adapters.py'
+    inputs:
+      - 'scripts/render-ci-adapters.py'
+
   ci:
     deps:
       - 'skills:validate-matrix'
       - 'skills:test-matrix-contract'
       - 'skills:lint-matrix-contract'
+      - 'skills:test-ci-adapters'
+      - 'skills:lint-ci-adapters'
