@@ -97,6 +97,10 @@ sha256_file() {
   shasum -a 256 "$1" | awk '{print $1}'
 }
 
+file_mode() {
+  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1"
+}
+
 is_sparse() {
   local file="$1" size
   [[ -f "$file" ]] || return 0
@@ -216,6 +220,25 @@ EOF
   esac
 }
 
+governance_section() {
+  local links=() joined="" link
+  [[ ! -f "$REPO/AGENTS.md" ]] || links+=("[AGENTS.md](AGENTS.md)")
+  [[ ! -f "$REPO/CONTRIBUTING.md" ]] || links+=("[CONTRIBUTING.md](CONTRIBUTING.md)")
+  [[ ! -d "$REPO/docs/architecture/adr" ]] || links+=("[docs/architecture/adr/](docs/architecture/adr/)")
+  if [[ -d "$REPO/docs/specifications" ]]; then
+    links+=("[docs/specifications/](docs/specifications/)")
+  elif [[ -d "$REPO/docs/specs" ]]; then
+    links+=("[docs/specs/](docs/specs/)")
+  fi
+  [[ ! -d "$REPO/.ai/traceability" ]] || links+=("[.ai/traceability/](.ai/traceability/)")
+  [[ ${#links[@]} -gt 0 ]] || return 0
+  for link in "${links[@]}"; do
+    [[ -z "$joined" ]] || joined+=", "
+    joined+="$link"
+  done
+  printf '<!-- AI-SDLC:start -->\nRepository governance and traceability: see %s.\n<!-- AI-SDLC:end -->\n' "$joined"
+}
+
 LAST_MANIFEST_PATH=""
 LAST_BACKUP_PATH=""
 emit_audit() {
@@ -267,7 +290,7 @@ validate_reviewed_source() {
 }
 
 guarded_replace() {
-  local candidate="$1" destination="$2" mode="$3" reason="$4" additions="$5" expected_sha="$6"
+  local candidate="$1" destination="$2" mode="$3" reason="$4" additions="$5" expected_sha="$6" destination_mode
   if [[ -f "$destination" ]]; then
     [[ "$(sha256_file "$destination")" == "$expected_sha" ]] || {
       echo "guarded write rejected: README changed before backup" >&2
@@ -281,6 +304,8 @@ guarded_replace() {
       return 2
     fi
     echo "audit manifest: $LAST_MANIFEST_PATH" >&2
+    destination_mode=$(file_mode "$destination")
+    chmod "$destination_mode" "$candidate"
   fi
   mv "$candidate" "$destination"
 }
@@ -313,11 +338,7 @@ render_template() {
   [[ -z "$UPDATE_COMMAND" ]] || update_section=$'## Update\n\n```sh\n'"$UPDATE_COMMAND"$'\n```'
   [[ ! -f "$REPO/CONTRIBUTING.md" ]] || community_section=$'## Community\n\nSee [CONTRIBUTING.md](CONTRIBUTING.md) to propose changes or report repository-specific problems.'
   [[ -z "$VERIFIED_LICENSE" ]] || license_section=$'## License\n\n'"$VERIFIED_LICENSE"$' — see [LICENSE](LICENSE).'
-  if [[ -f "$REPO/AGENTS.md" ]]; then
-    governance_section=$'<!-- AI-SDLC:start -->\nThis repository follows the AI-SDLC methodology. See [AGENTS.md](AGENTS.md) for the operating contract'
-    [[ ! -d "$REPO/docs/architecture/adr" ]] || governance_section+=', and [docs/architecture/adr/](docs/architecture/adr/) for architectural decisions'
-    governance_section+=$'.\n<!-- AI-SDLC:end -->'
-  fi
+  governance_section=$(governance_section)
 
   body=$(cat "$TEMPLATE")
   body="${body//@@PROJECT_NAME@@/$PROJECT}"
@@ -360,6 +381,11 @@ augment() {
     append_section "$candidate" $'## Community\n\nSee [CONTRIBUTING.md](CONTRIBUTING.md) to contribute.'
   fi
   [[ -z "$VERIFIED_LICENSE" ]] || grep -qiE '^##[[:space:]]+License' "$candidate" || append_section "$candidate" $'## License\n\n'"$VERIFIED_LICENSE"$' — see [LICENSE](LICENSE).'
+  if ! grep -q '<!-- AI-SDLC:start -->' "$candidate"; then
+    local governance_block
+    governance_block=$(governance_section)
+    [[ -z "$governance_block" ]] || append_section "$candidate" "$governance_block"
+  fi
   guard_proof_signals "$candidate" || { rm -f "$candidate"; return 3; }
   guarded_replace "$candidate" "$file" "augment" "missing canonical onboarding" '["complete onboarding sections"]' "$expected_sha"
 }
@@ -378,6 +404,7 @@ case "$MODE" in
     if [[ -f "$OUT" ]]; then
       guarded_replace "$candidate" "$OUT" "template-force" "operator-requested canonical replacement" '["canonical README"]' "$SOURCE_SHA" || exit $?
     else
+      chmod 0644 "$candidate"
       mv "$candidate" "$OUT"
     fi
     ;;

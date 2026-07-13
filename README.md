@@ -40,9 +40,11 @@ reproduce-minimize-hypothesize-instrument-fix loop.
 | Gemini | `./scripts/install-gemini.sh --all` | `~/.gemini/skills/` |
 | GitHub Copilot | `./scripts/install-copilot.sh --repo /path/to/repo` | `/path/to/repo/.github/` |
 
-The installers copy the complete skill directory, including its references and
-bundled scripts. `tests/install_cross_host_parity_test.sh` verifies matching
-`SKILL.md` content across supported destinations.
+Codex and Claude Code recursively install each selected skill directory,
+including references and bundled scripts. Auggie, Gemini, and GitHub Copilot
+receive host-specific flattened or synthesized projections suited to their
+instruction surfaces. `tests/install_cross_host_parity_test.sh` verifies both
+recursive-copy parity and the distinct projection shapes.
 
 ## How the catalog works
 

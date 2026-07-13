@@ -47,6 +47,10 @@ assert_not_grep() {
   if grep -qE "$pattern" "$file"; then bad "$msg"; else ok "$msg"; fi
 }
 
+stat_mode() {
+  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1"
+}
+
 # -----------------------------------------------------------------------------
 # Test 1: template mode produces a full README.
 # -----------------------------------------------------------------------------
@@ -55,6 +59,8 @@ printf 'MIT License\n' > LICENSE
 printf '# Contributing\n' > CONTRIBUTING.md
 printf '# Agent guidance\n' > AGENTS.md
 mkdir -p docs/architecture/adr
+mkdir -p docs/specifications/ACTIVE .ai/traceability
+printf '# Traceability\n' > .ai/traceability/index.md
 bash "$SCRIPT" --mode template --project "T1Tool" --tagline "Tagline1" \
   --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-t1tool" \
   --first-success-command "t1tool doctor" --success-evidence "prints T1Tool ready" \
@@ -69,6 +75,17 @@ grep -q "## Quick Start" README.md && ok "template has Quick Start" || bad "temp
 grep -q "## License" README.md && ok "template has License" || bad "template missing License"
 grep -q "## Community" README.md && ok "template has Community" || bad "template missing Community"
 grep -q "AI-SDLC:start" README.md && ok "template has AI-SDLC marker" || bad "template missing AI-SDLC marker"
+[[ "$(stat_mode README.md)" == "644" ]] && ok "new template uses normal 0644 mode" || bad "new template uses normal 0644 mode"
+for governance_link in \
+  '[AGENTS.md](AGENTS.md)' \
+  '[CONTRIBUTING.md](CONTRIBUTING.md)' \
+  '[docs/architecture/adr/](docs/architecture/adr/)' \
+  '[docs/specifications/](docs/specifications/)' \
+  '[.ai/traceability/](.ai/traceability/)'; do
+  grep -Fq "$governance_link" README.md \
+    && ok "template governance links $governance_link" \
+    || bad "template governance links $governance_link"
+done
 grep -q "star-history" README.md && bad "template should omit unverifiable star history" || ok "template omits unverifiable star history"
 
 # Generated onboarding must be complete rather than a form the reader has to finish.
@@ -163,6 +180,7 @@ ls .ai/drift/readme-backups/audit-*.json >/dev/null 2>&1 && ok "audit-only emits
   echo ""
   echo "MIT"
 } > existing.md
+chmod 640 existing.md
 
 wc -c existing.md | awk '{ if ($1 < 600) exit 1 }' && ok "fixture existing.md exceeds sparse threshold" || bad "fixture existing.md is too small"
 
@@ -185,6 +203,20 @@ grep -q "## License" existing.md && ok "augment preserves License" || bad "augme
 grep -q "## Why" existing.md && ok "augment adds Why section" || bad "augment did not add Why"
 grep -q "## Community" existing.md && ok "augment adds Community section" || bad "augment did not add Community"
 grep -q "## How it works" existing.md && ok "augment adds mental model" || bad "augment did not add mental model"
+grep -q "AI-SDLC:start" existing.md && ok "augment adds governance block" || bad "augment did not add governance block"
+for governance_link in \
+  '[AGENTS.md](AGENTS.md)' \
+  '[CONTRIBUTING.md](CONTRIBUTING.md)' \
+  '[docs/architecture/adr/](docs/architecture/adr/)' \
+  '[docs/specifications/](docs/specifications/)' \
+  '[.ai/traceability/](.ai/traceability/)'; do
+  grep -Fq "$governance_link" existing.md \
+    && ok "augment governance links $governance_link" \
+    || bad "augment governance links $governance_link"
+done
+[[ "$(stat_mode existing.md)" == "640" ]] \
+  && ok "augment preserves existing README mode" \
+  || bad "augment preserves existing README mode"
 
 # Check that backup/audit manifest were emitted.
 ls .ai/drift/readme-backups/README-*.bak >/dev/null 2>&1 && ok "augment emitted backup" || bad "augment did not emit backup"
@@ -312,6 +344,9 @@ bash "$SCRIPT" --mode template --project "Priv" --tagline "Private tool" \
   --visibility private --out README.md >/dev/null
 grep -q "star-history" README.md && bad "private template should not include star-history" || ok "private template excludes star-history"
 grep -q "public-contributors" README.md && bad "private template should not include public-contributors" || ok "private template excludes public-contributors"
+grep -q "AI-SDLC:start" README.md \
+  && bad "template should omit governance block when no governance surfaces exist" \
+  || ok "template omits governance block when no governance surfaces exist"
 
 # -----------------------------------------------------------------------------
 # Test 10: skill-catalog archetype explains discovery without placeholders.
