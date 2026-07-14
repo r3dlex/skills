@@ -45,6 +45,7 @@ including references and bundled scripts. Auggie, Gemini, and GitHub Copilot
 receive host-specific flattened or synthesized projections suited to their
 instruction surfaces. `tests/install_cross_host_parity_test.sh` verifies both
 recursive-copy parity and the distinct projection shapes.
+The canonical README generator is available only in the recursive Claude Code and Codex installations.
 
 ## How the catalog works
 

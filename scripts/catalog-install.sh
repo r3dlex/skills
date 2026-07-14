@@ -21,3 +21,7 @@ catalog_rows() {
   fi
   python3 "$SCRIPT_DIR/catalog-query.py" "${args[@]}" "$@"
 }
+
+flattened_skill_body() {
+  sed -n '/^---$/,/^---$/d; /modules\/readme-documentation\.md.*README\.md/d; p' "$1"
+}

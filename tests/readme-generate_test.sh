@@ -499,7 +499,7 @@ force_sha=$(sha256_file README.md)
 # Perl's shasum is not installed.
 linux_path="$TMPDIR/linux-bin"
 mkdir -p "$linux_path"
-for command_name in awk cat chmod cp date dirname grep mkdir mktemp mv rm sed sha256sum stat tr wc; do
+for command_name in awk cat chmod cp date dirname grep mkdir mktemp mv python3 rm sed sha256sum stat tr wc; do
   ln -s "$(command -v "$command_name")" "$linux_path/$command_name"
 done
 set +e
@@ -609,6 +609,98 @@ augment_backup=$(find .ai/drift/readme-backups -name 'README-*.bak' -print -quit
 [[ -n "$augment_backup" && "$(sha256_file "$augment_backup")" == "$augment_sha" ]] \
   && ok "augment backup matches reviewed source SHA" \
   || bad "augment backup matches reviewed source SHA"
+
+# A heading and unrelated success prose do not prove the supplied onboarding facts.
+mkdir -p "$TMPDIR/incomplete-onboarding" && cd "$TMPDIR/incomplete-onboarding"
+{
+  echo '# Existing Tool'
+  for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+  echo
+  echo '## Quick Start'
+  echo
+  echo '## Features'
+  echo
+  echo '- stable output'
+  echo
+  echo '## Release process'
+  echo
+  echo 'Expected result: the release archive is uploaded.'
+} > README.md
+incomplete_sha=$(sha256_file README.md)
+bash "$SCRIPT" --mode augment --project "Existing Tool" --tagline "Documents exact onboarding." \
+  --why "Give new users a reproducible first success." \
+  --archetype cli-tool --primary-surface 'existing <command>' \
+  --mental-model "Each command reports one deterministic result." \
+  --install-command "install-existing-exact" --first-success-command "existing exact-doctor" \
+  --success-evidence "prints exact onboarding ready" --source-sha "$incomplete_sha" \
+  --out README.md >/dev/null
+grep -Fq 'install-existing-exact' README.md \
+  && grep -Fq 'existing exact-doctor' README.md \
+  && grep -Fq 'prints exact onboarding ready' README.md \
+  && ok "augment adds all supplied onboarding facts when headings and unrelated prose are incomplete" \
+  || bad "augment adds all supplied onboarding facts when headings and unrelated prose are incomplete"
+
+# Existing legal claims must agree with the detected LICENSE file.
+mkdir -p "$TMPDIR/license-conflict" && cd "$TMPDIR/license-conflict"
+printf 'MIT License\n' > LICENSE
+{
+  echo '# Conflicting License Tool'
+  for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+  echo
+  echo '## Features'
+  echo
+  echo '- stable output'
+  echo
+  echo '## License'
+  echo
+  echo 'Apache-2.0'
+} > README.md
+conflict_sha=$(sha256_file README.md)
+set +e
+bash "$SCRIPT" --mode augment --project "Conflicting License Tool" --tagline "Preserves legal truth." \
+  --why "Keep README license claims aligned with the repository license." \
+  --archetype cli-tool --primary-surface 'conflict <command>' \
+  --mental-model "The LICENSE file is the source of truth." \
+  --install-command "install-conflict" --first-success-command "conflict doctor" \
+  --success-evidence "prints ready" --source-sha "$conflict_sha" --out README.md \
+  >/dev/null 2>&1
+conflict_ec=$?
+set -e
+assert_eq "$conflict_ec" "3" "augment rejects a README License section that conflicts with LICENSE"
+assert_eq "$(sha256_file README.md)" "$conflict_sha" "license conflict preserves the reviewed README"
+
+# GPL boilerplate alone cannot distinguish an only license from an or-later grant.
+mkdir -p "$TMPDIR/gpl-ambiguous" && cd "$TMPDIR/gpl-ambiguous"
+cat > LICENSE <<'EOF'
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+EOF
+set +e
+bash "$SCRIPT" --mode template --project "GPL Ambiguous Tool" --tagline "Avoids unsupported legal inference." \
+  --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-gpl-ambiguous" \
+  --first-success-command "gpl-ambiguous doctor" --success-evidence "prints ready" \
+  --license GPL-3.0-only --badges license --out README.md >/dev/null 2>&1
+gpl_only_ec=$?
+set -e
+assert_eq "$gpl_only_ec" "3" "GPL boilerplate does not infer GPL-3.0-only"
+
+# Audit JSON must round-trip paths containing JSON-significant characters.
+audit_repo="$TMPDIR/audit-\"quoted\"\\backslash"
+mkdir -p "$audit_repo"
+printf '# Audit Path\n' > "$audit_repo/README.md"
+bash "$SCRIPT" --mode audit-only --repo "$audit_repo" --out "$audit_repo/README.md" >/dev/null
+audit_manifest=$(find "$audit_repo/.ai/drift/readme-backups" -name 'audit-*.json' -print -quit)
+python3 -m json.tool "$audit_manifest" >/dev/null \
+  && ok "audit manifest is valid JSON for quote and backslash paths" \
+  || bad "audit manifest is valid JSON for quote and backslash paths"
+python3 - "$audit_manifest" "$audit_repo/README.md" <<'PY' \
+  && ok "audit manifest preserves the exact source path" \
+  || bad "audit manifest preserves the exact source path"
+import json, sys
+from pathlib import Path
+manifest = json.loads(Path(sys.argv[1]).read_text())
+assert manifest['source_path'] == sys.argv[2]
+PY
 
 # The canonical generator and template must ship inside the installed skill.
 install_home="$TMPDIR/installed-home"

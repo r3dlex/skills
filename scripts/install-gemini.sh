@@ -6,5 +6,5 @@ case "${1:-}" in --install|--link|--all|"") ;; *) echo "Usage: $0 [--install | -
 projection=$(mktemp); trap 'rm -f "$projection"' EXIT; rows="$(catalog_rows gemini --projection "$projection")" || exit $?; mkdir -p "$DEST"; mv "$projection" "$DEST/catalog.json"
 while IFS=$'\t' read -r name source; do
  [[ -n "$name" ]] || continue; skill="$SKILLS_DIR/$source/SKILL.md"; description=$(grep -A1 '^description:' "$skill" 2>/dev/null | tail -1 | sed 's/^ *//' || echo "")
- { echo "# $name"; echo ""; echo "$description"; echo ""; echo "---"; echo ""; sed -n '/^---$/,/^---$/d;p' "$skill"; } > "$DEST/$name.md"; echo "  ✓ $name"
+ { echo "# $name"; echo ""; echo "$description"; echo ""; echo "---"; echo ""; flattened_skill_body "$skill"; } > "$DEST/$name.md"; echo "  ✓ $name"
 done <<< "$rows"

@@ -166,11 +166,11 @@ detect_license() {
   elif grep -q 'MIT License' "$file"; then
     echo "MIT"
   elif grep -qi 'GNU AFFERO GENERAL PUBLIC LICENSE' "$file" && grep -qi 'Version 3' "$file"; then
-    echo "AGPL-3.0-only"
+    return 0
   elif grep -qi 'GNU GENERAL PUBLIC LICENSE' "$file" && grep -qi 'Version 3' "$file"; then
-    echo "GPL-3.0-only"
+    return 0
   elif grep -qi 'GNU GENERAL PUBLIC LICENSE' "$file" && grep -qi 'Version 2' "$file"; then
-    echo "GPL-2.0-only"
+    return 0
   elif grep -qi 'Redistribution and use in source and binary forms' "$file" && grep -qi 'Neither the name' "$file"; then
     echo "BSD-3-Clause"
   elif grep -qi 'Redistribution and use in source and binary forms' "$file"; then
@@ -194,6 +194,34 @@ resolve_verified_license() {
     fi
   fi
   VERIFIED_LICENSE="${LICENSE_SPDX:-$detected}"
+}
+
+guard_existing_license() {
+  local file="$1" license_section claim claims=""
+  [[ -f "$REPO/LICENSE" ]] || return 0
+  license_section=$(awk '
+    BEGIN { in_section=0 }
+    tolower($0) ~ /^##[[:space:]]+license([[:space:]]|$)/ { in_section=1; next }
+    in_section && /^##[[:space:]]/ { exit }
+    in_section { print }
+  ' "$file")
+  [[ -n "$license_section" ]] || return 0
+  printf '%s\n' "$license_section" | grep -qiE 'Apache([ -]License)?[- ]?2\.0' && claims="${claims}Apache-2.0\n"
+  printf '%s\n' "$license_section" | grep -qiE '(^|[^[:alnum:]])MIT([^[:alnum:]]|$)' && claims="${claims}MIT\n"
+  printf '%s\n' "$license_section" | grep -qiE 'BSD[- ]?3[ -]Clause' && claims="${claims}BSD-3-Clause\n"
+  printf '%s\n' "$license_section" | grep -qiE 'BSD[- ]?2[ -]Clause' && claims="${claims}BSD-2-Clause\n"
+  printf '%s\n' "$license_section" | grep -qiE 'AGPL[- ]?3\.0' && claims="${claims}AGPL-3.0-Unknown\n"
+  printf '%s\n' "$license_section" | grep -qiE '(^|[^A])GPL[- ]?3\.0' && claims="${claims}GPL-3.0-Unknown\n"
+  printf '%s\n' "$license_section" | grep -qiE '(^|[^A])GPL[- ]?2\.0' && claims="${claims}GPL-2.0-Unknown\n"
+  while IFS= read -r claim; do
+    [[ -n "$claim" ]] || continue
+    if [[ -z "$VERIFIED_LICENSE" || "$claim" != "$VERIFIED_LICENSE" ]]; then
+      echo "proof-signal guard: README License section conflicts with or overstates the detected LICENSE file" >&2
+      return 3
+    fi
+  done <<EOF
+$(printf '%b' "$claims")
+EOF
 }
 
 archetype_section() {
@@ -254,7 +282,7 @@ LAST_MANIFEST_PATH=""
 LAST_BACKUP_PATH=""
 emit_audit() {
   local src="$1" mode="$2" reason="$3" additions="$4" modifications="$5" deletions="$6" user_response="$7"
-  local ts backup_dir src_sha="" src_size=0 src_lines=0 section_list="[]"
+  local ts backup_dir src_sha=""
   ts="$(date -u +"%Y-%m-%dT%H-%M-%SZ")-$$"
   backup_dir="$REPO/.ai/drift/readme-backups"
   LAST_MANIFEST_PATH="$backup_dir/audit-$ts.json"
@@ -262,30 +290,47 @@ emit_audit() {
   mkdir -p "$backup_dir"
   if [[ -f "$src" ]]; then
     src_sha=$(sha256_file "$src")
-    src_size=$(wc -c < "$src" | tr -d ' ')
-    src_lines=$(wc -l < "$src" | tr -d ' ')
     LAST_BACKUP_PATH="$backup_dir/README-$ts.bak"
     cp "$src" "$LAST_BACKUP_PATH"
-    section_list=$({ grep -E '^##?[[:space:]]' "$src" || true; } | sed 's/^##*[[:space:]]*//' | sed 's/["\\]/_/g' | awk 'BEGIN{printf "["} {printf "%s\"%s\"", (NR==1?"":","), $0} END{print "]"}')
   fi
-  cat > "$LAST_MANIFEST_PATH" <<JSON
-{
-  "timestamp": "$ts",
-  "source_path": "$src",
-  "source_sha256": "$src_sha",
-  "source_size": $src_size,
-  "source_lines": $src_lines,
-  "source_sections": $section_list,
-  "mode": "$mode",
-  "reason": "$reason",
-  "visibility": "$VISIBILITY",
-  "planned_additions": $additions,
-  "planned_modifications": $modifications,
-  "planned_deletions": $deletions,
-  "user_response": "$user_response",
-  "backup_path": "$LAST_BACKUP_PATH"
+  python3 - "$LAST_MANIFEST_PATH" "$src" "$src_sha" "$ts" "$mode" "$reason" \
+    "$VISIBILITY" "$additions" "$modifications" "$deletions" "$user_response" \
+    "$LAST_BACKUP_PATH" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+(manifest_path, source_path, source_sha, timestamp, mode, reason, visibility,
+ additions, modifications, deletions, user_response, backup_path) = sys.argv[1:]
+source = Path(source_path)
+content = source.read_bytes() if source.is_file() else b''
+text = content.decode('utf-8', errors='replace')
+manifest = {
+    'timestamp': timestamp,
+    'source_path': source_path,
+    'source_sha256': source_sha,
+    'source_size': len(content),
+    'source_lines': content.count(b'\n'),
+    'source_sections': [
+        line.lstrip('#').strip() for line in text.splitlines()
+        if line.startswith('# ') or line.startswith('## ')
+    ],
+    'mode': mode,
+    'reason': reason,
+    'visibility': visibility,
+    'planned_additions': json.loads(additions),
+    'planned_modifications': json.loads(modifications),
+    'planned_deletions': json.loads(deletions),
+    'user_response': user_response,
+    'backup_path': backup_path,
 }
-JSON
+Path(manifest_path).write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n')
+PY
+  python3 -m json.tool "$LAST_MANIFEST_PATH" >/dev/null || {
+    echo "guarded write rejected: audit manifest is invalid JSON" >&2
+    rm -f "$LAST_MANIFEST_PATH"
+    return 2
+  }
 }
 
 validate_reviewed_source() {
@@ -308,7 +353,11 @@ guarded_replace() {
       rm -f "$candidate"
       return 2
     }
-    emit_audit "$destination" "$mode" "$reason" "$additions" '[]' '[]' 'source-sha-confirmed'
+    emit_audit "$destination" "$mode" "$reason" "$additions" '[]' '[]' 'source-sha-confirmed' || {
+      echo "guarded write rejected: audit manifest could not be created" >&2
+      rm -f "$candidate"
+      return 2
+    }
     if [[ -z "$LAST_BACKUP_PATH" || "$(sha256_file "$LAST_BACKUP_PATH")" != "$expected_sha" || "$(sha256_file "$destination")" != "$expected_sha" ]]; then
       echo "guarded write rejected: source or backup SHA changed" >&2
       rm -f "$candidate"
@@ -393,8 +442,11 @@ augment() {
   local file="$1" candidate expected_sha="$SOURCE_SHA"
   candidate=$(mktemp)
   cp "$file" "$candidate"
-  grep -qiE '^##[[:space:]]+Quick Start' "$candidate" || append_section "$candidate" $'## Quick Start\n\n```sh\n'"$INSTALL_COMMAND"$'\n'"$FIRST_SUCCESS_COMMAND"$'\n```'
-  grep -qiE '(expected|verify|success).*(result|output|evidence)|result.*(expected|success)' "$candidate" || append_section "$candidate" $'## First success\n\n**Expected result:** '"$SUCCESS_EVIDENCE"
+  if ! grep -Fq -- "$INSTALL_COMMAND" "$candidate" \
+    || ! grep -Fq -- "$FIRST_SUCCESS_COMMAND" "$candidate" \
+    || ! grep -Fq -- "$SUCCESS_EVIDENCE" "$candidate"; then
+    append_section "$candidate" $'## Setup and first success\n\n```sh\n'"$INSTALL_COMMAND"$'\n'"$FIRST_SUCCESS_COMMAND"$'\n```\n\n**Expected result:** '"$SUCCESS_EVIDENCE"
+  fi
   [[ -z "$REQUIREMENTS" ]] || grep -qiE '^##[[:space:]]+Requirements' "$candidate" || append_section "$candidate" $'## Requirements\n\n- '"$REQUIREMENTS"
   grep -qiE '^##[[:space:]]+Why' "$candidate" || append_section "$candidate" $'## Why\n\n'"$WHY"
   grep -qiE '^##[[:space:]]+(How it works|Workflows|Mental model)' "$candidate" || append_section "$candidate" "$(archetype_section)"
@@ -435,6 +487,7 @@ case "$MODE" in
     resolve_verified_license || exit 3
     is_sparse "$OUT" && { echo "refusing to augment sparse README; use --mode template" >&2; exit 1; }
     validate_reviewed_source "$OUT" || exit 2
+    guard_existing_license "$OUT" || exit 3
     augment "$OUT" || exit $?
     ;;
   audit-only)

@@ -58,10 +58,24 @@ assert (copilot / 'copilot-instructions.md').is_file()
 assert not (copilot / 'copilot-instructions').exists()
 assert not (copilot / sample / 'SKILL.md').exists()
 
+# The canonical README generator is a recursive-install feature. Flattened
+# projections must keep the general skill while omitting its unavailable asset contract.
+flattened = {
+    'Auggie': auggie / 'ai-catapult-init.md',
+    'Gemini': gemini / 'ai-catapult-init.md',
+    'GitHub Copilot': copilot / 'copilot-instructions.md',
+}
+for host, projection in flattened.items():
+    content = projection.read_text()
+    assert 'ai-catapult-init' in content, f'{host} missing general ai-catapult-init skill'
+    for dangling in ('modules/readme-documentation.md', 'scripts/readme-generate.sh', 'assets/readme/template.md'):
+        assert dangling not in content, f'{host} has dangling README-generator contract: {dangling}'
+
 readme = (repo / 'README.md').read_text()
 normalized_readme = ' '.join(readme.split())
 assert 'Codex and Claude Code recursively install each selected skill directory' in normalized_readme
 assert 'Auggie, Gemini, and GitHub Copilot receive host-specific flattened or synthesized projections' in normalized_readme
+assert 'The canonical README generator is available only in the recursive Claude Code and Codex installations.' in normalized_readme
 assert 'The installers copy the complete skill directory' not in readme
 assert 'matching `SKILL.md` content across supported destinations' not in readme
 print(f'cross-host projection contract passed ({len(skills)} skills)')
