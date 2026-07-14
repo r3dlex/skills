@@ -115,6 +115,26 @@ grep -qiE '(expected|verify|success).*(result|output|evidence)|result.*(expected
   && ok "template states observable first-success evidence" \
   || bad "template states observable first-success evidence"
 
+# Bash 5 patsub_replacement must not reinterpret ampersands in user content.
+bash5_bin="${README_TEST_BASH5:-}"
+if [[ -z "$bash5_bin" && "${BASH_VERSINFO[0]}" -ge 5 ]]; then
+  bash5_bin="$(command -v bash)"
+fi
+if [[ -n "$bash5_bin" ]]; then
+  mkdir -p "$TMPDIR/bash5-ampersand" && cd "$TMPDIR/bash5-ampersand"
+  ampersand_command='./setup.sh && ./doctor.sh'
+  "$bash5_bin" -O patsub_replacement "$SCRIPT" --mode template \
+    --project "Ampersand Tool" --tagline "Preserves shell commands." \
+    --archetype cli-tool "${CLI_FACTS[@]}" --install-command "install-ampersand" \
+    --first-success-command "$ampersand_command" --success-evidence "prints ready" \
+    --out README.md >/dev/null
+  grep -Fqx "$ampersand_command" README.md \
+    && ok "Bash 5 preserves first-success command byte-for-byte" \
+    || bad "Bash 5 preserves first-success command byte-for-byte"
+else
+  ok "Bash 5 ampersand regression skipped when Bash 5 is unavailable"
+fi
+
 # Dynamic proof badges cannot be synthesized from static passing/latest/100% claims.
 mkdir -p "$TMPDIR/invented-proof" && cd "$TMPDIR/invented-proof"
 set +e

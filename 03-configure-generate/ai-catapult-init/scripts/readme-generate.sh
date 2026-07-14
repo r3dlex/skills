@@ -321,6 +321,17 @@ guarded_replace() {
   mv "$candidate" "$destination"
 }
 
+replace_literal() {
+  local rest="$1" needle="$2" replacement="$3" prefix
+  REPLACED=""
+  while [[ "$rest" == *"$needle"* ]]; do
+    prefix="${rest%%"$needle"*}"
+    REPLACED="${REPLACED}${prefix}${replacement}"
+    rest="${rest#*"$needle"}"
+  done
+  REPLACED="${REPLACED}${rest}"
+}
+
 render_template() {
   local out="$1" badges_block="" requirements_section="" why_section="" archetype_block=""
   local update_section="" community_section="" license_section="" governance_section="" body badge
@@ -352,19 +363,19 @@ render_template() {
   governance_section=$(governance_section)
 
   body=$(cat "$TEMPLATE")
-  body="${body//@@PROJECT_NAME@@/$PROJECT}"
-  body="${body//@@PROJECT_TAGLINE@@/$TAGLINE}"
-  body="${body//@@BADGES_BLOCK@@/$badges_block}"
-  body="${body//@@INSTALL_COMMAND@@/$INSTALL_COMMAND}"
-  body="${body//@@FIRST_SUCCESS_COMMAND@@/$FIRST_SUCCESS_COMMAND}"
-  body="${body//@@SUCCESS_EVIDENCE@@/$SUCCESS_EVIDENCE}"
-  body="${body//@@REQUIREMENTS_SECTION@@/$requirements_section}"
-  body="${body//@@WHY_SECTION@@/$why_section}"
-  body="${body//@@ARCHETYPE_SECTION@@/$archetype_block}"
-  body="${body//@@UPDATE_SECTION@@/$update_section}"
-  body="${body//@@COMMUNITY_SECTION@@/$community_section}"
-  body="${body//@@LICENSE_SECTION@@/$license_section}"
-  body="${body//@@GOVERNANCE_SECTION@@/$governance_section}"
+  replace_literal "$body" '@@PROJECT_NAME@@' "$PROJECT"; body="$REPLACED"
+  replace_literal "$body" '@@PROJECT_TAGLINE@@' "$TAGLINE"; body="$REPLACED"
+  replace_literal "$body" '@@BADGES_BLOCK@@' "$badges_block"; body="$REPLACED"
+  replace_literal "$body" '@@INSTALL_COMMAND@@' "$INSTALL_COMMAND"; body="$REPLACED"
+  replace_literal "$body" '@@FIRST_SUCCESS_COMMAND@@' "$FIRST_SUCCESS_COMMAND"; body="$REPLACED"
+  replace_literal "$body" '@@SUCCESS_EVIDENCE@@' "$SUCCESS_EVIDENCE"; body="$REPLACED"
+  replace_literal "$body" '@@REQUIREMENTS_SECTION@@' "$requirements_section"; body="$REPLACED"
+  replace_literal "$body" '@@WHY_SECTION@@' "$why_section"; body="$REPLACED"
+  replace_literal "$body" '@@ARCHETYPE_SECTION@@' "$archetype_block"; body="$REPLACED"
+  replace_literal "$body" '@@UPDATE_SECTION@@' "$update_section"; body="$REPLACED"
+  replace_literal "$body" '@@COMMUNITY_SECTION@@' "$community_section"; body="$REPLACED"
+  replace_literal "$body" '@@LICENSE_SECTION@@' "$license_section"; body="$REPLACED"
+  replace_literal "$body" '@@GOVERNANCE_SECTION@@' "$governance_section"; body="$REPLACED"
   printf '%s\n' "$body" > "$out"
   contains_unresolved_content "$out" && {
     echo "README rendering left unresolved template content" >&2
