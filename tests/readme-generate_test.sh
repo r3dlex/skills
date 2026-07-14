@@ -669,6 +669,84 @@ set -e
 assert_eq "$conflict_ec" "3" "augment rejects a README License section that conflicts with LICENSE"
 assert_eq "$(sha256_file README.md)" "$conflict_sha" "license conflict preserves the reviewed README"
 
+# License claims outside a License section are equally authoritative and must
+# agree with LICENSE, including badges and common prose names.
+mkdir -p "$TMPDIR/license-conflict-outside-section" && cd "$TMPDIR/license-conflict-outside-section"
+printf 'MIT License\n' > LICENSE
+{
+  echo '# Conflicting Top-Level License Tool'
+  echo '[![License: GPL 3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)'
+  for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+  echo
+  echo '## Features'
+  echo
+  echo '- stable output'
+} > README.md
+outside_conflict_sha=$(sha256_file README.md)
+set +e
+bash "$SCRIPT" --mode augment --project "Conflicting Top-Level License Tool" \
+  --tagline "Preserves legal truth everywhere." \
+  --why "Keep every README license claim aligned with the repository license." \
+  --archetype cli-tool --primary-surface 'outside-conflict <command>' \
+  --mental-model "The LICENSE file is the source of truth." \
+  --install-command "install-outside-conflict" --first-success-command "outside-conflict doctor" \
+  --success-evidence "prints ready" --source-sha "$outside_conflict_sha" --out README.md \
+  >/dev/null 2>&1
+outside_conflict_ec=$?
+set -e
+assert_eq "$outside_conflict_ec" "3" "augment rejects a conflicting top-level license badge"
+assert_eq "$(sha256_file README.md)" "$outside_conflict_sha" "top-level license conflict preserves the reviewed README"
+
+mkdir -p "$TMPDIR/license-conflict-prose" && cd "$TMPDIR/license-conflict-prose"
+printf 'MIT License\n' > LICENSE
+{
+  echo '# Conflicting License Prose Tool'
+  for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+  echo
+  echo '## Features'
+  echo
+  echo '- Distributed under the GNU General Public License, version 3.'
+} > README.md
+prose_conflict_sha=$(sha256_file README.md)
+set +e
+bash "$SCRIPT" --mode augment --project "Conflicting License Prose Tool" \
+  --tagline "Preserves legal truth in prose." \
+  --why "Keep README prose aligned with the repository license." \
+  --archetype cli-tool --primary-surface 'prose-conflict <command>' \
+  --mental-model "The LICENSE file is the source of truth." \
+  --install-command "install-prose-conflict" --first-success-command "prose-conflict doctor" \
+  --success-evidence "prints ready" --source-sha "$prose_conflict_sha" --out README.md \
+  >/dev/null 2>&1
+prose_conflict_ec=$?
+set -e
+assert_eq "$prose_conflict_ec" "3" "augment rejects conflicting license prose outside a License section"
+assert_eq "$(sha256_file README.md)" "$prose_conflict_sha" "license prose conflict preserves the reviewed README"
+
+mkdir -p "$TMPDIR/license-accurate-outside-section" && cd "$TMPDIR/license-accurate-outside-section"
+printf 'MIT License\n' > LICENSE
+{
+  echo '# Accurate Top-Level License Tool'
+  echo '[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)'
+  for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+  echo
+  echo '## Features'
+  echo
+  echo '- Distributed under the MIT License.'
+} > README.md
+accurate_license_sha=$(sha256_file README.md)
+set +e
+bash "$SCRIPT" --mode augment --project "Accurate Top-Level License Tool" \
+  --tagline "Preserves accurate legal claims." \
+  --why "Keep accurate README license claims intact." \
+  --archetype cli-tool --primary-surface 'accurate-license <command>' \
+  --mental-model "The LICENSE file is the source of truth." \
+  --install-command "install-accurate-license" --first-success-command "accurate-license doctor" \
+  --success-evidence "prints ready" --source-sha "$accurate_license_sha" --out README.md \
+  >/dev/null 2>&1
+accurate_license_ec=$?
+set -e
+assert_eq "$accurate_license_ec" "0" "augment preserves matching top-level license badges and prose"
+
 # GPL boilerplate alone cannot distinguish an only license from an or-later grant.
 mkdir -p "$TMPDIR/gpl-ambiguous" && cd "$TMPDIR/gpl-ambiguous"
 cat > LICENSE <<'EOF'
@@ -683,6 +761,50 @@ bash "$SCRIPT" --mode template --project "GPL Ambiguous Tool" --tagline "Avoids 
 gpl_only_ec=$?
 set -e
 assert_eq "$gpl_only_ec" "3" "GPL boilerplate does not infer GPL-3.0-only"
+
+# Exact onboarding strings scattered across unrelated sections do not form a
+# coherent onboarding path; augmentation must append the canonical section.
+mkdir -p "$TMPDIR/scattered-onboarding" && cd "$TMPDIR/scattered-onboarding"
+{
+  echo '# Scattered Onboarding Tool'
+  for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+  echo
+  echo '## Features'
+  echo
+  echo '- deterministic output'
+  echo
+  echo '## Development'
+  echo
+  echo 'install-scattered-exact'
+  echo
+  echo '## Maintenance'
+  echo
+  echo 'scattered exact-doctor'
+  echo
+  echo '## Release process'
+  echo
+  echo 'prints scattered onboarding ready'
+} > README.md
+scattered_sha=$(sha256_file README.md)
+bash "$SCRIPT" --mode augment --project "Scattered Onboarding Tool" \
+  --tagline "Documents coherent onboarding." \
+  --why "Give new users one reproducible path to first success." \
+  --archetype cli-tool --primary-surface 'scattered <command>' \
+  --mental-model "Each command reports one deterministic result." \
+  --install-command "install-scattered-exact" --first-success-command "scattered exact-doctor" \
+  --success-evidence "prints scattered onboarding ready" --source-sha "$scattered_sha" \
+  --out README.md >/dev/null
+python3 - README.md <<'PY' \
+  && ok "augment appends one complete onboarding section when facts are scattered" \
+  || bad "augment appends one complete onboarding section when facts are scattered"
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text()
+section = text.split('## Setup and first success', 1)[1].split('\n## ', 1)[0]
+for expected in ('install-scattered-exact', 'scattered exact-doctor', 'prints scattered onboarding ready'):
+    assert expected in section
+PY
 
 # Audit JSON must round-trip paths containing JSON-significant characters.
 audit_repo="$TMPDIR/audit-\"quoted\"\\backslash"

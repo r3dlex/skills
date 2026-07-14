@@ -23,5 +23,5 @@ catalog_rows() {
 }
 
 flattened_skill_body() {
-  sed -n '/^---$/,/^---$/d; /modules\/readme-documentation\.md.*README\.md/d; p' "$1"
+  sed -n '/^---$/,/^---$/d; /modules\//d; /REFERENCE\.md/d; p' "$1"
 }

@@ -197,31 +197,65 @@ resolve_verified_license() {
 }
 
 guard_existing_license() {
-  local file="$1" license_section claim claims=""
+  local file="$1" claim claims=""
   [[ -f "$REPO/LICENSE" ]] || return 0
-  license_section=$(awk '
-    BEGIN { in_section=0 }
-    tolower($0) ~ /^##[[:space:]]+license([[:space:]]|$)/ { in_section=1; next }
-    in_section && /^##[[:space:]]/ { exit }
-    in_section { print }
-  ' "$file")
-  [[ -n "$license_section" ]] || return 0
-  printf '%s\n' "$license_section" | grep -qiE 'Apache([ -]License)?[- ]?2\.0' && claims="${claims}Apache-2.0\n"
-  printf '%s\n' "$license_section" | grep -qiE '(^|[^[:alnum:]])MIT([^[:alnum:]]|$)' && claims="${claims}MIT\n"
-  printf '%s\n' "$license_section" | grep -qiE 'BSD[- ]?3[ -]Clause' && claims="${claims}BSD-3-Clause\n"
-  printf '%s\n' "$license_section" | grep -qiE 'BSD[- ]?2[ -]Clause' && claims="${claims}BSD-2-Clause\n"
-  printf '%s\n' "$license_section" | grep -qiE 'AGPL[- ]?3\.0' && claims="${claims}AGPL-3.0-Unknown\n"
-  printf '%s\n' "$license_section" | grep -qiE '(^|[^A])GPL[- ]?3\.0' && claims="${claims}GPL-3.0-Unknown\n"
-  printf '%s\n' "$license_section" | grep -qiE '(^|[^A])GPL[- ]?2\.0' && claims="${claims}GPL-2.0-Unknown\n"
+  grep -qiE 'Apache([ -]License)?[- ]?2\.0|Apache License,?[[:space:]]+Version 2\.0' "$file" && claims="${claims}Apache-2.0\n"
+  grep -qiE '(^|[^[:alnum:]])MIT([[:space:]-]+License)?([^[:alnum:]]|$)' "$file" && claims="${claims}MIT\n"
+  grep -qiE 'BSD[- ]?3[ -]Clause|BSD 3-Clause License' "$file" && claims="${claims}BSD-3-Clause\n"
+  grep -qiE 'BSD[- ]?2[ -]Clause|BSD 2-Clause License' "$file" && claims="${claims}BSD-2-Clause\n"
+  grep -qiE 'AGPL([_[:space:]-]*v?3([._-]0)?)|GNU Affero General Public License,?[[:space:]]*(version[[:space:]]*)?3' "$file" \
+    && claims="${claims}AGPL-3.0-Unknown\n"
+  grep -qiE '(^|[^A[:alnum:]])GPL([_[:space:]-]*v?3([._-]0)?)|GNU General Public License,?[[:space:]]*(version[[:space:]]*)?3' "$file" \
+    && claims="${claims}GPL-3.0-Unknown\n"
+  grep -qiE '(^|[^A[:alnum:]])GPL([_[:space:]-]*v?2([._-]0)?)|GNU General Public License,?[[:space:]]*(version[[:space:]]*)?2' "$file" \
+    && claims="${claims}GPL-2.0-Unknown\n"
   while IFS= read -r claim; do
     [[ -n "$claim" ]] || continue
     if [[ -z "$VERIFIED_LICENSE" || "$claim" != "$VERIFIED_LICENSE" ]]; then
-      echo "proof-signal guard: README License section conflicts with or overstates the detected LICENSE file" >&2
+      echo "proof-signal guard: README license claim conflicts with or overstates the detected LICENSE file" >&2
       return 3
     fi
   done <<EOF
 $(printf '%b' "$claims")
 EOF
+}
+
+has_coherent_onboarding() {
+  python3 - "$1" "$INSTALL_COMMAND" "$FIRST_SUCCESS_COMMAND" "$SUCCESS_EVIDENCE" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+path, install, first_success, evidence = sys.argv[1:]
+sections = []
+heading = None
+body = []
+for line in Path(path).read_text(errors='replace').splitlines():
+    match = re.match(r'^##\s+(.+?)\s*$', line)
+    if match:
+        if heading is not None:
+            sections.append((heading, '\n'.join(body)))
+        heading = match.group(1).casefold()
+        body = []
+    elif heading is not None:
+        body.append(line)
+if heading is not None:
+    sections.append((heading, '\n'.join(body)))
+
+onboarding_headings = {
+    'quick start',
+    'getting started',
+    'installation',
+    'installation and first success',
+    'setup and first success',
+}
+if not any(
+    heading in onboarding_headings
+    and all(value in content for value in (install, first_success, evidence))
+    for heading, content in sections
+):
+    raise SystemExit(1)
+PY
 }
 
 archetype_section() {
@@ -442,9 +476,7 @@ augment() {
   local file="$1" candidate expected_sha="$SOURCE_SHA"
   candidate=$(mktemp)
   cp "$file" "$candidate"
-  if ! grep -Fq -- "$INSTALL_COMMAND" "$candidate" \
-    || ! grep -Fq -- "$FIRST_SUCCESS_COMMAND" "$candidate" \
-    || ! grep -Fq -- "$SUCCESS_EVIDENCE" "$candidate"; then
+  if ! has_coherent_onboarding "$candidate"; then
     append_section "$candidate" $'## Setup and first success\n\n```sh\n'"$INSTALL_COMMAND"$'\n'"$FIRST_SUCCESS_COMMAND"$'\n```\n\n**Expected result:** '"$SUCCESS_EVIDENCE"
   fi
   [[ -z "$REQUIREMENTS" ]] || grep -qiE '^##[[:space:]]+Requirements' "$candidate" || append_section "$candidate" $'## Requirements\n\n- '"$REQUIREMENTS"

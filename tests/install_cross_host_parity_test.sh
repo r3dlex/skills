@@ -68,8 +68,18 @@ flattened = {
 for host, projection in flattened.items():
     content = projection.read_text()
     assert 'ai-catapult-init' in content, f'{host} missing general ai-catapult-init skill'
-    for dangling in ('modules/readme-documentation.md', 'scripts/readme-generate.sh', 'assets/readme/template.md'):
-        assert dangling not in content, f'{host} has dangling README-generator contract: {dangling}'
+    for dangling in ('modules/', 'REFERENCE.md'):
+        assert dangling not in content, f'{host} has dangling flattened reference: {dangling}'
+
+for host, root, pattern in (
+    ('Auggie', auggie, '*.md'),
+    ('Gemini', gemini, '*.md'),
+    ('GitHub Copilot', copilot, '*.md'),
+):
+    for projection in root.rglob(pattern):
+        content = projection.read_text()
+        for dangling in ('modules/', 'REFERENCE.md'):
+            assert dangling not in content, f'{host} {projection.name} has dangling flattened reference: {dangling}'
 
 readme = (repo / 'README.md').read_text()
 normalized_readme = ' '.join(readme.split())
