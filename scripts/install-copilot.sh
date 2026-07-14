@@ -11,7 +11,7 @@ consolidated() { local out="$target/.github/copilot-instructions.md" repo_name; 
 This file contains agent-facing instructions synthesized from the skills library.
 
 EOF
- while IFS=$'\t' read -r name source; do [[ -n "$name" ]] || continue; printf '## %s\n\n' "$name" >> "$out"; while IFS= read -r line; do echo "  $line" >> "$out"; done < <(sed -n '/^---$/,/^---$/d;p' "$SKILLS_DIR/$source/SKILL.md"); echo "" >> "$out"; done <<< "$rows"; }
-per_skill() { local out="$target/.github/copilot-instructions" description; mkdir -p "$out"; while IFS=$'\t' read -r name source; do [[ -n "$name" ]] || continue; description=$(grep -A1 '^description:' "$SKILLS_DIR/$source/SKILL.md" 2>/dev/null | tail -1 | sed 's/^ *//' || echo "Skill: $name"); { echo "# $name"; echo ''; echo "$description"; echo ''; sed -n '/^---$/,/^---$/d;p' "$SKILLS_DIR/$source/SKILL.md"; } > "$out/$name.md"; done <<< "$rows"; }
+ while IFS=$'\t' read -r name source; do [[ -n "$name" ]] || continue; printf '## %s\n\n' "$name" >> "$out"; while IFS= read -r line; do echo "  $line" >> "$out"; done < <(flattened_skill_body "$SKILLS_DIR/$source/SKILL.md"); echo "" >> "$out"; done <<< "$rows"; }
+per_skill() { local out="$target/.github/copilot-instructions" description; mkdir -p "$out"; while IFS=$'\t' read -r name source; do [[ -n "$name" ]] || continue; description=$(skill_description "$SKILLS_DIR/$source/SKILL.md"); { echo "# $name"; echo ''; echo "$description"; echo ''; flattened_skill_body "$SKILLS_DIR/$source/SKILL.md"; } > "$out/$name.md"; done <<< "$rows"; }
 if [[ "$mode" == --consolidated || "$mode" == --all ]]; then consolidated; fi
 if [[ "$mode" == --per-skill || "$mode" == --all ]]; then per_skill; fi

@@ -10,5 +10,5 @@ from pathlib import Path
 home,target=map(Path,sys.argv[1:]); expected=json.loads(Path('tests/fixtures/host-default-golden.json').read_text()); roots={'gemini':home/'.gemini/skills','auggie':home/'.auggie/rules','copilot':target/'.github'}
 for host,root in roots.items():
  actual={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(root.rglob('*')) if p.is_file() and p.name not in {'catalog.json','skills-catalog.json'}}
- assert actual==expected[host], f'{host} default output drift from e485659 parent'
+ assert actual==expected[host], f'{host} default output drift from committed golden'
 PY
