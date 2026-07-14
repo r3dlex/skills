@@ -197,27 +197,44 @@ resolve_verified_license() {
 }
 
 guard_existing_license() {
-  local file="$1" claim claims=""
-  [[ -f "$REPO/LICENSE" ]] || return 0
-  grep -qiE 'Apache([ -]License)?[- ]?2\.0|Apache License,?[[:space:]]+Version 2\.0' "$file" && claims="${claims}Apache-2.0\n"
-  grep -qiE '(^|[^[:alnum:]])MIT([[:space:]-]+License)?([^[:alnum:]]|$)' "$file" && claims="${claims}MIT\n"
-  grep -qiE 'BSD[- ]?3[ -]Clause|BSD 3-Clause License' "$file" && claims="${claims}BSD-3-Clause\n"
-  grep -qiE 'BSD[- ]?2[ -]Clause|BSD 2-Clause License' "$file" && claims="${claims}BSD-2-Clause\n"
-  grep -qiE 'AGPL([_[:space:]-]*v?3([._-]0)?)|GNU Affero General Public License,?[[:space:]]*(version[[:space:]]*)?3' "$file" \
-    && claims="${claims}AGPL-3.0-Unknown\n"
-  grep -qiE '(^|[^A[:alnum:]])GPL([_[:space:]-]*v?3([._-]0)?)|GNU General Public License,?[[:space:]]*(version[[:space:]]*)?3' "$file" \
-    && claims="${claims}GPL-3.0-Unknown\n"
-  grep -qiE '(^|[^A[:alnum:]])GPL([_[:space:]-]*v?2([._-]0)?)|GNU General Public License,?[[:space:]]*(version[[:space:]]*)?2' "$file" \
-    && claims="${claims}GPL-2.0-Unknown\n"
+  local file="$1" claim claims has_claim
+  claims=$(python3 - "$file" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text(errors='replace')
+patterns = (
+    ('Apache-2.0', r'Apache(?:[ _-]+License)?[ _-]*2[._]0|Apache License,?\s+Version 2\.0'),
+    ('MIT', r'(?<![A-Za-z0-9])MIT(?:[ _-]+License)?(?![A-Za-z0-9])'),
+    ('BSD-3-Clause', r'BSD[ _-]+3(?:[ _-]+|--+)Clause'),
+    ('BSD-2-Clause', r'BSD[ _-]+2(?:[ _-]+|--+)Clause'),
+    ('AGPL-3.0-Unknown', r'AGPL(?:[_ -]*v?3(?:[._-]0)?)|GNU Affero General Public License,?\s*(?:version\s*)?3'),
+    ('GPL-3.0-Unknown', r'(?<![A-Za-z0-9])GPL(?:[_ -]*v?3(?:[._-]0)?)|GNU General Public License,?\s*(?:version\s*)?3'),
+    ('GPL-2.0-Unknown', r'(?<![A-Za-z0-9])GPL(?:[_ -]*v?2(?:[._-]0)?)|GNU General Public License,?\s*(?:version\s*)?2'),
+)
+for license_id, pattern in patterns:
+    if re.search(pattern, text, re.I):
+        print(license_id)
+PY
+)
+  has_claim=0
+  if [[ -n "$claims" ]] \
+    || grep -qiE '^##[[:space:]]+License([[:space:]]|$)|img\.shields\.io/badge/[Ll]icense' "$file"; then
+    has_claim=1
+  fi
+  [[ "$has_claim" -eq 1 ]] || return 0
+  if [[ ! -f "$REPO/LICENSE" ]]; then
+    echo "proof-signal guard: README license claim cannot be verified because LICENSE is missing" >&2
+    return 3
+  fi
   while IFS= read -r claim; do
     [[ -n "$claim" ]] || continue
     if [[ -z "$VERIFIED_LICENSE" || "$claim" != "$VERIFIED_LICENSE" ]]; then
       echo "proof-signal guard: README license claim conflicts with or overstates the detected LICENSE file" >&2
       return 3
     fi
-  done <<EOF
-$(printf '%b' "$claims")
-EOF
+  done <<< "$claims"
 }
 
 has_coherent_onboarding() {
@@ -249,11 +266,19 @@ onboarding_headings = {
     'installation and first success',
     'setup and first success',
 }
-if not any(
-    heading in onboarding_headings
-    and all(value in content for value in (install, first_success, evidence))
-    for heading, content in sections
-):
+fence_pattern = re.compile(r'^```([^\n]*)\n(.*?)^```\s*$', re.M | re.S)
+runnable_languages = {'sh', 'bash', 'shell', 'zsh'}
+
+def coherent(content):
+    commands = set()
+    for info, block in fence_pattern.findall(content):
+        language = info.strip().split(maxsplit=1)[0].casefold() if info.strip() else ''
+        if language not in runnable_languages:
+            continue
+        commands.update(line.strip() for line in block.splitlines() if line.strip())
+    return install in commands and first_success in commands and evidence in content
+
+if not any(heading in onboarding_headings and coherent(content) for heading, content in sections):
     raise SystemExit(1)
 PY
 }

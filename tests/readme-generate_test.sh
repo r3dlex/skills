@@ -747,6 +747,64 @@ accurate_license_ec=$?
 set -e
 assert_eq "$accurate_license_ec" "0" "augment preserves matching top-level license badges and prose"
 
+# Common Shields encodings still make authoritative license claims.
+for badge in \
+  'License-Apache_2.0-blue.svg' \
+  'License-BSD_3--Clause-blue.svg'; do
+  badge_slug=$(printf '%s' "$badge" | tr '/.' '__')
+  mkdir -p "$TMPDIR/license-badge-$badge_slug" && cd "$TMPDIR/license-badge-$badge_slug"
+  printf 'MIT License\n' > LICENSE
+  {
+    echo '# Encoded License Badge Tool'
+    echo "[![License](https://img.shields.io/badge/$badge)](LICENSE)"
+    for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+    echo
+    echo '## Features'
+    echo
+    echo '- stable output'
+  } > README.md
+  encoded_sha=$(sha256_file README.md)
+  set +e
+  bash "$SCRIPT" --mode augment --project "Encoded License Badge Tool" \
+    --tagline "Recognizes common Shields encodings." \
+    --why "Keep encoded license claims aligned with the repository license." \
+    --archetype cli-tool --primary-surface 'encoded-license <command>' \
+    --mental-model "The LICENSE file is the source of truth." \
+    --install-command "install-encoded-license" --first-success-command "encoded-license doctor" \
+    --success-evidence "prints ready" --source-sha "$encoded_sha" --out README.md \
+    >/dev/null 2>&1
+  encoded_ec=$?
+  set -e
+  assert_eq "$encoded_ec" "3" "augment rejects conflicting Shields encoding $badge"
+  assert_eq "$(sha256_file README.md)" "$encoded_sha" "encoded license conflict preserves README for $badge"
+done
+
+# A README license claim without a repository LICENSE cannot be verified.
+mkdir -p "$TMPDIR/license-claim-without-file" && cd "$TMPDIR/license-claim-without-file"
+{
+  echo '# Unverified License Tool'
+  echo '[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)'
+  for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+  echo
+  echo '## Features'
+  echo
+  echo '- stable output'
+} > README.md
+unverified_sha=$(sha256_file README.md)
+set +e
+bash "$SCRIPT" --mode augment --project "Unverified License Tool" \
+  --tagline "Fails closed on unverified claims." \
+  --why "Require a LICENSE file for every README license claim." \
+  --archetype cli-tool --primary-surface 'unverified-license <command>' \
+  --mental-model "The LICENSE file is the source of truth." \
+  --install-command "install-unverified-license" --first-success-command "unverified-license doctor" \
+  --success-evidence "prints ready" --source-sha "$unverified_sha" --out README.md \
+  >/dev/null 2>&1
+unverified_ec=$?
+set -e
+assert_eq "$unverified_ec" "3" "augment rejects a README license claim when LICENSE is absent"
+assert_eq "$(sha256_file README.md)" "$unverified_sha" "missing LICENSE guard preserves the reviewed README"
+
 # GPL boilerplate alone cannot distinguish an only license from an or-later grant.
 mkdir -p "$TMPDIR/gpl-ambiguous" && cd "$TMPDIR/gpl-ambiguous"
 cat > LICENSE <<'EOF'
@@ -804,6 +862,41 @@ text = Path(sys.argv[1]).read_text()
 section = text.split('## Setup and first success', 1)[1].split('\n## ', 1)[0]
 for expected in ('install-scattered-exact', 'scattered exact-doctor', 'prints scattered onboarding ready'):
     assert expected in section
+PY
+
+# Raw command substrings in onboarding prose are not runnable instructions.
+mkdir -p "$TMPDIR/prose-onboarding" && cd "$TMPDIR/prose-onboarding"
+{
+  echo '# Prose Onboarding Tool'
+  for i in $(seq 1 35); do echo "Existing project fact $i keeps this README non-sparse."; done
+  echo
+  echo '## Quick Start'
+  echo
+  echo 'Run install-prose-exact, then prose exact-doctor.'
+  echo
+  echo 'Expected result: prints prose onboarding ready.'
+} > README.md
+prose_onboarding_sha=$(sha256_file README.md)
+bash "$SCRIPT" --mode augment --project "Prose Onboarding Tool" \
+  --tagline "Documents runnable onboarding." \
+  --why "Give new users commands they can execute directly." \
+  --archetype cli-tool --primary-surface 'prose <command>' \
+  --mental-model "Each runnable command appears in a shell fence." \
+  --install-command "install-prose-exact" --first-success-command "prose exact-doctor" \
+  --success-evidence "prints prose onboarding ready" --source-sha "$prose_onboarding_sha" \
+  --out README.md >/dev/null
+python3 - README.md <<'PY' \
+  && ok "augment requires supplied onboarding commands in runnable fences" \
+  || bad "augment requires supplied onboarding commands in runnable fences"
+import re
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text()
+section = text.split('## Setup and first success', 1)[1].split('\n## ', 1)[0]
+fences = re.findall(r'```(?:sh|bash|shell|zsh)\s*\n(.*?)```', section, re.S | re.I)
+commands = {line.strip() for block in fences for line in block.splitlines() if line.strip()}
+assert {'install-prose-exact', 'prose exact-doctor'} <= commands
 PY
 
 # Audit JSON must round-trip paths containing JSON-significant characters.

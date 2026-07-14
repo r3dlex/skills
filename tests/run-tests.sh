@@ -18,7 +18,7 @@ TOTAL_PASSES=0
 run_suite() {
     local name="$1"
     local script="$2"
-    local suite_fails
+    local suite_output suite_exit assertion_count
 
     echo ""
     echo "========================================"
@@ -31,16 +31,23 @@ run_suite() {
         return
     fi
 
-    # Run the suite; capture both stdout/stderr and exit code.
-    # shellcheck disable=SC2086
+    suite_output=$(mktemp)
     set +e
-    bash "$script" 2>&1
+    bash "$script" >"$suite_output" 2>&1
     suite_exit=$?
     set -e
+    cat "$suite_output"
+
+    assertion_count=$(sed -nE 's/^Results: PASS=([0-9]+).*/\1/p' "$suite_output" | tail -1)
+    rm -f "$suite_output"
 
     if [ "$suite_exit" -ne 0 ]; then
         echo ""
         echo "FAILED: $name (exit $suite_exit)"
+        TOTAL_FAILS=$((TOTAL_FAILS + 1))
+    elif [ -z "$assertion_count" ] || [ "$assertion_count" -eq 0 ]; then
+        echo ""
+        echo "FAILED: $name (zero assertions reported)"
         TOTAL_FAILS=$((TOTAL_FAILS + 1))
     else
         echo ""
