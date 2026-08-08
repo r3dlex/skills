@@ -36,4 +36,6 @@ assert_runner_exit 1 0 1 "aggregate runner rejects a zero-assertion skill suite"
 assert_runner_exit 1 1 0 "aggregate runner accepts child suites with assertions"
 
 echo "Results: PASS=$PASS FAIL=$FAIL"
-[[ "$FAIL" -eq 0 ]]
+# Explicit exit: bash 3.2 does not fire errexit on a failing bare `[[ ]]`.
+[[ "$FAIL" -eq 0 ]] || exit 1
+exit 0
