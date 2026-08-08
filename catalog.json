@@ -63,6 +63,23 @@
       ]
     },
     {
+      "name": "codebase-design",
+      "source_path": "02-govern-plan/codebase-design",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan",
+        "03-configure-generate"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
       "name": "design-an-api-or-interface",
       "source_path": "02-govern-plan/design-an-api-or-interface",
       "owner_phase": "02-govern-plan",
@@ -86,6 +103,23 @@
         "01-discover-decide",
         "03-configure-generate",
         "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "domain-modeling",
+      "source_path": "01-discover-decide/domain-modeling",
+      "owner_phase": "01-discover-decide",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan"
       ],
       "lifecycle": "stable",
       "supported_hosts": [
@@ -266,6 +300,39 @@
       ]
     },
     {
+      "name": "research",
+      "source_path": "01-discover-decide/research",
+      "owner_phase": "01-discover-decide",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "resolving-merge-conflicts",
+      "source_path": "04-validate-handoff/resolving-merge-conflicts",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
       "name": "setup-skills",
       "source_path": "03-configure-generate/setup-skills",
       "owner_phase": "03-configure-generate",
@@ -373,6 +440,23 @@
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "03-configure-generate"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "wizard",
+      "source_path": "03-configure-generate/wizard",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "03-configure-generate",
+        "04-validate-handoff"
       ],
       "lifecycle": "stable",
       "supported_hosts": [
