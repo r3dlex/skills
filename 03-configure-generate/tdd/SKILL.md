@@ -17,10 +17,21 @@ Before writing code:
 - [ ] Respect ADRs in the area you are touching.
 - [ ] Confirm the public interface shape with the user when it is not already specified.
 - [ ] Prioritize the behaviors worth testing.
-- [ ] Identify opportunities for [deep modules](deep-modules.md).
-- [ ] Design interfaces for [testability](interface-design.md).
+- [ ] Use the `codebase-design` skill for module, interface, depth, seam, adapter,
+      leverage and locality vocabulary — including deep modules and designing for
+      testability. It is a reference to consult, not a session to run.
 
 Ask: "What should the public interface look like? Which behaviors are most important to test?"
+
+## Seams — where tests go
+
+A **seam** is the public boundary you test at: the interface where you observe behavior
+without reaching inside. Tests live at seams, never against internals.
+
+**Test only at pre-agreed seams.** Write down the seams under test and confirm them with
+the user before writing any test; no test is written at an unconfirmed seam. You cannot
+test everything — agreeing seams up front is how effort lands on critical paths and
+complex logic instead of every edge case.
 
 ## Legacy-safe mode
 
@@ -54,12 +65,22 @@ For each remaining behavior:
 4. Run the relevant test set.
 5. Commit or checkpoint when the slice is coherent.
 
-Rules:
+Rules: one test at a time; do not anticipate future tests; keep edge cases tied to
+user-visible behavior. Testing public behavior rather than internals is covered by Seams.
 
-- One test at a time.
-- Test public behavior, not private implementation.
-- Do not anticipate future tests.
-- Keep edge cases tied to user-visible behavior.
+## Anti-patterns
+
+- **Implementation-coupled** — mocks internal collaborators, tests private methods,
+  or verifies through a side channel (querying the database instead of using the
+  interface). The tell: the test breaks when you refactor but behavior has not changed.
+- **Tautological** — the assertion recomputes the expected value the way the code does
+  (`expect(add(a, b)).toBe(a + b)`, a hand-derived snapshot, a constant asserted equal to
+  itself), so it passes by construction and can never disagree with the code. Expected
+  values must come from an independent source of truth — a known-good literal, a worked
+  example, the spec.
+- **Horizontal slicing** — all tests first, then all implementation. Bulk tests verify
+  *imagined* behavior, go insensitive to real changes, and commit you to a test structure
+  before you understand the implementation. Work in vertical slices instead.
 
 ## Refactor
 
@@ -80,5 +101,4 @@ Never refactor while red.
 - [tests.md](tests.md) — examples of behavior-focused tests.
 - [mocking.md](mocking.md) — when mocks help or harm.
 - [legacy-systems.md](legacy-systems.md) — low-coverage and high-risk change strategy.
-- [deep-modules.md](deep-modules.md) — identifying deep modules.
-- [interface-design.md](interface-design.md) — designing testable interfaces.
+- The `codebase-design` skill — deep modules, seams, and designing for testability.
