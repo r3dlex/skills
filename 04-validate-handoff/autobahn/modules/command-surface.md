@@ -39,9 +39,15 @@ The two surfaces differ only in the invocation token; both point at the same
   "invocation": "$autobahn",
   "args": [{ "name": "goal", "required": false }, { "name": "engine", "required": false }],
   "description": "Ship goals from a northstar handoff or direct-ready record.",
-  "delegates_to": ["tdd", "ultragoal", "team", "ralph", "ultrawork", "ultraqa", "triage"]
+  "delegates_to": ["ultragoal", "team", "ralph", "ultrawork", "ultraqa", "triage"]
 }
 ```
 
 The omc file is identical except `surface: "omc"` and
 `invocation: "/oh-my-claudecode:autobahn"`.
+
+`tdd` is deliberately absent from `delegates_to`: autobahn currently selects a
+TDD *posture* without invoking the skill. [modules/tdd-safety.md](tdd-safety.md)
+describes the intended delegation; it is added here once autobahn genuinely
+invokes it. `tests/delegate_contract_test.sh` treats the shipped command JSON as
+authoritative, so this list may only claim delegations that actually happen.
