@@ -3,6 +3,7 @@
 
 | Skill | Applies to phases |
 |---|---|
+| [`codebase-design`](../02-govern-plan/codebase-design/SKILL.md) | 02-govern-plan, 03-configure-generate |
 | [`design-an-api-or-interface`](../02-govern-plan/design-an-api-or-interface/SKILL.md) | 02-govern-plan |
 | [`grill-me`](../02-govern-plan/grill-me/SKILL.md) | 02-govern-plan |
 | [`grill-with-docs`](../02-govern-plan/grill-with-docs/SKILL.md) | 02-govern-plan |

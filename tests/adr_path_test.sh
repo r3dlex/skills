@@ -76,6 +76,12 @@ is_allowlisted() {
     # Generic skill prose teaching the conventional ADR location for ARBITRARY repos.
     02-govern-plan/grill-with-docs/ADR-FORMAT.md) return 0 ;;
     02-govern-plan/grill-with-docs/SKILL.md) return 0 ;;
+    # Same generic-prose case as grill-with-docs above: domain-modeling teaches the
+    # conventional `docs/adr/` layout for the ARBITRARY repo it is pointed at, and
+    # its SKILL.md explicitly defers to a target repo's own convention (naming this
+    # repo's `docs/architecture/adr/` as an example of one).
+    01-discover-decide/domain-modeling/ADR-FORMAT.md) return 0 ;;
+    01-discover-decide/domain-modeling/SKILL.md) return 0 ;;
     03-configure-generate/setup-skills/SKILL.md) return 0 ;;
     03-configure-generate/setup-skills/domain.md) return 0 ;;
   esac

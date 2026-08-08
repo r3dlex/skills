@@ -7,7 +7,7 @@
     "max_body_lines_with_exception": 180,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 25,
+  "skill_count": 30,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -45,6 +45,17 @@
       "status": "pass"
     },
     {
+      "name": "codebase-design",
+      "path": "02-govern-plan/codebase-design/SKILL.md",
+      "description_chars": 157,
+      "description_status": "target",
+      "body_lines": 60,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
       "name": "design-an-api-or-interface",
       "path": "02-govern-plan/design-an-api-or-interface/SKILL.md",
       "description_chars": 151,
@@ -61,6 +72,17 @@
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 68,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "domain-modeling",
+      "path": "01-discover-decide/domain-modeling/SKILL.md",
+      "description_chars": 160,
+      "description_status": "target",
+      "body_lines": 50,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
@@ -177,6 +199,28 @@
       "status": "pass"
     },
     {
+      "name": "research",
+      "path": "01-discover-decide/research/SKILL.md",
+      "description_chars": 158,
+      "description_status": "target",
+      "body_lines": 28,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "resolving-merge-conflicts",
+      "path": "04-validate-handoff/resolving-merge-conflicts/SKILL.md",
+      "description_chars": 140,
+      "description_status": "target",
+      "body_lines": 38,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
       "name": "setup-skills",
       "path": "03-configure-generate/setup-skills/SKILL.md",
       "description_chars": 141,
@@ -248,6 +292,17 @@
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 77,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "wizard",
+      "path": "03-configure-generate/wizard/SKILL.md",
+      "description_chars": 158,
+      "description_status": "target",
+      "body_lines": 48,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,

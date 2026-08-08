@@ -11,6 +11,7 @@
 | [`setup-skills`](../03-configure-generate/setup-skills/SKILL.md) | 01-discover-decide, 02-govern-plan, 03-configure-generate |
 | [`tdd`](../03-configure-generate/tdd/SKILL.md) | 03-configure-generate, 04-validate-handoff |
 | [`using-git-worktrees`](../03-configure-generate/using-git-worktrees/SKILL.md) | 03-configure-generate |
+| [`wizard`](../03-configure-generate/wizard/SKILL.md) | 03-configure-generate, 04-validate-handoff |
 | [`write-a-skill`](../03-configure-generate/write-a-skill/SKILL.md) | 02-govern-plan, 03-configure-generate, 04-validate-handoff |
 | [`write-agent-docs`](../03-configure-generate/write-agent-docs/SKILL.md) | 02-govern-plan, 03-configure-generate, 04-validate-handoff |
 <!-- GENERATED:SKILL-CATALOG:END -->
