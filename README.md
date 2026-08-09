@@ -81,6 +81,7 @@ when editing this README.
 |---|---|---|---|
 | [`ai-catapult-init`](03-configure-generate/ai-catapult-init/SKILL.md) | Bootstrap AI-ready governance, traceability, cascade, catalog audits, and validation. Use when setting up AI SDLC; aliases: init-ai-repo and ai-sdlc-init. | `stable` | `03-configure-generate` |
 | [`ai-sdlc-init`](03-configure-generate/ai-sdlc-init/SKILL.md) | Deprecated compatibility alias for ai-catapult-init. Use only when legacy prompts invoke "ai-sdlc-init"; otherwise use "ai-catapult-init". | `compatibility` | `03-configure-generate` |
+| [`ask-ai-catapult`](01-discover-decide/ask-ai-catapult/SKILL.md) | Ask which skill or flow fits your situation. Use when you know what you want to achieve but not which skills to combine, or which order to run them in. | `stable` | `01-discover-decide` |
 | [`autobahn`](04-validate-handoff/autobahn/SKILL.md) | Ship implementation-ready goals from a northstar handoff or evidence-complete direct record, with review, CI, fail-closed merge, and cascade closure. | `stable` | `04-validate-handoff` |
 | [`code-review`](04-validate-handoff/code-review/SKILL.md) | Review changes since a fixed point along two axes, Standards and Spec, reported side by side. Use when reviewing a branch, a PR, or work in progress. | `stable` | `04-validate-handoff` |
 | [`codebase-design`](02-govern-plan/codebase-design/SKILL.md) | Shared vocabulary for designing deep modules. Use when shaping an interface, placing a seam, finding deepening opportunities, or when another skill needs it. | `stable` | `02-govern-plan` |

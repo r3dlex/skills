@@ -46,6 +46,25 @@
       ]
     },
     {
+      "name": "ask-ai-catapult",
+      "source_path": "01-discover-decide/ask-ai-catapult",
+      "owner_phase": "01-discover-decide",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan",
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
       "name": "autobahn",
       "source_path": "04-validate-handoff/autobahn",
       "owner_phase": "04-validate-handoff",

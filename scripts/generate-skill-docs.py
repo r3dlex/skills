@@ -22,6 +22,21 @@ def main():
   desc=description(root/e['source_path']/'SKILL.md').replace('|','\\|')
   rows.append(f"| [`{e['name']}`]({e['source_path']}/SKILL.md) | {desc} | `{e['lifecycle']}` | `{e['owner_phase']}` |")
  ok=replace(root/'README.md','\n'.join(rows),a.check) & replace(root/'AGENTS.md','\n'.join(rows),a.check)
+ # Fourth target: the ask-ai-catapult router's tier-1 inventory. Generated, never
+ # hand-maintained — a hand-written list of every catalog skill rots silently, and
+ # routing against a stale roster is worse than routing against none. Lives in the
+ # router's sidecar rather than its SKILL.md because the body has a 100-line budget.
+ inv=[]
+ for phase in c['phases']:
+  entries=sorted((x for x in c['skills'] if x['owner_phase']==phase),key=lambda x:x['name'])
+  if not entries: continue
+  inv.append(f'## {phase}'); inv.append('')
+  for e in entries:
+   desc=description(root/e['source_path']/'SKILL.md').replace('|','\\|')
+   inv.append(f"- **`{e['name']}`** — {desc}")
+  inv.append('')
+ router=root/'01-discover-decide'/'ask-ai-catapult'/'CATALOG.md'
+ if router.parent.is_dir(): ok=replace(router,'\n'.join(inv),a.check) & ok
  for phase in c['phases']:
   lines=[f'# {phase}','', '| Skill | Applies to phases |','|---|---|']
   for e in sorted((x for x in c['skills'] if x['owner_phase']==phase),key=lambda x:x['name']): lines.append(f"| [`{e['name']}`](../{e['source_path']}/SKILL.md) | {', '.join(e['applies_to_phases'])} |")

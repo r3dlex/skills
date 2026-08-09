@@ -3,6 +3,7 @@
 
 | Skill | Applies to phases |
 |---|---|
+| [`ask-ai-catapult`](../01-discover-decide/ask-ai-catapult/SKILL.md) | 01-discover-decide, 02-govern-plan, 03-configure-generate, 04-validate-handoff |
 | [`domain-modeling`](../01-discover-decide/domain-modeling/SKILL.md) | 01-discover-decide, 02-govern-plan |
 | [`research`](../01-discover-decide/research/SKILL.md) | 01-discover-decide, 02-govern-plan |
 | [`ubiquitous-language`](../01-discover-decide/ubiquitous-language/SKILL.md) | 01-discover-decide, 02-govern-plan |
