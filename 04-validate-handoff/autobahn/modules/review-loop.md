@@ -23,11 +23,17 @@ A PR is mergeable only when ALL hold (the feedback merge protocol):
 
 - every review comment is resolved,
 - **remote host CI is green** (the hosted check run on the PR), and
-- **local CI is green** (the repo's offline test suite).
+- **local CI is green** — the commands defined in
+  [commit-protocol.md](commit-protocol.md), run locally, all exiting zero.
+
+"Local CI" used to be an undefined noun here: it named no commands, so any
+suite the agent happened to run satisfied it. It now resolves to the repo's own
+CI commands, or failing that its documented test entry point. When neither
+resolves, the signal **cannot be determined** and the goal is blocked.
 
 A red or pending CI run — remote or local — holds the merge. The gate is
 fail-closed: absence of a green signal is treated as not-green, never assumed
-passing.
+passing, and an undetermined local suite is an absence.
 
 ## What autobahn owns vs delegates
 
