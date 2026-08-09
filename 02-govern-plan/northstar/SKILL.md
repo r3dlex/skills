@@ -38,10 +38,12 @@ non-zero with guidance if absent. Do not proceed past a failed prereq. See
 ## The loop (delegation)
 
 `deep-interview` is the **primary** driver: interview one question at a time
-until ambiguity is at or below threshold. `grill-me` runs as an **adversarial,
-skippable** pass the user may decline. "Both satisfied" = the deep-interview
-gate is met AND (the grill-me decision tree is clear OR grill-me was skipped).
-Delegate to those skills; do not reimplement their loops. See
+until ambiguity is at or below threshold. The **adversarial, skippable** pass is
+two skills the user declines or accepts as a unit: `grill-with-docs`
+(doc-grounded — stress-tests the plan against the repo's language, ADRs and
+`CONTEXT.md`) then `grill-me` (open-ended). "Both satisfied" = the
+deep-interview gate is met AND (the adversarial pass is clear OR it was
+skipped). Delegate to those skills; do not reimplement their loops. See
 [modules/loop.md](modules/loop.md).
 
 ## Always raise an issue
@@ -84,6 +86,9 @@ See [modules/handoff.md](modules/handoff.md).
 - Fail closed: a missing prereq, missing authorization, or partial handoff write
   stops with guidance — never silently proceed or mutate.
 - Compose, never reimplement: delegate every loop to its owning skill.
+- Adversarial pass is `grill-with-docs` then `grill-me`, taken or declined as one
+  unit; the loop is not done on the deep-interview gate alone unless the user
+  explicitly skipped that pass.
 - Local-first: never create a hosted issue unless the tracker is configured and
   authorized.
 

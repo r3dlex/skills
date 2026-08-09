@@ -19,7 +19,7 @@
     "implement.md": "77a2b3ca92dadb546f34722e5cf52c69a25ca4082a5b16d441a808474a02c618",
     "improve-codebase-architecture.md": "9e2d14dae854ed8b992ddc48ddef89b0ee585790de49b16ca94e36be5acba2e5",
     "init-ai-repo.md": "01a2994634e56e2a66dcd09315bbb15820dcd26e6121c5c98d3cb92abfe93d28",
-    "northstar.md": "6b5ecb365d7a0df1a5ae838fb42804a7cf5fa28383644c7800bb0d905006b69c",
+    "northstar.md": "9407562ff9b4643654b634e92eeaae8a418c2d5066053aa3cb81f884134afa27",
     "prototype.md": "199e32133b5a5dc7daee1d33900b451cfd520c8c9768c02d6d5dacfa9ad9662c",
     "publish-semver.md": "62a15a1b097beb48671bd2cf00e9ec78cf977f9b848c9811fa85fb627069b2ee",
     "research.md": "db5a0a19ae7e03a02b91dd90c24f6c48b60690a43ff2fbc86f3d25e345319c1b",
@@ -58,7 +58,7 @@
     "implement.md": "b05c29cf491e7740ca36072916ebb9b8c07fd674f4862c87388bca3d0ed4a659",
     "improve-codebase-architecture.md": "c7264f4426ef9b072f5c2cb864ad31d3869412189bfd4986a77a4c0e24bf0086",
     "init-ai-repo.md": "36b2e8af22f4b71c9c14ee51b7ef5ec28184b789d1dc80d6e15df575700afb2e",
-    "northstar.md": "c70105b958cf14d2e82d80bb3670e577513b3565b2fd7c86a68fb84ef09cf574",
+    "northstar.md": "49af9bd1258228ccce0d1bed8c78cc92187108d51eb20e41e690e0d22aaaa55e",
     "prototype.md": "89a9ca17052a3adf90834d95514f3028bbcb6541902f681f8bddc0c7dcb5ef3d",
     "publish-semver.md": "47340ea8ceaa450080620735e896646cf4df41d6ae7000301d5eddad943b1725",
     "research.md": "0754102a7d00e26f3f6508c2998e41fa424816a6247b2740033087a8a890a085",
@@ -78,6 +78,6 @@
     "zoom-out.md": "f18106eedb9f35852ffd24bf1881273097a1de6e2459e7930de59e65ce42184f"
   },
   "copilot": {
-    "copilot-instructions.md": "7a5cd9ee11f13321939bfa72408ed6cdefe786e02426ed28bf41414c24e17dc7"
+    "copilot-instructions.md": "c018ef95f6508a553511e40a6cb0cff452f2f4142766b155bf9b6964cc2b1aab"
   }
 }
