@@ -17,6 +17,7 @@ contract is strict: **one PR per goal**, never a mega-PR spanning slices.
 | --- | --- |
 | Goal ledger, durability, resume | `ultragoal` |
 | Per-goal engine selection | `autobahn/engine-pick.sh` (see engine-pick.md) |
+| Implementation contract | `implement` driving `tdd` (see implementation.md) |
 | Implementation loop | the picked engine (`team`/`ralph`/`ultrawork`/`ultraqa`) |
 | Peer review + CI gate | `architect`/`code-reviewer`/`executor` (see review-loop.md) |
 | Merge authority | `merge-authority.sh` thin adapter (see merge-authority.md) |
@@ -32,7 +33,8 @@ For each sliced goal, in order:
 
 1. Resolve the goal record from the handoff or readiness gate.
 2. Select standard or legacy-safe TDD, then pick the engine.
-3. Implement via the picked engine and selected TDD posture.
+3. Run `implement` under the selected posture, driving `tdd` red-green; the
+   picked engine executes. See implementation.md.
 4. Peer-review until all comments resolved.
 5. Gate on remote + local CI green.
 6. Decide merge via the host-policy thin adapter (else ready-for-human).
