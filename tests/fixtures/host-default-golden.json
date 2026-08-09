@@ -12,8 +12,9 @@
     "domain-modeling.md": "cb7b7c51b2568cbeba9374ae9dfacd3d99565e70c6b714b7400893f212ff855e",
     "edit-article.md": "bb1e13ad4bcede18b888748692c6daed926c13c34df3d2849b0493f7051bc448",
     "eval-a-skill.md": "15a802b030762dabf2034eb74d9d6c5b17098e3c863cda26a5c643749dbc3fbc",
-    "grill-me.md": "0653d572b81d7fe57a65090b89d19a3255597329da606237a1c7ad04afb62c41",
-    "grill-with-docs.md": "3084d1e76e53e8afc26bf5e72be8f54c455996e9162745951aa8a832fe650a79",
+    "grill-me.md": "71bb3c4af0f0a60950d1ff194910dea58a210e3344dfeac197705e955fc9ee1d",
+    "grill-with-docs.md": "69e28e107c1ed350397a43df761de0a258ad56be8c336103f8bc74a7ed1b7144",
+    "grilling.md": "6b7c7e730d54c025eec5122969881871c5ca163f242c70af30a3ee6086ff5bb8",
     "handoff.md": "64bacadf89287ef51bf164afa437d1a4042df26bb22f40c64f2192533bb06cce",
     "implement.md": "77a2b3ca92dadb546f34722e5cf52c69a25ca4082a5b16d441a808474a02c618",
     "improve-codebase-architecture.md": "9e2d14dae854ed8b992ddc48ddef89b0ee585790de49b16ca94e36be5acba2e5",
@@ -30,9 +31,8 @@
     "to-spec.md": "0177382a8cbe614d267675421e49d1dcb3e1f3f05ed7b181f58c59aa918fd420",
     "to-tickets.md": "59f5fe74689650f7ad3ed9f4eea1c7b7701fe3256f5c802b1da3288ce7419367",
     "triage.md": "a20a936752dd85c7e9f4028c9bd1ec5bebcc1d8b4acc7ff74389beee720fed9c",
-    "ubiquitous-language.md": "201bae1114a3655f9a0cc0141137c024b237f9daf712d49ad4a77e27bf6b9f33",
     "using-git-worktrees.md": "34075fea892b5ceb7f51b392d76daa41381472d77620b4292b188a1d20e31ba1",
-    "wayfinder.md": "768aa2299fc658b40f7c31cb2c640137d6db82329f475c854d3d6be434dd7f82",
+    "wayfinder.md": "7ab4d62559fd0fd0037cdbb74b664e7c0e25f00dc8c112ca823ae20b1595bfc1",
     "wizard.md": "657bef5390e27174748055359a17f3ca8158e2b4363ce820e758405fdaa1b6f6",
     "write-a-skill.md": "54759c66e34c7bfdeb30f2d9360485301c7abad38c655de8afb6b2370a476c6e",
     "write-agent-docs.md": "fee6b92cd53dfd8ac8423c010e69aa962b738f6d5a7e4e35da4bd5cea3f6c393",
@@ -51,8 +51,9 @@
     "domain-modeling.md": "c24f97ad6acee60e1ab8774d876ab56da45c4d9f728b3f5268bce7e3efbc4b40",
     "edit-article.md": "ab2353f424abc9e9ae544f5905a31217015bb2d9fb72900501b774ae666f69c1",
     "eval-a-skill.md": "36864bcfa2d8a00b60b8005c9abc43fa0907334e0b8084a902a9f285e2f9f90a",
-    "grill-me.md": "612d922abb8de7c39a7beb15e37c4ec42faab88b10d6910ffea9039c6e28b79e",
-    "grill-with-docs.md": "3b513e5f025efe949c85ae47ee14419c09b110a08f1c6f2e714bbc939e90c7c6",
+    "grill-me.md": "ce1eae8030474cfc8e788b775e722e2a6e42facbf978537c073ee945536130f2",
+    "grill-with-docs.md": "c9d71b49eb8872d1e87b8f626668b89733b5dc8daa55481d2b4a44f1ba56536e",
+    "grilling.md": "b51b77e6be70960f3b4600df6ff3a7a06c202219ce88ceeda1139ca178739d69",
     "handoff.md": "81ea153f418b519c225792228ad29b21c5de92ffa1bc53a16f23c30e5203108f",
     "implement.md": "b05c29cf491e7740ca36072916ebb9b8c07fd674f4862c87388bca3d0ed4a659",
     "improve-codebase-architecture.md": "c7264f4426ef9b072f5c2cb864ad31d3869412189bfd4986a77a4c0e24bf0086",
@@ -69,15 +70,14 @@
     "to-spec.md": "1a6bcde9f1e257160d0a9b36c7afd03ce0c4e55209ae46615288dc7818243f56",
     "to-tickets.md": "3e8675ea24631789c5622da035459ea2f1a405caf868b96f241c80009834374f",
     "triage.md": "c251a54e6898bc0907396e157aaacaabde2fa551cda129091b6ac39614a049d2",
-    "ubiquitous-language.md": "b6c5bbaec90f333c214baa8772e4f8ced9fea0a7a2b92ffc62d998a134e1b318",
     "using-git-worktrees.md": "bf262ea1a089ae02099addca655d245377dc96996267948d8fe8f2e67d4ad5d1",
-    "wayfinder.md": "c72d3508473460193656f48d8a3d4314b6b07b73906673b13cd225bf58ee1cfe",
+    "wayfinder.md": "94093e63b365293d32bb04b9584a9cf3eea1641fae4049c7d8ce50bc1a0f0f0f",
     "wizard.md": "894aac1bed72ebc69293d233b8e8ea097832db08797767890c8c79c56da6a81e",
     "write-a-skill.md": "286a39eb0f12aac94d4295206689f2b460ab0b7032bb336bfc3cae8ffca5d43e",
     "write-agent-docs.md": "dd41bdb602ef7d4838be06e18ad1136606e639ad03653571f917a1a5e28d3c24",
     "zoom-out.md": "f18106eedb9f35852ffd24bf1881273097a1de6e2459e7930de59e65ce42184f"
   },
   "copilot": {
-    "copilot-instructions.md": "556573df8efe4da34bfe8e2d6012491bfd280f13ca09780f2bad1ca0c9577418"
+    "copilot-instructions.md": "7a5cd9ee11f13321939bfa72408ed6cdefe786e02426ed28bf41414c24e17dc7"
   }
 }

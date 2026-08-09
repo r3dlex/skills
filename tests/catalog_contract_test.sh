@@ -13,10 +13,32 @@ die() { echo "FAIL: $1" >&2; exit 1; }
 python3 scripts/catalog-query.py --host codex > /tmp/catalog.default
 actual="$(wc -l < /tmp/catalog.default | tr -d ' ')"
 [[ "$actual" -eq 37 ]] || die "default catalog count is $actual, expected 37"
+# The catalog is host-independent: every host sees the same skills. Assert that
+# against the *extended* query, not the default one — the two stopped being
+# identical when ubiquitous-language became `deprecated`, which is the whole
+# point of a lifecycle. Comparing default-vs-extended here would assert that no
+# skill is ever deprecated, which is a claim about the catalog's contents rather
+# than about host parity.
+python3 scripts/catalog-query.py --host codex \
+  --include-lifecycle experimental --include-lifecycle deprecated > /tmp/catalog.extended
 for host in codex claude-code gemini copilot auggie; do
-  python3 scripts/catalog-query.py --host "$host" --include-lifecycle experimental --include-lifecycle deprecated > "/tmp/catalog.$host"
-  diff -u /tmp/catalog.default "/tmp/catalog.$host"
+  python3 scripts/catalog-query.py --host "$host" \
+    --include-lifecycle experimental --include-lifecycle deprecated > "/tmp/catalog.$host"
+  diff -u /tmp/catalog.extended "/tmp/catalog.$host"
 done
+
+# Default installs must exclude non-default lifecycles. Without this the
+# amendment above would let a deprecated skill silently ship by default.
+extended_count="$(wc -l < /tmp/catalog.extended | tr -d ' ')"
+[[ "$extended_count" -gt "$actual" ]] \
+  || die "extended catalog ($extended_count) must exceed the default ($actual) — no non-default lifecycle is being excluded"
+grep -q '^ubiquitous-language	' /tmp/catalog.extended \
+  || die "deprecated ubiquitous-language missing from the extended query"
+# `grep -q ... && die` would be wrong here: when grep finds nothing the whole
+# list returns non-zero and `set -e` aborts the run as a failure. Use `if`.
+if grep -q '^ubiquitous-language	' /tmp/catalog.default; then
+  die "deprecated ubiquitous-language must not appear in a default install"
+fi
 out=$(mktemp); python3 scripts/catalog-query.py --host codex --projection "$out" >/dev/null
 python3 - "$out" <<'PY'
 import json,sys

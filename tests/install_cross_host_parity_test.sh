@@ -30,7 +30,18 @@ from pathlib import Path
 
 repo, codex, claude, auggie, gemini, copilot = map(Path, sys.argv[1:])
 catalog = json.loads((repo / 'catalog.json').read_text())
-entries = sorted(catalog['skills'], key=lambda item: item['name'])
+
+# The installers above run with default lifecycles, so only default-lifecycle
+# skills land on disk. Filtering here fixes a latent bug rather than bending a
+# gate: the test's original premise — every catalog entry installs on every host
+# — is simply false once a lifecycle gates installation, and it held only
+# because the catalog had no non-default entry until ubiquitous-language was
+# deprecated. Keep this set in step with DEFAULT_LIFECYCLES in scripts/catalog.py.
+DEFAULT_LIFECYCLES = {'stable', 'compatibility'}
+entries = sorted(
+    (item for item in catalog['skills'] if item.get('lifecycle') in DEFAULT_LIFECYCLES),
+    key=lambda item: item['name'],
+)
 skills = [entry['name'] for entry in entries]
 assert skills, 'catalog must not be empty'
 

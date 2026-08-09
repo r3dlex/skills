@@ -1,8 +1,14 @@
 ---
 name: grill-me
-description: "Interview the user to stress-test a plan or design until decisions are clear. Use when the user wants to be grilled or challenge a plan."
+description: 'Interview the user to stress-test a plan or design until decisions are clear. Use when the user wants to be grilled or challenge a plan.'
 ---
 
-Challenge the plan by walking down each branch of the design tree, resolving dependencies between decisions. Prefer codebase exploration over asking — only surface a question when exploration cannot resolve it. When you must ask, provide your recommended answer and move forward unless the user objects.
+# Grill Me
 
-If a question can be answered by exploring the codebase, explore the codebase instead.
+Run a [`grilling`](../grilling/SKILL.md) session, open-ended.
+
+No repo documents ground this pass — challenge the plan on its own terms. Prefer codebase
+exploration over asking: only surface a question when exploration cannot resolve it.
+
+Use [`grill-with-docs`](../grill-with-docs/SKILL.md) instead when the repo has a
+`CONTEXT.md` or ADRs the plan should be tested against.

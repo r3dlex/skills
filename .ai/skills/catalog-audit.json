@@ -7,7 +7,7 @@
     "max_body_lines_with_exception": 180,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 37,
+  "skill_count": 38,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -148,7 +148,7 @@
       "path": "02-govern-plan/grill-me/SKILL.md",
       "description_chars": 136,
       "description_status": "target",
-      "body_lines": 4,
+      "body_lines": 10,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
@@ -159,7 +159,18 @@
       "path": "02-govern-plan/grill-with-docs/SKILL.md",
       "description_chars": 145,
       "description_status": "target",
-      "body_lines": 82,
+      "body_lines": 13,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "grilling",
+      "path": "02-govern-plan/grilling/SKILL.md",
+      "description_chars": 129,
+      "description_status": "target",
+      "body_lines": 54,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
