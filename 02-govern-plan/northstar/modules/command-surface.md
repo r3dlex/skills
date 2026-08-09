@@ -40,7 +40,7 @@ The two surfaces differ only in the invocation token; both point at the same
   "invocation": "$northstar",
   "args": [{ "name": "spec", "required": false }],
   "description": "Intake intent into a tracked, sliced plan and write the A→B handoff.",
-  "delegates_to": ["deep-interview", "grill-me", "to-issues", "triage", "ralplan"]
+  "delegates_to": ["deep-interview", "grill-with-docs", "grill-me", "to-issues", "triage", "ralplan"]
 }
 ```
 
