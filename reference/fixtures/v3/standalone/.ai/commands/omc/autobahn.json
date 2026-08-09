@@ -4,8 +4,21 @@
   "skill": "autobahn",
   "invocation": "/oh-my-claudecode:autobahn",
   "args": [
-    { "name": "engine", "required": false, "description": "Override the per-goal engine (ultraqa|ultrawork|ralph|team)." }
+    {
+      "name": "engine",
+      "required": false,
+      "description": "Override the per-goal engine (ultraqa|ultrawork|ralph|team)."
+    }
   ],
   "description": "Ship a northstar handoff's sliced goals one PR per goal.",
-  "delegates_to": ["ultragoal", "team", "ralph", "ultrawork", "ultraqa", "triage"]
+  "delegates_to": [
+    "ultragoal",
+    "implement",
+    "tdd",
+    "team",
+    "ralph",
+    "ultrawork",
+    "ultraqa",
+    "triage"
+  ]
 }
