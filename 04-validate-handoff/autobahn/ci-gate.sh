@@ -52,12 +52,25 @@ derive_commands() {
 import os, re, sys
 from pathlib import Path
 
-workflows = Path(os.environ['ROOT']) / '.github' / 'workflows'
-files = sorted(p for p in workflows.glob('*.y*ml')) if workflows.is_dir() else []
-if not files:
-    sys.stderr.write('no .github/workflows/*.yml found\n')
+root = Path(os.environ['ROOT'])
+
+# Provider precedence: GitHub first. Where several exist, GitHub's checks are
+# the ones gating the PR, so deriving another provider's commands would verify
+# something the merge does not depend on.
+github = sorted((root / '.github' / 'workflows').glob('*.y*ml')) \
+    if (root / '.github' / 'workflows').is_dir() else []
+providers = [
+    ('github', github),
+    ('azure', [p for p in (root / 'azure-pipelines.yml', root / '.azure-pipelines.yml') if p.is_file()]),
+    ('gitlab', [p for p in (root / '.gitlab-ci.yml',) if p.is_file()]),
+]
+provider, files = next(((name, paths) for name, paths in providers if paths), (None, []))
+if not provider:
+    sys.stderr.write('no CI configuration found (.github/workflows, azure-pipelines.yml, .gitlab-ci.yml)\n')
     raise SystemExit(2)
 
+# The narrow-reader rule is provider-independent: a guessed ADO command is
+# exactly as wrong as a guessed GitHub one.
 UNSUPPORTED = (
     (re.compile(r'^\s*\S+\s*:\s*&\S+'), 'YAML anchors'),
     (re.compile(r'^\s*(<<\s*:|-\s*<<\s*:)'), 'YAML merge keys'),
@@ -66,28 +79,60 @@ UNSUPPORTED = (
     (re.compile(r'^\t'), 'tab indentation'),
 )
 
+# A block scalar's body sits on following lines; the marker itself carries no
+# command, and inventing one would be a guess.
+def scalar(value):
+    value = value.strip()
+    if not value or value.startswith(('|', '>')):
+        return ''
+    return value.strip('"\'')
+
+# GitHub `- run:`; Azure `- script:` / `- bash:`.
+INLINE = {
+    'github': re.compile(r'^\s*-?\s*run\s*:\s*(.*)$'),
+    'azure': re.compile(r'^\s*-?\s*(?:script|bash)\s*:\s*(.*)$'),
+    'gitlab': re.compile(r'^\s*(?:before_script|script|after_script)\s*:\s*(.*)$'),
+}
+# GitLab keeps its commands as a list under a script key, so the reader has to
+# know when it is inside one.
+GITLAB_KEY = re.compile(r'^(\s*)(?:before_script|script|after_script)\s*:\s*$')
+LIST_ITEM = re.compile(r'^(\s*)-\s+(.*)$')
+
 commands = []
 for path in files:
     lines = path.read_text(encoding='utf-8').splitlines()
     for index, line in enumerate(lines):
-        # A leading `---` on line 1 is a document start, not a separator.
         for pattern, label in UNSUPPORTED:
+            # A leading `---` on line 1 is a document start, not a separator.
             if pattern.match(line) and not (label == 'multi-document YAML' and index == 0):
                 sys.stderr.write(f'{path.name}: unsupported construct ({label}) at line {index + 1}\n')
                 raise SystemExit(3)
 
+    block_indent = None
     for line in lines:
-        match = re.match(r'^\s*-?\s*run\s*:\s*(?:[|>][-+]?\s*)?(.*)$', line)
-        if not match:
-            continue
-        command = match.group(1).strip().strip('"\'')
-        # A block scalar's body sits on following lines; the marker itself
-        # carries no command, and inventing one would be a guess.
-        if command:
-            commands.append(command)
+        if provider == 'gitlab':
+            key = GITLAB_KEY.match(line)
+            if key:
+                block_indent = len(key.group(1))
+                continue
+            if block_indent is not None:
+                item = LIST_ITEM.match(line)
+                if item and len(item.group(1)) > block_indent:
+                    value = scalar(item.group(2))
+                    if value:
+                        commands.append(value)
+                    continue
+                if line.strip():
+                    block_indent = None
+
+        match = INLINE[provider].match(line)
+        if match:
+            value = scalar(match.group(1))
+            if value:
+                commands.append(value)
 
 if not commands:
-    sys.stderr.write('workflows contain no run: steps\n')
+    sys.stderr.write(f'{provider} CI configuration contains no runnable steps\n')
     raise SystemExit(2)
 
 seen = set()

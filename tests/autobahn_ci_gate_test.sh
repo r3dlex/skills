@@ -167,6 +167,93 @@ else
 fi
 rm -rf "$root"
 
+# --- Azure Pipelines (slice 6b) --------------------------------------------
+root="$(mktemp -d)"
+cat > "$root/azure-pipelines.yml" <<'YAML'
+trigger:
+  - main
+steps:
+  - task: UsePythonVersion@0
+  - script: pytest -q
+  - bash: npm test
+YAML
+if derive_rc "$root"; then
+  ok "azure-pipelines.yml derives"
+else
+  bad "azure-pipelines.yml derives"
+fi
+out="$(derive "$root")"
+for expected in "pytest -q" "npm test"; do
+  if grep -qF "$expected" <<<"$out"; then
+    ok "ADO derived command: $expected"
+  else
+    bad "ADO derived command: $expected"
+  fi
+done
+# `task:` is ADO's action equivalent — a marketplace task is not a shell command.
+if grep -q "UsePythonVersion" <<<"$out"; then
+  bad "ADO task: steps are not derived as commands"
+else
+  ok "ADO task: steps are not derived as commands"
+fi
+rm -rf "$root"
+
+# --- GitLab CI (slice 6b) ---------------------------------------------------
+root="$(mktemp -d)"
+cat > "$root/.gitlab-ci.yml" <<'YAML'
+stages:
+  - test
+unit:
+  stage: test
+  before_script:
+    - npm ci
+  script:
+    - npm test
+    - prek run --all-files
+YAML
+if derive_rc "$root"; then
+  ok ".gitlab-ci.yml derives"
+else
+  bad ".gitlab-ci.yml derives"
+fi
+out="$(derive "$root")"
+for expected in "npm ci" "npm test" "prek run --all-files"; do
+  if grep -qF "$expected" <<<"$out"; then
+    ok "GitLab derived command: $expected"
+  else
+    bad "GitLab derived command: $expected"
+  fi
+done
+rm -rf "$root"
+
+# --- provider precedence ----------------------------------------------------
+# GitHub wins where several exist: it is the provider whose checks actually gate
+# the PR, so deriving another provider's commands would verify the wrong thing.
+root="$(mktemp -d)"; mkdir -p "$root/.github/workflows"
+printf 'jobs:\n  t:\n    steps:\n      - run: github-command\n' > "$root/.github/workflows/ci.yml"
+printf 'steps:\n  - script: ado-command\n' > "$root/azure-pipelines.yml"
+out="$(derive "$root")"
+if grep -qF "github-command" <<<"$out" && ! grep -qF "ado-command" <<<"$out"; then
+  ok "GitHub workflows take precedence over other providers"
+else
+  bad "GitHub workflows take precedence over other providers"
+fi
+rm -rf "$root"
+
+# --- unsupported YAML is refused for every provider -------------------------
+# The narrow-reader rule is not GitHub-specific; a guessed ADO command is just
+# as wrong as a guessed GitHub one.
+for file in azure-pipelines.yml .gitlab-ci.yml; do
+  root="$(mktemp -d)"
+  printf 'defaults: &d\n  image: node\nunit:\n  <<: *d\n  script:\n    - npm test\n' > "$root/$file"
+  if derive_rc "$root"; then
+    bad "$file with YAML anchors is refused"
+  else
+    ok "$file with YAML anchors is refused"
+  fi
+  rm -rf "$root"
+done
+
 # --- verification[] execution ----------------------------------------------
 root="$(workflow_repo)"
 record="$root/goal.json"
