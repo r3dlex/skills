@@ -23,9 +23,12 @@
     "tdd.md": "7ed06a948f334c8036a139f8782c0aaab30e8e63206000abadea0db1b4ede8c4",
     "to-issues.md": "5638c1e346f5b4f98d711ffa83de843ca29cdeef8a1992e27f8ee9f425b6da3a",
     "to-prd.md": "56e50519a67f6635b68662357a9c5c62c0f9cd9d2c172c8eb9f252e02a5e8e54",
+    "to-spec.md": "0177382a8cbe614d267675421e49d1dcb3e1f3f05ed7b181f58c59aa918fd420",
+    "to-tickets.md": "59f5fe74689650f7ad3ed9f4eea1c7b7701fe3256f5c802b1da3288ce7419367",
     "triage.md": "a20a936752dd85c7e9f4028c9bd1ec5bebcc1d8b4acc7ff74389beee720fed9c",
     "ubiquitous-language.md": "201bae1114a3655f9a0cc0141137c024b237f9daf712d49ad4a77e27bf6b9f33",
     "using-git-worktrees.md": "34075fea892b5ceb7f51b392d76daa41381472d77620b4292b188a1d20e31ba1",
+    "wayfinder.md": "768aa2299fc658b40f7c31cb2c640137d6db82329f475c854d3d6be434dd7f82",
     "wizard.md": "657bef5390e27174748055359a17f3ca8158e2b4363ce820e758405fdaa1b6f6",
     "write-a-skill.md": "54759c66e34c7bfdeb30f2d9360485301c7abad38c655de8afb6b2370a476c6e",
     "write-agent-docs.md": "fee6b92cd53dfd8ac8423c010e69aa962b738f6d5a7e4e35da4bd5cea3f6c393",
@@ -55,15 +58,18 @@
     "tdd.md": "22f4c356d75347100e0f7455614dfa199743bd081445be7ca2cfec83908fda39",
     "to-issues.md": "2162f3a51953403c9b1bf667b4b771a6aa5ffb7565d402a85f4c263bb0b45c76",
     "to-prd.md": "06914d0c6c0eb40ac039d151dc03f3478a7ef3c744cee5180b59bb0f6bd21b4a",
+    "to-spec.md": "1a6bcde9f1e257160d0a9b36c7afd03ce0c4e55209ae46615288dc7818243f56",
+    "to-tickets.md": "3e8675ea24631789c5622da035459ea2f1a405caf868b96f241c80009834374f",
     "triage.md": "c251a54e6898bc0907396e157aaacaabde2fa551cda129091b6ac39614a049d2",
     "ubiquitous-language.md": "b6c5bbaec90f333c214baa8772e4f8ced9fea0a7a2b92ffc62d998a134e1b318",
     "using-git-worktrees.md": "bf262ea1a089ae02099addca655d245377dc96996267948d8fe8f2e67d4ad5d1",
+    "wayfinder.md": "c72d3508473460193656f48d8a3d4314b6b07b73906673b13cd225bf58ee1cfe",
     "wizard.md": "894aac1bed72ebc69293d233b8e8ea097832db08797767890c8c79c56da6a81e",
     "write-a-skill.md": "286a39eb0f12aac94d4295206689f2b460ab0b7032bb336bfc3cae8ffca5d43e",
     "write-agent-docs.md": "dd41bdb602ef7d4838be06e18ad1136606e639ad03653571f917a1a5e28d3c24",
     "zoom-out.md": "f18106eedb9f35852ffd24bf1881273097a1de6e2459e7930de59e65ce42184f"
   },
   "copilot": {
-    "copilot-instructions.md": "3accd36010f0705c7448fae09bdc42e0fd4f4baae43df4ed35e366f287e85344"
+    "copilot-instructions.md": "7d5a272d883b3bd361fa4c25769cde60bf03b30ae754641d6d1d7f7352338898"
   }
 }
