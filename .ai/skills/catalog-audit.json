@@ -7,7 +7,7 @@
     "max_body_lines_with_exception": 180,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 36,
+  "skill_count": 37,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -28,6 +28,17 @@
       "description_chars": 138,
       "description_status": "target",
       "body_lines": 6,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "ask-ai-catapult",
+      "path": "01-discover-decide/ask-ai-catapult/SKILL.md",
+      "description_chars": 151,
+      "description_status": "target",
+      "body_lines": 85,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
