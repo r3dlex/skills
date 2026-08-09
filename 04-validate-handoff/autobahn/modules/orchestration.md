@@ -36,11 +36,31 @@ For each sliced goal, in order:
 2. Select standard or legacy-safe TDD, then pick the engine.
 3. Run `implement` under the selected posture, driving `tdd` red-green; the
    picked engine executes. See implementation.md.
-4. Commit the goal's staged diff and open its PR. See commit-protocol.md.
-5. Peer-review until all comments resolved.
-6. Gate on remote + local CI green.
-7. Decide merge via the host-policy thin adapter (else ready-for-human).
-8. On merge, cascade-close the issue with a triage status.
+4. `tdd-evidence.sh --verify` — red-then-green evidence, or stop.
+5. `lint-gate.sh` — the repo's lint policy, or stop.
+6. Commit the goal's staged diff and open its PR. See commit-protocol.md.
+7. Peer-review until all comments resolved.
+8. `ci-gate.sh --derive` and `--verify` plus remote host CI, all green, or stop.
+9. Decide merge via the host-policy thin adapter (else ready-for-human).
+10. On merge, cascade-close the issue with a triage status.
+
+## Wired gate scripts
+
+Every gate autobahn runs, and where it attaches. A gate that ships without
+appearing here is inert — nothing in this repo detects an unwired script, which
+is why the list is explicit rather than implied.
+
+| Script | Step | Blocks on |
+| --- | --- | --- |
+| `prereq-check.sh` | 1 | missing `.ai/` structure or handoff |
+| `readiness-check.sh` | 1 | an evidence-incomplete direct goal |
+| `tdd-mode.sh` | 2 | — (selects posture) |
+| `engine-pick.sh` | 2 | — (selects engine) |
+| `tdd-evidence.sh --verify` | 4 | absent, malformed, or inconsistent evidence |
+| `lint-gate.sh` | 5 | lint failures, a missing linter, an unreadable manifest |
+| `ci-gate.sh --derive` | 8 | no derivable CI, or an unsupported CI construct |
+| `ci-gate.sh --verify` | 8 | a failing or non-allowlisted `verification[]` command |
+| `merge-authority.sh` | 9 | any verdict short of host-policy-approved |
 
 ## Safety rules
 

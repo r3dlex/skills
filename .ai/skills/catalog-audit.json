@@ -49,7 +49,7 @@
       "path": "04-validate-handoff/autobahn/SKILL.md",
       "description_chars": 149,
       "description_status": "target",
-      "body_lines": 96,
+      "body_lines": 100,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
