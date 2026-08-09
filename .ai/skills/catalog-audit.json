@@ -7,7 +7,7 @@
     "max_body_lines_with_exception": 180,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 30,
+  "skill_count": 33,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -265,6 +265,28 @@
       "status": "pass"
     },
     {
+      "name": "to-spec",
+      "path": "02-govern-plan/to-spec/SKILL.md",
+      "description_chars": 157,
+      "description_status": "target",
+      "body_lines": 71,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "to-tickets",
+      "path": "02-govern-plan/to-tickets/SKILL.md",
+      "description_chars": 151,
+      "description_status": "target",
+      "body_lines": 90,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
       "name": "triage",
       "path": "02-govern-plan/triage/SKILL.md",
       "description_chars": 141,
@@ -292,6 +314,17 @@
       "description_chars": 145,
       "description_status": "target",
       "body_lines": 77,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "wayfinder",
+      "path": "02-govern-plan/wayfinder/SKILL.md",
+      "description_chars": 150,
+      "description_status": "target",
+      "body_lines": 100,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,

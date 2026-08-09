@@ -400,6 +400,40 @@
       ]
     },
     {
+      "name": "to-spec",
+      "source_path": "02-govern-plan/to-spec",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "to-tickets",
+      "source_path": "02-govern-plan/to-tickets",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan",
+        "03-configure-generate"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
       "name": "triage",
       "source_path": "02-govern-plan/triage",
       "owner_phase": "02-govern-plan",
@@ -440,6 +474,23 @@
       "owner_phase": "03-configure-generate",
       "applies_to_phases": [
         "03-configure-generate"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "wayfinder",
+      "source_path": "02-govern-plan/wayfinder",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan"
       ],
       "lifecycle": "stable",
       "supported_hosts": [

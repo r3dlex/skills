@@ -11,5 +11,8 @@
 | [`northstar`](../02-govern-plan/northstar/SKILL.md) | 01-discover-decide, 02-govern-plan |
 | [`to-issues`](../02-govern-plan/to-issues/SKILL.md) | 02-govern-plan |
 | [`to-prd`](../02-govern-plan/to-prd/SKILL.md) | 02-govern-plan |
+| [`to-spec`](../02-govern-plan/to-spec/SKILL.md) | 01-discover-decide, 02-govern-plan |
+| [`to-tickets`](../02-govern-plan/to-tickets/SKILL.md) | 02-govern-plan, 03-configure-generate |
 | [`triage`](../02-govern-plan/triage/SKILL.md) | 01-discover-decide, 02-govern-plan, 04-validate-handoff |
+| [`wayfinder`](../02-govern-plan/wayfinder/SKILL.md) | 01-discover-decide, 02-govern-plan |
 <!-- GENERATED:SKILL-CATALOG:END -->
