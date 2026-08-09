@@ -19,6 +19,7 @@ contract is strict: **one PR per goal**, never a mega-PR spanning slices.
 | Per-goal engine selection | `autobahn/engine-pick.sh` (see engine-pick.md) |
 | Implementation contract | `implement` driving `tdd` (see implementation.md) |
 | Implementation loop | the picked engine (`team`/`ralph`/`ultrawork`/`ultraqa`) |
+| Commit + PR seam | `commit-protocol.md` |
 | Peer review + CI gate | `architect`/`code-reviewer`/`executor` (see review-loop.md) |
 | Merge authority | `merge-authority.sh` thin adapter (see merge-authority.md) |
 | Issue closure | cascade engine (see cascade-closure.md) |
@@ -35,10 +36,11 @@ For each sliced goal, in order:
 2. Select standard or legacy-safe TDD, then pick the engine.
 3. Run `implement` under the selected posture, driving `tdd` red-green; the
    picked engine executes. See implementation.md.
-4. Peer-review until all comments resolved.
-5. Gate on remote + local CI green.
-6. Decide merge via the host-policy thin adapter (else ready-for-human).
-7. On merge, cascade-close the issue with a triage status.
+4. Commit the goal's staged diff and open its PR. See commit-protocol.md.
+5. Peer-review until all comments resolved.
+6. Gate on remote + local CI green.
+7. Decide merge via the host-policy thin adapter (else ready-for-human).
+8. On merge, cascade-close the issue with a triage status.
 
 ## Safety rules
 
