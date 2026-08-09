@@ -12,7 +12,7 @@ die() { echo "FAIL: $1" >&2; exit 1; }
 
 python3 scripts/catalog-query.py --host codex > /tmp/catalog.default
 actual="$(wc -l < /tmp/catalog.default | tr -d ' ')"
-[[ "$actual" -eq 33 ]] || die "default catalog count is $actual, expected 33"
+[[ "$actual" -eq 36 ]] || die "default catalog count is $actual, expected 36"
 for host in codex claude-code gemini copilot auggie; do
   python3 scripts/catalog-query.py --host "$host" --include-lifecycle experimental --include-lifecycle deprecated > "/tmp/catalog.$host"
   diff -u /tmp/catalog.default "/tmp/catalog.$host"

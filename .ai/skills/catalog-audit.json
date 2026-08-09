@@ -7,7 +7,7 @@
     "max_body_lines_with_exception": 180,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 33,
+  "skill_count": 36,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -45,6 +45,17 @@
       "status": "pass"
     },
     {
+      "name": "code-review",
+      "path": "04-validate-handoff/code-review/SKILL.md",
+      "description_chars": 149,
+      "description_status": "target",
+      "body_lines": 78,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
       "name": "codebase-design",
       "path": "02-govern-plan/codebase-design/SKILL.md",
       "description_chars": 157,
@@ -72,6 +83,17 @@
       "description_chars": 135,
       "description_status": "target",
       "body_lines": 68,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "diagnosing-bugs",
+      "path": "04-validate-handoff/diagnosing-bugs/SKILL.md",
+      "description_chars": 151,
+      "description_status": "target",
+      "body_lines": 100,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
@@ -138,6 +160,17 @@
       "description_chars": 86,
       "description_status": "target",
       "body_lines": 10,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "implement",
+      "path": "03-configure-generate/implement/SKILL.md",
+      "description_chars": 130,
+      "description_status": "target",
+      "body_lines": 16,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,

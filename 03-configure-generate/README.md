@@ -6,6 +6,7 @@
 | [`ai-catapult-init`](../03-configure-generate/ai-catapult-init/SKILL.md) | 01-discover-decide, 02-govern-plan, 03-configure-generate, 04-validate-handoff |
 | [`ai-sdlc-init`](../03-configure-generate/ai-sdlc-init/SKILL.md) | 01-discover-decide, 02-govern-plan, 03-configure-generate, 04-validate-handoff |
 | [`edit-article`](../03-configure-generate/edit-article/SKILL.md) | 03-configure-generate, 04-validate-handoff |
+| [`implement`](../03-configure-generate/implement/SKILL.md) | 03-configure-generate, 04-validate-handoff |
 | [`init-ai-repo`](../03-configure-generate/init-ai-repo/SKILL.md) | 01-discover-decide, 02-govern-plan, 03-configure-generate, 04-validate-handoff |
 | [`prototype`](../03-configure-generate/prototype/SKILL.md) | 01-discover-decide, 03-configure-generate |
 | [`setup-skills`](../03-configure-generate/setup-skills/SKILL.md) | 01-discover-decide, 02-govern-plan, 03-configure-generate |
