@@ -3,15 +3,18 @@
     "ai-catapult-init.md": "d5d31a31d21991af96690beedaa2d910a526d936491e89362877905dcf3142a0",
     "ai-sdlc-init.md": "f25a6731f84c727d20a70dda403de90b5fbaa350da5d311b10fb222a33c7bc03",
     "autobahn.md": "22c7c7974a8b07cd23570f9286391ad7d36b55d6dc3399efd35286dfe969ec60",
+    "code-review.md": "0a897bff4b7e5908f521cbc2f5a66b942df0a483fa17d2bc6b0274c375cb3efe",
     "codebase-design.md": "0ac786bd562a0a0734f8117df04eeef644b7d620d6a6f1e8e8e77ffa6a166d8a",
     "design-an-api-or-interface.md": "10af7f142fbd86a6fe9ee0aa428c9268d1d2793a9cbef883916944f6bd92d9f9",
     "diagnose.md": "60e9106b5745d4e196e896a9aad59dd8d2ffe06bd647e8651b4bcf573d7a8a9e",
+    "diagnosing-bugs.md": "a61379628d4cc7c25b340957c90990b5829ee393539cad0a2b4c0fe4addac085",
     "domain-modeling.md": "cb7b7c51b2568cbeba9374ae9dfacd3d99565e70c6b714b7400893f212ff855e",
     "edit-article.md": "bb1e13ad4bcede18b888748692c6daed926c13c34df3d2849b0493f7051bc448",
     "eval-a-skill.md": "15a802b030762dabf2034eb74d9d6c5b17098e3c863cda26a5c643749dbc3fbc",
     "grill-me.md": "0653d572b81d7fe57a65090b89d19a3255597329da606237a1c7ad04afb62c41",
     "grill-with-docs.md": "3084d1e76e53e8afc26bf5e72be8f54c455996e9162745951aa8a832fe650a79",
     "handoff.md": "64bacadf89287ef51bf164afa437d1a4042df26bb22f40c64f2192533bb06cce",
+    "implement.md": "77a2b3ca92dadb546f34722e5cf52c69a25ca4082a5b16d441a808474a02c618",
     "improve-codebase-architecture.md": "9e2d14dae854ed8b992ddc48ddef89b0ee585790de49b16ca94e36be5acba2e5",
     "init-ai-repo.md": "01a2994634e56e2a66dcd09315bbb15820dcd26e6121c5c98d3cb92abfe93d28",
     "northstar.md": "6b5ecb365d7a0df1a5ae838fb42804a7cf5fa28383644c7800bb0d905006b69c",
@@ -38,15 +41,18 @@
     "ai-catapult-init.md": "d496a86ffd3366127996d014648beb547012b8cfbfabc7baf60e082682fe02ce",
     "ai-sdlc-init.md": "d71fa2de087e70786113018e2c8cc262f439be9db4205485a50fbf31a9d6a6a8",
     "autobahn.md": "9a2819bbb69c85aced061914daa23f8260fe4c8ef3f77457d14a85c7319b24c1",
+    "code-review.md": "bbe1509c5ba2d2ec511cf557cf4f0274efbe37eae086357851a6a4411a123bed",
     "codebase-design.md": "f8603c65d4d0a6a61b8709d627700bad2899b689ac1e8b7eb9d12790584dbd53",
     "design-an-api-or-interface.md": "85efa720d116badeb395685f8311b4fb8458e323ff815ce4154d637837102356",
     "diagnose.md": "a3dfeb845c3daf58abe9716d025dced5feb2610c07f8c0e866fe2254eb066d91",
+    "diagnosing-bugs.md": "92a4220d918c577768061d466cdad90eb3e1139db5d868731a2c1373616ac555",
     "domain-modeling.md": "c24f97ad6acee60e1ab8774d876ab56da45c4d9f728b3f5268bce7e3efbc4b40",
     "edit-article.md": "ab2353f424abc9e9ae544f5905a31217015bb2d9fb72900501b774ae666f69c1",
     "eval-a-skill.md": "36864bcfa2d8a00b60b8005c9abc43fa0907334e0b8084a902a9f285e2f9f90a",
     "grill-me.md": "612d922abb8de7c39a7beb15e37c4ec42faab88b10d6910ffea9039c6e28b79e",
     "grill-with-docs.md": "3b513e5f025efe949c85ae47ee14419c09b110a08f1c6f2e714bbc939e90c7c6",
     "handoff.md": "81ea153f418b519c225792228ad29b21c5de92ffa1bc53a16f23c30e5203108f",
+    "implement.md": "b05c29cf491e7740ca36072916ebb9b8c07fd674f4862c87388bca3d0ed4a659",
     "improve-codebase-architecture.md": "c7264f4426ef9b072f5c2cb864ad31d3869412189bfd4986a77a4c0e24bf0086",
     "init-ai-repo.md": "36b2e8af22f4b71c9c14ee51b7ef5ec28184b789d1dc80d6e15df575700afb2e",
     "northstar.md": "c70105b958cf14d2e82d80bb3670e577513b3565b2fd7c86a68fb84ef09cf574",
@@ -70,6 +76,6 @@
     "zoom-out.md": "f18106eedb9f35852ffd24bf1881273097a1de6e2459e7930de59e65ce42184f"
   },
   "copilot": {
-    "copilot-instructions.md": "7d5a272d883b3bd361fa4c25769cde60bf03b30ae754641d6d1d7f7352338898"
+    "copilot-instructions.md": "54a7ead3da5d81340feb55cf25a7c17703fe556b6943693c9ba4f0fb8f053ab2"
   }
 }

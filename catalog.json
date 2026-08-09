@@ -63,6 +63,23 @@
       ]
     },
     {
+      "name": "code-review",
+      "source_path": "04-validate-handoff/code-review",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
       "name": "codebase-design",
       "source_path": "02-govern-plan/codebase-design",
       "owner_phase": "02-govern-plan",
@@ -101,6 +118,23 @@
       "owner_phase": "04-validate-handoff",
       "applies_to_phases": [
         "01-discover-decide",
+        "03-configure-generate",
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "diagnosing-bugs",
+      "source_path": "04-validate-handoff/diagnosing-bugs",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
         "03-configure-generate",
         "04-validate-handoff"
       ],
@@ -201,6 +235,23 @@
       "source_path": "04-validate-handoff/handoff",
       "owner_phase": "04-validate-handoff",
       "applies_to_phases": [
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
+      "name": "implement",
+      "source_path": "03-configure-generate/implement",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": [
+        "03-configure-generate",
         "04-validate-handoff"
       ],
       "lifecycle": "stable",
