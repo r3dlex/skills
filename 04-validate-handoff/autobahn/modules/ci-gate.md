@@ -7,23 +7,35 @@ fail-closed: derive the repo's real CI commands, and execute the goal record's
 ## Layer 1 — derivation
 
 [commit-protocol.md](commit-protocol.md) defines "local CI green" as the repo's
-own CI commands run locally. `ci-gate.sh --derive` reads them out of
-`.github/workflows/*.yml`.
+own CI commands run locally. `ci-gate.sh --derive` reads them out of whichever
+provider the repo actually uses:
 
-**No derivable CI blocks.** A repo with no workflows, or workflows with no
-`run:` steps, produces no commands — and absence of CI is not a green CI. That
-is the repo where an assumed pass does the most damage, so it is the last place
-to assume one.
+| Provider | Read from | Runnable steps |
+| --- | --- | --- |
+| GitHub Actions | `.github/workflows/*.yml` | `run:` |
+| Azure Pipelines | `azure-pipelines.yml` | `script:`, `bash:` |
+| GitLab CI | `.gitlab-ci.yml` | `script:`, `before_script:`, `after_script:` |
 
-The reader is deliberately narrow. This repo has no YAML dependency and is not
-gaining one, so the reader accepts two-space-indented `jobs:`/`steps:`/`run:`
+Precedence runs down that table and the first provider present wins. Where
+several exist, GitHub's checks are the ones gating the PR, so deriving another
+provider's commands would verify something the merge does not depend on.
+
+**No derivable CI blocks.** A repo with no CI configuration, or one whose
+configuration has no runnable steps, produces no commands — and absence of CI is
+not a green CI. That is the repo where an assumed pass does the most damage, so
+it is the last place to assume one.
+
+The reader is deliberately narrow, for every provider alike. This repo has no
+YAML dependency and is not gaining one, so it accepts two-space-indented keys
 and **refuses** anchors, merge keys, aliases, multi-document files and tab
 indentation. Refusing is the point: a parser that guesses at a construct it does
 not understand emits a command list that looks authoritative and is wrong, and
-nothing downstream can tell the difference.
+nothing downstream can tell the difference. A guessed Azure command is exactly
+as wrong as a guessed GitHub one.
 
-`uses:` steps are actions, not commands, and are not derived — a derived
-`actions/checkout@v4` is not something a shell can run.
+Steps that invoke a packaged action rather than a shell are not derived —
+GitHub's `uses:` and Azure's `task:`. A derived `actions/checkout@v4` is not
+something a shell can run.
 
 ## Layer 2 — `verification[]`
 
