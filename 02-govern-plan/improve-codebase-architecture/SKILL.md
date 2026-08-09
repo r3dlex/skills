@@ -65,7 +65,7 @@ Deepen the selected candidate. Walk the design tree — constraints, dependencie
 
 Side effects happen inline as decisions crystallize:
 
-- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md` — same discipline as `/grill-with-docs` (see [CONTEXT-FORMAT.md](../grill-with-docs/CONTEXT-FORMAT.md)). Create the file lazily if it doesn't exist.
+- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md` — same discipline as `/grill-with-docs` (see [CONTEXT-FORMAT.md](../../01-discover-decide/domain-modeling/CONTEXT-FORMAT.md)). Create the file lazily if it doesn't exist.
 - **Sharpening a fuzzy term?** Update `CONTEXT.md` right there.
-- **Surfacing a load-bearing architectural reason?** Record it as an ADR if it meets the 3-part test (hard to reverse, surprising without context, real trade-off). See [ADR-FORMAT.md](../grill-with-docs/ADR-FORMAT.md).
+- **Surfacing a load-bearing architectural reason?** Record it as an ADR if it meets the 3-part test (hard to reverse, surprising without context, real trade-off). See [ADR-FORMAT.md](../../01-discover-decide/domain-modeling/ADR-FORMAT.md).
 - **Exploring alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).

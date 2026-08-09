@@ -20,14 +20,22 @@ _Avoid_: Bill, payment request
 **Customer**:
 A person or organization that places orders.
 _Avoid_: Client, buyer, account
+
+## Flagged ambiguities
+
+**Account**: used for both Customer and User. Resolved: Customer for the billing party,
+User for the login identity.
 ```
 
 ## Rules
 
 - **Be opinionated.** When multiple words exist for the same concept, pick the best one and list the others under `_Avoid_`.
+- **Flag conflicts explicitly.** When a term is used ambiguously, record it under "Flagged ambiguities" with the resolution. An ambiguity you noticed and did not write down comes back.
 - **Keep definitions tight.** One or two sentences max. Define what it IS, not what it does.
+- **Show relationships.** Use bold term names and express cardinality where it is obvious.
 - **Only include terms specific to this project's context.** General programming concepts (timeouts, error types, utility patterns) don't belong even if the project uses them extensively. Before adding a term, ask: is this a concept unique to this context, or a general programming concept? Only the former belongs.
 - **Group terms under subheadings** when natural clusters emerge. If all terms belong to a single cohesive area, a flat list is fine.
+- **Write an example dialogue.** A conversation between a developer and a domain expert that shows the terms interacting naturally. It exposes boundary confusion between related concepts that a list of definitions hides.
 
 ## Single vs multi-context repos
 

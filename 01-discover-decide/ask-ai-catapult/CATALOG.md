@@ -13,6 +13,7 @@
 - **`design-an-api-or-interface`** — Design APIs/interfaces with Design It Twice: create alternatives, compare tradeoffs, choose one. Use when designing an API, module, class, or boundary.
 - **`grill-me`** — Interview the user to stress-test a plan or design until decisions are clear. Use when the user wants to be grilled or challenge a plan.
 - **`grill-with-docs`** — Stress-test a plan against repo docs and update decisions inline. Use when challenging a design against documented language, ADRs, or CONTEXT.md.
+- **`grilling`** — Interview relentlessly to stress-test a plan, decision, or idea. Use when thinking needs challenging before it hardens into work.
 - **`improve-codebase-architecture`** — Find deepening opportunities from CONTEXT.md and ADRs. Use when refactoring shallow modules, boundaries, coupling, or testability.
 - **`northstar`** — Planning-only intake: turn intent into a tracked, sliced plan and A→B handoff; never implement product changes. Use before autobahn execution.
 - **`to-issues`** — Break a plan, spec, or PRD into traceable implementation issues. Use when converting requirements into tickets or agent-ready work.

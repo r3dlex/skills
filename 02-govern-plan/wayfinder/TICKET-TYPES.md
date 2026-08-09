@@ -24,7 +24,7 @@ Use when "how should it look" or "how should it behave" is the key question.
 
 ## Grilling (HITL)
 
-Conversation. The default case. Always invoke `grill-me` and `domain-modeling`.
+Conversation. The default case. Always invoke `grilling` and `domain-modeling`.
 
 ## Task (HITL or AFK)
 

@@ -250,6 +250,23 @@
       ]
     },
     {
+      "name": "grilling",
+      "source_path": "02-govern-plan/grilling",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "01-discover-decide",
+        "02-govern-plan"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini"
+      ]
+    },
+    {
       "name": "handoff",
       "source_path": "04-validate-handoff/handoff",
       "owner_phase": "04-validate-handoff",
@@ -529,7 +546,7 @@
         "01-discover-decide",
         "02-govern-plan"
       ],
-      "lifecycle": "stable",
+      "lifecycle": "deprecated",
       "supported_hosts": [
         "auggie",
         "claude-code",

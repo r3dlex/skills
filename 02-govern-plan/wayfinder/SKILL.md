@@ -61,7 +61,7 @@ tickets excepted.
 
 The user invokes with a loose idea.
 
-1. **Name the destination.** Run `grill-me` and `domain-modeling` to pin down what this map
+1. **Name the destination.** Run `grilling` and `domain-modeling` to pin down what this map
    is finding its way to. The destination fixes the scope, so it is settled first.
 2. **Map the frontier.** Grill again, **breadth-first** — fan out across the whole space
    rather than deep on one thread, surfacing the open decisions and the first steps takeable
@@ -86,7 +86,7 @@ decision, not the user.
 2. Choose the ticket: the one the user named, else the first frontier ticket in order.
    **Claim it** before any work.
 3. Resolve it, **zooming as needed**: fetch the full body of any related or closed ticket on
-   demand, and invoke the skills the Notes block names. If in doubt, use `grill-me` and
+   demand, and invoke the skills the Notes block names. If in doubt, use `grilling` and
    `domain-modeling`.
 4. Record the resolution: post the answer, close the ticket, and append a context pointer to
    the map's Decisions-so-far.
