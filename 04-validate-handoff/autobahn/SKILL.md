@@ -19,12 +19,9 @@ review, merge policy, and cascade logic rather than reimplementing their loops.
 
 ## Prereq (fail-closed)
 
-Autobahn requires `ai-catapult-init` v3 plus either a valid northstar handoff or
-an evidence-complete direct goal that passes `readiness-check.sh`. Direct intake
-is for already-understood work, not a shortcut around discovery; missing context,
-root-cause evidence, solution, scope, acceptance criteria, or verification fails
-closed. See [modules/prereq.md](modules/prereq.md) and
-[modules/readiness.md](modules/readiness.md).
+Requires `ai-catapult-init` v3 plus a northstar handoff or an evidence-complete
+direct goal passing `readiness-check.sh` — direct intake is for already-understood
+work, not a shortcut past discovery.
 
 ## Orchestration (ultragoal, one PR per goal)
 
@@ -59,9 +56,9 @@ self-approve. See [modules/review-loop.md](modules/review-loop.md).
 
 ## CI gate
 
-A PR is mergeable only when **remote host CI AND local CI are green** and every
-review comment is resolved (the feedback merge protocol). A red or pending CI run
-holds the merge. See [modules/review-loop.md](modules/review-loop.md).
+Mergeable only when **remote host CI AND local CI are green** and every review
+comment is resolved. `ci-gate.sh` derives local CI from the repo's own config
+and runs the goal's `verification[]`.
 
 ## Merge authority (configurable, fail-closed)
 
@@ -69,8 +66,7 @@ Merge authority is a **thin adapter** over the ai-catapult-init host-policy deci
 `merge-authority.sh` invokes host-policy, consumes its verdict + `confirmation_token`,
 and wraps only the fail-closed exit-code contract. Admin-bypass merges only on a
 host-policy-approved verdict with a valid token; otherwise stop at
-**ready-for-human**; a valid token the policy still rejects fails closed. The
-adapter re-encodes none of host-policy's token regex / admin rule / audit format.
+**ready-for-human**; a valid token the policy still rejects fails closed.
 
 <!-- codex:optional -->
 Authorizing a merge is the second interactive point. To authorize, supply the
@@ -91,6 +87,14 @@ re-runnable without creating duplicates. See
   stops with guidance — never silently merge or mutate.
 - Direct intake must pass the evidence-complete readiness gate.
 - Low coverage or agent-observed legacy risk must use legacy-safe TDD.
+- Accept no goal without recorded red-then-green evidence: one test command that
+  failed before the change and passed after. Absent or inconsistent, it blocks.
+- Never commit past a failing lint policy. A declared policy whose tool is
+  missing, or an unreadable manifest, blocks too — nothing linted the diff.
+- A repo with no derivable CI is blocked, never assumed green; a CI file using
+  constructs the reader does not support is refused rather than guessed at.
+- Run the goal's `verification[]` before merge, and only commands that are
+  allowlisted and free of shell metacharacters.
 - Compose, never reimplement: delegate every loop, merge policy, and cascade.
 - Default merge authority is **ready-for-human**; admin-bypass only on an
   explicit, host-policy-approved, valid-token verdict.
