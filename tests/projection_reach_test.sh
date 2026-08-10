@@ -37,20 +37,33 @@ if ! source scripts/catalog-install.sh >/dev/null 2>&1 \
 fi
 ok "flattened_skill_body is sourceable from scripts/catalog-install.sh"
 
-# reach <skill-path> <label> <pattern> — the rule must survive flattening.
+# reach <skill-path> <label> <pattern> — the rule must survive flattening AS A
+# BULLET.
+#
+# Two things this got wrong the first time, both of which made it inert:
+#
+#   - Patterns were single words. `lint` matched a neighbouring line, so deleting
+#     the entire lint rule left the test green. Verified: removing
+#     "- Never commit past a failing lint policy." did not fail this test.
+#     Patterns must be distinctive phrases belonging to exactly one rule.
+#   - It grepped the whole projection. Only LIST ITEMS survive the flattener
+#     individually; prose blocks are dropped wholesale. Matching anywhere meant
+#     a rule could pass by appearing in a block that three hosts never receive.
 reach() {
   local path="$1" label="$2" pattern="$3"
-  local flat
+  local flat bullets
   flat="$(flattened_skill_body "$path" 2>/dev/null)"
 
   if [[ -z "$flat" ]]; then
     bad "$label (projection was empty)"
     return
   fi
-  if grep -qiE "$pattern" <<<"$flat"; then
+
+  bullets="$(grep -E '^\s*[-*] ' <<<"$flat")"
+  if grep -qiE "$pattern" <<<"$bullets"; then
     ok "$label"
   else
-    bad "$label — stripped by the flattener; move it into a path-free bullet"
+    bad "$label — not present as a surviving bullet; a rule in a prose block reaches 2 of 5 hosts"
   fi
 }
 
@@ -58,11 +71,14 @@ AUTOBAHN="04-validate-handoff/autobahn/SKILL.md"
 NORTHSTAR="02-govern-plan/northstar/SKILL.md"
 
 # --- autobahn's gate rules --------------------------------------------------
-reach "$AUTOBAHN" "autobahn: TDD evidence rule reaches all hosts"   'red.?then.?green|failing test first|tdd evidence'
-reach "$AUTOBAHN" "autobahn: lint gate rule reaches all hosts"      'lint'
-reach "$AUTOBAHN" "autobahn: CI derivation rule reaches all hosts"  'derivable ci|derive.*ci|no ci configuration'
-reach "$AUTOBAHN" "autobahn: verification\[\] rule reaches all hosts" 'verification\[\]|allowlist'
-reach "$AUTOBAHN" "autobahn: fail-closed posture reaches all hosts" 'fail closed|fail-closed'
+# Distinctive phrases, each belonging to exactly one rule. A single word here is
+# how this test went inert.
+reach "$AUTOBAHN" "autobahn: TDD evidence rule reaches all hosts"     'recorded red-then-green evidence'
+reach "$AUTOBAHN" "autobahn: lint gate rule reaches all hosts"        'never commit past a failing lint policy'
+reach "$AUTOBAHN" "autobahn: CI derivation rule reaches all hosts"    'no derivable CI is blocked'
+reach "$AUTOBAHN" "autobahn: verification\[\] rule reaches all hosts" 'only commands that are'
+reach "$AUTOBAHN" "autobahn: gate driver rule reaches all hosts"      'through the bundled gate driver'
+reach "$AUTOBAHN" "autobahn: fail-closed posture reaches all hosts"   'fail closed'
 
 # --- northstar's adversarial-pass rule --------------------------------------
 reach "$NORTHSTAR" "northstar: adversarial pass reaches all hosts"  'grill-with-docs'

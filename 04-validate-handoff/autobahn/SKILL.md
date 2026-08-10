@@ -93,8 +93,8 @@ re-runnable without creating duplicates.
   constructs the reader does not support is refused rather than guessed at.
 - Run the goal's `verification[]` before merge, and only commands that are
   allowlisted and free of shell metacharacters.
-- Run the gates with `autobahn/run-gates.sh`, not by hand: one goal record per
-  invocation, `pre-commit` before committing and `pre-merge` before merging.
+- Run the gates through the bundled gate driver, not by hand: one goal record
+  each time, the pre-commit set before committing and pre-merge before merging.
 - Compose, never reimplement: delegate every loop, merge policy, and cascade.
 - Default merge authority is **ready-for-human**; admin-bypass only on an
   explicit, host-policy-approved, valid-token verdict.
