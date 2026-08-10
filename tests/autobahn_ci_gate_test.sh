@@ -167,6 +167,53 @@ else
 fi
 rm -rf "$root"
 
+# --- block scalars must not be silently dropped -----------------------------
+# `run: |` is how every workflow in this workspace writes a multi-command step.
+# The reader used to match only the marker line and ignore the body, so those
+# commands vanished and --derive still exited 0 — an incomplete list presented as
+# the repo's CI. Silent truncation is the worst outcome for a derivation gate:
+# "local CI green" then means less than the real CI and nothing says so.
+root="$(mktemp -d)"; mkdir -p "$root/.github/workflows"
+cat > "$root/.github/workflows/ci.yml" <<'YAML'
+jobs:
+  t:
+    steps:
+      - run: npm test
+      - run: |
+          pytest -q
+          prek run --all-files
+      - run: moon run x  # trailing comment
+YAML
+out="$(derive "$root")"
+for expected in "npm test" "pytest -q" "prek run --all-files"; do
+  if grep -qF "$expected" <<<"$out"; then
+    ok "block-scalar body is derived: $expected"
+  else
+    bad "block-scalar body is derived: $expected"
+  fi
+done
+# A trailing YAML comment is not part of the command.
+if grep -q "trailing comment" <<<"$out"; then
+  bad "a trailing YAML comment is stripped from the derived command"
+else
+  ok "a trailing YAML comment is stripped from the derived command"
+fi
+if grep -qF "moon run x" <<<"$out"; then
+  ok "the command preceding a comment is still derived"
+else
+  bad "the command preceding a comment is still derived"
+fi
+rm -rf "$root"
+
+# --- this repo's own workflows must derive ----------------------------------
+# The gate is worthless if it cannot read the CI of the repo it ships in, and
+# every workflow here uses block scalars.
+if derive_rc "$REPO_ROOT"; then
+  ok "the skills repo's own workflows derive"
+else
+  bad "the skills repo's own workflows derive"
+fi
+
 # --- Azure Pipelines (slice 6b) --------------------------------------------
 root="$(mktemp -d)"
 cat > "$root/azure-pipelines.yml" <<'YAML'

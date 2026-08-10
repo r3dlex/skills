@@ -37,6 +37,18 @@ Steps that invoke a packaged action rather than a shell are not derived —
 GitHub's `uses:` and Azure's `task:`. A derived `actions/checkout@v4` is not
 something a shell can run.
 
+**Block scalars are read, and kept whole.** `run: |` is how nearly every real
+workflow writes a multi-command step, so refusing it would make the gate
+unusable — and the earlier reader matched only the marker line, dropping those
+commands entirely while still exiting 0. An incomplete list presented as the
+repo's CI is the worst outcome here: "local CI green" then means less than the
+real CI, and nothing says so.
+
+The body is one entry, not one per line. A step is a single shell invocation, and
+splitting it turns a heredoc or an `if`/`then` into fragments that read like
+separate commands and are not. Verified against this repo's own workflows, where
+splitting produced nonsense.
+
 ## Layer 2 — `verification[]`
 
 `readiness-check.sh` has schema-validated `goal.verification[]` since it was
