@@ -153,6 +153,70 @@ PY
         documented ($module): $documented
         shipped    ($json): $shipped"
     fi
+
+    # --- assertion 4: args + description parity ---
+    # Slice 0 gated delegates_to only, and the deferred drift turned out to
+    # matter: the doc advertised an `args` entry the shipped JSON did not offer,
+    # for an input autobahn genuinely accepts. Under-claiming is as wrong as
+    # over-claiming — a command with no way to pass a goal record cannot do
+    # direct intake at all.
+    #
+    # Arg NAMES and `required` must match exactly. Per-arg `description` is
+    # required to be present and non-empty in the shipped JSON but is not
+    # compared, so the doc example may stay readable.
+    drift="$(python3 - "$module" "$json" "$skill" <<'PY'
+import json, re, sys
+module, shipped_path, skill = sys.argv[1:]
+
+blocks = re.findall(r'```json\n(.*?)\n```', open(module, encoding='utf-8').read(), re.S)
+examples = []
+for block in blocks:
+    try:
+        parsed = json.loads(block)
+    except json.JSONDecodeError:
+        print(f'unparseable JSON example in {module}')
+        raise SystemExit(0)
+    if isinstance(parsed, dict) and parsed.get('name') == skill:
+        examples.append(parsed)
+if not examples:
+    print(f'no JSON example naming {skill} in {module}')
+    raise SystemExit(0)
+
+shipped = json.load(open(shipped_path, encoding='utf-8'))
+
+def shape(args):
+    if not isinstance(args, list):
+        return None
+    return [(a.get('name'), bool(a.get('required'))) for a in args if isinstance(a, dict)]
+
+problems = []
+for example in examples:
+    if shape(example.get('args')) != shape(shipped.get('args')):
+        problems.append(
+            f"args shape drift: documented {shape(example.get('args'))} "
+            f"vs shipped {shape(shipped.get('args'))}"
+        )
+    if example.get('description') != shipped.get('description'):
+        problems.append(
+            f"description drift: documented {example.get('description')!r} "
+            f"vs shipped {shipped.get('description')!r}"
+        )
+
+for arg in shipped.get('args') or []:
+    if not isinstance(arg, dict) or not (arg.get('description') or '').strip():
+        problems.append(f"shipped arg {arg!r} has no description")
+
+print('; '.join(problems))
+PY
+)"
+    rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+      bad "$skill/$surface: failed to compare args/description"
+    elif [[ -z "$drift" ]]; then
+      ok "$skill/$surface: documented args + description match shipped JSON"
+    else
+      bad "$skill/$surface: $drift"
+    fi
   done
 done
 

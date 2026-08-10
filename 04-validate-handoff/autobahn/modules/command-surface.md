@@ -37,8 +37,11 @@ The two surfaces differ only in the invocation token; both point at the same
   "surface": "omx",
   "skill": "autobahn",
   "invocation": "$autobahn",
-  "args": [{ "name": "goal", "required": false }, { "name": "engine", "required": false }],
-  "description": "Ship goals from a northstar handoff or direct-ready record.",
+  "args": [
+    { "name": "goal", "required": false, "description": "Path to one implementation-ready goal record for direct intake, bypassing a handoff." },
+    { "name": "engine", "required": false, "description": "Override the per-goal engine (ultraqa|ultrawork|ralph|team)." }
+  ],
+  "description": "Ship a northstar handoff's sliced goals, or one implementation-ready goal record, one PR per goal.",
   "delegates_to": ["ultragoal", "implement", "tdd", "team", "ralph", "ultrawork", "ultraqa", "triage"]
 }
 ```
