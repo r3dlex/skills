@@ -305,6 +305,57 @@ for boundary in "npm testfoo" "bash tests/" "pytestx"; do
   fi
 done
 
+# --- two escapes found by adversarially attacking the allowlist -------------
+#
+# Both of these ran real code past a gate whose whole purpose is to keep
+# verification[] as data. A goal record is not trusted input, so a prefix that
+# admits "anything after it" is not an allowlist.
+#
+# 1. `python3 -m <module>` accepted ANY module. `python3 -m pip install <x>` is
+#    arbitrary package installation, i.e. arbitrary code execution; verified by
+#    watching `python3 -m pip --version` execute and report a real version.
+# 2. `bash tests/<x>` accepted `..`. `bash tests/../evil/x.sh` executed a script
+#    outside tests/ entirely — verified by a marker file appearing.
+mkdir -p "$root/evil"
+printf '#!/bin/sh\ntouch "$1"\nexit 0\n' > "$root/evil/x.sh"; chmod +x "$root/evil/x.sh"
+
+for escape in \
+  "python3 -m pip --version" \
+  "python3 -m http.server --help" \
+  "python3 -m venv --help" \
+  "bash tests/../evil/x.sh" \
+  "pytest ../outside" ; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$escape")"
+  if verify_rc "$root" "$record"; then
+    bad "allowlist escape is refused: $escape"
+  else
+    ok "allowlist escape is refused: $escape"
+  fi
+done
+
+# The narrowed module list must still admit the test runners it exists for.
+mkdir -p "$root/tests"
+printf '#!/bin/sh\nexit 0\n' > "$root/tests/ok.sh"; chmod +x "$root/tests/ok.sh"
+for legit in "bash tests/ok.sh"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$legit")"
+  if verify_rc "$root" "$record"; then
+    ok "a legitimate command still runs: $legit"
+  else
+    bad "a legitimate command still runs: $legit"
+  fi
+done
+
+# `python3 -m pytest` / `-m unittest` must remain allowed as PREFIXES even though
+# the bare `python3 -m` prefix is gone.
+for form in "python3 -m pytest --version" "python3 -m unittest --help"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$form")"
+  if bash "$ABS" --verify --root "$root" --goal-record "$record" 2>&1 | grep -q "not allowlisted"; then
+    bad "the narrowed module allowlist still admits: $form"
+  else
+    ok "the narrowed module allowlist still admits: $form"
+  fi
+done
+
 # --- an empty or unreadable verification[] blocks --------------------------
 goal_record "$record" '[]'
 if verify_rc "$root" "$record"; then
