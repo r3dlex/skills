@@ -166,11 +166,24 @@ import json, os, re, sys
 from pathlib import Path
 
 ALLOWED_PREFIXES = (
-    'pytest', 'npm test', 'npm run', 'bash tests/', 'python3 -m', 'moon run', 'prek run',
+    'pytest',
+    'npm test',
+    'npm run',
+    'bash tests/',
+    # NOT a bare `python3 -m`: that admitted any module, and
+    # `python3 -m pip install <x>` is arbitrary package installation — arbitrary
+    # code execution straight from a goal record. Name the runners instead.
+    'python3 -m pytest',
+    'python3 -m unittest',
+    'moon run',
+    'prek run',
 )
 # Anything that could start a second command, expand, or redirect. A prefix
 # check alone is defeated by `npm test && curl ... | sh`.
 FORBIDDEN = re.compile(r'[;&|`$><\n\\]|\$\(')
+# A prefix that names a directory is not a boundary if the path can climb out of
+# it: `bash tests/../evil/x.sh` satisfies `bash tests/` and runs anything.
+TRAVERSAL = re.compile(r'(^|[/\s])\.\.([/\s]|$)')
 
 try:
     record = json.loads(Path(os.environ['RECORD']).read_text(encoding='utf-8'))
@@ -190,6 +203,9 @@ for command in commands:
     command = command.strip()
     if FORBIDDEN.search(command):
         sys.stderr.write(f'verification command contains shell metacharacters: {command!r}\n')
+        raise SystemExit(3)
+    if TRAVERSAL.search(command):
+        sys.stderr.write(f'verification command climbs out of its directory with "..": {command!r}\n')
         raise SystemExit(3)
     # A prefix ending in '/' is a path fragment and matches directly
     # ('bash tests/foo.sh'); any other prefix needs a word boundary after it, so
