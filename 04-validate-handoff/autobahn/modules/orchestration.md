@@ -36,17 +36,32 @@ For each sliced goal, in order:
 2. Select standard or legacy-safe TDD, then pick the engine.
 3. Run `implement` under the selected posture, driving `tdd` red-green; the
    picked engine executes. See implementation.md.
-4. `tdd-evidence.sh --verify` — red-then-green evidence, or stop.
-5. `lint-gate.sh` — the repo's lint policy, or stop.
-6. Commit the goal's staged diff and open its PR. See commit-protocol.md.
-7. Peer-review until all comments resolved.
-8. `ci-gate.sh --derive` and `--verify` plus remote host CI, all green, or stop.
-9. Decide merge via the host-policy thin adapter (else ready-for-human).
-10. On merge, cascade-close the issue with a triage status.
+4. `run-gates.sh --phase pre-commit` — TDD evidence and lint, or stop.
+5. Commit the goal's staged diff and open its PR. See commit-protocol.md.
+6. Peer-review until all comments resolved.
+7. `run-gates.sh --phase pre-merge` plus remote host CI, all green, or stop.
+8. Decide merge via the host-policy thin adapter (else ready-for-human).
+9. On merge, cascade-close the issue with a triage status.
 
 ## Wired gate scripts
 
-Every gate autobahn runs, and where it attaches. A gate that ships without
+`run-gates.sh` invokes the gates, so a skipped gate is impossible rather than
+merely against the rules:
+
+```
+autobahn/run-gates.sh --root . --goal-record <goal.json> --phase pre-commit
+autobahn/run-gates.sh --root . --goal-record <goal.json> --phase pre-merge
+```
+
+It runs gates, **not** the goal loop — one goal record per invocation, and
+sequencing stays with `ultragoal`. A driver that grew a goal loop would be the
+reimplementation autobahn exists to avoid, and
+`tests/autobahn_run_gates_test.sh` asserts it has not.
+
+By default every gate runs and every block is reported, so one pass shows
+everything to fix. `--fail-fast` stops at the first block.
+
+The table below is still the authority on what exists. A gate that ships without
 appearing here is inert — nothing in this repo detects an unwired script, which
 is why the list is explicit rather than implied.
 
@@ -57,10 +72,11 @@ is why the list is explicit rather than implied.
 | `tdd-mode.sh` | 2 | — (selects posture) |
 | `engine-pick.sh` | 2 | — (selects engine) |
 | `tdd-evidence.sh --verify` | 4 | absent, malformed, or inconsistent evidence |
-| `lint-gate.sh` | 5 | lint failures, a missing linter, an unreadable manifest |
-| `ci-gate.sh --derive` | 8 | no derivable CI, or an unsupported CI construct |
-| `ci-gate.sh --verify` | 8 | a failing or non-allowlisted `verification[]` command |
-| `merge-authority.sh` | 9 | any verdict short of host-policy-approved |
+| `lint-gate.sh` | 4 | lint failures, a missing linter, an unreadable manifest |
+| `ci-gate.sh --derive` | 7 | no derivable CI, or an unsupported CI construct |
+| `ci-gate.sh --verify` | 7 | a failing or non-allowlisted `verification[]` command |
+| `merge-authority.sh` | 8 | any verdict short of host-policy-approved |
+| `run-gates.sh` | 4, 7 | invokes the four gates above; any of them blocking |
 
 ## Safety rules
 
