@@ -49,10 +49,9 @@ changes the TDD technique, never the review or CI bar. See
 
 ## Peer-review loop
 
-Each goal's PR runs an `architect` + `code-reviewer` + `executor` loop: the
-executor implements, architect and reviewer review, and the loop continues until
-**all comments are resolved**. Authoring and review stay in separate lanes — never
-self-approve. See [modules/review-loop.md](modules/review-loop.md).
+Each goal's PR runs an `architect` + `code-reviewer` + `executor` loop until
+**all comments are resolved**. Authoring and review stay in separate lanes —
+never self-approve.
 
 ## CI gate
 
@@ -78,8 +77,7 @@ verdict the goal stops at ready-for-human. See
 
 On merge, delegate to the cascade engine to close the goal's issue idempotently
 across repos and apply the canonical `triage` status. Closure is audited and
-re-runnable without creating duplicates. See
-[modules/cascade-closure.md](modules/cascade-closure.md).
+re-runnable without creating duplicates.
 
 ## Safety rules
 
@@ -95,6 +93,8 @@ re-runnable without creating duplicates. See
   constructs the reader does not support is refused rather than guessed at.
 - Run the goal's `verification[]` before merge, and only commands that are
   allowlisted and free of shell metacharacters.
+- Run the gates with `autobahn/run-gates.sh`, not by hand: one goal record per
+  invocation, `pre-commit` before committing and `pre-merge` before merging.
 - Compose, never reimplement: delegate every loop, merge policy, and cascade.
 - Default merge authority is **ready-for-human**; admin-bypass only on an
   explicit, host-policy-approved, valid-token verdict.
