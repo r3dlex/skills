@@ -35,6 +35,23 @@ The posture changes what gets tested, never whether tests come first.
 A goal that reaches review with no failing-test-first step has not been
 implemented under either posture, whatever the goal record says.
 
+## What "tests first" means in a docs repo
+
+A repo whose product is prose has no unit test for a paragraph, and "TDD does
+not apply here" is the wrong conclusion — it is how skill content ships
+unverified.
+
+In **this** repo, tests-first means authoring the structural checks before the
+content they cover: the `eval-a-skill` triplet, and any validator that asserts
+the property the change is supposed to establish. Write the check, watch it fail
+against the current content, then write the content.
+
+That check is the red leg, and it is a real one. It fails for the same reason a
+unit test does — the property it asserts is not yet true.
+
+Recovered from an installed copy at `~/.claude/skills/autobahn` that existed in
+no repository; see the provenance open item in the hardening spec.
+
 ## Evidence
 
 `tdd-evidence.sh` records the red and green legs of one test command into
