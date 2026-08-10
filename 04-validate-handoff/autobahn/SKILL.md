@@ -67,9 +67,9 @@ Merge authority is a **thin adapter** over the ai-catapult-init host-policy deci
 and wraps only the fail-closed exit-code contract. Admin-bypass merges only on a
 host-policy-approved verdict with a valid token; otherwise stop at
 **ready-for-human**; a valid token the policy still rejects fails closed.
-
 <!-- codex:optional -->
-Authorizing a merge is the second interactive point. To authorize, supply the
+Authorizing a merge is the second interactive point, after the `--engine`
+override above. To authorize, supply the
 host-policy verdict + token to `autobahn/merge-authority.sh`; with no authorized
 verdict the goal stops at ready-for-human. See
 [modules/merge-authority.md](modules/merge-authority.md).
