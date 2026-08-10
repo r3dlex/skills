@@ -161,6 +161,36 @@ else
 fi
 rm -rf "$root"
 
+# --- a gate script that has gone missing blocks -----------------------------
+# The worst outcome for a driver is reporting success because a gate was absent
+# rather than passing. Nothing else in the repo detects a gate that stopped
+# existing, so assert it here instead of trusting that `bash <missing>` exits
+# non-zero and that the driver notices.
+root="$(green_repo)"
+broken="$(mktemp -d)/run-gates.sh"
+mkdir -p "$(dirname "$broken")"
+sed 's#\$HERE/lint-gate.sh#$HERE/deliberately-absent.sh#' "$ABS" > "$broken"
+if bash "$broken" --root "$root" --goal-record "$root/goal.json" >/dev/null 2>&1; then
+  bad "a missing gate script blocks rather than being skipped"
+else
+  ok "a missing gate script blocks rather than being skipped"
+fi
+rm -rf "$root" "$(dirname "$broken")"
+
+# --- the empty-BLOCKED path is safe on bash 3.2 -----------------------------
+# macOS ships bash 3.2 and this repo has already been bitten by its `set -u`
+# behaviour. The success path expands an empty array, so run it under the system
+# shell explicitly rather than only under whatever bash the suite happens to use.
+if [[ -x /bin/bash ]]; then
+  root="$(green_repo)"
+  if /bin/bash "$ABS" --root "$root" --goal-record "$root/goal.json" >/dev/null 2>&1; then
+    ok "the all-passed path works under /bin/bash ($(/bin/bash -c 'echo $BASH_VERSION'))"
+  else
+    bad "the all-passed path works under /bin/bash ($(/bin/bash -c 'echo $BASH_VERSION'))"
+  fi
+  rm -rf "$root"
+fi
+
 # --- the driver does not sequence goals -------------------------------------
 # Guards the composition boundary: a driver that grew a goal loop would be the
 # reimplementation autobahn exists to avoid.
