@@ -79,13 +79,29 @@ UNSUPPORTED = (
     (re.compile(r'^\t'), 'tab indentation'),
 )
 
-# A block scalar's body sits on following lines; the marker itself carries no
-# command, and inventing one would be a guess.
+# A block scalar's body sits on following lines. Matching only the marker used to
+# drop those commands entirely while --derive still exited 0 — an incomplete list
+# presented as the repo's CI. `run: |` is how nearly every real workflow writes a
+# multi-command step, so refusing it would make the gate unusable; the body has
+# to be read.
+BLOCK_MARKER = re.compile(r'^[|>][-+]?\d*$')
+
+# A trailing YAML comment is not part of the command. Only strip ` #...` with
+# preceding whitespace: a bare `#` inside a command (a fragment, a sed pattern)
+# is not a comment.
+COMMENT = re.compile(r'\s+#.*$')
+
 def scalar(value):
     value = value.strip()
-    if not value or value.startswith(('|', '>')):
+    if not value or BLOCK_MARKER.match(value):
         return ''
-    return value.strip('"\'')
+    value = COMMENT.sub('', value).strip()
+    # Only unwrap a value that is FULLY quoted. Stripping quote characters off
+    # both ends unconditionally corrupted real commands: it turned
+    # `echo "x" >> "$GITHUB_OUTPUT"` into a line with an unbalanced quote.
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in '"\'':
+        return value[1:-1]
+    return value
 
 # GitHub `- run:`; Azure `- script:` / `- bash:`.
 INLINE = {
@@ -109,6 +125,8 @@ for path in files:
                 raise SystemExit(3)
 
     block_indent = None
+    scalar_indent = None
+    body = []
     for line in lines:
         if provider == 'gitlab':
             key = GITLAB_KEY.match(line)
@@ -125,11 +143,38 @@ for path in files:
                 if line.strip():
                     block_indent = None
 
+        # Inside a block scalar body. Keep the body WHOLE as one entry: a step is
+        # one shell invocation, and splitting it per line turns a heredoc or an
+        # if/then into a list of fragments that reads like separate commands and
+        # is not one. Verified against this repo's own workflows, where splitting
+        # produced nonsense.
+        if scalar_indent is not None:
+            indent = len(line) - len(line.lstrip())
+            if not line.strip() or indent > scalar_indent:
+                body.append(line[scalar_indent:] if len(line) > scalar_indent else line.strip())
+                continue
+            joined = '\n'.join(body).strip()
+            if joined:
+                commands.append(joined)
+            body = []
+            scalar_indent = None
+
         match = INLINE[provider].match(line)
         if match:
-            value = scalar(match.group(1))
+            raw = match.group(1).strip()
+            if BLOCK_MARKER.match(raw):
+                # Body lines are indented deeper than the key that opened it.
+                scalar_indent = len(line) - len(line.lstrip())
+                body = []
+                continue
+            value = scalar(raw)
             if value:
                 commands.append(value)
+
+    if scalar_indent is not None:
+        joined = '\n'.join(body).strip()
+        if joined:
+            commands.append(joined)
 
 if not commands:
     sys.stderr.write(f'{provider} CI configuration contains no runnable steps\n')
