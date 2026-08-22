@@ -21,7 +21,7 @@ actual="$(wc -l < /tmp/catalog.default | tr -d ' ')"
 # than about host parity.
 python3 scripts/catalog-query.py --host codex \
   --include-lifecycle experimental --include-lifecycle deprecated > /tmp/catalog.extended
-for host in codex claude-code gemini copilot auggie; do
+for host in codex claude-code gemini copilot auggie opencode; do
   python3 scripts/catalog-query.py --host "$host" \
     --include-lifecycle experimental --include-lifecycle deprecated > "/tmp/catalog.$host"
   diff -u /tmp/catalog.extended "/tmp/catalog.$host"

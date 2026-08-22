@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 LIFECYCLES = {"stable", "compatibility", "experimental", "deprecated"}
-HOSTS = {"codex", "claude-code", "gemini", "copilot", "auggie"}
+HOSTS = {"codex", "claude-code", "gemini", "copilot", "auggie", "opencode"}
 DEFAULT_LIFECYCLES = {"stable", "compatibility"}
 
 
