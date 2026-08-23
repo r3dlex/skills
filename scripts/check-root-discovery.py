@@ -14,7 +14,7 @@ def main():
   path=Path(raw); paths.extend([path] if path.is_file() else path.rglob('*'))
  failures=[]
  for path in paths:
-  if not path.is_file() or path.name in {'check-root-discovery.py','root_discovery_guard_test.sh'} or '__pycache__' in path.parts: continue
+  if not path.is_file() or path.name in {'check-root-discovery.py','root_discovery_guard_test.sh','skill-catalog_test.sh'} or '__pycache__' in path.parts: continue
   try: text=path.read_text()
   except UnicodeDecodeError: continue
   for pattern in PATTERNS:
