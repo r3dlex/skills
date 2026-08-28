@@ -1,5 +1,14 @@
 # Spec: Extract the installer skill-discovery seam
 
+> **SUPERSEDED (2026-08-28)** — `scripts/lib-skill-discovery.sh` and its test were deleted
+> (goal `skills-delete-dead-discovery-seam`): the lib had zero production consumers, its
+> top-level discovery model predates the phase-dir reorg and returns zero skills on the live
+> repo, and its parity test was vacuous (empty set == empty set). The canonical discovery path
+> is catalog-based: installers source `scripts/catalog-install.sh` and read `catalog.json` via
+> `scripts/catalog-query.py`. Root-level `SKILL.md` discovery that bypasses the catalog reader
+> is rejected by `scripts/check-root-discovery.py` (shell-glob discovery class included).
+> Content below is the historical spec, kept for the record.
+
 ## A — Current state
 
 The five tool installers under `scripts/` — `install-claude-code.sh`,

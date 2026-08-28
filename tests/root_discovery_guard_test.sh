@@ -12,6 +12,11 @@ EOF
 cat > "$tmp/find.sh" <<'EOF'
 find "$SKILLS_DIR" -maxdepth 2 -name SKILL.md
 EOF
+cat > "$tmp/globfiletest.sh" <<'EOF'
+for d in "$ROOT"/*/; do
+  [ -f "${d}SKILL.md" ] && echo "$d"
+done
+EOF
 cat > "$tmp/iterdir.py" <<'EOF'
 from pathlib import Path
 for path in Path('.').iterdir():

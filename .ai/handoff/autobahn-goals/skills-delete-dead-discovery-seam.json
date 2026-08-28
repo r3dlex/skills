@@ -1,0 +1,41 @@
+{
+  "id": "skills-delete-dead-discovery-seam",
+  "implementation_ready": true,
+  "issue_ref": ".ai/work-intake/installer-skill-discovery-seam.md",
+  "context": "scripts/lib-skill-discovery.sh is a discovery seam with zero production consumers; all five installers source scripts/catalog-install.sh and consume catalog.json via catalog-query.py. Its top-level-directory discovery model predates the phase-dir reorg and returns zero skills on the live repo. Its ACTIVE spec and work-intake item document code that does not exist.",
+  "root_causes": [
+    "lib-skill-discovery.sh predates the #42 phase-dir reorg and was never migrated to the catalog-based discovery model",
+    "its header claims five installer consumers that do not exist",
+    "tests/lib-skill-discovery_test.sh live-repo parity assertion is vacuous: both sides return the empty set"
+  ],
+  "evidence": [
+    "grep for sourcing of lib-skill-discovery.sh matches only tests/lib-skill-discovery_test.sh",
+    "running list_skills against the live repo returns COUNT=0",
+    "check-root-discovery.py rejects catalog-bypassing discovery but does not match the shell-glob shape lib-skill-discovery.sh uses"
+  ],
+  "solutions": [
+    "delete scripts/lib-skill-discovery.sh and tests/lib-skill-discovery_test.sh",
+    "mark docs/specifications/ACTIVE/installer-skill-discovery-seam.md superseded with a pointer to catalog-install.sh and catalog-query.py",
+    "close the .ai/work-intake/installer-skill-discovery-seam.md item with state done",
+    "extend scripts/check-root-discovery.py with a pattern for the shell-glob discovery shape so the class cannot return"
+  ],
+  "acceptance_criteria": [
+    "lib-skill-discovery.sh and its test are deleted",
+    "the ACTIVE spec is superseded, not deleted, and names the canonical discovery path",
+    "check-root-discovery.py flags the shell-glob discovery class",
+    "bash tests/run-tests.sh passes with the new check in place"
+  ],
+  "scope": [
+    "scripts/lib-skill-discovery.sh",
+    "tests/lib-skill-discovery_test.sh",
+    "docs/specifications/ACTIVE/installer-skill-discovery-seam.md",
+    ".ai/work-intake/intake.md",
+    ".ai/work-intake/installer-skill-discovery-seam.md",
+    "scripts/check-root-discovery.py",
+    "tests/check-root-discovery_test.py"
+  ],
+  "verification": [
+    "bash tests/run-tests.sh"
+  ],
+  "coverage_percent": 100
+}
