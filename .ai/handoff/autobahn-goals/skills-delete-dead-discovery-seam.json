@@ -32,10 +32,12 @@
     ".ai/work-intake/intake.md",
     ".ai/work-intake/installer-skill-discovery-seam.md",
     "scripts/check-root-discovery.py",
-    "tests/check-root-discovery_test.py"
+    "tests/root_discovery_guard_test.sh"
   ],
   "verification": [
     "bash tests/run-tests.sh"
   ],
-  "coverage_percent": 100
+  "coverage_percent": 100,
+  "state": "done",
+  "merged_pr": "https://github.com/r3dlex/skills/pull/70"
 }
