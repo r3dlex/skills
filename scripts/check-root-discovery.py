@@ -7,6 +7,7 @@ PATTERNS=[
  re.compile(r'(?i)(?:for\s+\w+\s+in|while[^\n]*<)\s*[^\n]*\*[^\n]*SKILL\.md'),
  re.compile(r'(?i)find\s+(?:"?\$?(?:SKILLS_DIR|REPO_ROOT)"?|\.)[^\n]*-name\s+["\']?SKILL\.md'),
  re.compile(r'(?is)iterdir\s*\(\s*\).{0,400}SKILL\.md'),
+ re.compile(r'(?is)for\s+\w+\s+in\s+[^\n]*"\$\w+"?/\*[^\n]*\n.{0,300}SKILL\.md'),
 ]
 def main():
  p=argparse.ArgumentParser(); p.add_argument('paths',nargs='*'); a=p.parse_args(); paths=[]
