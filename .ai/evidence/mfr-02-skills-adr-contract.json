@@ -1,0 +1,11 @@
+{
+  "goal_id": "mfr-02-skills-adr-contract",
+  "green": {
+    "command": "test -f docs/architecture/adr/0013-model-binding-contract.md",
+    "exit_code": 0
+  },
+  "red": {
+    "command": "test -f docs/architecture/adr/0013-model-binding-contract.md",
+    "exit_code": 1
+  }
+}

@@ -1,7 +1,7 @@
 # ADR 0003: Intelligent model-routing policy
 
 ## Status
-Accepted.
+Accepted. Binding contract (native aliases vs auditable pins, fallbacks namespace) refined by [ADR-0013](0013-model-binding-contract.md).
 
 ## Context
 The whitepaper's economics section argues that routing every interaction to a single frontier model is financially unviable: a well-designed "factory" uses large models for complex work (requirements, architecture, initial implementation) and routes deterministic, low-complexity work (test generation, code review, CI monitoring) to smaller, cheaper, faster models. The repo has no first-class model-routing artifact today.
