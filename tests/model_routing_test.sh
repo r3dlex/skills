@@ -134,8 +134,18 @@ for host, chain in fallbacks.items():
             print(f"fallbacks[{host!r}][{name!r}] empty", file=sys.stderr)
             sys.exit(1)
 
+contract_shape = {
+    "hosts": {h: tuple(sorted(a.keys())) for h, a in host_aliases.items()},
+    "fallback_hosts": sorted(fallbacks.keys()),
+    "schema_version": data.get("schema_version"),
+}
+print(json.dumps(contract_shape))
 sys.exit(0)
 PY
+}
+
+contract_shape_of() {
+  routing_is_valid "$1" 2>/dev/null | tail -n 1
 }
 
 echo "Model Routing Policy Tests"
@@ -172,6 +182,18 @@ for variant in standalone umbrella; do
     ok "v3 $variant model-routing.json parses + forward + reverse coverage valid"
   else
     bad "v3 $variant model-routing.json failed structural validation (see diagnostic above)"
+  fi
+done
+
+TEMPLATE_SHAPE="$(contract_shape_of "$TEMPLATE")"
+for variant in standalone umbrella; do
+  routing="$REPO_ROOT/reference/fixtures/v3/$variant/.ai/policies/model-routing.json"
+  [ -f "$routing" ] || continue
+  FIXTURE_SHAPE="$(contract_shape_of "$routing")"
+  if [ "$TEMPLATE_SHAPE" = "$FIXTURE_SHAPE" ]; then
+    ok "v3 $variant contract shape matches template (hosts + fields + fallbacks + schema_version)"
+  else
+    bad "v3 $variant contract shape diverges from template: template=$TEMPLATE_SHAPE fixture=$FIXTURE_SHAPE"
   fi
 done
 
