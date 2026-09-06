@@ -1,0 +1,42 @@
+{
+  "goal_id": "mfr-01-skills-policy-contract",
+  "green": {
+    "command": "bash tests/model_routing_test.sh",
+    "exit_code": 0
+  },
+  "green_expected_after": "template restructured to ADR-0013 contract (tier-strict host_aliases, top-level fallbacks namespace, alias_supported/pinned_at, refreshed codex lane) + fixtures aligned",
+  "red": {
+    "command": "bash tests/model_routing_test.sh",
+    "exit_code": 1
+  },
+  "red_then_green": true,
+  "resolved_binding": {
+    "claude": {
+      "alias_supported": true,
+      "cheap": "haiku",
+      "frontier": "opus",
+      "mid": "sonnet"
+    },
+    "codex": {
+      "alias_supported": false,
+      "cheap": "gpt-5-mini",
+      "frontier": "gpt-5-codex",
+      "mid": "gpt-5",
+      "pinned_at": "2026-09-06"
+    },
+    "fallbacks": {
+      "ollama": {
+        "everything_else": "opencode/spark-muse-1.3-free",
+        "sonnet_or_lower": "opencode/mimo-v2.5-free"
+      }
+    },
+    "ollama": {
+      "alias_supported": false,
+      "cheap": "glm-5.3-flash:cloud",
+      "frontier": "glm-5.3:cloud",
+      "mid": "glm-5.3-flash:cloud",
+      "pinned_at": "2026-09-06"
+    }
+  },
+  "test_command": "bash tests/model_routing_test.sh"
+}
