@@ -91,10 +91,11 @@ gate() {
 if [[ "$PHASE" == "pre-commit" || "$PHASE" == "all" ]]; then
   gate "tdd-evidence" bash "$HERE/tdd-evidence.sh" --verify --goal "$GOAL_ID" --root "$ROOT"
   gate "lint-gate"    bash "$HERE/lint-gate.sh" --root "$ROOT"
+  gate "local safe CI subset" bash "$HERE/local-ci.sh" --root "$ROOT"
 fi
 
 if [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" ]]; then
-  gate "ci-gate --derive" bash "$HERE/ci-gate.sh" --derive --root "$ROOT"
+  gate "local safe CI subset" bash "$HERE/local-ci.sh" --root "$ROOT"
   gate "ci-gate --verify" bash "$HERE/ci-gate.sh" --verify --root "$ROOT" --goal-record "$RECORD"
 fi
 

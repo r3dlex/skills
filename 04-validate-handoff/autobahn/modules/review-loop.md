@@ -19,21 +19,16 @@ The agent that wrote the change never approves its own work in the same lane.
 
 ## CI gate (feedback merge protocol)
 
-A PR is mergeable only when ALL hold (the feedback merge protocol):
+A PR is mergeable only when ALL hold:
 
 - every review comment is resolved,
-- **remote host CI is green** (the hosted check run on the PR), and
-- **local CI is green** — the commands defined in
-  [commit-protocol.md](commit-protocol.md), run locally, all exiting zero.
+- current host policy has been read successfully and every required hosted check is green for the exact PR head SHA,
+- the strictly supported local command subset has passed before commit and again before merge after review changes, and
+- the goal record's allowlisted `verification[]` has passed before merge.
 
-"Local CI" used to be an undefined noun here: it named no commands, so any
-suite the agent happened to run satisfied it. It now resolves to the repo's own
-CI commands, or failing that its documented test entry point. When neither
-resolves, the signal **cannot be determined** and the goal is blocked.
+`local-ci.sh` does not reproduce the hosted workflow. It accepts only the narrow GitHub workflow and command shapes documented in [ci-gate.md](ci-gate.md). Unsupported workflow context, no runnable admitted commands, malformed structure, an unallowlisted command, or a nonzero command leaves local evidence undetermined or failed and blocks the goal. A separately recorded `verification[]` remains required, but it does not convert an unsupported workflow into a green derived-CI signal.
 
-A red or pending CI run — remote or local — holds the merge. The gate is
-fail-closed: absence of a green signal is treated as not-green, never assumed
-passing, and an undetermined local suite is an absence.
+A red, pending, missing, skipped, stale-SHA, or undetermined signal holds the merge. Supporting local evidence never substitutes for exact-head hosted checks or current host-policy authorization.
 
 ## What autobahn owns vs delegates
 

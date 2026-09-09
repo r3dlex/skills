@@ -50,6 +50,11 @@ trap 'rm -rf "$tmp" "${tmp2:-}"' EXIT
 cp -R "$FIXTURE/." "$tmp/"
 
 SLUG="rate-limit-public-api"
+SPEC="docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md"
+GOALS=".omx/plans/$SLUG-goals.json"
+mkdir -p "$tmp/.omx/plans"
+printf '{"schema_version":"1.0","kind":"northstar-sliced-goals","slug":"%s","target_spec":"%s","goals":[{"id":"G001"}]}\n' \
+  "$SLUG" "$SPEC" > "$tmp/$GOALS"
 rc_of() { "$@" >/dev/null 2>&1; echo $?; }
 
 # --- 1. northstar prereq gate passes on an initialized repo -------------------
@@ -62,7 +67,7 @@ fi
 
 # --- 2. northstar writes the A->B handoff ------------------------------------
 rc="$(rc_of bash "$N_HANDOFF" --root "$tmp" \
-  --spec "docs/specifications/ACTIVE/intake-and-ship-skills.md" \
+  --spec "$SPEC" --goals "$GOALS" \
   --slug "$SLUG" --issue "local:work-intake/$SLUG")"
 if [[ "$rc" -eq 0 ]]; then
   ok "2. northstar handoff-write produces the A->B handoff (exit 0)"

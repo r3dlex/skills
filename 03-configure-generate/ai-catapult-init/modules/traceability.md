@@ -14,8 +14,8 @@ Generated workflow and handoff surfaces should link to the traceability index on
 
 ## Stable ID policy
 
-- IDs are deterministic strings: `<type>:<repo-id>:<slug>`.
-- `type` is one of `brd`, `prd`, `adr`, `plan`, `issue`, `pr`, `test`, `handoff`, `workflow`, or `validation`. Schema `1.1` additively adds `eval-result` and `trajectory-trace` (see below).
+- IDs are deterministic strings: `<type>:<repo-id>:<slug>`, except the bounded repository anchor whose identity is exactly the two-segment `repo:<repo-id>`.
+- `type` is one of `brd`, `prd`, `adr`, `plan`, `issue`, `pr`, `test`, `handoff`, `workflow`, or `validation`. Schema `1.1` additively adds `repo`, `eval-result`, and `trajectory-trace` (see below).
 - `repo-id` comes from `.ai/matrix.json` when present; otherwise use `root` for the local repo fixture.
 - `slug` is lower-kebab-case from the artifact title or host key.
 - IDs never include credentials, access tokens, or mutable host session IDs.
@@ -55,7 +55,8 @@ Generated workflow and handoff surfaces should link to the traceability index on
 Schema `1.1` is a strictly additive bump over `1.0`. No `1.0` field is removed or renamed, so existing `1.0` graphs and fixtures stay valid unchanged.
 
 - `schema_version` is `"1.1"`.
-- The `type` enum gains two node types: `eval-result` (a recorded LM-judge/eval outcome for a skill or PR) and `trajectory-trace` (a recorded agent trajectory captured during an eval run).
+- The `type` enum gains three node types: `repo` (an informational repository anchor), `eval-result` (a recorded LM-judge/eval outcome for a skill or PR), and `trajectory-trace` (a recorded agent trajectory captured during an eval run).
+- A `repo` anchor is bounded to the current repository: `repo_id` is a nonempty safe identifier (`A-Z`, `a-z`, `0-9`, `.`, `_`, or `-`), its ID is exactly `repo:<repo_id>`, its `path` is exactly `.`, and its status is exactly `active`. Its only optional fields are a nonempty string `label` and a list of string `backlinks`; `host_url` and other extension fields are rejected. It records informational graph identity only and cannot carry or grant host, execution, deployment, payment, authentication, or merge authority.
 - New relations are permitted for the new types, e.g. `evaluated-by` (work item → `eval-result`) and `traced-by` (`eval-result` → `trajectory-trace`).
 - All other node/edge field rules from `1.0` apply unchanged to the new types: each node still carries `id`, `type`, `title`, `status`, `repo_id`, and either `path` or `host_url`; backlinks and edges must resolve.
 
@@ -108,13 +109,15 @@ Both topologies ship a fixture demonstrating this: `reference/fixtures/v3/standa
 
 ### Version acceptance and migration
 
-- The validator accepts any graph whose `schema_version` is `>= 1.1` and treats `eval-result`/`trajectory-trace` as known types; it also still accepts `1.0` graphs (back-compat). A node `type` outside the known enum still fails validation at any version.
-- Migration is a no-op for `1.0` consumers: a `1.0` graph is a valid `1.1` graph minus the two new node types. To migrate, bump `schema_version` to `"1.1"` and add `eval-result`/`trajectory-trace` nodes as eval evidence becomes available.
+- The current validator accepts schema `1.0` and every version `>= 1.1`. For `>= 1.1`, its known enum includes the bounded informational `repo` anchor, `eval-result`, and `trajectory-trace`; every other node type still fails closed.
+- Adding `repo` is an in-place amendment to the `1.1` contract. Existing `1.0` and `1.1` graphs need no rewrite, and the anchor remains optional. A producer that adds `repo` must update its consuming validators in the same change. Older strict `1.1` validators know only the original enum and will reject the anchor; no old-consumer forward compatibility is promised.
+
+See [ADR 0014](../../../docs/architecture/adr/0014-bounded-repository-anchor-schema-amendment.md) for the bounded amendment and compatibility debt.
 
 ## Required validation
 
 1. Every edge `source` and `target` exists in `nodes`.
-2. Every node has `id`, `type`, `title`, `status`, `repo_id`, and either `path` or `host_url`. Every `type` is in the known enum for the declared schema version (`1.1` adds `eval-result` and `trajectory-trace`); an unknown type fails.
+2. Every node has `id`, `type`, `title`, `status`, `repo_id`, and either `path` or `host_url`. Every `type` is in the known enum for the declared schema version (`1.1` adds `repo`, `eval-result`, and `trajectory-trace`); an unknown type fails. Repository anchors additionally require exact ID `repo:<repo_id>` and exact local path `.`.
 3. Every node backlink references another existing node ID.
 4. The graph covers BRD/PRD/ADR/plan/issue/PR/test/handoff/workflow/validation artifacts when those artifacts exist.
 5. The human index links every node ID back to its file path or host URL.

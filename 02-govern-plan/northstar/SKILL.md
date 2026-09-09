@@ -26,7 +26,7 @@ in the same run, even when the initiating prompt also asks for implementation.
    `bash northstar/prereq-check.sh --root .`
 2. Run the interview loop, then always raise an issue.
 3. Run `ralplan` to produce sliced goals.
-4. Write the handoff: `bash northstar/handoff-write.sh --root . --spec <spec-path> --slug <plan-slug>`.
+4. Write the handoff: `bash northstar/handoff-write.sh --root . --spec <spec-path> --goals <sliced-goals.json> --slug <plan-slug>`.
 
 ## Prereq (fail-closed)
 

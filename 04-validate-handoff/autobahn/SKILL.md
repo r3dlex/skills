@@ -55,9 +55,9 @@ never self-approve.
 
 ## CI gate
 
-Mergeable only when **remote host CI AND local CI are green** and every review
-comment is resolved. `ci-gate.sh` derives local CI from the repo's own config
-and runs the goal's `verification[]`.
+Mergeable only when **remote host CI AND supporting local checks are green** and
+review is resolved. `local-ci.sh` runs a safe local subset, not hosted-CI
+equivalence; exact-SHA required checks remain separately host-policy gated.
 
 ## Merge authority (configurable, fail-closed)
 

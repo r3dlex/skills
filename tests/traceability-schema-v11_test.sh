@@ -7,7 +7,7 @@
 #     and `trajectory-trace` node types.
 #   - Existing v1.0 fixtures remain valid under the bumped validator (back-compat).
 #   - An unknown node type is still rejected.
-#   - `modules/traceability.md` documents schema 1.1 and the two new types.
+#   - `modules/traceability.md` documents schema 1.1 and the three new types.
 #   - P2-2 end-to-end wiring: BOTH the standalone AND umbrella 1.1 graphs
 #     validate; an `eval-result` node links (via `evaluated-by`) to a
 #     skill/PR/test node; a `trajectory-trace` node links (via `traced-by`)
@@ -35,8 +35,9 @@ V10_TYPES = {
     "brd", "prd", "adr", "plan", "issue", "pr",
     "test", "handoff", "workflow", "validation",
 }
-V11_ADDED_TYPES = {"eval-result", "trajectory-trace"}
+V11_ADDED_TYPES = {"repo", "eval-result", "trajectory-trace"}
 KNOWN_TYPES = V10_TYPES | V11_ADDED_TYPES
+REPO_ANCHOR_FIELDS = {"id", "type", "label", "title", "status", "repo_id", "path", "backlinks"}
 
 
 def parse_version(v: str):
@@ -50,19 +51,32 @@ def validate_graph(graph: dict) -> None:
     node types are all in the known enum. Raises AssertionError on violation.
     """
     version = parse_version(graph["schema_version"])
-    assert version >= (1, 0), f"unsupported schema_version {graph['schema_version']}"
+    assert version >= (1, 0) and not ((1, 0) < version < (1, 1)), (
+        f"unsupported schema_version {graph['schema_version']}")
 
     nodes = {n["id"]: n for n in graph["nodes"]}
     for node in nodes.values():
         assert node["type"] in KNOWN_TYPES, f"unknown node type {node['type']!r}"
+        assert node["type"] not in V11_ADDED_TYPES or version >= (1, 1), (
+            f"node type {node['type']!r} requires schema >= 1.1")
         assert node["id"], "node missing id"
         assert node["title"], f"node {node['id']} missing title"
         assert node["status"], f"node {node['id']} missing status"
         assert node["repo_id"], f"node {node['id']} missing repo_id"
         assert node.get("path") or node.get("host_url"), (
             f"node {node['id']} missing path/host_url")
-        for backlink in node.get("backlinks", []):
-            assert backlink in nodes, f"dangling backlink {backlink}"
+        if node["type"] == "repo":
+            assert re.fullmatch(r"[A-Za-z0-9._-]+", node["repo_id"]), "unsafe repo_id"
+            assert node["id"] == f"repo:{node['repo_id']}", "repo anchor id mismatch"
+            assert node.get("path") == ".", "repo anchor path must be '.'"
+            assert node["status"] == "active", "repo anchor status must be active"
+            assert not (set(node) - REPO_ANCHOR_FIELDS), "repo anchor has unsupported fields"
+            assert "label" not in node or (isinstance(node["label"], str) and node["label"]), (
+                "repo anchor label must be a nonempty string")
+        backlinks = node.get("backlinks", [])
+        assert isinstance(backlinks, list), "backlinks must be a list"
+        for backlink in backlinks:
+            assert isinstance(backlink, str) and backlink in nodes, f"dangling backlink {backlink}"
     for edge in graph["edges"]:
         assert edge["source"] in nodes, f"dangling edge source {edge}"
         assert edge["target"] in nodes, f"dangling edge target {edge}"
@@ -174,11 +188,12 @@ else:
     print("FAIL: unknown node type was accepted")
     sys.exit(1)
 
-# --- 4. Module documents schema 1.1 and the two new types ---------------------
+# --- 4. Module documents schema 1.1 and the three new types -------------------
 module = (ROOT / "03-configure-generate/ai-catapult-init/modules/traceability.md").read_text()
 assert "schema v1.1" in module or '"1.1"' in module, "module must document schema 1.1"
 assert "eval-result" in module, "module must document eval-result type"
 assert "trajectory-trace" in module, "module must document trajectory-trace type"
+assert "`repo`" in module, "module must document repo type"
 assert re.search(r"accepts?[^.]*1\.1|>=\s*1\.1|>=\s*`1\.1`", module), (
     "module must state validator accepts >= 1.1")
 print("PASS: module documents schema 1.1 and new types")
@@ -203,6 +218,52 @@ for fixture in ("standalone", "umbrella"):
     v11 = json.loads((ROOT / "reference/fixtures/v3" / fixture / ".ai/traceability/graph-1.1.json").read_text())
     shared.validate_graph(v11)
 print("PASS: shared validator accepts v1.0 AND both 1.1 fixtures")
+
+# Brownfield schema-1.1 graphs may carry an explicit repository identity node.
+with_repo = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json").read_text())
+with_repo["nodes"].append({
+    "id": "repo:standalone-root", "type": "repo", "title": "standalone-root",
+    "status": "active", "repo_id": "standalone-root", "path": ".",
+})
+validate_graph(with_repo)
+shared.validate_graph(with_repo)
+print("PASS: schema 1.1 accepts explicit repo identity nodes")
+
+repo_negative_cases = {
+    "unsafe repo_id": lambda n: n.update({"repo_id": "../escape", "id": "repo:../escape"}),
+    "mismatched repo id": lambda n: n.update({"id": "repo:other"}),
+    "non-root repo path": lambda n: n.update({"path": "subrepo"}),
+    "non-informational status": lambda n: n.update({"status": "authorized"}),
+    "invalid label": lambda n: n.update({"label": 42}),
+    "invalid backlinks container": lambda n: n.update({"backlinks": "not-a-list"}),
+}
+for field in ("host_url", "execution_ready", "deploy_authorized", "payment_authorized",
+              "auth_promoted", "merge_authorized"):
+    repo_negative_cases[f"authority-bearing {field}"] = lambda n, field=field: n.update({field: True})
+
+for label, mutate in repo_negative_cases.items():
+    bad_repo = json.loads(json.dumps(with_repo))
+    anchor = next(n for n in bad_repo["nodes"] if n["type"] == "repo")
+    mutate(anchor)
+    for validator, exception in ((validate_graph, AssertionError), (shared.validate_graph, ValueError)):
+        try:
+            validator(bad_repo)
+        except exception:
+            pass
+        else:
+            raise AssertionError(f"{label} repo anchor was accepted")
+print("PASS: malformed and authority-bearing repo anchors are rejected")
+
+invalid_fractional = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph.json").read_text())
+invalid_fractional["schema_version"] = "1.0.5"
+for validator, exception in ((validate_graph, AssertionError), (shared.validate_graph, ValueError)):
+    try:
+        validator(invalid_fractional)
+    except exception:
+        pass
+    else:
+        raise AssertionError("schema_version 1.0.5 was accepted")
+print("PASS: schema_version must be exactly 1.0 or >= 1.1")
 
 # 5b. The shared validator's enum/schema rules match the in-test reference enum.
 assert shared.KNOWN_TYPES == KNOWN_TYPES, "shared validator enum drifted from reference enum"

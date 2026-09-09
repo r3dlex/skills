@@ -24,6 +24,35 @@ PASS=0
 pass() { echo "  PASS: $1"; PASS=$((PASS + 1)); }
 fail() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 
+wait_for_refresh_completion() {
+    local marker_file="$1" lock_dir="$2" pending_file="$3" attempts="$4"
+    local stable=0
+    while [ "$attempts" -gt 0 ]; do
+        if [ -f "$marker_file" ] && [ ! -d "$lock_dir" ] && [ ! -f "$pending_file" ]; then
+            stable=$((stable + 1))
+            [ "$stable" -ge 2 ] && return 0
+        else
+            stable=0
+        fi
+        attempts=$((attempts - 1))
+        sleep 0.05
+    done
+    return 1
+}
+
+print_refresh_timeout_diagnostics() {
+    local marker_file="$1" lock_dir="$2" pending_file="$3" log_file="$4"
+    echo "    marker=$([ -f "$marker_file" ] && echo present || echo missing)"
+    echo "    lock=$([ -d "$lock_dir" ] && echo present || echo absent)"
+    echo "    pending=$([ -f "$pending_file" ] && echo present || echo absent)"
+    if [ -f "$log_file" ]; then
+        echo "    refresh.log tail:"
+        tail -n 10 "$log_file" | sed 's/^/      /'
+    else
+        echo "    refresh.log=missing"
+    fi
+}
+
 echo "=== graph-automation templates structural checks ==="
 echo ""
 
@@ -280,10 +309,11 @@ if [ -f "$WRAPPER" ]; then
     # Create a fake engine binary named `graphify` so `command -v graphify` resolves
     # hermetically without relying on the host having graphify installed.
     # GRAPH_REFRESH_ENGINE_CMD bypasses the python interpreter detection block.
-    FAKE_ENGINE="$TMPDIR_TEST/graphify"
-    MARKER_FILE="$TMPDIR_TEST/fake-engine-ran"
-    cat > "$FAKE_ENGINE" <<'FAKEEOF'
+FAKE_ENGINE="$TMPDIR_TEST/graphify"
+MARKER_FILE="$TMPDIR_TEST/fake-engine-ran"
+cat > "$FAKE_ENGINE" <<'FAKEEOF'
 #!/usr/bin/env bash
+sleep "${TMPDIR_TEST_ENGINE_DELAY:?TMPDIR_TEST_ENGINE_DELAY must be set}"
 echo "fake-engine-ran" >> "${TMPDIR_TEST_MARKER:?TMPDIR_TEST_MARKER must be set}"
 FAKEEOF
     chmod +x "$FAKE_ENGINE"
@@ -295,11 +325,10 @@ FAKEEOF
     PATH="$TMPDIR_TEST:/usr/bin:/bin" \
       ENGINE=graphify \
       GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
+      TMPDIR_TEST_ENGINE_DELAY=2 \
       TMPDIR_TEST_MARKER="$MARKER_FILE" \
       bash "$TMPDIR_TEST/scripts/graph-refresh.sh"
     RUN1_EXIT=$?
-    # Give the detached background subshell time to run
-    sleep 1
     set -e
 
     if [ "$RUN1_EXIT" -eq 0 ]; then
@@ -308,7 +337,10 @@ FAKEEOF
         fail "substituted graph-refresh.sh exited $RUN1_EXIT (expected 0)"
     fi
 
-    if [ -f "$MARKER_FILE" ]; then
+    LOCK_DIR_TEST="$TMPDIR_TEST/graphify-out/graph-refresh-lock"
+    PENDING_FILE_TEST="$TMPDIR_TEST/graphify-out/graph-refresh-pending"
+    LOG_FILE_TEST="$TMPDIR_TEST/graphify-out/refresh.log"
+    if wait_for_refresh_completion "$MARKER_FILE" "$LOCK_DIR_TEST" "$PENDING_FILE_TEST" 200; then
         RUN_COUNT=$(wc -l < "$MARKER_FILE" | tr -d ' ')
         if [ "$RUN_COUNT" -ge 1 ]; then
             pass "lock/coalesce: fake engine ran $RUN_COUNT time(s) after single trigger"
@@ -316,7 +348,8 @@ FAKEEOF
             fail "lock/coalesce: fake engine marker exists but empty (engine never ran)"
         fi
     else
-        fail "lock/coalesce: fake engine marker not found (engine never ran)"
+        fail "lock/coalesce: timed out waiting for completed single trigger"
+        print_refresh_timeout_diagnostics "$MARKER_FILE" "$LOCK_DIR_TEST" "$PENDING_FILE_TEST" "$LOG_FILE_TEST"
     fi
 
     # Second trigger while first may still be running: coalesce burst test
@@ -326,18 +359,19 @@ FAKEEOF
     PATH="$TMPDIR_TEST:/usr/bin:/bin" \
       ENGINE=graphify \
       GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
+      TMPDIR_TEST_ENGINE_DELAY=2 \
       TMPDIR_TEST_MARKER="$MARKER_FILE" \
       bash "$TMPDIR_TEST/scripts/graph-refresh.sh" &
     PATH="$TMPDIR_TEST:/usr/bin:/bin" \
       ENGINE=graphify \
       GRAPH_REFRESH_ENGINE_CMD="$FAKE_ENGINE" \
+      TMPDIR_TEST_ENGINE_DELAY=2 \
       TMPDIR_TEST_MARKER="$MARKER_FILE" \
       bash "$TMPDIR_TEST/scripts/graph-refresh.sh" &
     wait
-    sleep 1
     set -e
 
-    if [ -f "$MARKER_FILE" ]; then
+    if wait_for_refresh_completion "$MARKER_FILE" "$LOCK_DIR_TEST" "$PENDING_FILE_TEST" 200; then
         BURST_COUNT=$(wc -l < "$MARKER_FILE" | tr -d ' ')
         if [ "$BURST_COUNT" -ge 1 ] && [ "$BURST_COUNT" -le 2 ]; then
             pass "lock/coalesce: burst of 2 triggers produced $BURST_COUNT engine run(s) (1<=count<=2)"
@@ -345,7 +379,8 @@ FAKEEOF
             fail "lock/coalesce: burst of 2 triggers produced $BURST_COUNT engine runs (expected 1<=count<=2)"
         fi
     else
-        fail "lock/coalesce: burst test: fake engine marker not found (engine never ran)"
+        fail "lock/coalesce: timed out waiting for completed burst"
+        print_refresh_timeout_diagnostics "$MARKER_FILE" "$LOCK_DIR_TEST" "$PENDING_FILE_TEST" "$LOG_FILE_TEST"
     fi
 
     rm -rf "$TMPDIR_TEST"

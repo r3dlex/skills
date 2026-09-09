@@ -67,9 +67,14 @@ cp -R "$FIXTURE/." "$tmp_noh/"
 
 # (a) produce a valid northstar handoff into tmp_root via the A-side writer.
 SLUG="ship-the-thing"
+SPEC="docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md"
+GOALS=".omx/plans/$SLUG-goals.json"
+mkdir -p "$tmp_root/.omx/plans"
+printf '{"schema_version":"1.0","kind":"northstar-sliced-goals","slug":"%s","target_spec":"%s","goals":[{"id":"G001"}]}\n' \
+  "$SLUG" "$SPEC" > "$tmp_root/$GOALS"
 set +e
 bash "$NORTHSTAR_WRITE" --root "$tmp_root" \
-  --spec "docs/specifications/ACTIVE/intake-and-ship-skills.md" \
+  --spec "$SPEC" --goals "$GOALS" \
   --slug "$SLUG" >/dev/null 2>&1
 wrc=$?
 set -e 2>/dev/null || true
