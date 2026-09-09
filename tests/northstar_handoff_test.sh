@@ -39,10 +39,15 @@ trap 'rm -rf "$tmp"' EXIT
 cp -R "$FIXTURE/." "$tmp/"
 
 SLUG="ship-the-thing"
+SPEC="docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md"
+GOALS=".omx/plans/$SLUG-goals.json"
+mkdir -p "$tmp/.omx/plans"
+printf '{"schema_version":"1.0","kind":"northstar-sliced-goals","slug":"%s","target_spec":"%s","goals":[{"id":"G001"}]}\n' \
+  "$SLUG" "$SPEC" > "$tmp/$GOALS"
 
 run_write() {
   bash "$SCRIPT" --root "$tmp" \
-    --spec "docs/specifications/ACTIVE/intake-and-ship-skills.md" \
+    --spec "$SPEC" --goals "$GOALS" \
     --slug "$SLUG" "$@"
 }
 
@@ -63,7 +68,7 @@ if [[ -f "$handoff_file" ]]; then
 else
   bad "handoff entry file created ($handoff_file)"
 fi
-if grep -q "intake-and-ship-skills.md" "$handoff_file" 2>/dev/null; then
+if grep -q "init-ai-repo-workflow-surfaces.md" "$handoff_file" 2>/dev/null; then
   ok "handoff references the spec"
 else
   bad "handoff references the spec"

@@ -36,10 +36,10 @@ For each sliced goal, in order:
 2. Select standard or legacy-safe TDD, then pick the engine.
 3. Run `implement` under the selected posture, driving `tdd` red-green; the
    picked engine executes. See implementation.md.
-4. `run-gates.sh --phase pre-commit` — TDD evidence and lint, or stop.
+4. `run-gates.sh --phase pre-commit` — TDD evidence, lint, and the safe local CI subset, or stop.
 5. Commit the goal's staged diff and open its PR. See commit-protocol.md.
 6. Peer-review until all comments resolved.
-7. `run-gates.sh --phase pre-merge` plus remote host CI, all green, or stop.
+7. `run-gates.sh --phase pre-merge` plus exact-SHA remote host CI, all green, or stop.
 8. Decide merge via the host-policy thin adapter (else ready-for-human).
 9. On merge, cascade-close the issue with a triage status.
 
@@ -73,7 +73,7 @@ is why the list is explicit rather than implied.
 | `engine-pick.sh` | 2 | — (selects engine) |
 | `tdd-evidence.sh --verify` | 4 | absent, malformed, or inconsistent evidence |
 | `lint-gate.sh` | 4 | lint failures, a missing linter, an unreadable manifest |
-| `ci-gate.sh --derive` | 7 | no derivable CI, or an unsupported CI construct |
+| `local-ci.sh` | 4, 7 | no safe executable subset, unsupported context/command, or a failing local command |
 | `ci-gate.sh --verify` | 7 | a failing or non-allowlisted `verification[]` command |
 | `merge-authority.sh` | 8 | any verdict short of host-policy-approved |
 | `run-gates.sh` | 4, 7 | invokes the four gates above; any of them blocking |

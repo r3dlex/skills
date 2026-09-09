@@ -86,6 +86,54 @@ else
   ok "vague goal fails closed"
 fi
 
+python3 - "$tmp/ready.json" "$tmp/object-ready.json" <<'PY'
+import json, sys
+goal = json.load(open(sys.argv[1]))
+goal["verification"] = [{"cwd": "apps/web", "command": "npm test"}]
+json.dump(goal, open(sys.argv[2], "w"), indent=2)
+PY
+if bash "$READINESS" --goal "$tmp/object-ready.json" >/dev/null 2>&1; then
+  ok "readiness accepts an exact cwd/command verification object"
+else
+  bad "readiness accepts an exact cwd/command verification object"
+fi
+if bash "$PREREQ" --root "$tmp/repo" --goal "$tmp/object-ready.json" >/dev/null 2>&1; then
+  ok "direct intake accepts the additive verification object schema"
+else
+  bad "direct intake accepts the additive verification object schema"
+fi
+
+python3 - "$tmp/ready.json" "$tmp" <<'PY'
+import json, sys
+base = json.load(open(sys.argv[1]))
+invalid = [
+    {"cwd": "apps/web", "command": "npm test", "shell": False},
+    {"cwd": "apps/web"},
+    {"command": "npm test"},
+    {"cwd": "/tmp", "command": "npm test"},
+    {"cwd": "apps/../web", "command": "npm test"},
+    {"cwd": "apps//web", "command": "npm test"},
+    {"cwd": "apps/./web", "command": "npm test"},
+    {"cwd": "apps/web/", "command": "npm test"},
+    {"cwd": "apps\\web", "command": "npm test"},
+    {"cwd": "apps/web\t", "command": "npm test"},
+    {"cwd": "apps/web", "command": "npm test\nsecond"},
+    {"cwd": "apps/web", "command": ["npm", "test"]},
+]
+for index, entry in enumerate(invalid):
+    goal = dict(base)
+    goal["verification"] = [entry]
+    with open(f"{sys.argv[2]}/invalid-verification-{index}.json", "w") as handle:
+        json.dump(goal, handle)
+PY
+for invalid in "$tmp"/invalid-verification-*.json; do
+  if bash "$READINESS" --goal "$invalid" >/dev/null 2>&1; then
+    bad "readiness rejects malformed verification object: $(basename "$invalid")"
+  else
+    ok "readiness rejects malformed verification object: $(basename "$invalid")"
+  fi
+done
+
 if bash "$PREREQ" --root "$tmp/repo" --goal "$tmp/ready.json" >/dev/null 2>&1; then
   ok "autobahn accepts direct-ready goal without northstar handoff"
 else
@@ -99,8 +147,13 @@ else
 fi
 
 # An explicit direct goal must be validated even when an unrelated handoff exists.
+mkdir -p "$tmp/repo/.omx/plans"
+cat > "$tmp/repo/.omx/plans/other-work-goals.json" <<'JSON'
+{"schema_version":"1.0","kind":"northstar-sliced-goals","slug":"other-work","target_spec":"docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md","goals":[{"id":"G001"}]}
+JSON
 bash 02-govern-plan/northstar/handoff-write.sh --root "$tmp/repo" \
-  --spec "docs/specifications/ACTIVE/direct-ready-test.md" --slug "other-work" >/dev/null 2>&1
+  --spec "docs/specifications/ACTIVE/init-ai-repo-workflow-surfaces.md" \
+  --goals ".omx/plans/other-work-goals.json" --slug "other-work" >/dev/null 2>&1
 if bash "$PREREQ" --root "$tmp/repo" --goal "$tmp/vague.json" >/dev/null 2>&1; then
   bad "explicit vague goal cannot fall through to an existing handoff"
 else

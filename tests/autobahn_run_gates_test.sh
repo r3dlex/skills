@@ -52,12 +52,14 @@ fi
 ABS="$REPO_ROOT/$SCRIPT"
 EVIDENCE="$REPO_ROOT/04-validate-handoff/autobahn/tdd-evidence.sh"
 
-# A repo that passes every gate: derivable CI, an allowlisted verification
+# A repo that passes every gate: executable local CI, an allowlisted verification
 # command that succeeds, valid red-then-green evidence, and no lint policy.
 green_repo() {
   local root; root="$(mktemp -d)"
   mkdir -p "$root/.github/workflows" "$root/tests"
-  printf 'jobs:\n  t:\n    steps:\n      - run: npm test\n' > "$root/.github/workflows/ci.yml"
+  printf 'jobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: bash tests/local-ci.sh\n' > "$root/.github/workflows/ci.yml"
+  printf '#!/bin/sh\nprintf "local-ci\\n" >> local-ci-ran\n' > "$root/tests/local-ci.sh"
+  chmod +x "$root/tests/local-ci.sh"
   printf '#!/bin/sh\nexit 0\n' > "$root/tests/goal_test.sh"
   chmod +x "$root/tests/goal_test.sh"
   python3 - "$root/goal.json" <<'PY'
@@ -82,9 +84,14 @@ if rc "$root"; then
 else
   bad "a repo passing every gate exits 0"
 fi
+if [[ -f "$root/local-ci-ran" ]]; then
+  ok "the driver executes the derived local CI command"
+else
+  bad "the driver executes the derived local CI command"
+fi
 
 out="$(run "$root")"
-for gate in tdd-evidence lint-gate ci-gate; do
+for gate in tdd-evidence lint-gate "local safe CI subset" ci-gate; do
   if grep -q "$gate" <<<"$out"; then
     ok "the driver reports running $gate"
   else
@@ -92,6 +99,54 @@ for gate in tdd-evidence lint-gate ci-gate; do
   fi
 done
 rm -rf "$root"
+
+# --- local CI runs fail-closed in every phase that can publish work ---------
+root="$(green_repo)"
+out="$(run "$root" --phase pre-commit)"
+tdd_line="$(grep -nF 'run-gates: === tdd-evidence ===' <<<"$out" | head -1 | cut -d: -f1)"
+lint_line="$(grep -nF 'run-gates: === lint-gate ===' <<<"$out" | head -1 | cut -d: -f1)"
+local_ci_line="$(grep -nF 'run-gates: === local safe CI subset ===' <<<"$out" | head -1 | cut -d: -f1)"
+if [[ -n "$tdd_line" && -n "$lint_line" && -n "$local_ci_line" &&
+      "$tdd_line" -lt "$lint_line" && "$lint_line" -lt "$local_ci_line" ]]; then
+  ok "pre-commit runs TDD evidence, lint, then local CI in order"
+else
+  bad "pre-commit runs TDD evidence, lint, then local CI in order"
+fi
+if [[ "$(wc -l < "$root/local-ci-ran" 2>/dev/null | tr -d ' ')" == "1" ]]; then
+  ok "pre-commit executes local CI exactly once"
+else
+  bad "pre-commit executes local CI exactly once"
+fi
+rm -rf "$root"
+
+root="$(green_repo)"
+if rc "$root" --phase pre-merge &&
+   [[ "$(wc -l < "$root/local-ci-ran" 2>/dev/null | tr -d ' ')" == "1" ]]; then
+  ok "pre-merge executes local CI exactly once"
+else
+  bad "pre-merge executes local CI exactly once"
+fi
+rm -rf "$root"
+
+root="$(green_repo)"
+if rc "$root" --phase all &&
+   [[ "$(wc -l < "$root/local-ci-ran" 2>/dev/null | tr -d ' ')" == "2" ]]; then
+  ok "all reruns local CI at pre-merge after pre-commit"
+else
+  bad "all reruns local CI at pre-merge after pre-commit"
+fi
+rm -rf "$root"
+
+for phase in pre-commit pre-merge; do
+  root="$(green_repo)"
+  printf '#!/bin/sh\nexit 1\n' > "$root/tests/local-ci.sh"
+  if rc "$root" --phase "$phase"; then
+    bad "a failing local CI command blocks $phase"
+  else
+    ok "a failing local CI command blocks $phase"
+  fi
+  rm -rf "$root"
+done
 
 # --- a blocking gate blocks the driver --------------------------------------
 # Evidence removed: the goal can no longer show red-before-green.
@@ -127,7 +182,7 @@ rm -rf "$root"
 # --- all gates run by default, so one pass shows everything to fix ----------
 root="$(green_repo)"
 rm -f "$root/.ai/evidence/slice-1.json"   # gate 1 blocks
-rm -rf "$root/.github"                    # gate 3 blocks too
+rm -rf "$root/.github"                    # local CI gate blocks too
 out="$(run "$root")"
 if grep -qi "tdd-evidence" <<<"$out" && grep -qi "ci-gate" <<<"$out"; then
   ok "later gates still run after an earlier one blocks"

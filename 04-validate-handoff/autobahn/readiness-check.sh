@@ -23,7 +23,8 @@ if [[ -z "$GOAL" || ! -f "$GOAL" ]]; then
 fi
 
 python3 - "$GOAL" <<'PY'
-import json, sys
+import json, re, sys
+from pathlib import PurePosixPath
 
 path = sys.argv[1]
 try:
@@ -40,10 +41,44 @@ for key in ("id", "context", "issue_ref"):
     if not isinstance(goal.get(key), str) or not goal[key].strip():
         errors.append(f"{key} must be a non-empty string")
 
-for key in ("root_causes", "evidence", "solutions", "acceptance_criteria", "scope", "verification"):
+for key in ("root_causes", "evidence", "solutions", "acceptance_criteria", "scope"):
     value = goal.get(key)
     if not isinstance(value, list) or not value or not all(isinstance(v, str) and v.strip() for v in value):
         errors.append(f"{key} must be a non-empty string array")
+
+verification = goal.get("verification")
+if not isinstance(verification, list) or not verification:
+    errors.append("verification must be a non-empty array")
+else:
+    controls = re.compile(r"[\x00-\x1f\x7f]")
+    for index, entry in enumerate(verification):
+        if isinstance(entry, str):
+            if not entry.strip():
+                errors.append(f"verification[{index}] must be a non-empty string")
+            continue
+        if not isinstance(entry, dict) or set(entry) != {"cwd", "command"}:
+            errors.append(f"verification[{index}] must be a string or exact cwd/command object")
+            continue
+        cwd = entry["cwd"]
+        command = entry["command"]
+        if not isinstance(cwd, str) or not cwd.strip():
+            errors.append(f"verification[{index}].cwd must be a non-empty string")
+            continue
+        if not isinstance(command, str) or not command.strip():
+            errors.append(f"verification[{index}].command must be a non-empty string")
+        if controls.search(cwd) or (isinstance(command, str) and controls.search(command)):
+            errors.append(f"verification[{index}] must not contain ASCII control characters")
+        if cwd != cwd.strip() or "\\" in cwd:
+            errors.append(f"verification[{index}].cwd must be normalized POSIX syntax")
+            continue
+        if cwd != ".":
+            path = PurePosixPath(cwd)
+            if (
+                path.is_absolute()
+                or path.as_posix() != cwd
+                or any(part in ("", ".", "..") for part in cwd.split("/"))
+            ):
+                errors.append(f"verification[{index}].cwd must be a normalized relative descendant")
 
 coverage = goal.get("coverage_percent")
 if not isinstance(coverage, (int, float)) or isinstance(coverage, bool) or not 0 <= coverage <= 100:

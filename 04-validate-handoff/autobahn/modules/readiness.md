@@ -10,12 +10,21 @@ one already-understood goal; it does not perform discovery or planning.
 - `implementation_ready: true`, stable `id`, and tracked `issue_ref`;
 - concrete `context`, `root_causes`, and reproduction/diagnostic `evidence`;
 - bounded `solutions`, `acceptance_criteria`, and impacted `scope`;
-- executable `verification` commands and numeric `coverage_percent`;
+- executable `verification` entries and numeric `coverage_percent`;
 - when agent-selected legacy-safe TDD is used at coverage ≥30%,
   `legacy_safe_tdd: true` plus a concrete `legacy_risk_reason`.
 
-Arrays must be non-empty strings. Coverage must be from 0 through 100. Passing
-the schema does not weaken peer review, CI, merge authority, or one-PR-per-goal.
+The evidence/scope arrays remain non-empty string arrays. Each verification
+entry is either a legacy non-empty string or an exact
+`{"cwd":"…","command":"…"}` object. Object cwd is `.` or a normalized,
+relative POSIX descendant with no absolute path, empty/`.`/`..` component,
+backslash, or ASCII control; command is a non-empty string without ASCII
+controls. Readiness validates portable shape, while `ci-gate.sh` validates cwd
+existence, physical containment, scripts, executables, and command grammar
+before execution. Coverage must be from 0 through 100.
+
+Passing the schema does not weaken peer review, CI, merge authority, or
+one-PR-per-goal.
 
 ## Safety rules
 

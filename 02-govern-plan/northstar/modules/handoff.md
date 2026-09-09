@@ -1,7 +1,8 @@
 # Northstar A→B Handoff Contract
 
 Read when writing the handoff that `autobahn` consumes. `handoff-write.sh`
-performs this write idempotently against `--root`.
+requires contained, existing `--spec` and `--goals` files and performs this
+write idempotently against `--root`.
 
 ## What gets written
 
@@ -9,7 +10,7 @@ performs this write idempotently against `--root`.
 | --- | --- | --- |
 | Handoff entry | `<root>/.ai/handoff/northstar-<slug>.md` | spec ref, sliced-goals ref, issue ref |
 | Manifest record | `<root>/.ai/workflows/repo-workflow.json` | an `optional_branches` entry |
-| Traceability nodes | `<root>/.ai/traceability/graph.json` | a `plan` node + a `handoff` node |
+| Traceability nodes | `<root>/.ai/traceability/graph.json` | plan + handoff nodes; plan resolves the concrete goals file |
 
 The spec itself lives in `docs/specifications/ACTIVE/`; the handoff references it
 by path rather than copying it.
@@ -33,7 +34,7 @@ four phases stay intact.
 The graph is bumped to `schema_version: 1.1` (additive; the validator accepts
 ≥1.1). Two nodes are added with `<type>:<repo-id>:<slug>` ids:
 
-- `plan:<repo-id>:northstar-<slug>` — the sliced plan, backlinking the spec PRD.
+- `plan:<repo-id>:northstar-<slug>` — the sliced plan at `--goals`, backlinking the unique PRD whose path exactly matches `--spec`.
 - `handoff:<repo-id>:northstar-<slug>` — the handoff, backlinking the plan.
 
 Valid types include `prd`, `plan`, `issue`, `handoff`, `workflow`. Nodes carry
@@ -42,17 +43,22 @@ resolve.
 
 ## Idempotency and partial-write recovery
 
-The write order is **manifest/graph first, handoff file last**, and the handoff
-file is the **completion marker**: if a run is interrupted before it is written,
-the run is incomplete. Recovery is by **idempotent re-run** — the manifest and
-graph are regenerated id-matched (no duplicate node or branch records) and the
-handoff file is (re)created, so a re-run converges from any incomplete prior
-state, including a stale or half-written graph. The redirect that writes the
-handoff file is guarded: if it fails (e.g. unwritable dir) the script exits
-non-zero naming the artifact. (Mid-process abort of the manifest/graph writer is
-not specially handled — the next idempotent re-run regenerates both.)
+All prerequisites are validated before mutation. Each file is replaced
+atomically, but the three replacements are not a cross-file transaction. The
+write order is **manifest/graph first, handoff file last**, and the handoff file
+is the **completion marker**. Recovery is by **idempotent re-run**: records are
+reconciled by ID, and a missing handoff is recreated without duplication.
 
 ## Safety rules
 
 - Never duplicate a node or branch record on re-run; match by id.
-- Fail closed on a partial write and name the missing artifact.
+- Derive repository identity from the exact-spec PRD and reconcile any declared
+  graph/manifest identity; ambiguity or conflict fails before mutation.
+- A generated legacy `*:root:northstar-<slug>` pair may be renamed in place only
+  when its complete shape matches. Preserve statuses, custom fields, and graph
+  references; fail closed on partial or legacy/current collisions.
+- Never promote blocked records or infer execution, host, payment, or merge authority.
+- Treat spec and goals as immutable evidence. Reject lexical, symlink,
+  case-insensitive, and hardlink aliases of every output target before parsing
+  or mutation.
+- Fail closed on a partial write and identify the failing artifact.
