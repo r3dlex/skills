@@ -96,10 +96,22 @@ cat > "$r/tests/mode.sh" <<'SH'
 #!/bin/sh
 set -- "$TMPDIR"/autobahn-local-ci.*
 [ -f "$1" ] || exit 1
-mode="$(stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1")"
-[ "$mode" = 600 ]
+python3 - "$1" <<'PYTHON'
+import os
+import stat
+import sys
+
+raise SystemExit(0 if stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600 else 1)
+PYTHON
 SH
 chmod +x "$r/tests/mode.sh"
+mode_fixture="$r/tmp/autobahn-local-ci.mode-fixture"
+printf '{}\n' > "$mode_fixture"
+chmod 600 "$mode_fixture"
+if TMPDIR="$r/tmp" bash "$r/tests/mode.sh"; then ok "mode probe accepts 0600"; else bad "mode probe accepts 0600"; fi
+chmod 644 "$mode_fixture"
+if TMPDIR="$r/tmp" bash "$r/tests/mode.sh"; then bad "mode probe rejects 0644"; else ok "mode probe rejects 0644"; fi
+rm -f "$mode_fixture"
 if TMPDIR="$r/tmp" bash "$LOCAL_CI" --root "$r" >/dev/null 2>&1; then ok "temporary verification record is mode 0600"; else bad "temporary verification record is mode 0600"; fi
 [[ -z "$(find "$r/tmp" -mindepth 1 -print -quit)" ]] && ok "mode-check temporary record is removed" || bad "mode-check temporary record is removed"
 rm -rf "$r"
