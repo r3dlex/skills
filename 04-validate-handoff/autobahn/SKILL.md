@@ -56,21 +56,19 @@ never self-approve.
 ## CI gate
 
 Mergeable only when **remote host CI AND local CI are green** and every review
-comment is resolved. `ci-gate.sh` derives local CI from the repo's own config
-and runs the goal's `verification[]`.
+comment is resolved. `local-ci.sh` executes the supported safe CI subset;
+`ci-gate.sh --verify` runs goal checks. Hosted checks must pass at the exact SHA.
 
 ## Merge authority (configurable, fail-closed)
 
-Merge authority is a **thin adapter** over the ai-catapult-init host-policy decision:
-`merge-authority.sh` invokes host-policy, consumes its verdict + `confirmation_token`,
-and wraps only the fail-closed exit-code contract. Admin-bypass merges only on a
-host-policy-approved verdict with a valid token; otherwise stop at
-**ready-for-human**; a valid token the policy still rejects fails closed.
+An ordinary merge explicitly authorized by the user may use the host's normal
+merge API after exact-head CI and review gates pass, without admin or bypass
+flags. That authorization does not permit changing branch policy.
+For policy changes or admin-bypass, `merge-authority.sh` is the **thin adapter**
+over the host-policy verdict + `confirmation_token`. Only an explicit approved
+marker and matching readback permit that path; otherwise **ready-for-human**.
 <!-- codex:optional -->
-Authorizing a merge is the second interactive point, after the `--engine`
-override above. To authorize, supply the
-host-policy verdict + token to `autobahn/merge-authority.sh`; with no authorized
-verdict the goal stops at ready-for-human. See
+Never fabricate a bypass verdict or token for an ordinary merge. See
 [modules/merge-authority.md](modules/merge-authority.md).
 
 ## Cascade issue closure

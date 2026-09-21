@@ -1,0 +1,68 @@
+{
+  "id": "autobahn-fail-closed-gates",
+  "implementation_ready": true,
+  "issue_ref": ".ai/work-intake/autobahn-fail-closed-gates.md",
+  "spec_ref": "docs/specifications/ACTIVE/autobahn-fail-closed-gates.md",
+  "context": "Repair Autobahn local verification and merge-authority boundaries without treating workflow discovery as execution or local CI as hosted CI.",
+  "root_causes": [
+    "The pre-merge driver previously invoked command inventory without executing derived local CI.",
+    "Verification needs complete command/cwd prevalidation and a bounded argv grammar to prevent unsafe interpretation or partial execution.",
+    "The bypass adapter previously accepted apply mode and token presence without requiring explicit approved marker and matching readback."
+  ],
+  "evidence": [
+    "Current run-gates.sh diff replaces --derive inventory with local-ci.sh execution.",
+    "Current ci-gate.sh and regression-test diffs introduce structured commands, contained cwd validation, and all-before-any prevalidation.",
+    "Current merge-authority.sh diff restricts approved bypass to host-supported-bypass marker, matching readback, and nonempty token.",
+    "Recorded red/green evidence and independent approval are in .ai/evidence/autobahn-fail-closed-gates.json. Focused suites passed 259 checks; measured coverage is unavailable and hosted CI remains pending."
+  ],
+  "solutions": [
+    "Execute only the bounded literal GitHub CI subset through the shared verifier; refuse unsupported workflows.",
+    "Prevalidate every verification entry and run allowlisted argv in physically contained cwd.",
+    "Require explicit approved bypass evidence and document ordinary authorized merge separately."
+  ],
+  "acceptance_criteria": [
+    "Local CI executes the supported literal workflow command list instead of treating inventory as execution.",
+    "Unsupported workflow syntax or execution context, absent runnable CI, and failed commands block the local gate; hosted checks remain independently required at the exact commit SHA.",
+    "Every verification command, executable, script, and contained cwd is validated before any command runs; execution uses argv without a shell.",
+    "Legacy verification strings retain root cwd; exact cwd/command objects permit only normalized physically contained directories.",
+    "Merge-policy bypass requires an explicit approved marker, matching readback, and confirmation token; missing, malformed, conflicting or rejected verdicts fail closed.",
+    "An explicitly authorized ordinary merge uses normal host policy after exact-head CI and review gates; it never fabricates bypass evidence.",
+    "Regression tests, final local validation, independent review, and hosted CI are recorded before delivery; no readiness or approval is inferred from this document."
+  ],
+  "scope": [
+    "04-validate-handoff/autobahn/ci-gate.sh",
+    "04-validate-handoff/autobahn/local-ci.sh",
+    "04-validate-handoff/autobahn/run-gates.sh",
+    "04-validate-handoff/autobahn/merge-authority.sh",
+    "04-validate-handoff/autobahn/SKILL.md",
+    "04-validate-handoff/autobahn/modules/ci-gate.md",
+    "04-validate-handoff/autobahn/modules/merge-authority.md",
+    "04-validate-handoff/autobahn/modules/orchestration.md",
+    "tests/autobahn_ci_gate_test.sh",
+    "tests/autobahn_local_ci_test.sh",
+    "tests/autobahn_merge_authority_test.sh",
+    "tests/autobahn_run_gates_test.sh",
+    ".ai/skills/catalog-audit.json",
+    ".ai/handoff/autobahn-goals/autobahn-fail-closed-gates.json",
+    ".ai/work-intake/autobahn-fail-closed-gates.md",
+    "docs/specifications/ACTIVE/autobahn-fail-closed-gates.md",
+    ".ai/evidence/autobahn-fail-closed-gates.json"
+  ],
+  "verification": [
+    "bash tests/autobahn_ci_gate_test.sh",
+    "bash tests/autobahn_local_ci_test.sh",
+    "bash tests/autobahn_merge_authority_test.sh",
+    "bash tests/autobahn_run_gates_test.sh",
+    "bash tests/run-tests.sh"
+  ],
+  "coverage_percent": 0,
+  "coverage_status": "unmeasured",
+  "legacy_safe_tdd": true,
+  "legacy_risk_reason": "Execution and merge authorization are security boundaries; preserve fail-closed behavior with adversarial regression fixtures.",
+  "state": "validation_pending",
+  "hosted_ci_status": "pending",
+  "coverage_basis": "Conservative zero policy input selects legacy-safe TDD; not a measured coverage result.",
+  "delivery_blockers": [
+    "Final stable-tree full local validation and exact-head hosted CI remain pending."
+  ]
+}

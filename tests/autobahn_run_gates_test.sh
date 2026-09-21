@@ -57,7 +57,7 @@ EVIDENCE="$REPO_ROOT/04-validate-handoff/autobahn/tdd-evidence.sh"
 green_repo() {
   local root; root="$(mktemp -d)"
   mkdir -p "$root/.github/workflows" "$root/tests"
-  printf 'jobs:\n  t:\n    steps:\n      - run: npm test\n' > "$root/.github/workflows/ci.yml"
+  printf 'jobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: bash tests/goal_test.sh\n' > "$root/.github/workflows/ci.yml"
   printf '#!/bin/sh\nexit 0\n' > "$root/tests/goal_test.sh"
   chmod +x "$root/tests/goal_test.sh"
   python3 - "$root/goal.json" <<'PY'
@@ -91,6 +91,17 @@ for gate in tdd-evidence lint-gate ci-gate; do
     bad "the driver reports running $gate"
   fi
 done
+rm -rf "$root"
+
+# A failing local CI command must execute and block even when goal checks pass.
+root="$(green_repo)"
+printf '#!/bin/sh\nexit 1\n' > "$root/tests/failing_ci.sh"
+printf 'jobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: bash tests/failing_ci.sh\n' > "$root/.github/workflows/ci.yml"
+if rc "$root" --phase pre-merge; then
+  bad "a failing workflow command blocks pre-merge"
+else
+  ok "a failing workflow command blocks pre-merge"
+fi
 rm -rf "$root"
 
 # --- a blocking gate blocks the driver --------------------------------------

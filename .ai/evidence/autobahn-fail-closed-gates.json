@@ -1,0 +1,166 @@
+{
+  "goal_id": "autobahn-fail-closed-gates",
+  "status": "local_validation_passed",
+  "basis": "Observed regression failures and final stable-tree local validation; independent review confirmed the focused results. This record does not attest hosted CI or a committed head.",
+  "red": {
+    "provenance": "Implementation-session command output captured before the corresponding fixes; assertion totals are preserved separately from shell exit status.",
+    "checks": [
+      {
+        "command": "bash tests/autobahn_merge_authority_test.sh",
+        "passed": 11,
+        "failed": 4,
+        "exit_code": null,
+        "finding": "Blocked, unauthorized, unknown, or absent approval markers were accepted.",
+        "exit_note": "Original exit status was not retained."
+      },
+      {
+        "command": "bash tests/autobahn_run_gates_test.sh",
+        "passed": 17,
+        "failed": 1,
+        "exit_code": null,
+        "finding": "A failing workflow command did not block the pre-merge gate.",
+        "exit_note": "Original exit status was not retained."
+      },
+      {
+        "command": "bash tests/autobahn_merge_authority_test.sh | tail -5",
+        "passed": 20,
+        "failed": 4,
+        "pipeline_exit_code": 0,
+        "test_exit_code": null,
+        "finding": "Absent or falsy marker values inherited an approved status alias."
+      },
+      {
+        "command": "bash tests/autobahn_local_ci_test.sh | tail -9",
+        "passed": 82,
+        "failed": 6,
+        "pipeline_exit_code": 0,
+        "test_exit_code": null,
+        "finding": "Malformed block indentation, sequence spacing, event headers, and duplicate job spellings were accepted."
+      }
+    ],
+    "pipeline_note": "The tail pipelines returned zero despite failed assertions; zero is not claimed as a passing test exit."
+  },
+  "green": {
+    "provenance": "Final full aggregate run on a byte-identical temporary snapshot with copied Git metadata, outside the runtime directory excluded by skill discovery. Source and snapshot SHA256 manifests were unchanged throughout validation; only this evidence record was updated afterward.",
+    "focused_checks": [
+      {
+        "command": "bash tests/autobahn_local_ci_test.sh",
+        "passed": 88,
+        "failed": 0
+      },
+      {
+        "command": "bash tests/autobahn_ci_gate_test.sh",
+        "passed": 129,
+        "failed": 0
+      },
+      {
+        "command": "bash tests/autobahn_run_gates_test.sh",
+        "passed": 18,
+        "failed": 0
+      },
+      {
+        "command": "bash tests/autobahn_merge_authority_test.sh",
+        "passed": 24,
+        "failed": 0
+      }
+    ],
+    "additional_checks": [
+      {
+        "command": "npm_config_offline=true bash tests/test-scripts.sh",
+        "exit_code": 0,
+        "passed": 166,
+        "failed": 0,
+        "skipped": 0,
+        "scripts_syntax_checked": 38,
+        "note": "Final stable-tree result from the full aggregate runner, which invokes this suite."
+      },
+      {
+        "command": "bash tests/test-skills.sh",
+        "exit_code": 0,
+        "passed": 180,
+        "failed": 0,
+        "warnings": 0,
+        "skipped": 0,
+        "note": "Final stable-tree result from the full aggregate runner on the identical snapshot with Git metadata."
+      },
+      {
+        "command": "npm_config_offline=true prek run --all-files",
+        "exit_code": 0,
+        "result": "All applicable hooks passed; the template hook skipped because no matching files were present.",
+        "note": "Rerun once on the stable source tree; exit zero. Source hashes remained unchanged."
+      },
+      {
+        "command": "python3 scripts/validate-skill-catalog.py",
+        "exit_code": 0,
+        "skills_validated": 38
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0
+      }
+    ],
+    "stable_snapshot": {
+      "file_count": 567,
+      "manifest_algorithm": "SHA256 of compact, key-sorted JSON mapping repository-relative paths to SHA256 file digests",
+      "manifest_digest": "007d1d805a89d135f4fa4822db5876df6d4ea521e38d5d7099b227d1ab9efba4",
+      "source_and_snapshot_unchanged_after_tests": true,
+      "includes_evidence_before_this_update": true
+    },
+    "aggregate_check": {
+      "command": "npm_config_offline=true bash tests/run-tests.sh",
+      "exit_code": 0,
+      "passed_suites": 2,
+      "failed_suites": 0,
+      "result": "OVERALL: PASSED",
+      "shell": {
+        "passed": 166,
+        "failed": 0,
+        "skipped": 0,
+        "scripts_syntax_checked": 38
+      },
+      "skills": {
+        "passed": 180,
+        "failed": 0,
+        "warnings": 0,
+        "skipped": 0
+      }
+    },
+    "setup_retry": {
+      "initial_exit_code": 1,
+      "initial_shell": {
+        "passed": 164,
+        "failed": 2
+      },
+      "initial_skills": {
+        "passed": 180,
+        "failed": 0
+      },
+      "cause": "Temporary snapshot lacked Git metadata required by an existing unit suite. Copied repository Git metadata into the snapshot and reran the complete aggregate successfully without changing source files."
+    }
+  },
+  "coverage": {
+    "status": "not_measured",
+    "percent": null
+  },
+  "independent_review": {
+    "status": "approved",
+    "basis": "Independent reviewer and delivery coordinator confirmed the final focused totals: local CI 88, verification 129, driver 18, merge authority 24; all passed. Architectural review approved the bounded repair and normal-merge versus bypass separation.",
+    "adversarial_validation": {
+      "blocked_fixtures": 14,
+      "executing_positive_controls": 4
+    }
+  },
+  "hosted_ci": {
+    "status": "pending",
+    "commit_sha": null
+  },
+  "merge_approval": {
+    "status": "not_recorded"
+  },
+  "limitations": [
+    "Parser intentionally supports a bounded literal CI subset and blocks unsupported workflows.",
+    "Local execution is supporting evidence; hosted checks remain separate and must match the final commit.",
+    "Coverage was not measured. No standalone typecheck or compiled build result is claimed.",
+    "Skill discovery excludes runtime directories; the complete aggregate suite was therefore run on a byte-identical temporary snapshot outside that directory, including copied Git metadata."
+  ]
+}
