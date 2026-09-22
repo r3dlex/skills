@@ -63,6 +63,7 @@
   "hosted_ci_status": "pending",
   "coverage_basis": "Conservative zero policy input selects legacy-safe TDD; not a measured coverage result.",
   "delivery_blockers": [
+    "Bundled pre-merge local CI gate rejects this repository\u2019s unsupported workflow syntax. Passing explicit test suites and hosted checks do not override that gate; automatic merge remains blocked.",
     "Exact-head hosted CI after the test portability fix remains pending.",
     "Required GitHub approval remains outstanding."
   ]
