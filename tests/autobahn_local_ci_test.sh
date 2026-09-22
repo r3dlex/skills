@@ -96,8 +96,7 @@ cat > "$r/tests/mode.sh" <<'SH'
 #!/bin/sh
 set -- "$TMPDIR"/autobahn-local-ci.*
 [ -f "$1" ] || exit 1
-mode="$(stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1")"
-[ "$mode" = 600 ]
+python3 -c 'import os, stat, sys; sys.exit(stat.S_IMODE(os.stat(sys.argv[1]).st_mode) != 0o600)' "$1"
 SH
 chmod +x "$r/tests/mode.sh"
 if TMPDIR="$r/tmp" bash "$LOCAL_CI" --root "$r" >/dev/null 2>&1; then ok "temporary verification record is mode 0600"; else bad "temporary verification record is mode 0600"; fi

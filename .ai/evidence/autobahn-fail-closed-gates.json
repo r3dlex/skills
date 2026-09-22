@@ -38,7 +38,10 @@
         "finding": "Malformed block indentation, sequence spacing, event headers, and duplicate job spellings were accepted."
       }
     ],
-    "pipeline_note": "The tail pipelines returned zero despite failed assertions; zero is not claimed as a passing test exit."
+    "pipeline_note": "The tail pipelines returned zero despite failed assertions; zero is not claimed as a passing test exit.",
+    "command": "PATH=\"$PWD/test-bin:$PATH\" bash tests/autobahn_local_ci_test.sh",
+    "exit_code": 1,
+    "command_provenance": "Observed portability followup in an isolated temporary snapshot with the recorded GNU-stat behavior emulator; red ran before green. Historical primary-regression details remain separately recorded."
   },
   "green": {
     "provenance": "Final full aggregate run on a byte-identical temporary snapshot with copied Git metadata, outside the runtime directory excluded by skill discovery. Source and snapshot SHA256 manifests were unchanged throughout validation; only this evidence record was updated afterward.",
@@ -136,7 +139,10 @@
         "failed": 0
       },
       "cause": "Temporary snapshot lacked Git metadata required by an existing unit suite. Copied repository Git metadata into the snapshot and reran the complete aggregate successfully without changing source files."
-    }
+    },
+    "command": "PATH=\"$PWD/test-bin:$PATH\" bash tests/autobahn_local_ci_test.sh",
+    "exit_code": 0,
+    "command_provenance": "Observed portability followup in an isolated temporary snapshot with the recorded GNU-stat behavior emulator; red ran before green. Historical primary-regression details remain separately recorded."
   },
   "coverage": {
     "status": "not_measured",
@@ -162,5 +168,63 @@
     "Local execution is supporting evidence; hosted checks remain separate and must match the final commit.",
     "Coverage was not measured. No standalone typecheck or compiled build result is claimed.",
     "Skill discovery excludes runtime directories; the complete aggregate suite was therefore run on a byte-identical temporary snapshot outside that directory, including copied Git metadata."
-  ]
+  ],
+  "portability_followup": {
+    "reason": "GNU stat can write filesystem information before the BSD-style invocation fails, contaminating the captured permission value. The test now uses the already-required Python standard library for permission bits.",
+    "changed_file": "tests/autobahn_local_ci_test.sh",
+    "red": {
+      "hosted_run_id": 35657791261,
+      "platform": "Linux",
+      "local_ci_suite": {
+        "passed": 87,
+        "failed": 1
+      },
+      "failed_assertion": "temporary verification record is mode 0600"
+    },
+    "green": [
+      {
+        "command": "bash tests/autobahn_local_ci_test.sh",
+        "exit_code": 0,
+        "passed": 88,
+        "failed": 0
+      },
+      {
+        "check": "Extracted permission-check fixture executed against temporary files",
+        "mode_0600_exit": 0,
+        "mode_0644_exit": 1,
+        "mode_0700_exit": 1
+      },
+      {
+        "command": "bash -n tests/autobahn_local_ci_test.sh",
+        "exit_code": 0
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0
+      }
+    ],
+    "limitations": [
+      "Earlier stable-snapshot aggregate results are historical and precede this test-only portability fix.",
+      "Linux hosted rerun remains required; local targeted validation ran on macOS."
+    ],
+    "reproduction": {
+      "command": "PATH=\"$PWD/test-bin:$PATH\" bash tests/autobahn_local_ci_test.sh",
+      "red_exit_code": 1,
+      "red_passed": 87,
+      "red_failed": 1,
+      "green_exit_code": 0,
+      "green_passed": 88,
+      "green_failed": 0,
+      "base_commit": "b8c9c8327365ffd8d1e9770b26fd107afd13eefd",
+      "steps": [
+        "Copy tests and 04-validate-handoff directories into an isolated temporary snapshot.",
+        "Write emulator_content to test-bin/stat and chmod 0755.",
+        "Restore tests/autobahn_local_ci_test.sh from base_commit and run command: exit 1.",
+        "Replace only that test file with the portable permission-check version and run the same command: exit 0."
+      ],
+      "emulator_content": "#!/bin/sh\ncase \"$1\" in\n  -f) printf '  File: record\n    Type: filesystem\n'; exit 1 ;;\n  -c) printf '600\\n'; exit 0 ;;\n  *) exec /usr/bin/stat \"$@\" ;;\nesac\n",
+      "emulator_sha256": "072a01864a0bc20c3852b2bebf63f4dc63778fad239c179e8a856e392a851583",
+      "emulator_scope": "Models the relevant GNU stat behavior: -f emits filesystem output before failure and the fallback -c prints 600. Other invocations delegate to /usr/bin/stat. This is a controlled reproduction, not a native Linux run."
+    }
+  }
 }

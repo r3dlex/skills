@@ -63,6 +63,7 @@
   "hosted_ci_status": "pending",
   "coverage_basis": "Conservative zero policy input selects legacy-safe TDD; not a measured coverage result.",
   "delivery_blockers": [
-    "Final stable-tree full local validation and exact-head hosted CI remain pending."
+    "Exact-head hosted CI after the test portability fix remains pending.",
+    "Required GitHub approval remains outstanding."
   ]
 }
