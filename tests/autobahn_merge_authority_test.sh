@@ -188,6 +188,60 @@ else
   bad "committed host-policy verdict fixture exists ($COMMITTED_VERDICT)"
 fi
 
+# Mode and a token alone are not an approved policy outcome.
+for marker in apply-blocked-no-confirmation unauthorized unknown ''; do
+  python3 - "$tmp/not-approved.json" "$marker" <<'JSON'
+import json, sys
+json.dump({'mode': 'apply', 'confirmation_token': 'opaque', 'marker': sys.argv[2]}, open(sys.argv[1], 'w'))
+JSON
+  if [[ "$(run "$tmp/not-approved.json")" -ne 0 ]]; then
+    ok "unapproved marker '$marker' cannot merge with an apply token"
+  else
+    bad "unapproved marker '$marker' cannot merge with an apply token"
+  fi
+done
+
 echo ""
+for scenario in missing-readback mismatched-readback conflicting-status delimiter-marker; do
+  python3 - "$tmp/approved.json" "$tmp/malformed.json" "$scenario" <<'PYTEST'
+import json, sys
+v = json.load(open(sys.argv[1]))
+case = sys.argv[3]
+if case == 'missing-readback': v.pop('readback_status')
+if case == 'mismatched-readback': v['readback_status'] = 'mismatch'
+if case == 'conflicting-status': v['status'] = 'apply-rejected-policy'
+if case == 'delimiter-marker': v['marker'] += '|apply-rejected-policy'
+json.dump(v, open(sys.argv[2], 'w'))
+PYTEST
+  if [[ "$(run "$tmp/malformed.json")" -ne 0 ]]; then
+    ok "$scenario cannot merge"
+  else
+    bad "$scenario cannot merge"
+  fi
+done
+
+printf '%s\n' '{"mode":"apply|yes|host-supported-bypass","marker":"apply-blocked-no-confirmation"}' > "$tmp/injected.json"
+if [[ "$(run "$tmp/injected.json")" -ne 0 ]]; then
+  ok "mode delimiter injection cannot fabricate token or approval"
+else
+  bad "mode delimiter injection cannot fabricate token or approval"
+fi
+
+for marker_json in absent false null '[]'; do
+  python3 - "$tmp/approved.json" "$tmp/malformed.json" "$marker_json" <<'PYTEST'
+import json, sys
+v = json.load(open(sys.argv[1]))
+v['status'] = 'host-supported-bypass'
+if sys.argv[3] == 'absent': v.pop('marker')
+else: v['marker'] = json.loads(sys.argv[3])
+json.dump(v, open(sys.argv[2], 'w'))
+PYTEST
+  if [[ "$(run "$tmp/malformed.json")" -ne 0 ]]; then
+    ok "$marker_json marker cannot inherit status approval"
+  else
+    bad "$marker_json marker cannot inherit status approval"
+  fi
+done
+
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

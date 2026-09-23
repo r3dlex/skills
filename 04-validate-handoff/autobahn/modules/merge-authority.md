@@ -4,6 +4,20 @@ Read when deciding whether a goal's PR may merge. `merge-authority.sh` is a
 **thin adapter** over the ai-catapult-init host-policy decision. It re-encodes none of
 host-policy's rules.
 
+## Ordinary merge and policy bypass
+
+An explicit user instruction to merge when checks pass authorizes an ordinary
+host merge after reviewer approval, resolved comments, and current exact-head
+local and remote checks. Use the normal merge API without admin/bypass flags;
+recheck the PR head and host state immediately before merging. This does not
+authorize changes to branch protection or other host policy.
+
+The strict adapter below gates policy-application or supported-bypass verdicts.
+An ordinary authorized merge does not need a fabricated bypass verdict or token.
+If host policy blocks the normal merge, stop that path; never turn ordinary merge
+authorization into bypass approval. Policy changes and bypass retain the explicit
+host-policy authorization and readback requirements below.
+
 ## What the adapter does NOT own
 
 These are owned by `ai-catapult-init/modules/host-policy-automation.md` and must NOT
@@ -15,7 +29,7 @@ be re-encoded in the adapter:
   (`apply-blocked-no-confirmation`, `apply-rejected-non-admin`,
   `apply-rejected-dry-run-mismatch`).
 
-The adapter **invokes the host-policy decision**, reads back its verdict +
+The adapter **consumes the host-policy decision**, reads its verdict +
 `confirmation_token` verbatim, and decides nothing about policy itself.
 
 ## What the adapter DOES own
@@ -25,7 +39,7 @@ action:
 
 | Host-policy verdict | Token | Adapter decision | Exit |
 | --- | --- | --- | --- |
-| `mode: apply` (approved) | valid, present | **merge** | 0 |
+| `mode: apply`, `marker: host-supported-bypass`, `readback_status: match`, no conflicting `status` | opaque, present | **merge** | 0 |
 | default / unauthorized / `mode: blocked` / non-admin | any | **ready-for-human**, no merge | non-zero |
 | approved-shape but policy rejects (e.g. `apply-rejected-*`) | present | **fail closed**, no merge | non-zero |
 
@@ -44,7 +58,7 @@ review/CI gate.
 
 The adapter takes a **pre-normalized host-policy verdict object** and emits the
 merge/ready-for-human/fail-closed outcome. The normalized shape is top-level
-`mode` + `confirmation_token` + outcome `marker`. Normalizing the host-policy
+`mode` + `confirmation_token` + outcome `marker` + `readback_status`. Normalizing the host-policy
 decision into this object — in particular projecting the host-policy audit line's
 `apply_results[].status` and the `apply-rejected-*`/`apply-blocked-*` markers
 (owned by `ai-catapult-init/modules/host-policy-automation.md`) onto the top-level

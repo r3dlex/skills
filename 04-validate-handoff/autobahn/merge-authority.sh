@@ -13,7 +13,7 @@
 # the same shape it writes to .ai/host-policy/<host>/audit.jsonl) verbatim, and
 # wraps ONLY the fail-closed exit-code contract that maps a verdict to a merge:
 #
-#   host-policy "mode": apply (approved) + token present -> merge          (exit 0)
+#   explicit approved apply + matching readback + token -> merge         (exit 0)
 #   default / blocked / unauthorized / non-admin verdict -> ready-for-human (exit 3)
 #   approved-shape but policy rejects (apply-rejected-*)  -> fail closed     (exit 4)
 #
@@ -68,23 +68,37 @@ try:
     v = json.load(open(sys.argv[1]))
 except Exception:
     print("PARSE_ERROR|-|-"); sys.exit(0)
+if not isinstance(v, dict):
+    print("PARSE_ERROR|-|-"); sys.exit(0)
 mode = v.get("mode", "") or "-"
 # host-policy emits the token itself; we only note presence, never re-validate it.
 token = v.get("confirmation_token")
 has_token = "yes" if (isinstance(token, str) and token != "") else "no"
 # outcome marker emitted by host-policy; rejection markers begin apply-rejected-.
-marker = v.get("marker") or v.get("status") or "-"
-# Pipe-delimited so a marker containing whitespace survives intact (a space-split
-# marker could lose its apply-rejected- prefix and merge in the UNSAFE direction).
-print("|".join([str(mode), has_token, str(marker)]))
+marker = v.get("marker")
+# Transport only normalized outcomes, never delimiter-bearing caller strings.
+if not isinstance(mode, str) or mode != "apply":
+    mode = "other"
+if not isinstance(marker, str):
+    marker = "invalid"
+elif "reject" in marker:
+    marker = "apply-rejected-policy"
+elif marker != "host-supported-bypass":
+    marker = "unapproved"
+status = v.get("status")
+if marker == "host-supported-bypass" and (
+    v.get("readback_status") != "match"
+    or (status is not None and status != marker)
+):
+    marker = "unapproved"
+print("|".join([mode, has_token, marker]))
 '
 if ! verdict_fields="$(python3 -c "$_reader" "$VERDICT")"; then
   echo "fail-closed: could not evaluate host-policy verdict '$VERDICT' (reader failed); not merging" >&2
   exit 4
 fi
 # Split on '|' (not whitespace) without `read <<<`, whose here-string also needs a
-# writable TMPDIR under bash 3.2. Restoring IFS afterward keeps marker intact even
-# if it contains spaces, so a malformed marker can never be truncated into a merge.
+# writable TMPDIR under bash 3.2. Only fixed normalized values reach this split.
 _saved_ifs="$IFS"
 IFS='|'
 # shellcheck disable=SC2086
@@ -108,8 +122,8 @@ case "$marker" in
     ;;
 esac
 
-# Approved path: host-policy's own verdict is mode=apply AND it minted a token.
-if [[ "$mode" == "apply" && "$has_token" == "yes" ]]; then
+# Approved path: explicit approved outcome, matching readback, and minted token.
+if [[ "$mode" == "apply" && "$has_token" == "yes" && "$marker" == "host-supported-bypass" ]]; then
   echo "merge: host-policy authorized the apply (mode=apply, token present); merging"
   exit 0
 fi

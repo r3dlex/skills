@@ -392,8 +392,243 @@ for legit in "bash tests/ok.sh"; do
   fi
 done
 
-# `python3 -m pytest` / `-m unittest` must remain allowed as PREFIXES even though
-# the bare `python3 -m` prefix is gone.
+# Legacy string entries keep their owning-root cwd and execution behavior.
+printf '#!/bin/sh\ntest "$PWD" = "$1"\n' > "$root/tests/root-cwd.sh"
+chmod +x "$root/tests/root-cwd.sh"
+root_physical="$(cd "$root" && pwd -P)"
+goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps(["bash tests/root-cwd.sh " + sys.argv[1]]))' "$root_physical")"
+if verify_rc "$root" "$record"; then
+  ok "legacy string verification entries still run at the owning root"
+else
+  bad "legacy string verification entries still run at the owning root"
+fi
+
+# Exact {cwd,command} entries let a monorepo run the same narrow grammar from a
+# contained package directory.
+mkdir -p "$root/apps/web/tests"
+printf '#!/bin/sh\ntouch nested-ran\n' > "$root/apps/web/tests/nested.sh"
+chmod +x "$root/apps/web/tests/nested.sh"
+goal_record "$record" '[{"cwd":"apps/web","command":"bash tests/nested.sh"}]'
+if verify_rc "$root" "$record" && [[ -f "$root/apps/web/nested-ran" ]]; then
+  ok "an exact verification object executes in its nested cwd"
+else
+  bad "an exact verification object executes in its nested cwd"
+fi
+
+# cwd is data, not an alternate escape path. Reject syntactic traversal,
+# absolute paths, missing directories, and physical symlink escapes.
+outside="$(mktemp -d)"; mkdir -p "$outside/tests"
+printf '#!/bin/sh\nexit 0\n' > "$outside/tests/out.sh"; chmod +x "$outside/tests/out.sh"
+ln -s "$outside" "$root/escape"
+for entry in \
+  '{"cwd":"apps/../web","command":"bash tests/nested.sh"}' \
+  '{"cwd":"apps//web","command":"bash tests/nested.sh"}' \
+  '{"cwd":"apps/./web","command":"bash tests/nested.sh"}' \
+  '{"cwd":"apps/web/","command":"bash tests/nested.sh"}' \
+  '{"cwd":"apps\\web","command":"bash tests/nested.sh"}' \
+  "{\"cwd\":\"$outside\",\"command\":\"bash tests/out.sh\"}" \
+  '{"cwd":"missing","command":"bash tests/nope.sh"}' \
+  '{"cwd":"escape","command":"bash tests/out.sh"}'; do
+  goal_record "$record" "[$entry]"
+  if verify_rc "$root" "$record"; then
+    bad "an unsafe verification cwd is refused: $entry"
+  else
+    ok "an unsafe verification cwd is refused: $entry"
+  fi
+done
+
+ln -s "$outside/tests/out.sh" "$root/tests/escaped-link.sh"
+goal_record "$record" '["bash tests/escaped-link.sh"]'
+if verify_rc "$root" "$record"; then
+  bad "a verification script symlink escape is refused"
+else
+  ok "a verification script symlink escape is refused"
+fi
+rm -rf "$outside"
+
+# Objects are deliberately exact: no inferred cwd, command, or extra policy
+# knobs can enter through an implementation-ready record.
+for entry in \
+  '{"cwd":"apps/web"}' \
+  '{"command":"bash tests/nested.sh"}' \
+  '{"cwd":"apps/web","command":"bash tests/nested.sh","shell":true}' \
+  '{"cwd":"apps/web","command":["bash","tests/nested.sh"]}'; do
+  goal_record "$record" "[$entry]"
+  if verify_rc "$root" "$record"; then
+    bad "a malformed verification object is refused: $entry"
+  else
+    ok "a malformed verification object is refused: $entry"
+  fi
+done
+
+# Prevalidation is all-before-any: a safe first entry must not run when a later
+# entry is malformed or unsafe.
+printf '#!/bin/sh\ntouch should-not-exist\n' > "$root/tests/mark.sh"; chmod +x "$root/tests/mark.sh"
+rm -f "$root/should-not-exist"
+goal_record "$record" '["bash tests/mark.sh",{"cwd":".","command":"rm -rf /"}]'
+if verify_rc "$root" "$record" || [[ -e "$root/should-not-exist" ]]; then
+  bad "an unsafe later entry prevents every verification command from running"
+else
+  ok "an unsafe later entry prevents every verification command from running"
+fi
+
+for unsafe_json in \
+  '["bash tests/mark.sh",{"cwd":".","command":"npm test\u0000later"}]' \
+  '["bash tests/mark.sh",{"cwd":".","command":"npm test\rsecond"}]' \
+  '["bash tests/mark.sh",{"cwd":".","command":"npm test\t--watch"}]' \
+  '["bash tests/mark.sh",{"cwd":".","command":"npm test\u007f"}]' \
+  '["bash tests/mark.sh",{"cwd":"apps/\u0001web","command":"bash tests/nested.sh"}]' \
+  '["bash tests/mark.sh",{"cwd":"apps/web\t","command":"bash tests/nested.sh"}]'; do
+  rm -f "$root/should-not-exist"
+  goal_record "$record" "$unsafe_json"
+  if verify_rc "$root" "$record" || [[ -e "$root/should-not-exist" ]]; then
+    bad "ASCII controls in a later entry prevent all execution"
+  else
+    ok "ASCII controls in a later entry prevent all execution"
+  fi
+done
+
+rm -f "$root/should-not-exist"
+goal_record "$record" '["bash tests/mark.sh","mix test"]'
+if PATH="/usr/bin:/bin" verify_rc "$root" "$record" || [[ -e "$root/should-not-exist" ]]; then
+  bad "a missing later executable prevents all execution"
+else
+  ok "a missing later executable prevents all execution"
+fi
+
+# argv execution must not invoke a shell. An unquoted glob is passed literally
+# to the test script even when a matching file exists in the cwd.
+printf '#!/bin/sh\ntest "$1" = "*.txt"\n' > "$root/tests/literal-argv.sh"
+chmod +x "$root/tests/literal-argv.sh"; touch "$root/expanded.txt"
+goal_record "$record" '["bash tests/literal-argv.sh *.txt"]'
+if verify_rc "$root" "$record"; then
+  ok "verification argv is executed without shell expansion"
+else
+  bad "verification argv is executed without shell expansion"
+fi
+
+# The additional ecosystem surface is an exact reviewed grammar, not a broad
+# tool prefix. Fake binaries make admission observable without installing or
+# invoking any package manager.
+mkdir -p "$root/fakebin" "$root/scripts"
+for tool in mix cargo poetry git docker npm moon; do
+  printf '#!/bin/sh\nexit 0\n' > "$root/fakebin/$tool"
+  chmod +x "$root/fakebin/$tool"
+done
+for script in archgate.sh check-put-tenant-prefix-allowlist.sh; do
+  printf '#!/bin/sh\nexit 0\n' > "$root/scripts/$script"
+  chmod +x "$root/scripts/$script"
+done
+for script in validate-obra-coverage-roadmap.py validate-cross-repo-regression-fixtures.py; do
+  printf 'raise SystemExit(0)\n' > "$root/scripts/$script"
+done
+allowed_stack_commands=(
+  "npm run test"
+  "npm run lint"
+  "moon run skills:ci"
+  "moon run skills:test-ci-adapters"
+  "git diff --check"
+  "docker compose config"
+  "bash scripts/archgate.sh --mode structural --rules .rules.ts --format json"
+  "bash scripts/check-put-tenant-prefix-allowlist.sh"
+  "python3 scripts/validate-obra-coverage-roadmap.py"
+  "python3 scripts/validate-cross-repo-regression-fixtures.py"
+  "mix compile --warnings-as-errors"
+  "mix coveralls"
+  "mix credo --strict"
+  "mix dialyzer"
+  "mix format --check-formatted"
+  "mix test"
+  "mix test --warnings-as-errors"
+  "cargo clippy --all-targets --all-features -- -D warnings"
+  "cargo fmt --check"
+  "cargo llvm-cov --all-features --summary-only --ignore-filename-regex 'src/bin/xtask.rs' --fail-under-lines 95 --fail-under-functions 95 --fail-under-regions 95"
+  "cargo run --bin xtask -- fixtures verify"
+  "cargo test --all-features"
+  "poetry run pipeline-runner archgate"
+  "poetry run pipeline-runner check"
+  "poetry run pipeline-runner lint"
+  "poetry run pipeline-runner spec-check"
+  "poetry run pipeline-runner test"
+  "poetry run pytest"
+  "poetry run pytest -v --cov=solera_ai --cov-report=term-missing --cov-fail-under=80"
+  "poetry run ruff check ."
+)
+for command in "${allowed_stack_commands[@]}"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$command")"
+  if PATH="$root/fakebin:$PATH" verify_rc "$root" "$record"; then
+    ok "reviewed stack verification form is admitted: $command"
+  else
+    bad "reviewed stack verification form is admitted: $command"
+  fi
+done
+
+for command in \
+  "mix ecto.drop" \
+  "mix do test, run evil.exs" \
+  "cargo install cargo-nextest" \
+  "cargo run --bin other" \
+  "poetry install" \
+  "poetry run python arbitrary.py" \
+  "poetry run pip install example"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$command")"
+  if PATH="$root/fakebin:$PATH" verify_rc "$root" "$record"; then
+    bad "an unreviewed stack verb is refused: $command"
+  else
+    ok "an unreviewed stack verb is refused: $command"
+  fi
+done
+
+for command in \
+  "npm run deploy" \
+  "npm run release:staging" \
+  "npm run publish-package" \
+  "moon run deploy" \
+  "moon run app:release" \
+  "moon run package:publish"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$command")"
+  if PATH="$root/fakebin:$PATH" verify_rc "$root" "$record"; then
+    bad "a delivery target is refused: $command"
+  else
+    ok "a delivery target is refused: $command"
+  fi
+done
+
+# Test-oriented prefixes must not admit arbitrary external code/config paths or
+# extra runtime/plugin arguments. Prevalidation remains all-before-any: the
+# safe marker must not run when any later entry uses one of these escapes.
+for command in \
+  "pytest /tmp/evil_test.py" \
+  "python3 -m pytest /tmp/evil_test.py" \
+  "python3 -m unittest discover -s /tmp" \
+  "prek run --config /tmp/evil.yaml" \
+  "npm test --prefix /tmp/evil" \
+  "npm run test -- --config /tmp/evil.js" \
+  "moon run test -- --config /tmp/evil.yml"; do
+  rm -f "$root/should-not-exist"
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps(["bash tests/mark.sh", sys.argv[1]]))' "$command")"
+  if verify_rc "$root" "$record" || [[ -e "$root/should-not-exist" ]]; then
+    bad "an external target or extra runtime argument is refused before execution: $command"
+  else
+    ok "an external target or extra runtime argument is refused before execution: $command"
+  fi
+done
+
+for command in \
+  "git status" \
+  "docker compose up" \
+  "bash scripts/apply-branch-protection.sh" \
+  "python3 scripts/arbitrary.py"; do
+  goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$command")"
+  if PATH="$root/fakebin:$PATH" verify_rc "$root" "$record"; then
+    bad "an adjacent but unreviewed command is refused: $command"
+  else
+    ok "an adjacent but unreviewed command is refused: $command"
+  fi
+done
+
+# Reviewed exact `python3 -m pytest` / `-m unittest` forms remain allowed even
+# though arbitrary runner arguments are rejected.
 for form in "python3 -m pytest --version" "python3 -m unittest --help"; do
   goal_record "$record" "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$form")"
   if bash "$ABS" --verify --root "$root" --goal-record "$record" 2>&1 | grep -q "not allowlisted"; then
