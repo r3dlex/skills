@@ -60,3 +60,5 @@ the user to reply with a number.
 ```
 
 The marker on the construct line (or the line directly above it, with no blank line between) permits that single annotated occurrence; everything else must be unmarked and tool-agnostic.
+
+`scripts/check-opencode-parity.sh` enforces the same bar for the opencode surface with its own denylist (Claude/OMC constructs, `~/.claude` and `.claude-plugin` paths, `claude` CLI invocations) and the marker `<!-- opencode:optional -->`; the exemption rules are identical.

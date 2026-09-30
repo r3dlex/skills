@@ -33,7 +33,7 @@
     "using-git-worktrees.md": "34075fea892b5ceb7f51b392d76daa41381472d77620b4292b188a1d20e31ba1",
     "wayfinder.md": "7ab4d62559fd0fd0037cdbb74b664e7c0e25f00dc8c112ca823ae20b1595bfc1",
     "wizard.md": "657bef5390e27174748055359a17f3ca8158e2b4363ce820e758405fdaa1b6f6",
-    "write-a-skill.md": "54759c66e34c7bfdeb30f2d9360485301c7abad38c655de8afb6b2370a476c6e",
+    "write-a-skill.md": "41490975e3ab4614a33ae2c289526f443d7d417bf9b82981ceae757386935de6",
     "write-agent-docs.md": "fee6b92cd53dfd8ac8423c010e69aa962b738f6d5a7e4e35da4bd5cea3f6c393",
     "zoom-out.md": "bd2c02246b92ee4cf86410e6865431b607e7ba1295a25396275e6d4f6125827b"
   },
@@ -71,11 +71,11 @@
     "using-git-worktrees.md": "bf262ea1a089ae02099addca655d245377dc96996267948d8fe8f2e67d4ad5d1",
     "wayfinder.md": "94093e63b365293d32bb04b9584a9cf3eea1641fae4049c7d8ce50bc1a0f0f0f",
     "wizard.md": "894aac1bed72ebc69293d233b8e8ea097832db08797767890c8c79c56da6a81e",
-    "write-a-skill.md": "286a39eb0f12aac94d4295206689f2b460ab0b7032bb336bfc3cae8ffca5d43e",
+    "write-a-skill.md": "b290119291eafa27f031272cb16325a6c0a3b88db81600e5a34cb4c2b471972f",
     "write-agent-docs.md": "dd41bdb602ef7d4838be06e18ad1136606e639ad03653571f917a1a5e28d3c24",
     "zoom-out.md": "f18106eedb9f35852ffd24bf1881273097a1de6e2459e7930de59e65ce42184f"
   },
   "copilot": {
-    "copilot-instructions.md": "5ccb926d94c0e0db86c52ba34c480bbf3a2ee4868c294ea616c226ebaa9a08ee"
+    "copilot-instructions.md": "5c0bd4374ec4e4c16d7cd13f6506e622097332960f6c1fcdf6c60c205a4c9357"
   }
 }

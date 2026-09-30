@@ -412,7 +412,7 @@
       "path": "03-configure-generate/write-a-skill/SKILL.md",
       "description_chars": 153,
       "description_status": "target",
-      "body_lines": 58,
+      "body_lines": 60,
       "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,
