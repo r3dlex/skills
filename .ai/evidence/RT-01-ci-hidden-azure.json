@@ -1,0 +1,11 @@
+{
+  "goal_id": "RT-01-ci-hidden-azure",
+  "green": {
+    "command": "bash tests/local_ci_contract_test.sh",
+    "exit_code": 0
+  },
+  "red": {
+    "command": "bash tests/local_ci_contract_test.sh",
+    "exit_code": 1
+  }
+}

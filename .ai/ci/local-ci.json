@@ -1,0 +1,23 @@
+{
+  "schema": "local-ci/1",
+  "workflows": {
+    ".github/workflows/ci-prek.yml": "5a1a50e2886f18c7e65baf8b3be9a839041dfbbd48b90e3a3a150ee6173cf971",
+    ".github/workflows/ci.yml": "6d64dd203ef0d610ac23abfbcc190d113c63e2d76174c706cddbd3b56b459093",
+    ".github/workflows/gitguardian.yml": "d379bed21ef7ae56e36a09f93c36a180f3219227214ed399d27d8dd03952301a"
+  },
+  "sources": {
+    "tests/run-tests.sh": "88dbbab43bd958d545320497c7decaccb5974bb85ab325b0823c4ad7e6ba2f93",
+    "tests/test-scripts.sh": "cf6f872b5070e4f8bfe1dc3d4b69d269357ee8b50cb0b45979c58b9bc409d7ed",
+    "tests/test-skills.sh": "566222d433b7b77f64a971903e0b8283faffc157d0b96122ece244dc6fdd7d49",
+    "tests/local_lint.sh": "a49a9fa3806714f90c7ef3b4e52b902f40bb78aa57fc1e603c90b4f9f4d56415",
+    "tests/local_security_scan.sh": "43c0f4e4cc32b6609c1ba687a82171979c7b18e827a83882bb138db8548fbdc3",
+    "scripts/scan-secret-material.py": "32c6edb4b5bebab36d4b83ea934c7d0052cb06f055aa808de72f3dde3849d16e",
+    "scripts/validate-rules.sh": "d0cfc3fa258fabb12bf94247a84236af56f52371d161d7ce010c7198e1a005a1",
+    "prek.toml": "77cbffa31b0aebadcf238a00b919b7be313e0fa987c676ef8a8aeb9aa04dc1a9"
+  },
+  "verification": [
+    "bash tests/run-tests.sh",
+    "bash tests/local_lint.sh",
+    "bash tests/local_security_scan.sh"
+  ]
+}
