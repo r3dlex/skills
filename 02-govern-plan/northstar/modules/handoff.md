@@ -48,3 +48,7 @@ Legacy records require explicit migration using
 `autobahn/migrate-handoff.sh`; see [Autobahn readiness](../../../04-validate-handoff/autobahn/modules/readiness.md).
 Migration keeps original evidence and resets execution readiness to unknown.
 Publishing never supplies policy approval or execution authority.
+
+## Scoped readiness recovery
+
+After publication, run `autobahn/prereq-check.sh --root /repo --handoff <exact-id> --goal-id <id-1> --goal-id <id-2> --stage planning` with independently supplied `--context` when available. Repeat `--goal-id` for **every goal** in the published bundle, not only the first. Include all-stage `per_goal` findings and remaining blockers in the handoff response. A zero planning exit is structural planning success only. Preserve valid scoped approval receipts; unchanged full-file approvals still require their full-file digest.

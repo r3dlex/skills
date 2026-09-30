@@ -1,0 +1,43 @@
+{
+  "goal_id": "RT-02",
+  "red": {
+    "command": "bash tests/readiness_scoped_test.sh",
+    "exit_code": 1
+  },
+  "green": {
+    "command": "bash tests/readiness_scoped_test.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "red_source_commit": "1f147c84b4f8a7814aa716e52dd52c51e76c846b",
+    "red_method": "git archive of baseline into disposable directory; copy only the current scoped regression test and launcher; run identical test command",
+    "red_result": "29 tests; failures=5, errors=24 (baseline lacks scoped readiness APIs and behavior)",
+    "green_result": "29 tests passed",
+    "test_sha256": "5be00fb9efe34258c683c250f3c661649f6c1c1a68d7883b3cecbcdc55b49815",
+    "helper_sha256": "007eb7f23bf926d2e16614ddd2cafe3d0c8e235bda3661208213a557f52c8a4a",
+    "red_output_sha256": "5992c33fd49e74424b133cbad15c1385bff5cee196e1011470337483e445a64e",
+    "green_output_sha256": "ba31cd4f38103b69f991bc6409a628eb2e8c7576fec8c075174ed477450b2304"
+  },
+  "coverage": [
+    "all-stage planning with missing/malformed external context",
+    "canonical/flat and direct/handoff public-route equivalence",
+    "typed named ownership and exact branch target",
+    "nonexecuting executable fixture/tool/isolation checks",
+    "narrow approval reuse, scope borrowing, expiry and revocation",
+    "policy revision/source drift invalidation",
+    "full-file approval retains full-file binding",
+    "independent trust expected/actual diagnostics, samefile/spec/plan-anchor rejection",
+    "shared scoped gates and transitive revision-bound dependency completion",
+    "1200-deep dependency DAG without recursion",
+    "preparation completion cannot waive current feature fixture/trust gates",
+    "ready/not_applicable/blocked/unknown findings and remaining blockers",
+    "credential URL redaction across all emitted metadata",
+    "additive goal requirement preservation and missing-context dependent attribution"
+  ],
+  "boundaries": [
+    "Synthetic independent contexts only; tests do not establish live external provenance or dispatch authority",
+    "No fixture/product commands run during readiness evaluation",
+    "No global/cache/hosted or concrete consumer product changes",
+    "Final integrated full CI and gate evidence owned by leader after CI-contract cherry-pick"
+  ]
+}

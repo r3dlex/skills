@@ -13,6 +13,7 @@ import re
 import shutil
 import sys
 import tempfile
+from datetime import datetime, timezone
 
 from verification import validate as validate_commands, VerificationError
 
@@ -139,8 +140,23 @@ def bundle_shape(bundle, root):
     require(visited == len(ids), 'dependency_cycle')
 
 
+def redact(value):
+    if isinstance(value, str):
+        return re.sub(r'https?://[^\s]+', '[redacted-url]', value)
+    if isinstance(value, list):
+        return [redact(item) for item in value]
+    if isinstance(value, dict):
+        return {redact(key): redact(item) for key, item in value.items()}
+    return value
+
+
 def add(gaps, code, detail, scope, stage, status='blocked'):
-    gaps.append({'code': code, 'detail': detail, 'scope': scope, 'stage': stage, 'status': status})
+    # Diagnostics must never echo credential-bearing URLs from external evidence.
+    detail = re.sub(r'https?://[^\s]+', '[redacted-url]', str(detail))
+    gaps.append({'code': code, 'detail': detail, 'scope': scope, 'stage': stage, 'status': status,
+                 'responsible': 'unassigned', 'source': 'independent-context-and-repository-policy',
+                 'freshness': 'unavailable', 'evidence_refs': [],
+                 'recovery': 'Supply current independently verified evidence for this gate; rerun exact selection'})
 
 
 def coverage(goal, gaps, stage):
@@ -161,24 +177,228 @@ def coverage(goal, gaps, stage):
         add(gaps, 'legacy_risk_reason_required', 'High coverage legacy-safe override needs reason', [goal['id']], stage)
 
 
+def applies(scope, gid):
+    return scope == 'repository' or scope == {'repository': True} or (isinstance(scope, list) and gid in scope) or (isinstance(scope, dict) and gid in scope.get('goals', []))
+
+
+def goal_revision(bundle, gid):
+    goals = {g['id']: g for g in bundle['goals']}
+    require(isinstance(gid, str) and gid in goals, 'unknown_goal_revision_subject')
+    # Iterative postorder avoids recursion limits for validated deep DAGs.
+    revisions, pending = {}, [(gid, False)]
+    while pending:
+        current, expanded = pending.pop()
+        if current in revisions:
+            continue
+        goal = goals[current]
+        if not expanded:
+            pending.append((current, True))
+            pending.extend((dep, False) for dep in goal['dependencies'] if dep not in revisions)
+        else:
+            revisions[current] = canonical({'repository': bundle['repository'], 'plan_id': bundle['id'],
+                'spec': bundle['spec'], 'goal': goal,
+                'dependencies': {dep: revisions[dep] for dep in sorted(goal['dependencies'])}})
+    return revisions[gid]
+
+
+def dependency_complete(bundle, gid, receipts):
+    matches = [r for r in receipts if isinstance(r, dict) and r.get('goal') == gid]
+    if len(matches) != 1:
+        return False
+    receipt = matches[0]
+    try:
+        require(set(receipt) == {'goal', 'goal_sha256', 'status', 'issuer', 'evidence', 'observed_at', 'expires_at'}, 'completion_fields')
+        require(receipt['status'] == 'complete' and receipt['goal_sha256'] == goal_revision(bundle, gid), 'completion_revision')
+        provenance(receipt)
+        return True
+    except (Invalid, ValueError, TypeError):
+        return False
+
+
+def provenance(receipt):
+    require(string(receipt.get('issuer')) and isinstance(receipt.get('evidence'), list)
+            and receipt['evidence'] and all(string(x) for x in receipt['evidence']), 'evidence_provenance_required')
+    require(string(receipt.get('observed_at')) and string(receipt.get('expires_at')), 'evidence_freshness_required')
+    now = datetime.now(timezone.utc)
+    observed = datetime.fromisoformat(receipt.get('observed_at', '').replace('Z', '+00:00'))
+    expires = datetime.fromisoformat(receipt.get('expires_at', '').replace('Z', '+00:00'))
+    require(observed.tzinfo is not None and expires.tzinfo is not None and observed <= now < expires,
+            'evidence_expired_or_future')
+
+
+def gate_subject(bundle, gate, sources, policy):
+    # The exact gate (including declared source hashes) and governed goal revisions,
+    # not unrelated goals or their receipts. Full-file bindings remain full-file.
+    goals = [g['id'] for g in bundle['goals'] if applies(gate['scope'], g['id'])]
+    return canonical({'repository': bundle['repository'], 'plan_id': bundle['id'], 'gate': gate, 'policy_sources': sources, 'policy': policy,
+                      'goals': {gid: goal_revision(bundle, gid) for gid in sorted(goals)}})
+
+
+def typed_gate(root, bundle, gate, context):
+    binding, kind = gate['binding'], gate['kind']
+    fields = {'ownership': {'roles'}, 'branch_target': {'target', 'branch'},
+              'fixture': {'file', 'command', 'isolation', 'tool'}, 'tooling': {'tool'},
+              'protected_approval': {'subject'}, 'harness_trust': {'lock', 'anchor'}}
+    require(set(binding) == fields[kind], 'unsupported_typed_binding')
+    if kind == 'ownership':
+        require(isinstance(binding['roles'], list) and binding['roles'] and
+                set(binding['roles']) <= {'owner', 'reviewer'} and len(set(binding['roles'])) == len(binding['roles']), 'ownership_roles_required')
+    elif kind == 'branch_target':
+        require(all(string(binding[k]) and not re.search(r'\s|[;&|`$<>]', binding[k]) for k in ('target', 'branch')), 'target_branch_required')
+    elif kind == 'fixture':
+        require(isinstance(binding['file'], dict) and set(binding['file']) == {'path', 'sha256'}, 'fixture_file_ref_required')
+        file_ref(root, binding['file'])
+        require(binding['isolation'] in ('disposable-database', 'transaction-rollback', 'temporary-directory', 'container'), 'fixture_isolation_required')
+        require(isinstance(binding['command'], str), 'fixture_command_required')
+        validate_commands(root, [binding['command']])
+        path = relative(root, binding['file']['path'])
+        require(os.access(path, os.X_OK), 'fixture_not_executable')
+    elif kind == 'protected_approval':
+        subject = binding['subject']
+        require(isinstance(subject, dict) and subject.get('mode') in ('full-file', 'goal-scope'), 'approval_subject_required')
+        if subject['mode'] == 'full-file':
+            require(set(subject) == {'mode', 'file'}, 'approval_subject_fields')
+            require(isinstance(subject['file'], dict) and set(subject['file']) == {'path', 'sha256'}, 'approval_file_ref_required')
+            file_ref(root, subject['file'])
+        else:
+            require(set(subject) == {'mode', 'goal', 'goal_sha256'} and
+                    isinstance(subject['goal'], str) and subject['goal'] in {g['id'] for g in bundle['goals']} and
+                    applies(gate['scope'], subject['goal']) and
+                    subject['goal_sha256'] == goal_revision(bundle, subject['goal']), 'approval_goal_subject_mismatch')
+    elif kind == 'harness_trust':
+        # Independent anchor is a separately approved source, never the lock itself.
+        require(all(isinstance(binding[k], dict) and set(binding[k]) == {'path', 'sha256'} for k in ('lock', 'anchor')), 'trust_sources_required')
+        require(binding['lock'].get('path') != binding['anchor'].get('path'), 'trust_anchor_not_independent')
+        try:
+            file_ref(root, binding['lock'])
+            file_ref(root, binding['anchor'])
+        except (Invalid, OSError) as error:
+            raise Invalid('trust_source_unavailable:expected=unavailable:actual=unverified:independent_source=' + str(binding['anchor'].get('path')) + ':' + str(error)) from error
+        require(not os.path.samefile(relative(root, binding['lock']['path']), relative(root, binding['anchor']['path'])), 'trust_anchor_not_independent')
+        require(binding['anchor']['sha256'] != bundle['spec']['sha256'] and not os.path.samefile(relative(root, binding['anchor']['path']), relative(root, bundle['spec']['path'])), 'trust_anchor_is_plan_source')
+        require(binding['anchor'] in context['sources'], 'trust_anchor_not_independently_approved')
+        anchor_data = read(relative(root, binding['anchor']['path']))
+        require(isinstance(anchor_data, dict) and not ({'goals', 'bundle', 'readiness', 'planning_complete'} & set(anchor_data)), 'trust_anchor_is_plan_source')
+        require(set(anchor_data) == {'commit'}, 'unsupported_trust_anchor_shape')
+        expected = anchor_data.get('commit')
+        actual = read(relative(root, binding['lock']['path'])).get('commit')
+        require(isinstance(expected, str) and re.fullmatch(r'[a-f0-9]{40}', expected), 'trust_expected_commit_unavailable')
+        require(isinstance(actual, str) and re.fullmatch(r'[a-f0-9]{40}', actual), 'trust_actual_commit_unavailable')
+        require(expected == actual, 'trust_commit_mismatch:expected=' + expected + ':actual=' + actual + ':independent_source=' + binding['anchor']['path'])
+    if kind in ('fixture', 'tooling'):
+        tool = binding['tool']
+        require(string(tool) and re.fullmatch(r'[A-Za-z0-9_.+-]+', tool), 'tool_name_required')
+        require(shutil.which(tool) is not None, 'tool_unavailable:' + tool)
+    results = [r for r in context['results'] if r.get('gate') == gate['id']]
+    require(len(results) == 1, 'typed_evidence_missing_or_ambiguous')
+    receipt = results[0]
+    require(set(receipt) == {'gate', 'status', 'stage', 'scope', 'subject_sha256', 'issuer', 'evidence', 'observed_at', 'expires_at', 'value'}, 'typed_evidence_fields')
+    require(receipt['status'] == 'pass' and receipt['stage'] == gate['stage'] and receipt['scope'] == gate['scope']
+            and receipt['subject_sha256'] == gate_subject(bundle, gate, context['sources'], context['policy']), 'typed_evidence_subject_mismatch')
+    provenance(receipt)
+    value = receipt['value']
+    if kind == 'ownership':
+        require(isinstance(value, dict) and set(value) == set(binding['roles']) and
+                all(string(v) and v.strip().lower() not in ('tbd', 'unknown', 'unassigned', 'placeholder') for v in value.values()), 'named_ownership_required')
+    else:
+        require(value == binding, 'typed_observation_mismatch')
+
+
+def gate_dimensions(gate):
+    dimensions = {gate['dimension']} if 'dimension' in gate else set()
+    kind = gate.get('kind')
+    if kind == 'ownership':
+        roles = gate.get('binding', {}).get('roles', [])
+        dimensions |= {'owners' if role == 'owner' else 'reviewer' for role in roles if role in ('owner', 'reviewer')}
+    else:
+        dimension = {'branch_target': 'branch_target', 'fixture': 'fixtures', 'tooling': 'tooling',
+                     'protected_approval': 'registration_approval', 'harness_trust': 'harness_trust'}.get(kind)
+        if dimension:
+            dimensions.add(dimension)
+    return dimensions
+
+
 def gate_shape(gate):
     require(isinstance(gate, dict) and ID.fullmatch(gate.get('id', '')), 'gate_id_required')
     require(gate.get('stage') in STAGES and string(gate.get('kind')), 'unknown_gate_stage_or_kind')
-    allowed = {'id', 'stage', 'scope', 'kind', 'dimension'}
+    allowed = {'id', 'stage', 'scope', 'kind', 'dimension', 'responsible'}
     if gate['kind'] == 'file_digest':
         allowed |= {'path', 'sha256'}
     elif gate['kind'] == 'executable_presence':
         allowed |= {'path'}
+    elif gate['kind'] in ('ownership', 'branch_target', 'fixture', 'protected_approval', 'harness_trust', 'tooling'):
+        allowed |= {'binding'}
+        require(isinstance(gate.get('binding'), dict), 'typed_binding_required')
     require(set(gate) <= allowed, 'unsupported_gate_fields')
 
 
-def policy_admit(root, bundle, selected, context, stage, subject_hash):
+def scoped_findings(gaps, requested, ancestors):
+    # A currently failing prerequisite cannot be laundered by a cached completion.
+    # Only selected goals and their dependencies are evaluated; unrelated gates stay local.
+    visible = []
+    for gap in gaps:
+        affected = [gid for gid in sorted(requested) if applies(gap['scope'], gid) or
+                    any(applies(gap['scope'], dependency) for dependency in ancestors[gid])]
+        if affected:
+            gap['blocked_goals'] = affected
+            if gap['scope'] not in ('repository', {'repository': True}):
+                gap['scope'] = {'goals': affected}
+            visible.append(gap)
+    return visible
+
+
+def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=None):
     gaps = []
+    requested = set(selected)
+    edges = {g['id']: g['dependencies'] for g in bundle['goals']}
+    ancestors = {}
+    for gid in requested:
+        pending, seen = list(edges[gid]), set()
+        while pending:
+            dependency = pending.pop()
+            if dependency not in seen:
+                seen.add(dependency)
+                pending.extend(edges[dependency])
+        ancestors[gid] = seen
+    evaluated = requested | set().union(*ancestors.values())
+
+    additive_gates = []
+    for goal in bundle['goals']:
+        if goal['id'] not in evaluated:
+            continue
+        if goal['id'] in requested:
+            coverage(goal, gaps, stage)
+        if goal['id'] in requested and goal['readiness'][stage] != 'ready':
+            add(gaps, 'goal_not_ready', goal['readiness'][stage], [goal['id']], stage,
+                'unknown' if goal['readiness'][stage] == 'unknown' else 'blocked')
+        for dependency in goal['dependencies']:
+            if not dependency_complete(bundle, dependency, (context.get('completed_goals', []) if isinstance(context, dict) and isinstance(context.get('completed_goals', []), list) else [])):
+                add(gaps, 'dependency_incomplete', dependency, [goal['id']], stage)
+        try:
+            if goal['id'] in requested:
+                validate_commands(root, goal['verification'])
+        except (VerificationError, OSError) as error:
+            add(gaps, 'verification_invalid', str(error), [goal['id']], stage)
+        # Goal requirements are additive only. Unsupported predicates never pass.
+        requirements = goal.get('requirements', [])
+        if not isinstance(requirements, list):
+            add(gaps, 'goal_requirement_invalid', 'Expected requirement array', [goal['id']], stage)
+            continue
+        for gate in requirements:
+            if not isinstance(gate, dict) or not string(gate.get('id')) or not ID.fullmatch(gate['id']) or gate.get('stage') not in STAGES or not string(gate.get('kind')):
+                add(gaps, 'goal_requirement_invalid', 'Requires id, stage and typed kind', [goal['id']], stage)
+                continue
+            try:
+                gate_shape(gate)
+            except (Invalid, TypeError, AttributeError) as error:
+                add(gaps, 'goal_requirement_invalid', str(error), [goal['id']], stage)
+                continue
+            additive_gates.append(dict(gate, scope={'goals': [goal['id']]}))
     try:
         require(context.get('schema') == 'readiness-context/1', 'independent_context_required')
         require(set(context) <= {'schema', 'repository', 'policy', 'sources', 'authority', 'results', 'completed_goals', 'extensions'}, 'unsupported_context_fields')
         require(isinstance(context.get('results'), list) and all(isinstance(r, dict) for r in context['results']), 'invalid_independent_results')
-        require(isinstance(context.get('completed_goals'), list) and all(string(g) for g in context['completed_goals']), 'invalid_completed_goals')
+        require(isinstance(context.get('completed_goals'), list) and all(isinstance(g, dict) for g in context['completed_goals']), 'invalid_completed_goals')
         repository(context.get('repository'), root)
         require((root / POLICY).is_file(), 'unsupported_policy_source:' + POLICY)
         policy_path = relative(root, POLICY)
@@ -199,17 +419,13 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash):
         require(required_sources <= {x.get('path') for x in sources}, 'policy_source_set_incomplete')
         for source in sources:
             file_ref(root, source)
-        authority = context.get('authority', {})
-        require(isinstance(authority, dict) and set(authority) == {'status', 'stage', 'subject_sha256', 'issuer', 'goals'}, 'unsupported_authority_fields')
-        require(authority.get('status') == 'pass' and authority.get('stage') == stage
-                and authority.get('subject_sha256') == subject_hash and string(authority.get('issuer'))
-                and isinstance(authority.get('goals'), list) and set(selected) <= set(authority['goals']), 'independent_authority_required')
         gates = policy.get('gates')
         require(isinstance(gates, list), 'policy_gates_required')
         exclusions = policy.get('not_applicable')
         require(isinstance(exclusions, dict) and all(string(k) and string(v) for k, v in exclusions.items()), 'explicit_not_applicable_reasons_required')
-        require(DIMENSIONS <= set(exclusions) | {g.get('dimension') for g in gates if isinstance(g, dict)}, 'policy_dimensions_required')
-        require(not (set(exclusions) & {g.get('dimension') for g in gates if isinstance(g, dict)}), 'contradictory_policy_dimension')
+        covered = set().union(*(gate_dimensions(g) for g in gates if isinstance(g, dict)))
+        require(DIMENSIONS <= set(exclusions) | covered, 'policy_dimensions_required')
+        require(not (set(exclusions) & covered), 'contradictory_policy_dimension')
         all_ids = {g['id'] for g in bundle['goals']}
         gate_ids = []
         for gate in gates:
@@ -219,42 +435,33 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash):
             require(isinstance(scope, dict) and (scope == {'repository': True} or
                     (set(scope) == {'goals'} and isinstance(scope['goals'], list) and scope['goals']
                      and all(isinstance(g, str) and g in all_ids for g in scope['goals']))), 'explicit_gate_scope_required')
+        gates = [*gates, *additive_gates]
+        gate_ids = [g['id'] for g in gates]
         require(len(set(gate_ids)) == len(gate_ids), 'duplicate_policy_gate_ids')
-    except (Invalid, OSError, ValueError, TypeError, AttributeError) as error:
-        add(gaps, 'policy_context_invalid', str(error), 'repository', stage)
-        return gaps
-    for goal in bundle['goals']:
-        if goal['id'] not in selected:
-            continue
-        coverage(goal, gaps, stage)
-        if goal['readiness'][stage] != 'ready':
-            add(gaps, 'goal_not_ready', goal['readiness'][stage], [goal['id']], stage)
-        for dependency in goal['dependencies']:
-            if dependency not in context.get('completed_goals', []):
-                add(gaps, 'dependency_incomplete', dependency, [goal['id']], stage)
-        try:
-            validate_commands(root, goal['verification'])
-        except (VerificationError, OSError) as error:
-            add(gaps, 'verification_invalid', str(error), [goal['id']], stage)
-        # Goal requirements are additive only. Unsupported predicates never pass.
-        requirements = goal.get('requirements', [])
-        if not isinstance(requirements, list):
-            add(gaps, 'goal_requirement_invalid', 'Expected requirement array', [goal['id']], stage)
-            continue
-        for gate in requirements:
-            if not isinstance(gate, dict) or not ID.fullmatch(gate.get('id', '')) or gate.get('stage') not in STAGES or not string(gate.get('kind')):
-                add(gaps, 'goal_requirement_invalid', 'Requires id, stage and typed kind', [goal['id']], stage)
+    except (Invalid, OSError, ValueError, TypeError, AttributeError, KeyError) as error:
+        add(gaps, 'policy_context_invalid', str(error), 'repository', stage, 'unknown')
+        return scoped_findings(gaps, requested, ancestors)
+    if resolved is not None:
+        for dimension, reason in sorted(exclusions.items()):
+            exempt = sorted(gid for gid in evaluated if not any(g['stage'] == stage and applies(g['scope'], gid) and dimension in gate_dimensions(g) for g in additive_gates))
+            if not exempt:
                 continue
-            try:
-                gate_shape(gate)
-            except Invalid as error:
-                add(gaps, 'goal_requirement_invalid', str(error), [goal['id']], stage)
-                continue
-            gates = [*gates, dict(gate, scope={'goals': [goal['id']]})]
+            resolved.append({'gate': dimension, 'stage': stage, 'scope': {'goals': exempt},
+                             'status': 'not_applicable', 'source': {'policy': POLICY, 'sha256': context['policy']['sha256']},
+                             'responsible': 'unassigned', 'evidence_refs': [], 'freshness': 'current-policy-digest',
+                             'recovery': 'Reevaluate if repository policy changes', 'reason': reason})
+    try:
+        authority = context.get('authority', {})
+        require(isinstance(authority, dict) and set(authority) == {'status', 'stage', 'subject_sha256', 'issuer', 'goals'}, 'unsupported_authority_fields')
+        require(authority.get('status') == 'pass' and authority.get('stage') == stage
+                and authority.get('subject_sha256') == subject_hash and string(authority.get('issuer'))
+                and isinstance(authority.get('goals'), list) and set(selected) <= set(authority['goals']), 'independent_authority_required')
+    except (Invalid, TypeError) as error:
+        add(gaps, 'authority_unavailable', str(error), 'repository', stage, 'unknown')
     for gate in gates:
         scope = gate.get('scope', {})
         targets = all_ids if scope == {'repository': True} else set(scope.get('goals', []))
-        if gate.get('stage') != stage or not (targets & set(selected)):
+        if gate.get('stage') != stage or not (targets & evaluated):
             continue
         try:
             kind = gate.get('kind')
@@ -267,7 +474,9 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash):
                 require(all(g.get('coverage_status', 'measured') == 'measured' and
                             isinstance(g.get('coverage_percent'), (float, int)) and
                             not isinstance(g.get('coverage_percent'), bool) and
-                            0 <= g['coverage_percent'] <= 100 for g in bundle['goals'] if g['id'] in targets & set(selected)), 'measured_coverage_required')
+                            0 <= g['coverage_percent'] <= 100 for g in bundle['goals'] if g['id'] in targets & evaluated), 'measured_coverage_required')
+            elif kind in ('ownership', 'branch_target', 'fixture', 'protected_approval', 'harness_trust', 'tooling'):
+                typed_gate(root, bundle, gate, context)
             elif kind == 'independent_result':
                 results = [x for x in context.get('results', []) if x.get('gate') == gate['id']]
                 require(len(results) == 1, 'independent_result_missing_or_ambiguous')
@@ -277,9 +486,34 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash):
                         and result.get('subject_sha256') == subject_hash and string(result.get('issuer')), 'independent_result_invalid')
             else:
                 add(gaps, 'unsupported_gate', str(kind), scope, stage, 'unknown')
-        except (Invalid, OSError, ValueError, TypeError) as error:
-            add(gaps, 'gate_failed', gate.get('id', '') + ':' + str(error), scope, stage)
-    return gaps
+                continue
+            if resolved is not None:
+                receipt = next((r for r in context['results'] if r.get('gate') == gate['id']), {})
+                resolved.append({'gate': gate['id'], 'stage': stage, 'scope': scope, 'status': 'ready',
+                                 'source': {'policy': POLICY, 'sha256': context['policy']['sha256']},
+                                 'responsible': gate.get('responsible', 'unassigned'),
+                                 'evidence_refs': [re.sub(r'https?://[^\s]+', '[redacted-url]', str(ref)) for ref in receipt.get('evidence', [])] if isinstance(receipt.get('evidence'), list) else [],
+                                 'freshness': {'observed_at': receipt.get('observed_at', 'current-file-read'), 'expires_at': receipt.get('expires_at', 'not-declared')},
+                                 'recovery': 'Retain while exact binding and freshness remain valid; does not authorize dispatch'})
+        except (Invalid, VerificationError, OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+            unavailable = any(token in str(error) for token in ('unavailable', 'missing', 'required', 'No such file'))
+            add(gaps, 'gate_failed', gate.get('id', '') + ':' + str(error), scope, stage, 'unknown' if unavailable else 'blocked')
+            gaps[-1]['responsible'] = gate.get('responsible', 'unassigned')
+            receipt = next((r for r in context['results'] if r.get('gate') == gate['id']), {})
+            gaps[-1]['source'] = {'policy': POLICY, 'gate': gate['id'], 'issuer': receipt.get('issuer', 'unavailable')}
+            gaps[-1]['freshness'] = {'observed_at': receipt.get('observed_at', 'unavailable'),
+                                    'expires_at': receipt.get('expires_at', 'unavailable'), 'validated': False}
+            gaps[-1]['evidence_refs'] = [re.sub(r'https?://[^\s]+', '[redacted-url]', str(ref))
+                                        for ref in receipt.get('evidence', [])] if isinstance(receipt.get('evidence'), list) else []
+            gaps[-1]['recovery'] = {
+                'ownership': 'Supply named required owner/reviewer and an independent current receipt',
+                'branch_target': 'Supply the approved exact target/branch binding and independent current receipt',
+                'fixture': 'Prepare the isolated executable fixture and obtain independent current fixture evidence',
+                'tooling': 'Install the declared tool in the governed environment and refresh independent evidence',
+                'protected_approval': 'Obtain approval only for this changed or missing exact subject; retain unaffected receipts',
+                'harness_trust': 'Verify expected commit against the independent provenance anchor; never rewrite trust to fit the lock',
+            }.get(kind, 'Resolve the specified gate evidence and rerun this exact stage')
+    return scoped_findings(gaps, requested, ancestors)
 
 
 def select(root, args):
@@ -314,7 +548,7 @@ def select(root, args):
     require(len(matches) == 1, 'handoff_missing_or_ambiguous')
     entry = matches[0]
     require(entry.get('schema') == VERSION, 'migration_required:registered handoff')
-    require(entry.get('status') == 'active', 'handoff_not_active')
+    require(entry.get('status') == 'active' or (args.stage == 'planning' and entry.get('status') == 'blocked'), 'handoff_not_active')
     generation = entry.get('generation')
     require(isinstance(generation, str) and SHA.fullmatch(generation), 'invalid_generation')
     prefix = f'{GEN}/{entry.get("plan_id")}/{generation}/'
@@ -348,7 +582,7 @@ def admit(args):
     root = Path(args.root).resolve(strict=True)
     report = {'schema': VERSION, 'stage': args.stage, 'repository_root': str(root),
               'planning_complete': False, 'execution_ready': False, 'dispatch_authorized': False,
-              'authority_verification': 'external-required', 'goals': args.goal_id or [], 'gaps': []}
+              'authority_verification': 'external-required', 'goals': args.goal_id or [], 'gaps': [], 'resolved': []}
     try:
         require(all((root / name).is_file() for name in ('.ai/matrix.json', MANIFEST, GRAPH)), 'v3_root_required')
         for name in ('.ai/matrix.json', MANIFEST, GRAPH):
@@ -358,16 +592,33 @@ def admit(args):
                       bundle={'schema': bundle['schema'], 'id': bundle['id'], 'canonical_sha256': canonical(bundle)},
                       specification=bundle['spec'], goals=selected,
                       planning_complete=bundle['planning_complete'], handoff=entry, subject_sha256=subject)
-        if args.stage == 'planning':
-            return report
-        require(bundle['planning_complete'] and bundle['status'] == 'active', 'plan_not_active_or_incomplete')
-        require(args.context, 'independent_context_required')
-        context = read(args.context)
-        report['gaps'] = policy_admit(root, bundle, selected, context, args.stage, subject)
-        report['execution_ready'] = not report['gaps']
-    except (Invalid, OSError, ValueError, TypeError, AttributeError) as error:
+        context = {}
+        context_error = None
+        if args.context:
+            try:
+                context = read(args.context)
+            except (OSError, ValueError) as error:
+                context_error = str(error)
+        stages = STAGES if args.stage == 'planning' else (args.stage,)
+        for stage in stages:
+            report['gaps'].extend(policy_admit(root, bundle, selected, context, stage, subject, report['resolved']))
+            if not bundle['planning_complete'] or bundle['status'] != 'active':
+                add(report['gaps'], 'plan_not_active_or_incomplete', bundle['status'], 'repository', stage)
+            if context_error:
+                add(report['gaps'], 'context_unavailable', context_error, 'repository', stage, 'unknown')
+        report['per_goal'] = {}
+        for gid in selected:
+            report['per_goal'][gid] = {}
+            for stage in stages:
+                findings = [gap for gap in report['gaps'] if gap['stage'] == stage and
+                            applies(gap['scope'], gid)]
+                status = 'blocked' if any(f['status'] == 'blocked' for f in findings) else ('unknown' if findings else 'ready')
+                report['per_goal'][gid][stage] = {'status': status, 'findings': findings + [r for r in report['resolved'] if r['stage'] == stage and applies(r['scope'], gid)]}
+        report['execution_ready'] = args.stage != 'planning' and not report['gaps']
+    except (Invalid, OSError, ValueError, TypeError, AttributeError, KeyError) as error:
         add(report['gaps'], 'admission_failed', str(error), 'repository', args.stage)
-    return report
+    report['remaining_blockers'] = report['gaps']
+    return redact(report)
 
 
 def preserve(previous, proposed, path=''):
@@ -581,8 +832,8 @@ def main():
     try:
         result = {'admit': admit, 'publish': publish, 'migrate': migrate}[args.operation](args)
         print(json.dumps(result, indent=2, sort_keys=True))
-        return 1 if result.get('gaps') else 0
-    except (Invalid, OSError, ValueError, TypeError, AttributeError) as error:
+        return 1 if result.get('gaps') and not (args.stage == 'planning' and result.get('planning_complete') and 'per_goal' in result) else 0
+    except (Invalid, OSError, ValueError, TypeError, AttributeError, KeyError) as error:
         print(json.dumps({'schema': VERSION, 'error': str(error), 'execution_ready': False, 'dispatch_authorized': False, 'authority_verification': 'external-required'}))
         return 1
 

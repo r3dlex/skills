@@ -33,8 +33,9 @@ duplicate `ultragoal`'s ledger.
 For each sliced goal, in order:
 
 1. Resolve exact v1 handoff and goal IDs (or explicit direct envelope). Run
-   `prereq-check.sh --stage implementation`; require zero exit plus exact
-   repository/subject/goal identity, `stage=implementation` and
+   `prereq-check.sh --stage implementation` for feature work, or `--stage preparation`
+   only for an explicitly bounded preparation goal. Require zero exit plus exact
+   repository/subject/goal identity, the exact requested stage and
    `execution_ready=true`. Planning-stage success is never admission.
 2. Independently verify live policy approval and operation authority for that
    subject, goal set and stage through the supported host boundary. Context
@@ -93,3 +94,9 @@ is why the list is explicit rather than implied.
 - Never advance a goal to merge with unresolved comments or red CI.
 - Resume is `ultragoal`'s responsibility; autobahn re-reads its status rather than
   re-running completed goals.
+
+## Scoped readiness recovery
+
+Inspect the exact stage verdict and remaining findings, not planning exit status. Dependency completion requires current revision-bound receipts; currently failing dependency gates still block dependents. Only independently admitted goals may reach engine selection. A ready independent goal may proceed without reopening unrelated blocked work. Preparation has separate stage authority and cannot bypass repository-wide trust. Reuse still-valid exact approval receipts; obtain only missing or invalidated evidence.
+
+Preparation is separately selected and authorized for its bounded setup scope; it cannot include feature implementation. Existing TDD, review, CI and merge obligations still apply to any preparation code. A completed preparation ancestor does not need readiness flags for another stage, but current applicable implementation policy/fixture/trust gates still govern its dependents.
