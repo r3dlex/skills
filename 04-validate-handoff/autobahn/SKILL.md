@@ -12,16 +12,16 @@ review, merge policy, and cascade logic rather than reimplementing their loops.
 ## Quick Start
 
 1. Gate either a northstar handoff or one direct implementation-ready goal:
-   `bash autobahn/prereq-check.sh --root . [--goal <goal.json>]`.
+   `bash autobahn/prereq-check.sh --root . --handoff <registered-id> --goal-id <id> --context <independent-context.json>`; direct intake uses `--goal <direct-v1.json>` instead of handoff/goal selectors.
 2. Select standard or legacy-safe TDD, then pick the execution engine.
 3. Implement one goal per PR, peer-review, gate CI, and decide merge.
 4. On merge, cascade-close the goal's issue with a triage status.
 
 ## Prereq (fail-closed)
 
-Requires `ai-catapult-init` v3 plus a northstar handoff or an evidence-complete
+Requires `ai-catapult-init` v3 plus an exact versioned northstar handoff or an evidence-complete
 direct goal passing `readiness-check.sh` — direct intake is for already-understood
-work, not a shortcut past discovery.
+work, not a shortcut past discovery. Planning completion is separate from execution readiness. Both routes use one pinned, non-writing validator and fixed approved policy. Reports never grant dispatch authority: independently verify live policy/operation authority before dispatch. Missing authority blocks; a self-authored context cannot authorize execution.
 
 ## Orchestration (ultragoal, one PR per goal)
 
@@ -81,8 +81,10 @@ re-runnable without creating duplicates.
 
 - Fail closed: missing prereq, missing handoff, red CI, or unauthorized merge
   stops with guidance — never silently merge or mutate.
+- Select an exact handoff and explicit goal IDs, or one nested direct envelope; never fall back to unrelated work.
+- Independently verify live policy and operation authority before TDD or engine dispatch; validator reports never authorize dispatch.
 - Direct intake must pass the evidence-complete readiness gate.
-- Low coverage or agent-observed legacy risk must use legacy-safe TDD.
+- Low or explicitly unknown coverage, or agent-observed legacy risk, must use legacy-safe TDD; never invent a percentage.
 - Accept no goal without recorded red-then-green evidence: one test command that
   failed before the change and passed after. Absent or inconsistent, it blocks.
 - Never commit past a failing lint policy. A declared policy whose tool is

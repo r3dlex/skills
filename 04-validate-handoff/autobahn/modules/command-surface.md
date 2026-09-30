@@ -1,35 +1,50 @@
-# Command-Surface Schema (shared)
+# Command surface
 
-Read when generating `.ai/commands/omx/autobahn.json` and
-`.ai/commands/omc/autobahn.json`. Autobahn reuses the **shared** command-surface
-schema designed once in `northstar/modules/command-surface.md` (and
-cross-referenced from `ai-catapult-init/modules/phases/README.md`); both surfaces emit
-identical shapes. This module records autobahn's entries only.
+Bootstrap registers `$autobahn` on omx and `/oh-my-claudecode:autobahn` on omc. Both delegate the same
+public seam; neither chooses an arbitrary registered handoff.
 
-## Schema (recap)
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| autobahn | Admit an exact v1 plan/direct goal, then ship one ready goal per PR | `--handoff <registered-id-or-path> --goal-id <id> --context <independent-context.json>` OR `--goal <direct-v1.json> --context <independent-context.json>`; optional `--engine <engine>` |
 
-One JSON object per file (extension `.json`) with these fields:
+1. Run `prereq-check.sh` with exact selectors and `--stage implementation`.
+2. Require zero exit, `stage=implementation`, `execution_ready=true` and the
+   exact requested repository/subject/goal set in the report.
+3. Independently check live policy approval and operation authority for the same
+   subject/scope/stage using the host's supported boundary. The helper always
+   says `dispatch_authorized=false`; context issuer labels cannot satisfy this.
+4. Only after both boundaries succeed, extract the selected goal and run TDD
+   posture and engine selection. Planning-only, unknown, blocked or absent live
+   authority stops before either call. No new dispatch loop is introduced.
+
+Then follow existing review, gate-driver, CI, merge authority and cascade rules.
+No command alias infers merge permission. RT-03/04 coordinate installed delivery
+and umbrella command projection; changing reusable source does not update an
+already loaded runtime.
+
+## Shared command registration schema
+
+One JSON object per `.ai/commands/<surface>/<skill>.json` carries:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `name` | string | command name (equals the skill name) |
-| `surface` | `"omx"` \| `"omc"` | which harness this file registers |
-| `skill` | string | the skill the command delegates to (same in both files) |
-| `invocation` | string | how the user triggers it on that surface (see below) |
-| `args` | array | accepted argument descriptors (may be empty) |
-| `description` | string | one-line trigger description |
-| `delegates_to` | array | skills/engines this command composes |
+| `name` | string | Command name, equal to the skill name |
+| `surface` | `"omx"` or `"omc"` | Harness owning this registration |
+| `skill` | string | Same delegated skill on both surfaces |
+| `invocation` | string | Exact harness-specific invocation above |
+| `args` | array | Argument descriptors for the v1 command contract above |
+| `description` | string | One-line trigger description |
+| `delegates_to` | array | Skills/engines actually composed by this command |
 
-## omx vs omc invocation
+The schema is shared with `ai-catapult-init/modules/phases/README.md`; only
+`surface` and `invocation` differ between equivalent omx/omc registrations.
+Registration metadata is not execution or merge authority.
 
-The two surfaces differ only in the invocation token; both point at the same
-`skill`:
+## Reusable command example
 
-- **omx:** `invocation` is the `$<name>` form — e.g. `$autobahn`.
-- **omc:** `invocation` is the `/oh-my-claudecode:<name>` form — e.g.
-  `/oh-my-claudecode:autobahn`.
-
-## Example — `.ai/commands/omx/autobahn.json`
+This OMX registration matches the reusable fixture; OMC changes only the surface
+and invocation. Mode exclusivity and goal selection are validated by the shared
+helper, not inferred from these argument descriptors.
 
 ```json
 {
@@ -38,20 +53,42 @@ The two surfaces differ only in the invocation token; both point at the same
   "skill": "autobahn",
   "invocation": "$autobahn",
   "args": [
-    { "name": "goal", "required": false, "description": "Path to one implementation-ready goal record for direct intake, bypassing a handoff." },
-    { "name": "engine", "required": false, "description": "Override the per-goal engine (ultraqa|ultrawork|ralph|team)." }
+    {
+      "name": "handoff",
+      "required": false,
+      "description": "Exact v1 registration ID or registered generation handoff path; required with goal-id unless goal is supplied."
+    },
+    {
+      "name": "goal-id",
+      "required": false,
+      "description": "Explicit selected goal ID; repeat for a set. Required with handoff; incompatible with direct goal."
+    },
+    {
+      "name": "goal",
+      "required": false,
+      "description": "Path to one nested direct-goal/1 envelope, instead of handoff and goal-id; no discovery fallback."
+    },
+    {
+      "name": "context",
+      "required": true,
+      "description": "Independent readiness-context/1 input for exact subject, goals and stage; live authority must be verified separately before dispatch."
+    },
+    {
+      "name": "engine",
+      "required": false,
+      "description": "Override the per-goal engine (ultraqa|ultrawork|ralph|team) only after admission and live authority checks."
+    }
   ],
-  "description": "Ship a northstar handoff's sliced goals, or one implementation-ready goal record, one PR per goal.",
-  "delegates_to": ["ultragoal", "implement", "tdd", "team", "ralph", "ultrawork", "ultraqa", "triage"]
+  "description": "Admit exact v1 goals with independent policy context, then ship one ready goal per PR after live authority verification.",
+  "delegates_to": [
+    "ultragoal",
+    "implement",
+    "tdd",
+    "team",
+    "ralph",
+    "ultrawork",
+    "ultraqa",
+    "triage"
+  ]
 }
 ```
-
-The omc file is identical except `surface: "omc"` and
-`invocation: "/oh-my-claudecode:autobahn"`.
-
-`implement` and `tdd` appear here because the delegation is now real:
-[modules/implementation.md](implementation.md) makes `implement` the named
-implementation step driving `tdd` red-green under both postures. They were
-deliberately absent while autobahn only selected a TDD *posture* without
-invoking the skill. `tests/delegate_contract_test.sh` treats the shipped command
-JSON as authoritative, so this list may only claim delegations that happen.

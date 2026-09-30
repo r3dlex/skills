@@ -1,0 +1,21 @@
+{
+  "goal_id": "RT-01-command-projection",
+  "red": {
+    "command": "bash tests/command_surface_schema_test.sh",
+    "exit_code": 1
+  },
+  "green": {
+    "command": "bash tests/command_surface_schema_test.sh",
+    "exit_code": 0
+  },
+  "projection_runs": {
+    "red": {
+      "command": "bash tests/projection_reach_test.sh",
+      "exit_code": 1
+    },
+    "green": {
+      "command": "bash tests/projection_reach_test.sh",
+      "exit_code": 0
+    }
+  }
+}

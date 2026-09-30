@@ -1,58 +1,50 @@
-# Northstar A→B Handoff Contract
+# Durable handoff publication
 
-Read when writing the handoff that `autobahn` consumes. `handoff-write.sh`
-performs this write idempotently against `--root`.
+Northstar publishes a reviewed `handoff-goals/1` bundle, not a vague goal pointer.
+The bundle carries exact repository identity/root, spec path/digest, issue
+reference, planning status, and per-goal IDs, scope, acceptance, dependencies,
+verification and three readiness stages. Planning complete is not executable.
 
-## What gets written
-
-| Artifact | Location | Contents |
-| --- | --- | --- |
-| Handoff entry | `<root>/.ai/handoff/northstar-<slug>.md` | spec ref, sliced-goals ref, issue ref |
-| Manifest record | `<root>/.ai/workflows/repo-workflow.json` | an `optional_branches` entry |
-| Traceability nodes | `<root>/.ai/traceability/graph.json` | a `plan` node + a `handoff` node |
-
-The spec itself lives in `docs/specifications/ACTIVE/`; the handoff references it
-by path rather than copying it.
-
-## Manifest registration (optional_branches)
-
-`repo-workflow.json` has no skill-registration slot, and its validator fails when
-a manifest *phase* lacks a status file. To avoid demanding a new status file, the
-handoff registers in the existing **`optional_branches`** array — no new phase:
-
-```json
-{ "id": "northstar-handoff-<slug>", "enabled_when": "northstar_handoff_present", "status": "available" }
+```sh
+bash northstar/handoff-write.sh --root /repo --bundle /input/reviewed-v1.json
 ```
 
-This adds no phase, so the phase/status-file rule is not tripped, and the
-existing required branches (`multi-repo-cascade`, `skill-modernization`) and the
-four phases stay intact.
+The source spec must already have one unambiguous node in the traceability graph.
+Publication uses the exact pinned Autobahn helper in canonical source layout or
+sibling-flat install; missing/mismatched producer/consumer dependencies stop.
 
-## Traceability nodes (schema_version 1.1)
+## Publication boundary and recovery
 
-The graph is bumped to `schema_version: 1.1` (additive; the validator accepts
-≥1.1). Two nodes are added with `<type>:<repo-id>:<slug>` ids:
+All cooperating writers acquire `.ai/workflows/.northstar-readiness-v1.lock` by
+atomic directory creation; contention returns immediately with bounded diagnostics.
+The writer baselines the candidate, rereads shared state under the lock and
+preserves richer/unknown fields. Immutable payloads live under
+`.ai/handoff/readiness-v1/<plan-id>/<generation>/` as `goals.json`, `handoff.md`
+and exact generation graph metadata. Then it adds generation-addressed nodes and
+reciprocal backlinks to the live `schema_version: 1.1` traceability graph, and
+atomically replaces `.ai/workflows/northstar-readiness-v1.json` **last**.
+This separate registry's `plans[]` is the sole completion pointer. Legacy
+`optional_branches` are never written or used as a fallback.
 
-- `plan:<repo-id>:northstar-<slug>` — the sliced plan, backlinking the spec PRD.
-- `handoff:<repo-id>:northstar-<slug>` — the handoff, backlinking the plan.
+Inputs are rechecked before shared graph and registry replacement. A crash after
+graph publication leaves unreferenced nodes/payloads, never a completed plan.
+Readers can use the previous explicitly registered immutable generation if its
+policy/evidence remains independently current. Old generations and backlinks are
+retained for audit; they do not bypass current-plan checks.
 
-Valid types include `prd`, `plan`, `issue`, `handoff`, `workflow`. Nodes carry
-`id`, `type`, `title`, `status`, `repo_id`, and `path`; backlinks and edges
-resolve.
+Ordinary errors clean staging and release the lock. A process crash may leave a
+lock requiring independently verified targeted recovery. After proving no writer
+remains, inspect/reconcile the stale lock and rerun the exact reviewed candidate.
+Never steal locks or roll back captured whole graph/registry files. Retry reuses
+identical payload bytes and composes narrow additive updates into fresh shared
+state. Candidate/enrichment conflicts abort instead of overwriting user edits.
+A digest recheck catches ordinary source changes, not arbitrary-editor races.
+File/registry writes use same-filesystem atomic replace; no multi-file transaction
+or filesystem power-loss atomicity is claimed. No ticket, branch, install or
+hosted write occurs. Existing protected-write requirements still cover every
+publication path; the lock and command invocation are not approval.
 
-## Idempotency and partial-write recovery
-
-The write order is **manifest/graph first, handoff file last**, and the handoff
-file is the **completion marker**: if a run is interrupted before it is written,
-the run is incomplete. Recovery is by **idempotent re-run** — the manifest and
-graph are regenerated id-matched (no duplicate node or branch records) and the
-handoff file is (re)created, so a re-run converges from any incomplete prior
-state, including a stale or half-written graph. The redirect that writes the
-handoff file is guarded: if it fails (e.g. unwritable dir) the script exits
-non-zero naming the artifact. (Mid-process abort of the manifest/graph writer is
-not specially handled — the next idempotent re-run regenerates both.)
-
-## Safety rules
-
-- Never duplicate a node or branch record on re-run; match by id.
-- Fail closed on a partial write and name the missing artifact.
+Legacy records require explicit migration using
+`autobahn/migrate-handoff.sh`; see [Autobahn readiness](../../../04-validate-handoff/autobahn/modules/readiness.md).
+Migration keeps original evidence and resets execution readiness to unknown.
+Publishing never supplies policy approval or execution authority.

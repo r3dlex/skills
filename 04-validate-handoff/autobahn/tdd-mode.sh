@@ -41,6 +41,23 @@ if goal_path:
         raise SystemExit(2)
 
 coverage = coverage_arg if coverage_arg else goal.get("coverage_percent")
+coverage_status = "measured" if coverage_arg else goal.get("coverage_status", "measured")
+if coverage_status not in ("measured", "unknown"):
+    print("tdd-mode: coverage_status must be measured or unknown", file=sys.stderr)
+    raise SystemExit(2)
+if coverage_status == "unknown":
+    if coverage is not None:
+        print("tdd-mode: unknown coverage must have no numeric coverage_percent", file=sys.stderr)
+        raise SystemExit(2)
+    reason = risk_reason_arg or goal.get("legacy_risk_reason", "")
+    if not isinstance(reason, str) or not reason.strip():
+        print("tdd-mode: unknown coverage requires legacy_risk_reason", file=sys.stderr)
+        raise SystemExit(2)
+    if risk_arg not in ("", "true", "false"):
+        print("tdd-mode: --legacy-risk must be true or false", file=sys.stderr)
+        raise SystemExit(2)
+    print("legacy-safe")
+    raise SystemExit(0)
 if isinstance(coverage, bool):
     print("tdd-mode: coverage_percent must be numeric, not boolean", file=sys.stderr)
     raise SystemExit(2)

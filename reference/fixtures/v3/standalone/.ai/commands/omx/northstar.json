@@ -7,10 +7,15 @@
     {
       "name": "spec",
       "required": false,
-      "description": "Path to the active spec to plan from."
+      "description": "Path to the active spec to plan from; publication pins it in the reviewed bundle."
+    },
+    {
+      "name": "bundle",
+      "required": false,
+      "description": "Reviewed handoff-goals/1 bundle for explicit version-isolated publication after planning."
     }
   ],
-  "description": "Intake intent into a tracked, sliced plan and write the A→B handoff.",
+  "description": "Plan tracked slices and publish a non-authorizing v1 handoff; planning completion is not implementation readiness.",
   "delegates_to": [
     "deep-interview",
     "grill-with-docs",

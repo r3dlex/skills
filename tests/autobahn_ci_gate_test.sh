@@ -655,6 +655,43 @@ fi
 
 rm -rf "$root"
 
+# Importing the shared validator must not mutate the delivered skill directory.
+if python3 -B - <<'PYBYTECODE'
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+
+source = Path('04-validate-handoff/autobahn').resolve()
+with tempfile.TemporaryDirectory() as temp:
+    root = Path(temp)
+    skill = root / 'skill'
+    (skill / 'lib').mkdir(parents=True)
+    shutil.copy2(source / 'ci-gate.sh', skill / 'ci-gate.sh')
+    shutil.copy2(source / 'lib/verification.py', skill / 'lib/verification.py')
+    goal = root / 'goal.json'
+    goal.write_text(json.dumps({'verification': ['python3 -m unittest --help']}))
+    def snapshot():
+        return {str(p.relative_to(skill)): hashlib.sha256(p.read_bytes()).hexdigest()
+                if p.is_file() else 'directory' for p in skill.rglob('*')}
+    before = snapshot()
+    env = dict(os.environ)
+    env.pop('PYTHONDONTWRITEBYTECODE', None)
+    env.pop('PYTHONPYCACHEPREFIX', None)
+    result = subprocess.run(['bash', str(skill / 'ci-gate.sh'), '--verify', '--root', str(root),
+                             '--goal-record', str(goal)], env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert snapshot() == before, 'verification import mutated delivered skill files'
+PYBYTECODE
+then
+  ok "verification helper import leaves delivered skill directory unchanged"
+else
+  bad "verification helper import leaves delivered skill directory unchanged"
+fi
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]

@@ -6,10 +6,9 @@ eval: northstar
 
 # Northstar
 
-Northstar fixes direction: it converges intent into a crystal-clear, tracked,
-sliced plan inside a repo already initialized with `ai-catapult-init` v3. It is a
-lightweight **composer** — it delegates to existing skills and never reimplements
-their loops. The output is the A→B handoff that `autobahn` consumes.
+Northstar converges intent into a tracked, sliced plan inside a repo initialized
+with `ai-catapult-init` v3. This lightweight **composer** delegates to existing
+skills. Its output is the A→B handoff that `autobahn` consumes.
 
 ## Execution boundary (hard stop)
 
@@ -26,7 +25,7 @@ in the same run, even when the initiating prompt also asks for implementation.
    `bash northstar/prereq-check.sh --root .`
 2. Run the interview loop, then always raise an issue.
 3. Run `ralplan` to produce sliced goals.
-4. Write the handoff: `bash northstar/handoff-write.sh --root . --spec <spec-path> --slug <plan-slug>`.
+4. Publish the reviewed versioned bundle: `bash northstar/handoff-write.sh --root <repo> --bundle <reviewed-v1.json>`.
 
 ## Prereq (fail-closed)
 
@@ -59,27 +58,32 @@ fail-closed per the ai-catapult-init host-policy. Delegate to `to-issues` and
 
 Run `ralplan` (consensus planning) on the crystallized spec to produce **sliced
 goals** — one tracer-bullet slice per future PR. `ralplan` owns the planning
-loop; northstar only records its output as the sliced-goal artifacts the handoff
-points at.
+loop; northstar records its output as the sliced-goal artifacts.
 
 ## A→B handoff
 
-`handoff-write.sh` records the A→B contract under `.ai/`: a handoff entry in
-`.ai/handoff/`, a registration record in the workflow manifest's
-`optional_branches` slot, and traceability nodes pinned to `schema_version 1.1`.
-The spec lives in `docs/specifications/ACTIVE/`; sliced goals are referenced from
-the handoff. The write is idempotent and recovers from a partial write on re-run.
+`handoff-write.sh` publishes the reviewed `handoff-goals/1` bundle as immutable
+`goals.json`, `handoff.md`, and `graph.json` payloads under
+`.ai/handoff/readiness-v1/<plan-id>/<generation>/`. It adds generation-addressed
+nodes and backlinks to the live `schema_version 1.1` traceability graph, then
+atomically publishes `.ai/workflows/northstar-readiness-v1.json` last. This
+separate registry's `plans[]` is the sole completion pointer.
+
+The bundle pins the spec digest and exact repository and goal identities; planning completion is **not implementation readiness**: report preparation,
+implementation, and merge gaps separately, without claiming execution authority.
+Idempotent recovery preserves evidence; legacy migration and matched dependencies are mandatory.
 See [modules/handoff.md](modules/handoff.md).
 
 ## Command surface
 
-`northstar` registers as a first-class command in both harnesses under
-`.ai/commands/omx/` and `.ai/commands/omc/` using one shared schema. See
-[modules/command-surface.md](modules/command-surface.md).
+`northstar` registers as a first-class command under `.ai/commands/omx/` and `.ai/commands/omc/` using one shared schema.
+See [modules/command-surface.md](modules/command-surface.md).
 
 ## Safety rules
 
 - Planning only: never implement product changes or execute a sliced goal.
+- Planning completion is not implementation readiness; report preparation, implementation and merge gaps separately.
+- Publish completion through the separate v1 registry, never legacy discovery; missing or mismatched peers block publication.
 - Hard stop: do not invoke `autobahn`, `ultragoal`, `team`, `ralph`, `ultrawork`,
   or another implementation engine; stop after the verified A→B handoff and
   never implement in the same run.

@@ -1,193 +1,102 @@
 #!/bin/bash
-#
-# northstar_handoff_test.sh  (PR-1, N4)
-#
-# Proves 02-govern-plan/northstar/handoff-write.sh writes a valid A->B handoff into a temp copy
-# of the standalone fixture (.ai/), and that the result satisfies:
-#   1. a handoff entry file in <root>/.ai/handoff/ referencing spec + sliced goals
-#   2. the workflow manifest gains a resolvable optional_branches record AND the
-#      existing manifest validator (workflow-fixtures contract) stays green
-#   3. traceability nodes (handoff + plan) well-formed, schema_version 1.1,
-#      ids match ^(prd|plan|issue|handoff|workflow): and the graph validates via
-#      scripts/traceability_schema.py
-#   4. second run is idempotent (no duplicate nodes / branch records)
-#   5. partial-write-then-rerun recovery converges to a consistent graph
-#
-# Offline, deterministic, no model/network.
-#
-
-set -uo pipefail
-
+# Offline public CLI regression using disposable, simulated v1 policy inputs.
+set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT" || exit 1
+cd "$REPO_ROOT"
+PYTHONPATH="$REPO_ROOT/tests:$REPO_ROOT/scripts${PYTHONPATH:+:$PYTHONPATH}" python3 - <<'PYTEST'
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+from readiness_fixture import fixture, write, digest
 
-SCRIPT="$REPO_ROOT/02-govern-plan/northstar/handoff-write.sh"
-FIXTURE="$REPO_ROOT/reference/fixtures/v3/standalone"
+REPO = Path.cwd()
+WRITER = REPO / '02-govern-plan/northstar/handoff-write.sh'
+AUTO = REPO / '04-validate-handoff/autobahn'
 
-PASS=0
-FAIL=0
-ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
-bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
+def run(script, root, *args):
+    return subprocess.run(['bash', str(script), '--root', str(root), *args],
+                          capture_output=True, text=True, timeout=10)
 
-if [[ ! -f "$SCRIPT" ]]; then
-  bad "handoff-write.sh exists"
-  echo ""; echo "Results: PASS=$PASS FAIL=$FAIL"; exit 1
-fi
+def passed(result):
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)
 
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
-cp -R "$FIXTURE/." "$tmp/"
+def blocked(result, reason):
+    assert result.returncode != 0, result.stdout
+    assert reason in result.stdout + result.stderr, result.stdout + result.stderr
 
-SLUG="ship-the-thing"
-
-run_write() {
-  bash "$SCRIPT" --root "$tmp" \
-    --spec "docs/specifications/ACTIVE/intake-and-ship-skills.md" \
-    --slug "$SLUG" "$@"
-}
-
-# --- 1. first write ----------------------------------------------------------
-set +e
-out="$(run_write 2>&1)"
-rc=$?
-set -e 2>/dev/null || true
-if [[ "$rc" -eq 0 ]]; then
-  ok "handoff-write exits 0 on first run"
-else
-  bad "handoff-write exits 0 on first run (got $rc: $out)"
-fi
-
-handoff_file="$tmp/.ai/handoff/northstar-$SLUG.md"
-if [[ -f "$handoff_file" ]]; then
-  ok "handoff entry file created"
-else
-  bad "handoff entry file created ($handoff_file)"
-fi
-if grep -q "intake-and-ship-skills.md" "$handoff_file" 2>/dev/null; then
-  ok "handoff references the spec"
-else
-  bad "handoff references the spec"
-fi
-if grep -qi "sliced goal" "$handoff_file" 2>/dev/null; then
-  ok "handoff references sliced goals"
-else
-  bad "handoff references sliced goals"
-fi
-
-# --- 2. manifest optional_branches record + validator stays green -------------
-python3 - "$tmp" "$SLUG" <<'PY'
-import json, sys
-root, slug = sys.argv[1], sys.argv[2]
-m = json.load(open(f"{root}/.ai/workflows/repo-workflow.json"))
-ids = [b["id"] for b in m["optional_branches"]]
-assert f"northstar-handoff-{slug}" in ids, ids
-rec = [b for b in m["optional_branches"] if b["id"] == f"northstar-handoff-{slug}"][0]
-assert "enabled_when" in rec and "status" in rec, rec
-# existing required branches must remain (validator contract)
-assert any(b["id"] == "multi-repo-cascade" and b["status"] == "available" for b in m["optional_branches"])
-assert any(b["id"] == "skill-modernization" and b["status"] == "available" for b in m["optional_branches"])
-# phases unchanged -> no new status-file demand
-assert [p["id"] for p in m["phases"]] == [
-    "01-discover-decide","02-govern-plan","03-configure-generate","04-validate-handoff"]
-print("manifest-ok")
-PY
-if [[ $? -eq 0 ]]; then
-  ok "manifest gained resolvable optional_branches record; required branches + phases intact"
-else
-  bad "manifest optional_branches record / validator contract"
-fi
-
-# Run the actual init-ai-repo manifest validator (workflow-fixtures contract)
-# against the mutated copy to prove it still passes.
-python3 - "$tmp" <<'PY'
-import json, sys
-root = sys.argv[1]
-m = json.load(open(f"{root}/.ai/workflows/repo-workflow.json"))
-# Mirror the load-bearing assertions of tests/workflow-fixtures_test.sh.
-assert m["schema_version"] == "1.0"
-assert m["workflow_id"] == "init-ai-repo"
-assert m["handoff"] == ".ai/handoff/init-ai-repo-handoff.md"
-for phase in m["phases"]:
-    import os
-    assert os.path.isfile(f"{root}/{phase['status_path']}"), phase["status_path"]
-print("validator-ok")
-PY
-if [[ $? -eq 0 ]]; then
-  ok "init-ai-repo manifest validator stays green on mutated copy"
-else
-  bad "init-ai-repo manifest validator stays green on mutated copy"
-fi
-
-# --- 3. traceability nodes well-formed + validate ----------------------------
-graph="$tmp/.ai/traceability/graph.json"
-python3 - "$graph" "$SLUG" <<'PY'
-import json, re, sys, pathlib
-sys.path.insert(0, str(pathlib.Path("scripts").resolve()))
 from traceability_schema import validate_graph
-g = json.load(open(sys.argv[1]))
-slug = sys.argv[2]
-assert g["schema_version"] == "1.1", g["schema_version"]
-ids = {n["id"] for n in g["nodes"]}
-want_handoff = f"handoff:standalone-root:northstar-{slug}"
-want_plan = f"plan:standalone-root:northstar-{slug}"
-assert want_handoff in ids, want_handoff
-assert want_plan in ids, want_plan
-pat = re.compile(r"^(prd|plan|issue|handoff|workflow):")
-assert pat.match(want_handoff) and pat.match(want_plan)
-validate_graph(g)  # raises on any violation
-print("graph-ok")
-PY
-if [[ $? -eq 0 ]]; then
-  ok "traceability nodes well-formed, schema 1.1, graph validates"
-else
-  bad "traceability nodes well-formed / graph validates"
-fi
 
-count_nodes() { python3 -c "import json,sys;print(len(json.load(open(sys.argv[1]))['nodes']))" "$graph"; }
-count_branches() { python3 -c "import json,sys;print(len(json.load(open(sys.argv[1]))['optional_branches']))" "$tmp/.ai/workflows/repo-workflow.json"; }
-nodes1="$(count_nodes)"; branches1="$(count_branches)"
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    bundle, context = fixture(root)
+    # Preserve the initialized repository's complete workflow contract, including
+    # required branches and phase status paths, not just a minimal manifest.
+    import shutil
+    source = REPO / 'reference/fixtures/v3/standalone'
+    manifest = json.loads((source / '.ai/workflows/repo-workflow.json').read_text())
+    write(root, '.ai/workflows/repo-workflow.json', manifest)
+    for phase in manifest['phases']:
+        destination = root / phase['status_path']
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source / phase['status_path'], destination)
+    legacy_before = (root / '.ai/workflows/repo-workflow.json').read_bytes()
+    registry_path = root / '.ai/workflows/northstar-readiness-v1.json'
+    registry_before = json.loads(registry_path.read_text())
+    graph_before = json.loads((root / '.ai/traceability/graph.json').read_text())
+    args = ('--bundle', str(root / 'plan.json'))
+    entry = passed(run(WRITER, root, *args))['published']
+    handoff = root / entry['handoff_path']
+    assert handoff.is_file()
+    assert 'G1' in handoff.read_text()
+    stored_bundle = json.loads((root / entry['artifacts']['bundle']['path']).read_text())
+    assert stored_bundle['spec'] == bundle['spec']
+    assert stored_bundle['goals'] == bundle['goals']
+    updated = json.loads((root / '.ai/workflows/repo-workflow.json').read_text())
+    assert (root / '.ai/workflows/repo-workflow.json').read_bytes() == legacy_before
+    assert json.loads(registry_path.read_text()) == {**registry_before, 'plans': [entry]}
+    assert all((root / phase['status_path']).is_file() for phase in updated['phases'])
+    assert updated['schema_version'] == '1.0'
+    assert updated['workflow_id'] == 'init-ai-repo'
+    assert updated['handoff'] == '.ai/handoff/init-ai-repo-handoff.md'
+    print('PASS: immutable handoff, durable spec/goals and existing workflow preserved')
 
-# --- 4. idempotent re-run ----------------------------------------------------
-set +e
-run_write >/dev/null 2>&1
-rc2=$?
-set -e 2>/dev/null || true
-nodes2="$(count_nodes)"; branches2="$(count_branches)"
-if [[ "$rc2" -eq 0 && "$nodes1" == "$nodes2" && "$branches1" == "$branches2" ]]; then
-  ok "second run idempotent (nodes $nodes1==$nodes2, branches $branches1==$branches2)"
-else
-  bad "second run idempotent (nodes $nodes1/$nodes2 branches $branches1/$branches2 rc $rc2)"
-fi
+    graph = json.loads((root / entry['artifacts']['graph']['path']).read_text())
+    validate_graph(graph)
+    ids = {node['id'] for node in graph['nodes']}
+    generation = entry['generation']
+    assert {f'handoff:fixture:chosen:{generation}', f'plan:fixture:chosen:G1:{generation}'} <= ids
+    live_graph = json.loads((root / '.ai/traceability/graph.json').read_text())
+    validate_graph(live_graph)
+    live_nodes = {node['id']: node for node in live_graph['nodes']}
+    for previous in graph_before['nodes']:
+        current = live_nodes[previous['id']]
+        assert {k: v for k, v in previous.items() if k != 'backlinks'} == {
+            k: v for k, v in current.items() if k != 'backlinks'}
+        assert set(previous.get('backlinks', [])) <= set(current.get('backlinks', []))
+    assert all(edge in live_graph['edges'] for edge in graph_before['edges'])
+    assert ids <= live_nodes.keys()
+    print('PASS: generation and additive live graphs validate with prior evidence preserved')
 
-# --- 5. partial-write recovery -----------------------------------------------
-# Simulate a partial write: remove the handoff file but keep manifest/graph
-# entries, then re-run. The idempotent re-run must reconcile (recreate handoff,
-# no duplicate nodes/branches) and converge.
-rm -f "$handoff_file"
-set +e
-run_write >/dev/null 2>&1
-rc3=$?
-set -e 2>/dev/null || true
-nodes3="$(count_nodes)"; branches3="$(count_branches)"
-if [[ "$rc3" -eq 0 && -f "$handoff_file" && "$nodes3" == "$nodes1" && "$branches3" == "$branches1" ]]; then
-  ok "partial-write-then-rerun recovery converges (handoff restored, no dup)"
-else
-  bad "partial-write recovery (rc $rc3, nodes $nodes3 vs $nodes1, branches $branches3 vs $branches1)"
-fi
-# graph must still validate after recovery
-python3 - "$graph" <<'PY'
-import json, sys, pathlib
-sys.path.insert(0, str(pathlib.Path("scripts").resolve()))
-from traceability_schema import validate_graph
-validate_graph(json.load(open(sys.argv[1])))
-print("ok")
-PY
-if [[ $? -eq 0 ]]; then
-  ok "graph still validates after recovery"
-else
-  bad "graph still validates after recovery"
-fi
+    before = {str(p): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+    assert passed(run(WRITER, root, *args))['published'] == entry
+    assert before == {str(p): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+    print('PASS: identical publication is byte-idempotent without duplicate records')
 
-echo ""
-echo "Results: PASS=$PASS FAIL=$FAIL"
-[[ "$FAIL" -eq 0 ]] && exit 0 || exit 1
+    # A generation published before registry completion is safe to retry.
+    write(root, '.ai/workflows/northstar-readiness-v1.json', registry_before)
+    assert passed(run(WRITER, root, *args))['published'] == entry
+    assert json.loads(registry_path.read_text()) == {**registry_before, 'plans': [entry]}
+    assert (root / '.ai/workflows/repo-workflow.json').read_bytes() == legacy_before
+    print('PASS: interrupted registry publication converges on retry')
+
+    # Corrupt immutable generations must NOT be silently repaired or accepted.
+    handoff.unlink()
+    registry_bytes = registry_path.read_bytes()
+    result = run(WRITER, root, *args)
+    assert result.returncode != 0, result.stdout
+    assert registry_path.read_bytes() == registry_bytes
+    assert not handoff.exists()
+    print('PASS: damaged generation fails closed without registry mutation')
+PYTEST
