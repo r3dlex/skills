@@ -4,7 +4,6 @@
 - **`ask-ai-catapult`** — Ask which skill or flow fits your situation. Use when you know what you want to achieve but not which skills to combine, or which order to run them in.
 - **`domain-modeling`** — Build and sharpen a project domain model or ubiquitous language. Use when pinning down domain terms, recording an architectural decision, or keeping a glossary.
 - **`research`** — Investigate a question against high-trust primary sources and write the findings to a Markdown file. Use when a topic needs researching or API facts gathered.
-- **`ubiquitous-language`** — Extract and save a DDD glossary, flag ambiguities, and propose canonical terms. Use when defining domain language or a shared vocabulary.
 - **`zoom-out`** — Explain broader code or product context around a focused area. Use when the user needs a higher-level perspective before local changes.
 
 ## 02-govern-plan

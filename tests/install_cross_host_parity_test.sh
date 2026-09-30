@@ -37,9 +37,12 @@ catalog = json.loads((repo / 'catalog.json').read_text())
 # — is simply false once a lifecycle gates installation, and it held only
 # because the catalog had no non-default entry until ubiquitous-language was
 # deprecated. Keep this set in step with DEFAULT_LIFECYCLES in scripts/catalog.py.
+# supported_hosts is filtered the same way: an entry with no hosts (edit-article
+# after the 2026-10-01 cleanup) is documentation-only and installs nowhere.
 DEFAULT_LIFECYCLES = {'stable', 'compatibility'}
 entries = sorted(
-    (item for item in catalog['skills'] if item.get('lifecycle') in DEFAULT_LIFECYCLES),
+    (item for item in catalog['skills']
+     if item.get('lifecycle') in DEFAULT_LIFECYCLES and item.get('supported_hosts')),
     key=lambda item: item['name'],
 )
 skills = [entry['name'] for entry in entries]

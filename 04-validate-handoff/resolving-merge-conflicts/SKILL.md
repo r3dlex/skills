@@ -5,6 +5,11 @@ description: 'Resolve an in-progress git merge or rebase conflict hunk by hunk. 
 
 # Resolving Merge Conflicts
 
+> **Deprecated.** Removed from the upstream catalog (mattpocock/skills); retained
+> here only for vendored-pin compatibility until the next ai-catapult lock bump
+> removes it from the bundle. New work: handle merge/rebase conflicts directly in
+> the working copy; never `--abort`.
+
 Resolve the conflict by understanding both sides, not by picking whichever diff looks tidier. Always resolve; never `--abort`.
 
 ## Process

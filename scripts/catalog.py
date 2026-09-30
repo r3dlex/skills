@@ -53,7 +53,10 @@ def load_catalog(root: Path) -> dict:
             raise CatalogError(f"invalid phase metadata for {name}")
         if not isinstance(lifecycle, str) or lifecycle not in LIFECYCLES:
             raise CatalogError(f"invalid lifecycle for {name}")
-        if not isinstance(hosts, list) or not hosts or not all(isinstance(x, str) for x in hosts) or not set(hosts) <= HOSTS:
+        # An empty supported_hosts list is legal and meaningful: the entry stays
+        # cataloged (docs, validator, lifecycle) but resolves into NO host bundle.
+        # Used by lifecycle cleanup for skills retained as documentation only.
+        if not isinstance(hosts, list) or not all(isinstance(x, str) for x in hosts) or not set(hosts) <= HOSTS:
             raise CatalogError(f"invalid supported_hosts for {name}")
         skill_file = root / source / "SKILL.md"
         if not skill_file.is_file():
