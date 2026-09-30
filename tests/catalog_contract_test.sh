@@ -12,7 +12,7 @@ die() { echo "FAIL: $1" >&2; exit 1; }
 
 python3 scripts/catalog-query.py --host codex > /tmp/catalog.default
 actual="$(wc -l < /tmp/catalog.default | tr -d ' ')"
-[[ "$actual" -eq 34 ]] || die "default catalog count is $actual, expected 34"
+[[ "$actual" -eq 36 ]] || die "default catalog count is $actual, expected 36"
 # The catalog is host-independent: every host sees the same skills. Assert that
 # against the *extended* query, not the default one — the two stopped being
 # identical when lifecycle gating landed, which is the whole point of a

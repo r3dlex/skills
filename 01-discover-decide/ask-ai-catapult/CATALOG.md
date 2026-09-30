@@ -45,6 +45,8 @@
 - **`diagnosing-bugs`** — Diagnosis loop for hard bugs and performance regressions. Use when asked to diagnose or debug, or when something is broken, throwing, failing, or slow.
 - **`eval-a-skill`** — Scaffold a structurally valid eval triplet for a target skill under .ai/evals/. CI checks structure only; the LM-judge runs out-of-band, never in CI.
 - **`handoff`** — Compact the current conversation into a handoff document for another agent to pick up.
+- **`pr`** — Use when writing a PR body: summary with the smallest clarifying visual, before/after evidence, and merge-danger (door + blast radius).
 - **`publish-semver`** — Set up semantic or calendar versioning and package publishing across supported ecosystems. Use when configuring release automation or changelogs.
 - **`resolving-merge-conflicts`** — Resolve an in-progress git merge or rebase conflict hunk by hunk. Use when a merge or rebase has stopped with conflicts that need resolving.
+- **`retro`** — Conduct a retrospective on a coding agent session: propose environment improvements ranked by severity. Invoked by the user after a session or post-merge.
 <!-- GENERATED:SKILL-CATALOG:END -->

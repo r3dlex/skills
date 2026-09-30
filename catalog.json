@@ -670,6 +670,40 @@
         "gemini",
         "opencode"
       ]
+    },
+    {
+      "name": "retro",
+      "source_path": "04-validate-handoff/retro",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini",
+        "opencode"
+      ]
+    },
+    {
+      "name": "pr",
+      "source_path": "04-validate-handoff/pr",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini",
+        "opencode"
+      ]
     }
   ]
 }

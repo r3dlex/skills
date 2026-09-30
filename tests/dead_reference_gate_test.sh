@@ -33,7 +33,7 @@ note() { echo "  $1"; }
 identity_matches() {
   local name="$1"
   grep -rIE --exclude-dir=.git --exclude-dir=graphify-out --exclude-dir=node_modules \
-    "(\\\`$name\\\`|\"$name\"|(name|triggers):[[:space:]]*$name\\b|^[[:space:]]*-[[:space:]]+$name[[:space:]]*$|\\\$$(echo "$name" | tr -d '-')\\b|$name/SKILL\\.md|--skill[= ]$name\\b)" \
+    "([\\\`']$name[\\\`']|\"$name\"|(name|triggers):[[:space:]]*$name\\b|^[[:space:]]*-[[:space:]]+$name[[:space:]]*$|\\\$$(echo "$name" | tr -d '-')\\b|$name/SKILL\\.md|--skill[= ]$name\\b)" \
     . 2>/dev/null | cut -d: -f1 | sort -u
 }
 

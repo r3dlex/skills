@@ -4,6 +4,13 @@ Read when closing a goal's issue after its PR merges. Autobahn delegates to the
 cascade engine (`ai-catapult-init/modules/cascade.md`) and the `triage` state machine;
 it reimplements neither the multi-repo orchestration nor the idempotency keying.
 
+## Post-merge retro
+
+Once closure records are written, offer the `retro` skill: a user-invoked
+retrospective on the session/PR that surfaces environment improvements
+(navigation, automated checks, review standards, tool economy). It is a
+recommendation, never an automatic step — closing a goal does not open a retro.
+
 ## What happens on merge
 
 When a goal's PR merges, autobahn closes the goal's issue across the repos the
