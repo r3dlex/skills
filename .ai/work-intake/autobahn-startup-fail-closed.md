@@ -41,3 +41,17 @@ Coverage is unmeasured; characterize this narrow CLI seam before production edit
 
 No three-attempt history was found for this new helper-input repair. Prior
 small-work read-only admission failures are not execution attempts or authority.
+
+## Narrow delivery backport
+
+The parent evidence records the original latest-main repair. For packaging,
+backport that repair onto the existing ai-catapult pin
+`b87fdc2029dad16389cf2501e0faf7934b33b71c`, rather than importing unrelated
+changes to skill invocation and upstream-lock staleness policy. The immutable
+source fix remains on its own current-main PR.
+
+[`backport/evidence.json`](../evidence/autobahn-startup-fail-closed/backport/evidence.json)
+records genuine pinned-before-state RED and backported GREEN from the unchanged
+public regression test. Source helper bytes match the original repair.
+This branch is a reviewed delivery pin, not a merge proposal that reverts main.
+Readiness, engine capability changes and model/runtime ownership remain separate.

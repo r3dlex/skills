@@ -1,0 +1,21 @@
+{
+  "schema_version": "autobahn-startup-backport-evidence/1",
+  "base_commit": "b87fdc2029dad16389cf2501e0faf7934b33b71c",
+  "source_repair_commit": "c9c2da9bc204b73db78dc0169840b1a172a22943",
+  "command": "bash tests/autobahn_engine_input_test.sh",
+  "red_exit": 1,
+  "green_exit": 0,
+  "red_reason": "Unchanged deployed-pin helper times out on missing option values and accepts non-object/invalid goals, selecting an engine.",
+  "test_identity": "The exact unchanged regression test ran on the real pinned before-state and on its narrow backport.",
+  "provenance": [
+    "before.txt",
+    "after.txt",
+    "red.log.json",
+    "green.log.json"
+  ],
+  "limits": [
+    "This evidence complements the original latest-main evidence in the parent directory; it does not relabel that original base.",
+    "Backport preserves the deployed skill tree outside the repair and its evidence. No upstream.lock refresh, host API change, policy waiver or dispatch authority.",
+    "Local validation is not hosted CI, merge admission, host activation or live authority."
+  ]
+}
