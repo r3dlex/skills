@@ -1,7 +1,7 @@
 source: mattpocock/skills
 via: r3dlex/skills
-pinned_sha: 84fdeffd12f2ee307994d1eb6feb48173b6e0502
-updated: 2026-08-09
+pinned_sha: d81f3a183412e71a5b1e84ca21bc1a35eea03a60
+updated: 2026-10-01
 sync_script: scripts/sync-upstream.sh
 # Divergence note: UPSTREAM_DIVERGENCE.md (CONTEXT.md vs GLOSSARY.md rename; future goal:
 #   future-glossary-rename-alignment). Never mass-rename CONTEXT.md during apply.

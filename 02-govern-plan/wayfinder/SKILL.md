@@ -61,8 +61,8 @@ tickets excepted.
 
 The user invokes with a loose idea.
 
-1. **Name the destination.** Run `grilling` and `domain-modeling` to pin down what this map
-   is finding its way to. The destination fixes the scope, so it is settled first.
+1. **Name the destination.** Call the Skill tool twice, for `grilling` and `domain-modeling`,
+   to pin down where this map leads. The destination fixes the scope, so settle it first.
 2. **Map the frontier.** Grill again, **breadth-first** — fan out across the whole space
    rather than deep on one thread, surfacing the open decisions and the first steps takeable
    now. **If this surfaces no fog**, the way is already clear and the journey fits one
@@ -72,9 +72,9 @@ The user invokes with a loose idea.
 4. **Create the tickets you can specify now**, then wire blocking edges in a **second
    pass** — tickets need identities before they can reference each other. Everything you
    cannot yet specify stays in the fog.
-5. **Fire the research subagents.** For each `research` ticket, resolve it in parallel via
-   `research`, capturing findings on a throwaway `research/<name>` branch with a context
-   pointer from the ticket.
+5. **Fire the research subagents.** For each `research` ticket, spin up a subagent that
+   calls the Skill tool with `research` to resolve it in parallel, capturing findings on a
+   throwaway `research/<name>` branch with a context pointer from the ticket.
 6. Stop — charting is one session's work; it hand-resolves nothing.
 
 ### Work through the map
@@ -86,8 +86,8 @@ decision, not the user.
 2. Choose the ticket: the one the user named, else the first frontier ticket in order.
    **Claim it** before any work.
 3. Resolve it, **zooming as needed**: fetch the full body of any related or closed ticket on
-   demand, and invoke the skills the Notes block names. If in doubt, use `grilling` and
-   `domain-modeling`.
+   demand, and call the Skill tool for whichever skills the Notes block names. If in doubt,
+   call the Skill tool twice, for `grilling` and `domain-modeling`.
 4. Record the resolution: post the answer, close the ticket, and append a context pointer to
    the map's Decisions-so-far.
 5. Add newly-surfaced tickets (create-then-wire) and graduate any fog the answer made

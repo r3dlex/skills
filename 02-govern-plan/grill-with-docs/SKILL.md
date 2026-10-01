@@ -5,9 +5,9 @@ description: 'Stress-test a plan against repo docs and update decisions inline. 
 
 # Grill With Docs
 
-Run a [`grilling`](../grilling/SKILL.md) session grounded in the repo's documented
-language, using [`domain-modeling`](../../01-discover-decide/domain-modeling/SKILL.md) to
-capture what the session settles.
+Call the Skill tool twice, for [`grilling`](../grilling/SKILL.md) and
+[`domain-modeling`](../../01-discover-decide/domain-modeling/SKILL.md): run the session
+grounded in the repo's documented language, and capture what it settles.
 
 Two things this adds to the open-ended pass:
 

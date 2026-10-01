@@ -67,7 +67,7 @@ Place each visual next to the short text it supports. Keep only the calls, files
 
 ## Evidence
 
-Concrete evidence that the change works — before and after. Screenshots are S-tier when the change is visual and the environment supports them. Execution-based evidence (test results, console output) is A-tier: show the exact test that now fails and passes.
+Concrete evidence that the change works — before and after. Screenshots are S-tier when the change is visual and the environment supports them. Execution-based evidence (test results, console output) is A-tier: show the exact test that now fails and passes, describing its steps as pseudocode.
 
 ## Merge Danger
 

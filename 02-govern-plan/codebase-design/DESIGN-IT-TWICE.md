@@ -2,7 +2,7 @@
 
 When the user wants to explore alternative interfaces for a chosen deepening candidate, produce several designs in parallel and compare them. Based on "Design It Twice" (Ousterhout) — your first idea is unlikely to be the best.
 
-Uses the vocabulary in [SKILL.md](SKILL.md) — **module**, **interface**, **seam**, **adapter**, **leverage**.
+Uses the vocabulary in [SKILL.md](SKILL.md): **module**, **interface**, **seam**, **adapter**, **leverage**.
 
 Run the design passes as concurrent workers where the harness supports it; where it doesn't, run them sequentially and keep each pass ignorant of the others' output. The independence is what produces genuinely different designs — not the concurrency.
 
@@ -14,7 +14,7 @@ Before starting the design passes, write a user-facing explanation of the proble
 
 - The constraints any new interface would need to satisfy
 - The dependencies it would rely on, and which category they fall into (see [DEEPENING.md](DEEPENING.md))
-- A rough illustrative code sketch to ground the constraints — not a proposal, just a way to make the constraints concrete
+- A rough illustrative code sketch to ground the constraints, not a proposal, just a way to make the constraints concrete
 
 Show this to the user, then immediately proceed to Step 2. The user reads and thinks while the design passes run.
 
@@ -33,14 +33,14 @@ Include both [SKILL.md](SKILL.md) vocabulary and the project's `CONTEXT.md` voca
 
 Each pass outputs:
 
-1. Interface (types, methods, params — plus invariants, ordering, error modes)
+1. Interface (types, methods, params, plus invariants, ordering, error modes)
 2. Usage example showing how callers use it
 3. What the implementation hides behind the seam
 4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
-5. Trade-offs — where leverage is high, where it's thin
+5. Trade-offs: where leverage is high, where it's thin
 
 ### 3. Present and compare
 
 Present designs sequentially so the user can absorb each one, then compare them in prose. Contrast by **depth** (leverage at the interface), **locality** (where change concentrates), and **seam placement**.
 
-After comparing, give your own recommendation: which design you think is strongest and why. If elements from different designs would combine well, propose a hybrid. Be opinionated — the user wants a strong read, not a menu.
+After comparing, give your own recommendation: which design you think is strongest and why. If elements from different designs would combine well, propose a hybrid. Be opinionated: the user wants a strong read, not a menu.

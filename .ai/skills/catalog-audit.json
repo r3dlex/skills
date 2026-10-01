@@ -113,7 +113,7 @@
     {
       "name": "domain-modeling",
       "path": "01-discover-decide/domain-modeling/SKILL.md",
-      "description_chars": 160,
+      "description_chars": 159,
       "description_status": "target",
       "body_lines": 50,
       "body_status": "target",
@@ -170,7 +170,7 @@
       "path": "02-govern-plan/grilling/SKILL.md",
       "description_chars": 129,
       "description_status": "target",
-      "body_lines": 54,
+      "body_lines": 60,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
