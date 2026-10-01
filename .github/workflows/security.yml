@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   secret-scan:
-    name: GitGuardian Security Checks
+    name: Repository Secret Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
