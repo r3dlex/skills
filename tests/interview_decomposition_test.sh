@@ -17,7 +17,8 @@
 #   3. The format docs live only under domain-modeling — no second copy.
 #   4. No skill links at the retired grill-with-docs format-doc paths.
 #   5. `wayfinder` points at `grilling`, not `grill-me`.
-#   6. `ubiquitous-language` is `deprecated` (domain-modeling supersedes it).
+#   6. `ubiquitous-language` is absent (domain-modeling supersedes it; the
+#      deprecated entry was deleted outright in the lifecycle cleanup).
 #
 # Offline, deterministic, no model/network.
 #
@@ -134,19 +135,18 @@ else
   ok "wayfinder points at grilling, not grill-me"
 fi
 
-# --- 6. ubiquitous-language is deprecated -----------------------------------
-LIFECYCLE="$(python3 - <<'PY'
+# --- 6. ubiquitous-language is deleted --------------------------------------
+COUNT="$(python3 - <<'PY'
 import json
 skills = json.load(open('catalog.json', encoding='utf-8'))['skills']
-match = [s for s in skills if s['name'] == 'ubiquitous-language']
-print(match[0]['lifecycle'] if len(match) == 1 else '')
+print(len([s for s in skills if s['name'] == 'ubiquitous-language']))
 PY
 )"
 
-if [[ "$LIFECYCLE" == "deprecated" ]]; then
-  ok "ubiquitous-language is deprecated (superseded by domain-modeling)"
+if [[ "$COUNT" -eq 0 ]]; then
+  ok "ubiquitous-language is deleted (superseded by domain-modeling)"
 else
-  bad "ubiquitous-language is deprecated (got '${LIFECYCLE:-<missing>}')"
+  bad "ubiquitous-language must be deleted (found $COUNT catalog entries)"
 fi
 
 echo ""

@@ -86,3 +86,8 @@ rich evidence, then explicitly publish the candidate; revalidate policy and
 live authority separately. No silent conversion or fallback discovery exists.
 
 Legacy `root_causes`, evidence, solutions and richer annotations are retained in the migration original; they never substitute for current policy evidence. Content-bound freshness is rechecked by current file digests and exact subject bindings. Time-based freshness predicates and unrecognized gate fields are unsupported and blocked, not ignored. Governing root `AGENTS.md`, `.rules.ts` and `.ai/rules/` files must be covered in addition to the independently identified source set.
+
+Do not infer missing root causes or solutions during Autobahn execution.
+Incomplete or contradictory diagnostic evidence requires northstar or
+`diagnosing-bugs`; never mark such a record implementation-ready.
+Direct intake remains one bounded goal and one PR, not an implicit multi-goal plan.

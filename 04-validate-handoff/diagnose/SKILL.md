@@ -5,6 +5,11 @@ description: 'Run a reproduce-minimize-hypothesize-instrument-fix loop. Use when
 
 # Diagnose
 
+> **Deprecated alias.** [`diagnosing-bugs`](../diagnosing-bugs/SKILL.md) is the
+> canonical diagnosis loop; this entry is retained for vendored-pin compatibility
+> until the next ai-catapult lock bump removes it from the bundle. Feedback-loop
+> reference material lives canonically in `diagnosing-bugs/FEEDBACK-LOOP.md`.
+
 A discipline for hard bugs. Skip phases only when explicitly justified. Use the project's domain glossary and relevant ADRs before touching code.
 
 ## Phase 1 — Build a feedback loop

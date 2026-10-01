@@ -54,6 +54,12 @@ reviewing something that does not exist.
 3. Include the local verification actually run, with its result. Claimed
    verification is worse than none: it reads as evidence.
 
+The PR body follows the `pr` skill — that skill is the normative source for body
+format (Summary with the smallest clarifying visual, Evidence, Merge Danger).
+This module deliberately does not restate the template, so the format has exactly
+one home; a divergence between this file and that skill is a bug in whichever
+drifted.
+
 Only then does the peer-review loop start.
 
 ## Local CI

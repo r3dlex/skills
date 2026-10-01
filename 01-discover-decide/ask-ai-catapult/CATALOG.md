@@ -4,7 +4,6 @@
 - **`ask-ai-catapult`** — Ask which skill or flow fits your situation. Use when you know what you want to achieve but not which skills to combine, or which order to run them in.
 - **`domain-modeling`** — Build and sharpen a project domain model or ubiquitous language. Use when pinning down domain terms, recording an architectural decision, or keeping a glossary.
 - **`research`** — Investigate a question against high-trust primary sources and write the findings to a Markdown file. Use when a topic needs researching or API facts gathered.
-- **`ubiquitous-language`** — Extract and save a DDD glossary, flag ambiguities, and propose canonical terms. Use when defining domain language or a shared vocabulary.
 - **`zoom-out`** — Explain broader code or product context around a focused area. Use when the user needs a higher-level perspective before local changes.
 
 ## 02-govern-plan
@@ -46,6 +45,8 @@
 - **`diagnosing-bugs`** — Diagnosis loop for hard bugs and performance regressions. Use when asked to diagnose or debug, or when something is broken, throwing, failing, or slow.
 - **`eval-a-skill`** — Scaffold a structurally valid eval triplet for a target skill under .ai/evals/. CI checks structure only; the LM-judge runs out-of-band, never in CI.
 - **`handoff`** — Compact the current conversation into a handoff document for another agent to pick up.
+- **`pr`** — Use when writing a PR body: summary with the smallest clarifying visual, before/after evidence, and merge-danger (door + blast radius).
 - **`publish-semver`** — Set up semantic or calendar versioning and package publishing across supported ecosystems. Use when configuring release automation or changelogs.
 - **`resolving-merge-conflicts`** — Resolve an in-progress git merge or rebase conflict hunk by hunk. Use when a merge or rebase has stopped with conflicts that need resolving.
+- **`retro`** — Conduct a retrospective on a coding agent session: propose environment improvements ranked by severity. Invoked by the user after a session or post-merge.
 <!-- GENERATED:SKILL-CATALOG:END -->

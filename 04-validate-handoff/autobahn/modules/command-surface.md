@@ -29,15 +29,15 @@ One JSON object per `.ai/commands/<surface>/<skill>.json` carries:
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `name` | string | Command name, equal to the skill name |
-| `surface` | `"omx"` or `"omc"` | Harness owning this registration |
-| `skill` | string | Same delegated skill on both surfaces |
+| `surface` | `"omx"`, `"omc"` or `"opencode"` | Harness owning this registration |
+| `skill` | string | Same delegated skill on every surface |
 | `invocation` | string | Exact harness-specific invocation above |
 | `args` | array | Argument descriptors for the v1 command contract above |
 | `description` | string | One-line trigger description |
 | `delegates_to` | array | Skills/engines actually composed by this command |
 
 The schema is shared with `ai-catapult-init/modules/phases/README.md`; only
-`surface` and `invocation` differ between equivalent omx/omc registrations.
+`surface` and `invocation` differ between equivalent omx/omc/opencode registrations.
 Registration metadata is not execution or merge authority.
 
 ## Reusable command example
@@ -92,3 +92,9 @@ helper, not inferred from these argument descriptors.
   ]
 }
 ```
+
+## OpenCode surface
+
+`.ai/commands/opencode/autobahn.json` uses `surface: "opencode"` and
+`invocation: "/autobahn"` (the `/<name>` form), not the OMC plugin namespace.
+All other fields and v1 readiness semantics match the OMX/OMC registrations.
