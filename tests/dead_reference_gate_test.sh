@@ -115,22 +115,6 @@ scan "diagnose" \
   "./reference/fixtures/*" \
   "./tests/dead_reference_gate_test.sh"
 
-# edit-article: supported_hosts [] (cleanup 2026-10-01) — retained as docs only.
-#   Allowed in its own SKILL.md (frontmatter name/triggers), generated
-#   all-lifecycle surfaces, the router inventory (generated), migration
-#   history, the audit artifact, and the gate itself.
-scan "edit-article" \
-  "./03-configure-generate/edit-article/*" \
-  "./03-configure-generate/README.md" \
-  "./README.md" \
-  "./AGENTS.md" \
-  "./catalog.json" \
-  "./01-discover-decide/ask-ai-catapult/*" \
-  "./docs/migration/*" \
-  "./.ai/skills/*" \
-  "./reference/fixtures/*" \
-  "./tests/dead_reference_gate_test.sh"
-
 # ubiquitous-language: deleted outright (cleanup 2026-10-01). No live reference
 #   allowed; only migration history (recorded before deletion), the pre-cleanup
 #   audit snapshots inside reference fixtures, and the gate itself (denylist
