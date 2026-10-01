@@ -151,6 +151,60 @@ for needle in '$autobahn' "/oh-my-claudecode:autobahn"; do
   fi
 done
 
+# Versioned readiness arguments must agree across reusable host fixtures.
+if python3 - "$FIXTURE/.ai/commands" <<'PYTEST'
+import json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+expected = {
+    'northstar': [('spec', False), ('bundle', False)],
+    'autobahn': [('handoff', False), ('goal-id', False), ('goal', False),
+                 ('context', True), ('engine', False)],
+}
+for skill, args in expected.items():
+    canonical = None
+    for surface in ('omx', 'omc', 'opencode'):
+        doc = json.loads((root / surface / f'{skill}.json').read_text())
+        actual = [(arg['name'], arg['required']) for arg in doc['args']]
+        assert actual == args, f'{surface}/{skill}: stale readiness arguments {actual}'
+        comparable = {key: value for key, value in doc.items()
+                      if key not in ('surface', 'invocation')}
+        if canonical is None:
+            canonical = comparable
+        assert comparable == canonical, f'{surface}/{skill}: command contract drift'
+        assert doc['surface'] == surface
+        if skill == 'autobahn':
+            descriptions = {arg['name']: arg['description'].lower() for arg in doc['args']}
+            assert 'exact' in descriptions['handoff']
+            assert 'repeat' in descriptions['goal-id']
+            assert 'nested' in descriptions['goal'] and 'fallback' in descriptions['goal']
+            assert 'independent' in descriptions['context'] and 'authority' in descriptions['context']
+        else:
+            assert 'reviewed' in doc['args'][1]['description'].lower()
+print('v1-command-arguments-ok')
+PYTEST
+then
+  ok "v1 command arguments and semantics match across reusable host fixtures"
+else
+  bad "v1 command arguments and semantics match across reusable host fixtures"
+fi
+
+if python3 - <<'PYTEST'
+from pathlib import Path
+text = Path('AGENTS.md').read_text()
+pipeline = text.split('### Pipeline:', 1)[1].split('## Writing Rules', 1)[0]
+assert 'northstar-readiness-v1.json' in pipeline
+assert 'optional_branches' not in pipeline
+assert 'discovers the handoff' not in pipeline
+assert '--handoff' in pipeline and '--goal-id' in pipeline and '--context' in pipeline
+assert 'live' in pipeline and 'authority' in pipeline
+print('source-pipeline-guidance-ok')
+PYTEST
+then
+  ok "source pipeline guidance matches v1 selection and external authority boundary"
+else
+  bad "source pipeline guidance matches v1 selection and external authority boundary"
+fi
 # --- opencode surface (SSCM-07) ----------------------------------------------
 # .ai/commands/opencode/<skill>.json is a registered third surface: invocation
 # is the /<name> form (opencode's own slash command), everything else identical.

@@ -1,0 +1,11 @@
+{
+  "goal_id": "RT-01-publication-recovery",
+  "green": {
+    "command": "bash tests/readiness_contract_test.sh",
+    "exit_code": 0
+  },
+  "red": {
+    "command": "bash tests/readiness_contract_test.sh",
+    "exit_code": 1
+  }
+}

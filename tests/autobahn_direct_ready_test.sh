@@ -1,112 +1,76 @@
 #!/bin/bash
-
-set -uo pipefail
-
+# Offline public CLI regression using disposable, simulated v1 policy inputs.
+set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT" || exit 1
+cd "$REPO_ROOT"
+PYTHONPATH="$REPO_ROOT/tests:$REPO_ROOT/scripts${PYTHONPATH:+:$PYTHONPATH}" python3 - <<'PYTEST'
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+from readiness_fixture import fixture, write, digest
 
-READINESS="04-validate-handoff/autobahn/readiness-check.sh"
-PREREQ="04-validate-handoff/autobahn/prereq-check.sh"
-FIXTURE="reference/fixtures/v3/standalone"
-PASS=0
-FAIL=0
-ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
-bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
+REPO = Path.cwd()
+WRITER = REPO / '02-govern-plan/northstar/handoff-write.sh'
+AUTO = REPO / '04-validate-handoff/autobahn'
 
-assert_missing_value() {
-  local output rc
-  output="$(python3 - "$READINESS" <<'PY'
-import subprocess, sys
-try:
-    result = subprocess.run(["bash", sys.argv[1], "--goal"], capture_output=True, text=True, timeout=2)
-except subprocess.TimeoutExpired:
-    print("124|")
-else:
-    print(f"{result.returncode}|{result.stderr}")
-PY
-)"
-  rc="${output%%|*}"
-  if [[ "$rc" -eq 2 && "$output" == *"usage:"* ]]; then
-    ok "readiness-check missing --goal value returns usage without hanging"
-  else
-    bad "readiness-check missing --goal value returns usage without hanging (result: $output)"
-  fi
-}
+def run(script, root, *args):
+    return subprocess.run(['bash', str(script), '--root', str(root), *args],
+                          capture_output=True, text=True, timeout=10)
 
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
-cp -R "$FIXTURE/." "$tmp/repo"
-rm -f "$tmp/repo/.ai/handoff/"northstar-*.md 2>/dev/null
-python3 - "$tmp/repo/.ai/workflows/repo-workflow.json" <<'PY'
-import json, sys
-p = sys.argv[1]
-m = json.load(open(p))
-m["optional_branches"] = [b for b in m.get("optional_branches", [])
-                          if not str(b.get("id", "")).startswith("northstar-handoff-")]
-json.dump(m, open(p, "w"), indent=2)
-PY
+def passed(result):
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)
 
-cat > "$tmp/ready.json" <<'JSON'
-{
-  "id": "guardrail-parser-fix",
-  "implementation_ready": true,
-  "context": "Markdown-wrapped JSON reaches the strict response parser.",
-  "root_causes": ["The parser sends fenced JSON directly to json.loads."],
-  "evidence": ["A captured response fixture reproduces the parse failure."],
-  "solutions": ["Strip one optional JSON fence before decoding."],
-  "acceptance_criteria": ["Fenced and plain JSON both parse through the public interface."],
-  "scope": ["guardrail/response_parser.py", "tests/test_response_parser.py"],
-  "verification": ["pytest tests/test_response_parser.py"],
-  "issue_ref": "local:work-intake/guardrail-parser-fix",
-  "coverage_percent": 18
-}
-JSON
+def blocked(result, reason):
+    assert result.returncode != 0, result.stdout
+    assert reason in result.stdout + result.stderr, result.stdout + result.stderr
 
-cat > "$tmp/vague.json" <<'JSON'
-{
-  "id": "vague-fix",
-  "implementation_ready": true,
-  "context": "Something is wrong.",
-  "solutions": ["Fix it."],
-  "acceptance_criteria": ["It works."]
-}
-JSON
+import copy
 
-assert_missing_value
+result = subprocess.run(['bash', str(AUTO / 'readiness-check.sh'), '--goal'],
+                        capture_output=True, text=True, timeout=2)
+assert result.returncode == 2 and 'usage:' in result.stderr, result
+print('PASS: missing direct-goal value returns usage without hanging')
 
-if bash "$READINESS" --goal "$tmp/ready.json" >/dev/null 2>&1; then
-  ok "evidence-complete goal is implementation-ready"
-else
-  bad "evidence-complete goal is implementation-ready"
-fi
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    bundle, context = fixture(root)
+    ready = write(root, 'ready.json', {'schema': 'direct-goal/1', 'bundle': bundle})
+    context['authority']['subject_sha256'] = digest(ready)
+    write(root, 'context.json', context)
+    args = ('--goal', str(ready), '--context', str(root / 'context.json'))
+    for name in ('readiness-check.sh', 'prereq-check.sh'):
+        report = passed(run(AUTO / name, root, *args))
+        assert report['execution_ready'] and not report['dispatch_authorized']
+        assert report['goals'] == ['G1']
+    assert not (root / 'SHOULD_NOT_RUN').exists()
+    print('PASS: both public gates accept explicit nested v1 without a handoff')
 
-if bash "$READINESS" --goal "$tmp/vague.json" >/dev/null 2>&1; then
-  bad "vague goal fails closed"
-else
-  ok "vague goal fails closed"
-fi
+    vague = copy.deepcopy(bundle)
+    del vague['goals'][0]['verification']
+    vague_path = write(root, 'vague.json', {'schema': 'direct-goal/1', 'bundle': vague})
+    context['authority']['subject_sha256'] = digest(vague_path)
+    write(root, 'context.json', context)
+    for name in ('readiness-check.sh', 'prereq-check.sh'):
+        result = run(AUTO / name, root, '--goal', str(vague_path), '--context', str(root / 'context.json'))
+        assert result.returncode != 0, result.stdout
+    print('PASS: incomplete nested v1 rejected by both gates')
 
-if bash "$PREREQ" --root "$tmp/repo" --goal "$tmp/ready.json" >/dev/null 2>&1; then
-  ok "autobahn accepts direct-ready goal without northstar handoff"
-else
-  bad "autobahn accepts direct-ready goal without northstar handoff"
-fi
+    legacy = write(root, 'legacy.json', {'id': 'old', 'implementation_ready': True})
+    blocked(run(AUTO / 'readiness-check.sh', root, '--goal', str(legacy)), 'migration_required')
+    print('PASS: legacy direct readiness cannot bypass migration')
 
-if bash "$PREREQ" --root "$tmp/repo" --goal "$tmp/vague.json" >/dev/null 2>&1; then
-  bad "autobahn rejects vague direct goal"
-else
-  ok "autobahn rejects vague direct goal"
-fi
+    # A valid unrelated registration must never rescue the explicit bad goal.
+    entry = passed(run(WRITER, root, '--bundle', str(root / 'plan.json')))['published']
+    result = run(AUTO / 'prereq-check.sh', root, '--goal', str(vague_path), '--context', str(root / 'context.json'))
+    assert result.returncode != 0, result.stdout
+    print('PASS: explicit incomplete goal never falls back to registered handoff')
 
-# An explicit direct goal must be validated even when an unrelated handoff exists.
-bash 02-govern-plan/northstar/handoff-write.sh --root "$tmp/repo" \
-  --spec "docs/specifications/ACTIVE/direct-ready-test.md" --slug "other-work" >/dev/null 2>&1
-if bash "$PREREQ" --root "$tmp/repo" --goal "$tmp/vague.json" >/dev/null 2>&1; then
-  bad "explicit vague goal cannot fall through to an existing handoff"
-else
-  ok "explicit vague goal cannot fall through to an existing handoff"
-fi
-
-echo ""
-echo "Results: PASS=$PASS FAIL=$FAIL"
-[[ "$FAIL" -eq 0 ]]
+    context['authority']['subject_sha256'] = digest(ready)
+    context['policy']['sha256'] = '0' * 64
+    write(root, 'context.json', context)
+    for name in ('readiness-check.sh', 'prereq-check.sh'):
+        blocked(run(AUTO / name, root, *args), 'unapproved_policy_revision')
+    print('PASS: both direct gates enforce the independent policy binding')
+PYTEST

@@ -5,17 +5,32 @@
   "invocation": "/autobahn",
   "args": [
     {
+      "name": "handoff",
+      "required": false,
+      "description": "Exact v1 registration ID or registered generation handoff path; required with goal-id unless goal is supplied."
+    },
+    {
+      "name": "goal-id",
+      "required": false,
+      "description": "Explicit selected goal ID; repeat for a set. Required with handoff; incompatible with direct goal."
+    },
+    {
       "name": "goal",
       "required": false,
-      "description": "Path to one implementation-ready goal record for direct intake, bypassing a handoff."
+      "description": "Path to one nested direct-goal/1 envelope, instead of handoff and goal-id; no discovery fallback."
+    },
+    {
+      "name": "context",
+      "required": true,
+      "description": "Independent readiness-context/1 input for exact subject, goals and stage; live authority must be verified separately before dispatch."
     },
     {
       "name": "engine",
       "required": false,
-      "description": "Override the per-goal engine (ultraqa|ultrawork|ralph|team)."
+      "description": "Override the per-goal engine (ultraqa|ultrawork|ralph|team) only after admission and live authority checks."
     }
   ],
-  "description": "Ship a northstar handoff's sliced goals, or one implementation-ready goal record, one PR per goal.",
+  "description": "Admit exact v1 goals with independent policy context, then ship one ready goal per PR after live authority verification.",
   "delegates_to": [
     "ultragoal",
     "implement",

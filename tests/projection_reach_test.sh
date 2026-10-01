@@ -80,6 +80,13 @@ reach "$AUTOBAHN" "autobahn: verification\[\] rule reaches all hosts" 'only comm
 reach "$AUTOBAHN" "autobahn: gate driver rule reaches all hosts"      'through the bundled gate driver'
 reach "$AUTOBAHN" "autobahn: fail-closed posture reaches all hosts"   'fail closed'
 
+# v1 admission and authority rules must not disappear on flattened hosts.
+reach "$AUTOBAHN" "autobahn: exact selection reaches all hosts"       'exact handoff and explicit goal IDs'
+reach "$AUTOBAHN" "autobahn: external authority reaches all hosts"    'independently verify live.*authority'
+reach "$AUTOBAHN" "autobahn: unknown coverage reaches all hosts"      'unknown coverage.*legacy-safe TDD'
+reach "$NORTHSTAR" "northstar: planning/readiness distinction reaches all hosts" 'planning completion is not implementation readiness'
+reach "$NORTHSTAR" "northstar: version-isolated publication reaches all hosts" 'separate v1 registry.*legacy discovery'
+
 # --- northstar's adversarial-pass rule --------------------------------------
 reach "$NORTHSTAR" "northstar: adversarial pass reaches all hosts"  'grill-with-docs'
 reach "$NORTHSTAR" "northstar: grill-me reaches all hosts"          'grill-me'

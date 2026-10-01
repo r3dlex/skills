@@ -75,6 +75,27 @@ require_in "$SKILL" "never implement"
 require_in "$SKILL" "stop after the verified A→B handoff"
 require_in "$SKILL" "never implement in the same run"
 
+# Primary instructions must use the versioned writer, not a legacy appendix override.
+if python3 - "$SKILL" <<'PYDOC'
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+quick = text.split("## Quick Start\n", 1)[1].split("\n## ", 1)[0]
+handoff = text.split("## A→B handoff\n", 1)[1].split("\n## ", 1)[0]
+assert "--bundle <reviewed-v1.json>" in quick
+assert "--spec" not in quick and "--slug" not in quick
+assert "optional_branches" not in handoff
+for required in (".ai/handoff/readiness-v1/<plan-id>/<generation>/", "goals.json",
+                 "handoff.md", "graph.json", "schema_version 1.1",
+                 ".ai/workflows/northstar-readiness-v1.json", "plans[]"):
+    assert required in handoff, required
+assert "not implementation readiness" in handoff
+PYDOC
+then
+  ok "primary writer and output instructions use the v1 contract"
+else
+  bad "primary writer and output instructions use the v1 contract"
+fi
+
 # --- 3. description <= 180 chars ----------------------------------------------
 desc="$(awk 'NR==1&&$0!="---"{exit} NR==1{next} $0=="---"{exit} /^description:/{sub(/^description:[[:space:]]*/,"");gsub(/^["'"'"']|["'"'"']$/,"");print;exit}' "$SKILL")"
 len=${#desc}

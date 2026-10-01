@@ -38,6 +38,35 @@ be verified for the exact commit SHA under current host policy. No configuration
 no runnable steps, malformed structure, unsupported context, an unallowlisted
 command, or a nonzero command blocks.
 
+## Explicit supporting local CI contract
+
+When hosted YAML is outside the safe executable subset, a repository can review
+and version `.ai/ci/local-ci.json` instead of weakening the parser:
+
+```json
+{
+  "schema": "local-ci/1",
+  "workflows": {".github/workflows/ci.yml": "<sha256>"},
+  "sources": {"tests/run-tests.sh": "<sha256>"},
+  "verification": ["bash tests/run-tests.sh"]
+}
+```
+
+The exact schema rejects unknown/duplicate keys. `workflows` must pin the entire
+current GitHub YAML inventory and root Azure/GitLab YAML configs. `sources` pins
+all direct script commands and the repository-reviewed supporting inputs. Paths
+must be normalized, root-contained regular files with no symlink components.
+All hashes and the whole command list are checked before any command executes.
+The unchanged verification adapter handles command forms and cwd objects.
+
+The fixed declaration is optional: absence preserves strict derivation; a present
+invalid, stale, incomplete, or unsafe declaration blocks without fallback.
+`--derive-json` and the separate remote-CI gate remain unchanged. Declaration
+hashes prove freshness only, not approval, authority, complete dependency tracing,
+or hosted-CI equivalence. Review the check selection and indirect dependencies in
+source review; refresh pins only as part of that reviewed change. Execution still
+requires independent repository authority. See ADR 0015.
+
 ## Layer 2 — `verification[]`
 
 Each entry is either a legacy non-empty command string, whose cwd remains `.`,

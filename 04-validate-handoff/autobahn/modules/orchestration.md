@@ -32,8 +32,16 @@ duplicate `ultragoal`'s ledger.
 
 For each sliced goal, in order:
 
-1. Resolve the goal record from the handoff or readiness gate.
-2. Select standard or legacy-safe TDD, then pick the engine.
+1. Resolve exact v1 handoff and goal IDs (or explicit direct envelope). Run
+   `prereq-check.sh --stage implementation`; require zero exit plus exact
+   repository/subject/goal identity, `stage=implementation` and
+   `execution_ready=true`. Planning-stage success is never admission.
+2. Independently verify live policy approval and operation authority for that
+   subject, goal set and stage through the supported host boundary. Context
+   issuer/status labels cannot satisfy this: the helper always reports
+   `dispatch_authorized=false`. Missing authority stops before TDD or engine
+   calls. Only then extract the admitted goal, select standard or legacy-safe
+   TDD, and pick the engine.
 3. Run `implement` under the selected posture, driving `tdd` red-green; the
    picked engine executes. See implementation.md.
 4. `run-gates.sh --phase pre-commit` — TDD evidence and lint, or stop.

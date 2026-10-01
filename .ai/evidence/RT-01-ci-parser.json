@@ -1,0 +1,42 @@
+{
+  "goal_id": "RT-01-ci-parser",
+  "green": {
+    "command": "bash tests/local_ci_contract_test.sh",
+    "exit_code": 0
+  },
+  "red": {
+    "command": "bash tests/local_ci_contract_test.sh",
+    "exit_code": 1
+  },
+  "scope": "Explicit supporting local CI contract; strict hosted-workflow derivation unchanged",
+  "verification": [
+    {
+      "command": "bash tests/local_ci_contract_test.sh",
+      "exit_code": 0,
+      "tests_passed": 25
+    },
+    {
+      "command": "bash tests/autobahn_local_ci_test.sh",
+      "exit_code": 0,
+      "checks_passed": 88
+    },
+    {
+      "command": "bash tests/autobahn_ci_gate_test.sh",
+      "exit_code": 0,
+      "checks_passed": 130
+    },
+    {
+      "command": "bash 04-validate-handoff/autobahn/local-ci.sh --root .",
+      "exit_code": 0,
+      "result": "Full test runner, prek --all-files and shared secret scanner passed"
+    },
+    {
+      "command": "bash 04-validate-handoff/autobahn/ci-gate.sh --derive-json --root .",
+      "exit_code": 1,
+      "expected": true,
+      "result": "Unsupported hosted workflow remains blocked; no equivalence claimed"
+    }
+  ],
+  "authority": "Supporting local evidence only; remote CI and execution/merge authority remain separate",
+  "followup_evidence": ".ai/evidence/RT-01-ci-hidden-azure.json"
+}

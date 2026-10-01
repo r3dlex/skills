@@ -1,133 +1,146 @@
 #!/bin/bash
-#
-# northstar_autobahn_pipeline_e2e_test.sh
-#
-# END-TO-END handshake test for the northstar -> autobahn intake->ship pipeline.
-# Where northstar_handoff_test.sh proves northstar's WRITE side and the autobahn
-# *_test.sh files prove autobahn's helpers in isolation, this test proves the two
-# skills actually COMPOSE: artifacts northstar writes are exactly what autobahn's
-# discovery gate consumes, against a throwaway init-ai-repo (a temp copy of the
-# standalone fixture). It is the deterministic, offline form of the "E2E pipeline
-# dry-run" — no GitHub PRs, no model, no network.
-#
-# Pipeline exercised, in order:
-#   1. 02-govern-plan/northstar/prereq-check.sh   -> init-ai-repo present                (exit 0)
-#   2. 02-govern-plan/northstar/handoff-write.sh  -> writes the A->B handoff             (exit 0)
-#   3. 04-validate-handoff/autobahn/prereq-check.sh    -> DISCOVERS northstar's handoff       (exit 0)
-#      + the slug autobahn discovers == the slug northstar wrote (handshake)
-#   4. NEGATIVE control: a fresh init-ai-repo with NO northstar run ->
-#      04-validate-handoff/autobahn/prereq-check.sh fails closed                             (exit 1)
-#   5. 04-validate-handoff/autobahn/engine-pick.sh     -> selects a ship engine per goal signal
-#   6. 04-validate-handoff/autobahn/merge-authority.sh -> merge decision on an approved verdict(exit 0)
-#
-
-set -uo pipefail
-
+# Offline public CLI regression using disposable, simulated v1 policy inputs.
+set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT" || exit 1
+cd "$REPO_ROOT"
+PYTHONPATH="$REPO_ROOT/tests:$REPO_ROOT/scripts${PYTHONPATH:+:$PYTHONPATH}" python3 - <<'PYTEST'
+import copy
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+from readiness_fixture import fixture, write, digest
 
-FIXTURE="$REPO_ROOT/reference/fixtures/v3/standalone"
-N_PREREQ="$REPO_ROOT/02-govern-plan/northstar/prereq-check.sh"
-N_HANDOFF="$REPO_ROOT/02-govern-plan/northstar/handoff-write.sh"
-A_PREREQ="$REPO_ROOT/04-validate-handoff/autobahn/prereq-check.sh"
-A_ENGINE="$REPO_ROOT/04-validate-handoff/autobahn/engine-pick.sh"
-A_MERGE="$REPO_ROOT/04-validate-handoff/autobahn/merge-authority.sh"
-VERDICT="$REPO_ROOT/reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json"
+REPO = Path.cwd()
+WRITER = REPO / '02-govern-plan/northstar/handoff-write.sh'
+AUTO = REPO / '04-validate-handoff/autobahn'
 
-PASS=0
-FAIL=0
-ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
-bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
+def run(script, root, *args):
+    return subprocess.run(['bash', str(script), '--root', str(root), *args],
+                          capture_output=True, text=True, timeout=10)
 
-command -v python3 >/dev/null 2>&1 || { echo "python3 is required (fail-closed prerequisite)." >&2; exit 2; }
-for s in "$N_PREREQ" "$N_HANDOFF" "$A_PREREQ" "$A_ENGINE" "$A_MERGE"; do
-  [[ -f "$s" ]] || { bad "pipeline helper exists: $s"; echo ""; echo "Results: PASS=$PASS FAIL=$FAIL"; exit 1; }
-done
+def passed(result):
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)
 
-tmp="$(mktemp -d)"
-tmp2=""
-trap 'rm -rf "$tmp" "${tmp2:-}"' EXIT
-cp -R "$FIXTURE/." "$tmp/"
+def blocked(result, reason):
+    assert result.returncode != 0, result.stdout
+    assert reason in result.stdout + result.stderr, result.stdout + result.stderr
 
-SLUG="rate-limit-public-api"
-rc_of() { "$@" >/dev/null 2>&1; echo $?; }
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    bundle, context = fixture(root)
+    (root / '.ai/handoff').mkdir(exist_ok=True)
+    result = run(REPO / '02-govern-plan/northstar/prereq-check.sh', root)
+    assert result.returncode == 0, result.stdout + result.stderr
+    print('PASS: Northstar prerequisites recognize initialized fixture')
+    entry = passed(run(WRITER, root, '--bundle', str(root / 'plan.json')))['published']
+    assert (root / entry['handoff_path']).is_file()
+    context['authority']['subject_sha256'] = entry['artifacts']['bundle']['sha256']
+    write(root, 'context.json', context)
+    args = ('--handoff', entry['id'], '--goal-id', 'G1', '--context', str(root / 'context.json'))
+    report = passed(run(AUTO / 'prereq-check.sh', root, *args))
+    assert report['plan_id'] == bundle['id']
+    assert report['goals'] == [bundle['goals'][0]['id']]
+    assert report['handoff'] == entry
+    assert report['execution_ready'] and not report['dispatch_authorized']
+    assert not (root / 'SHOULD_NOT_RUN').exists()
+    print('PASS: Northstar publication and explicit Autobahn selection share exact identity')
+    blocked(run(AUTO / 'prereq-check.sh', root), 'selection_required')
+    registry = json.loads((root / '.ai/workflows/northstar-readiness-v1.json').read_text())
+    registry['plans'] = []
+    write(root, '.ai/workflows/northstar-readiness-v1.json', registry)
+    blocked(run(AUTO / 'prereq-check.sh', root, *args), 'handoff_missing_or_ambiguous')
+    print('PASS: omitted selection and missing registration fail closed')
 
-# --- 1. northstar prereq gate passes on an initialized repo -------------------
-rc="$(rc_of bash "$N_PREREQ" --root "$tmp")"
-if [[ "$rc" -eq 0 ]]; then
-  ok "1. northstar prereq-check passes on the init-ai-repo (exit 0)"
-else
-  bad "1. northstar prereq-check should pass on init-ai-repo (got $rc)"
-fi
+    # This is a test-only adapter for modules/orchestration.md's declared
+    # agent boundary, not a production dispatch loop. CLI reports cannot verify
+    # live runtime authority; the separate callback below simulates that service.
+    calls = []
+    authority_checks = []
 
-# --- 2. northstar writes the A->B handoff ------------------------------------
-rc="$(rc_of bash "$N_HANDOFF" --root "$tmp" \
-  --spec "docs/specifications/ACTIVE/intake-and-ship-skills.md" \
-  --slug "$SLUG" --issue "local:work-intake/$SLUG")"
-if [[ "$rc" -eq 0 ]]; then
-  ok "2. northstar handoff-write produces the A->B handoff (exit 0)"
-else
-  bad "2. northstar handoff-write should write the handoff (got $rc)"
-fi
-if [[ -f "$tmp/.ai/handoff/northstar-$SLUG.md" ]]; then
-  ok "2. handoff file present at .ai/handoff/northstar-$SLUG.md"
-else
-  bad "2. handoff file missing"
-fi
+    def tdd_spy():
+        calls.append('tdd')
 
-# --- 3. autobahn DISCOVERS northstar's handoff (the handshake) ----------------
-out="$(bash "$A_PREREQ" --root "$tmp" 2>&1)"; rc=$?
-if [[ "$rc" -eq 0 ]]; then
-  ok "3. autobahn prereq-check discovers the handoff northstar wrote (exit 0)"
-else
-  bad "3. autobahn prereq-check should discover northstar's handoff (got $rc: $out)"
-fi
-# The slug autobahn reports must be exactly the one northstar wrote -> the two
-# skills agree on the same handoff identity (no silent mismatch).
-if printf '%s' "$out" | grep -q "'$SLUG'"; then
-  ok "3. autobahn discovered the SAME slug northstar wrote ('$SLUG')"
-else
-  bad "3. autobahn must discover northstar's slug '$SLUG' (saw: $out)"
-fi
+    def engine_spy():
+        calls.append('engine')
 
-# --- 4. NEGATIVE control: init-ai-repo without a northstar run fails closed ---
-tmp2="$(mktemp -d)"
-cp -R "$FIXTURE/." "$tmp2/"
-# Remove any pre-seeded northstar handoff so the only handoffs are ones we write.
-rm -f "$tmp2/.ai/handoff/"northstar-*.md 2>/dev/null
-python3 - "$tmp2/.ai/workflows/repo-workflow.json" <<'PY'
-import json, sys
-p = sys.argv[1]
-m = json.load(open(p))
-m["optional_branches"] = [b for b in m.get("optional_branches", [])
-                          if not str(b.get("id", "")).startswith("northstar-handoff-")]
-json.dump(m, open(p, "w"), indent=2)
-PY
-rc="$(rc_of bash "$A_PREREQ" --root "$tmp2")"
-rm -rf "$tmp2"
-if [[ "$rc" -eq 1 ]]; then
-  ok "4. autobahn fails closed when no northstar handoff exists (exit 1) — discovery is real, not vacuous"
-else
-  bad "4. autobahn should fail closed without a handoff (got $rc)"
-fi
+    def transition(admission, verify_live_authority):
+        if admission.returncode != 0:
+            return
+        value = json.loads(admission.stdout)
+        if value.get('stage') != 'implementation' or value.get('execution_ready') is not True:
+            return
+        # Subject, goal set and stage are all bound independently. Neither
+        # context.authority.status nor a report issuer grants this permission.
+        if not verify_live_authority(value['subject_sha256'], tuple(value['goals']), value['stage']):
+            return
+        tdd_spy()
+        engine_spy()
 
-# --- 5. autobahn picks a ship engine per goal signal -------------------------
-eng_qa="$(bash "$A_ENGINE" --qa-heavy true 2>/dev/null | tail -1)"
-eng_def="$(bash "$A_ENGINE" 2>/dev/null | tail -1)"
-if [[ "$eng_qa" == "ultraqa" && "$eng_def" == "team" ]]; then
-  ok "5. autobahn engine-pick selects per goal (qa-heavy=ultraqa, default=team)"
-else
-  bad "5. autobahn engine-pick mismatch (qa=$eng_qa default=$eng_def)"
-fi
+    def absent_live_authority(subject, goals, stage):
+        authority_checks.append((subject, goals, stage))
+        return False
 
-# --- 6. autobahn merge-authority decides on an approved verdict ---------------
-rc="$(rc_of bash "$A_MERGE" --verdict "$VERDICT")"
-if [[ "$rc" -eq 0 ]]; then
-  ok "6. autobahn merge-authority authorizes merge on the approved verdict (exit 0)"
-else
-  bad "6. autobahn merge-authority should authorize merge (got $rc)"
-fi
+    failed = run(AUTO / 'prereq-check.sh', root, *args)
+    blocked(failed, 'handoff_missing_or_ambiguous')
+    transition(failed, absent_live_authority)
+    assert calls == [] and authority_checks == []
+    print('PASS: failed admission invokes neither TDD nor engine nor live-authority adapter')
 
-echo ""
-echo "Results: PASS=$PASS FAIL=$FAIL"
-[[ "$FAIL" -eq 0 ]] && exit 0 || exit 1
+    direct = root / 'direct.json'
+    direct_args = ('--goal', str(direct), '--context', str(root / 'context.json'))
+
+    def direct_admission(candidate, stage='implementation'):
+        write(root, 'direct.json', {'schema': 'direct-goal/1', 'bundle': candidate})
+        context['authority']['subject_sha256'] = digest(direct)
+        write(root, 'context.json', context)
+        return run(AUTO / 'prereq-check.sh', root, *direct_args, '--stage', stage)
+
+    unknown = copy.deepcopy(bundle)
+    unknown['goals'][0]['readiness']['implementation'] = 'unknown'
+    unknown_result = direct_admission(unknown)
+    blocked(unknown_result, 'goal_not_ready')
+    transition(unknown_result, absent_live_authority)
+    assert calls == [] and authority_checks == []
+    print('PASS: unknown implementation readiness invokes neither TDD nor engine')
+
+    planning = direct_admission(bundle, stage='planning')
+    planning_report = passed(planning)
+    assert planning_report['planning_complete'] and not planning_report['dispatch_authorized']
+    transition(planning, absent_live_authority)
+    assert calls == [] and authority_checks == []
+    print('PASS: successful planning-only admission invokes neither TDD nor engine')
+
+    ready = direct_admission(bundle)
+    ready_report = passed(ready)
+    assert ready_report['execution_ready'] and not ready_report['dispatch_authorized']
+    # The fixture context already says authority.status=pass. That is explicitly
+    # insufficient when the separate live adapter cannot verify permission.
+    assert context['authority']['status'] == 'pass'
+    transition(ready, absent_live_authority)
+    expected_binding = (ready_report['subject_sha256'], ('G1',), 'implementation')
+    assert calls == [] and authority_checks == [expected_binding]
+    print('PASS: structurally ready report without live authority invokes neither TDD nor engine')
+
+    def simulated_verified_live_authority(subject, goals, stage):
+        # Deliberately test-only external-service response; not read from JSON.
+        authority_checks.append((subject, goals, stage))
+        return (subject, goals, stage) == expected_binding
+
+    transition(ready, simulated_verified_live_authority)
+    assert calls == ['tdd', 'engine']
+    assert authority_checks == [expected_binding, expected_binding]
+    assert not (root / 'SHOULD_NOT_RUN').exists()
+    print('PASS: ready admission plus separately simulated bound live authority invokes both spies once')
+
+# Engine selection and merge authority remain separate from contract readiness.
+for args, expected in [(('--qa-heavy', 'true'), 'ultraqa'), ((), 'team')]:
+    result = subprocess.run(['bash', str(AUTO / 'engine-pick.sh'), *args], capture_output=True, text=True)
+    assert result.returncode == 0 and result.stdout.strip().splitlines()[-1] == expected, result
+print('PASS: engine selector retains qa-heavy and default behavior')
+verdict = REPO / 'reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json'
+result = subprocess.run(['bash', str(AUTO / 'merge-authority.sh'), '--verdict', str(verdict)], capture_output=True, text=True)
+assert result.returncode == 0, result.stdout + result.stderr
+print('PASS: separate merge authority accepts its approved fixture verdict')
+PYTEST

@@ -3,7 +3,7 @@
     "ai-catapult-init.md": "d5d31a31d21991af96690beedaa2d910a526d936491e89362877905dcf3142a0",
     "ai-sdlc-init.md": "f25a6731f84c727d20a70dda403de90b5fbaa350da5d311b10fb222a33c7bc03",
     "ask-ai-catapult.md": "a815216f9dd23c9dddbde0614d69f6849c03158fc992c25e0936ac9d5d6faa9f",
-    "autobahn.md": "0e4d2441e6ed04edc3c0557582b922ed1aa92df41011810992f54c7b56215d1d",
+    "autobahn.md": "b649934b9c81249f9265ca717feb47744fae2459d9fef31e1bedab6bce5836f6",
     "code-review.md": "0a897bff4b7e5908f521cbc2f5a66b942df0a483fa17d2bc6b0274c375cb3efe",
     "codebase-design.md": "0ac786bd562a0a0734f8117df04eeef644b7d620d6a6f1e8e8e77ffa6a166d8a",
     "design-an-api-or-interface.md": "10af7f142fbd86a6fe9ee0aa428c9268d1d2793a9cbef883916944f6bd92d9f9",
@@ -17,7 +17,7 @@
     "implement.md": "77a2b3ca92dadb546f34722e5cf52c69a25ca4082a5b16d441a808474a02c618",
     "improve-codebase-architecture.md": "9e2d14dae854ed8b992ddc48ddef89b0ee585790de49b16ca94e36be5acba2e5",
     "init-ai-repo.md": "01a2994634e56e2a66dcd09315bbb15820dcd26e6121c5c98d3cb92abfe93d28",
-    "northstar.md": "9407562ff9b4643654b634e92eeaae8a418c2d5066053aa3cb81f884134afa27",
+    "northstar.md": "183dd3251b67db1edfe5cc2d87b08eb29010b549b961e0c27ecce3be6d04ee3a",
     "pr.md": "04b6b2839c0368f6c425573da8342edbb8302c1305825fd99632bb7ea02b4e77",
     "prototype.md": "199e32133b5a5dc7daee1d33900b451cfd520c8c9768c02d6d5dacfa9ad9662c",
     "publish-semver.md": "62a15a1b097beb48671bd2cf00e9ec78cf977f9b848c9811fa85fb627069b2ee",
@@ -41,7 +41,7 @@
     "ai-catapult-init.md": "d496a86ffd3366127996d014648beb547012b8cfbfabc7baf60e082682fe02ce",
     "ai-sdlc-init.md": "d71fa2de087e70786113018e2c8cc262f439be9db4205485a50fbf31a9d6a6a8",
     "ask-ai-catapult.md": "7236d82400bc096cc61ab91bde0a0e9dc0ab225d8d05ee846d4177727e1f1de8",
-    "autobahn.md": "3d16c869420e3de28f8877f34f21f8e79d3353c0d1f50d42501fe63484d1d5df",
+    "autobahn.md": "d6ef2f735d316bf617d28b1954bd43806cad633280bcb236a3433ab8cea173ec",
     "code-review.md": "bbe1509c5ba2d2ec511cf557cf4f0274efbe37eae086357851a6a4411a123bed",
     "codebase-design.md": "f8603c65d4d0a6a61b8709d627700bad2899b689ac1e8b7eb9d12790584dbd53",
     "design-an-api-or-interface.md": "85efa720d116badeb395685f8311b4fb8458e323ff815ce4154d637837102356",
@@ -55,7 +55,7 @@
     "implement.md": "b05c29cf491e7740ca36072916ebb9b8c07fd674f4862c87388bca3d0ed4a659",
     "improve-codebase-architecture.md": "c7264f4426ef9b072f5c2cb864ad31d3869412189bfd4986a77a4c0e24bf0086",
     "init-ai-repo.md": "36b2e8af22f4b71c9c14ee51b7ef5ec28184b789d1dc80d6e15df575700afb2e",
-    "northstar.md": "49af9bd1258228ccce0d1bed8c78cc92187108d51eb20e41e690e0d22aaaa55e",
+    "northstar.md": "acd15908d9253ec33eb8963e41461bb47b0998ece12fc45797bbaabc1a8ec6f5",
     "pr.md": "5fe4ee61dbb8f8ef9506e23549e21f745d5979e350ac2b9e9641322f78b36ed7",
     "prototype.md": "89a9ca17052a3adf90834d95514f3028bbcb6541902f681f8bddc0c7dcb5ef3d",
     "publish-semver.md": "47340ea8ceaa450080620735e896646cf4df41d6ae7000301d5eddad943b1725",
@@ -76,6 +76,6 @@
     "zoom-out.md": "f18106eedb9f35852ffd24bf1881273097a1de6e2459e7930de59e65ce42184f"
   },
   "copilot": {
-    "copilot-instructions.md": "5c0bd4374ec4e4c16d7cd13f6506e622097332960f6c1fcdf6c60c205a4c9357"
+    "copilot-instructions.md": "4077f2f7327453bdb563d9982a4397394a457742f400c397b2258997df65156d"
   }
 }
