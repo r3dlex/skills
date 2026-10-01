@@ -81,7 +81,8 @@ scan() {
 # --- denylist ----------------------------------------------------------------
 
 # resolving-merge-conflicts: lifecycle deprecated (cleanup 2026-10-01); dropped
-#   from default bundles. Allowed only in: its own deprecated SKILL.md (vendored-
+#   from default bundles. catalog_contract_test.sh references the name to
+#   assert it is excluded from default installs in CI. Allowed only in: its own deprecated SKILL.md (vendored-
 #   pin-compat notice), generated all-lifecycle surfaces (README/AGENTS/phase
 #   docs), the catalog, the ask-ai-catapult router inventory (generated), the
 #   committed audit artifact, and the gate itself (its denylist declares the
@@ -94,7 +95,8 @@ scan "resolving-merge-conflicts" \
   "./catalog.json" \
   "./01-discover-decide/ask-ai-catapult/*" \
   "./.ai/skills/*" \
-  "./tests/dead_reference_gate_test.sh"
+  "./tests/dead_reference_gate_test.sh" \
+  "./tests/catalog_contract_test.sh"
 
 # diagnose: deprecated alias of diagnosing-bugs (cleanup 2026-10-01). Allowed
 #   only in its own deprecated SKILL.md, generated all-lifecycle surfaces, the
