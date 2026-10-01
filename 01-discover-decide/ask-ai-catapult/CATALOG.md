@@ -2,7 +2,7 @@
 ## 01-discover-decide
 
 - **`ask-ai-catapult`** — Ask which skill or flow fits your situation. Use when you know what you want to achieve but not which skills to combine, or which order to run them in.
-- **`domain-modeling`** — Build and sharpen a project domain model or ubiquitous language. Use when pinning down domain terms, recording an architectural decision, or keeping a glossary.
+- **`domain-modeling`** — Build and sharpen a project domain model or ubiquitous language. Use when discussing codebase terminology, or writing or editing CONTEXT.md or an ADR directly.
 - **`research`** — Investigate a question against high-trust primary sources and write the findings to a Markdown file. Use when a topic needs researching or API facts gathered.
 - **`zoom-out`** — Explain broader code or product context around a focused area. Use when the user needs a higher-level perspective before local changes.
 

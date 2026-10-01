@@ -16,11 +16,17 @@ that run it with different context — do not restate the loop in either.
 The **frontier** is every decision whose prerequisites are already settled — the questions
 you can ask *now* without guessing at answers you have not heard yet.
 
-Ask the whole frontier in one round. Number each question and give your recommended
-answer:
+Ask the whole frontier in one round. Number each question, give your recommended answer,
+and separate consecutive questions with a horizontal rule:
 
 ```
 Q1 - <question title>: <question body — may be several paragraphs, and may offer choices>
+
+Recommended: <your answer, and why>
+
+---
+
+Q2 - <question title>: <question body>
 
 Recommended: <your answer, and why>
 ```

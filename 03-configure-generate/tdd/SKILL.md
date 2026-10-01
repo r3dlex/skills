@@ -17,13 +17,13 @@ Before writing code:
 - [ ] Respect ADRs in the area you are touching.
 - [ ] Confirm the public interface shape with the user when it is not already specified.
 - [ ] Prioritize the behaviors worth testing.
-- [ ] Use the `codebase-design` skill for module, interface, depth, seam, adapter,
+- [ ] Call the Skill tool with `codebase-design` for module, interface, depth, seam, adapter,
       leverage and locality vocabulary — including deep modules and designing for
       testability. It is a reference to consult, not a session to run.
 
 Ask: "What should the public interface look like? Which behaviors are most important to test?"
 
-## Seams — where tests go
+## Seams: where tests go
 
 A **seam** is the public boundary you test at: the interface where you observe behavior
 without reaching inside. Tests live at seams, never against internals.

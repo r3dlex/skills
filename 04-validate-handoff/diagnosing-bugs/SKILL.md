@@ -17,7 +17,7 @@ stays in the environment rather than in what you show. Captured artifacts carry 
 headers: quote only the lines that carry the signal. If the redacted output is not enough to
 diagnose the bug, say so and ask the user.
 
-## Phase 1 — Build a feedback loop
+## Phase 1: Build a feedback loop
 
 **This is the skill.** Everything else is mechanical. With a **tight** pass/fail signal that
 goes red on *this* bug, you will find the cause — bisection, hypothesis-testing, and
@@ -54,7 +54,7 @@ config, data, and steps **one at a time**, re-running after each cut. Done when 
 remaining element is load-bearing. This shrinks the Phase 3 hypothesis space and becomes the
 Phase 5 regression test. Do not proceed until you have reproduced *and* minimised.
 
-## Phase 3 — Hypothesise
+## Phase 3: Hypothesise
 
 Generate **3–5 ranked hypotheses** before testing any; single-hypothesis generation anchors
 on the first plausible idea. Each must be **falsifiable** — state its prediction: *"If X is
@@ -64,7 +64,7 @@ prediction, it is a vibe. Discard or sharpen it.
 **Show the ranked list to the user before testing** — they often re-rank it instantly ("we
 just deployed a change to #3"). Do not block on it; proceed with your ranking if they are away.
 
-## Phase 4 — Instrument
+## Phase 4: Instrument
 
 Each probe maps to a specific Phase 3 prediction. **Change one variable at a time.** Prefer
 a debugger or REPL — one breakpoint beats ten logs — then targeted logs at the boundaries
@@ -95,8 +95,8 @@ Required before declaring done:
       next debugger learns.
 
 **Then ask: what would have prevented this bug?** If the answer involves architectural
-change — no good test seam, tangled callers, hidden coupling — hand off to
-`improve-codebase-architecture` with the specifics, **after** the fix is in: you know more
+change — no good test seam, tangled callers, hidden coupling — hand off by calling the
+Skill tool with `improve-codebase-architecture` and the specifics, **after** the fix is in: you know more
 now than when you started.
 
 ## References

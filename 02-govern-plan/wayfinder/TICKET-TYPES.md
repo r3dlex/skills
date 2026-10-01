@@ -10,21 +10,23 @@ and its "decision" is worthless because nothing was actually decided.
 ## Research (AFK)
 
 Reading documentation, third-party APIs, or local resources such as knowledge bases, to
-surface a fact a decision waits on. Resolved by delegating to the `research` skill.
+surface a fact a decision waits on. Resolved by a subagent that calls the Skill tool with
+`research`.
 
 Use when knowledge outside the current working directory is required.
 
 ## Prototype (HITL)
 
 Raise the fidelity of the discussion by making a cheap, rough, concrete artifact to react
-to — an outline, a rough take, a stub, or UI/logic code via the `prototype` skill. Link the
-prototype as an asset rather than pasting it in.
+to — an outline, a rough take, a stub, or UI/logic code — by calling the Skill tool with
+`prototype`. Link the prototype as an asset rather than pasting it in.
 
 Use when "how should it look" or "how should it behave" is the key question.
 
 ## Grilling (HITL)
 
-Conversation. The default case. Always invoke `grilling` and `domain-modeling`.
+Conversation. The default case. Always call the Skill tool twice, for `grilling` and
+`domain-modeling`.
 
 ## Task (HITL or AFK)
 

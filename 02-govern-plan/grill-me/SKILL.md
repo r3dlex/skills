@@ -5,7 +5,7 @@ description: 'Interview the user to stress-test a plan or design until decisions
 
 # Grill Me
 
-Run a [`grilling`](../grilling/SKILL.md) session, open-ended.
+Call the Skill tool with [`grilling`](../grilling/SKILL.md) and run its session open-ended.
 
 No repo documents ground this pass — challenge the plan on its own terms. Prefer codebase
 exploration over asking: only surface a question when exploration cannot resolve it.
