@@ -6,15 +6,14 @@ eval: autobahn
 
 # Autobahn
 
-Autobahn ships implementation-ready goals one PR at a time. It delegates engines,
-review, merge policy, and cascade logic rather than reimplementing their loops.
+Autobahn ships implementation-ready goals one PR at a time. It delegates engines, review, merge policy, and cascade logic rather than reimplementing their loops.
 
 ## Quick Start
 
 1. Gate either a northstar handoff or one direct implementation-ready goal:
    `bash autobahn/prereq-check.sh --root . --handoff <registered-id> --goal-id <id> --context <independent-context.json>`; direct intake uses `--goal <direct-v1.json>` instead of handoff/goal selectors.
 2. Select standard or legacy-safe TDD, then pick the execution engine.
-3. Implement one goal per PR, peer-review, gate CI, and decide merge.
+3. Implement one goal per PR, peer-review, then require fresh merge-stage context for the original exact selection through `run-gates.sh --phase pre-merge` before either merge-authority route. `local-validation` is supporting evidence, not merge admission or authority.
 4. On merge, cascade-close the goal's issue with a triage status.
 
 ## Prereq (fail-closed)
@@ -95,6 +94,7 @@ re-runnable without creating duplicates.
   allowlisted and free of shell metacharacters.
 - Run the gates through the bundled gate driver, not by hand: one goal record
   each time, the pre-commit set before committing and pre-merge before merging.
+  Pre-merge/all require the same exact selection and fresh merge context; local-validation is not merge admission.
 - Compose, never reimplement: delegate every loop, merge policy, and cascade.
 - Default merge authority is **ready-for-human**; admin-bypass only on an
   explicit, host-policy-approved, valid-token verdict.

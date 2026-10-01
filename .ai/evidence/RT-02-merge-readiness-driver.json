@@ -1,0 +1,50 @@
+{
+  "goal_id": "RT-02",
+  "source_commit": "cdfc91e824b42cb49d7b322c1d6d523df36bd11d",
+  "validated_source_tree": "65d93f5692697705ba9f70147c88465dcdfca7a7",
+  "scope": "Merge-stage exact-selection/context admission before verification; semantic selected-record binding; explicitly local-only validation phase; regression tests and affected documentation/generated host hashes",
+  "red": {
+    "command": "python3 -m unittest readiness_merge_driver_test.MergeDriverTests.test_missing_selection_fails_before_verification (original HEAD driver with current regression fixture)",
+    "exit_code": 1,
+    "result": "Original driver returned0 and executed verification without exact selection; regression correctly failed",
+    "log_sha256": "6617ef02397fa9fbcc84ef571efaecec2cd59059eaedc3724f1b668ce558087b"
+  },
+  "green": {
+    "command": "python3 -m unittest discover -s tests -p readiness_merge_driver_test.py",
+    "exit_code": 0,
+    "tests": 11,
+    "log_sha256": "17e6a41967ab2118b16979e9cb185bdac6d8c352632c6a4f064eb699b12f6aa8"
+  },
+  "local_validation": {
+    "command": "bash <clean exact-index Git snapshot>/04-validate-handoff/autobahn/run-gates.sh --root <snapshot> --phase local-validation --goal-record <RT-02 local goal>",
+    "exit_code": 0,
+    "shell_assertions": 192,
+    "structure_assertions": 184,
+    "scoped_readiness_tests": 29,
+    "test_skips": 0,
+    "lint_skip": "Template-only archgate: no files to check; all applicable checks pass",
+    "security": "No committed secret material matched guarded patterns",
+    "log_sha256": "ce984e96d5f41f8b30f80d2f79ef80a76264ec42e20eaaeab7ef9e7acdfb8ab4"
+  },
+  "focused_validation": {
+    "readiness_tests": 76,
+    "original_gate_driver_assertions": 18,
+    "readiness_log_sha256": "d81c2eb377e84584ce4d8b3846d1bd88abc6411764429a8c020081d29c93702b",
+    "catalog": "39 skills passed",
+    "host_default_golden": "All3host outputs match canonical installers"
+  },
+  "independent_review": {
+    "reported_by": "coordinating parent agent",
+    "implementation_tree": "53f1a6c98faced62f416c4cbed6fadc18c3f4fca",
+    "implementation_verdict": "Architect APPROVE: P1 resolved and11/11 tests; code reviewer APPROVE:76 readiness tests and18 original driver assertions,0issues; reported by parent",
+    "final_delta_tree": "65d93f5692697705ba9f70147c88465dcdfca7a7",
+    "final_delta_verdict": "Narrow code re-review APPROVE:2files,0issues; meaning-preserving wrapping/sentence shortening and3independently regenerated matching host hashes; reported by parent"
+  },
+  "boundaries": [
+    "Local validation is not merge admission or authority",
+    "Hosted CI and live host/admin authority must be checked separately against committed exact head",
+    "Tests use synthetic readiness contexts and do not establish real external provenance",
+    "This receipt documents the validated source tree before adding this receipt; post-receipt exact-head validation remains leader-owned"
+  ],
+  "source_patch_sha256": "8617991eef9dd496d745ffd5e7035dbb0c82079476e68733f3b08c791281cb70"
+}

@@ -147,3 +147,14 @@ is not an executable manifest and is never consumed automatically.
 - Never execute a verification command that is not allowlisted and
   metacharacter-free.
 - Never merge on an unread `verification[]`.
+
+## Merge readiness versus supporting local validation
+
+Before either merge-authority route, run the gate driver with `--phase pre-merge`,
+`--goal-record <exact-selected-goal.json>`, the same generation-addressed `--handoff`
+(or direct `--goal` envelope) and fresh independently established `--context`.
+It invokes shared `--stage merge` admission before local/goal verification and
+rejects records that differ from the selected goal, even when IDs match.
+Use `--phase local-validation` for supporting checks without a merge context;
+its success is explicitly **not merge admission or authority**. Remote exact-head
+CI and independent host authority remain separate required gates.

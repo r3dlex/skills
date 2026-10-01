@@ -588,6 +588,10 @@ def admit(args):
         for name in ('.ai/matrix.json', MANIFEST, GRAPH):
             require(isinstance(read(relative(root, name)), dict), 'v3_root_malformed')
         bundle, selected, subject, entry = select(root, args)
+        if getattr(args, 'execution_record', None):
+            record = read(Path(args.execution_record))
+            selected_records = [goal for goal in bundle['goals'] if goal['id'] in selected]
+            require(len(selected_records) == 1 and record == selected_records[0], 'execution_record_mismatch')
         report.update(plan_id=bundle['id'], repository=bundle['repository'],
                       bundle={'schema': bundle['schema'], 'id': bundle['id'], 'canonical_sha256': canonical(bundle)},
                       specification=bundle['spec'], goals=selected,
@@ -825,6 +829,7 @@ def main():
     parser.add_argument('--goal-id', action='append')
     parser.add_argument('--goal')
     parser.add_argument('--context')
+    parser.add_argument('--execution-record')
     parser.add_argument('--bundle')
     parser.add_argument('--legacy')
     parser.add_argument('--stage', choices=('planning', *STAGES), default='implementation')

@@ -75,7 +75,7 @@ helper, not inferred from these argument descriptors.
     {
       "name": "context",
       "required": true,
-      "description": "Independent readiness-context/1 input for exact subject, goals and stage; live authority must be verified separately before dispatch."
+      "description": "Independent readiness-context/1 input for exact subject, goals and stage; verify live authority separately before dispatch. Before ordinary or admin merges, require fresh merge-stage context for the original exact handoff/direct subject and selected goal; local-validation is supporting evidence, not merge admission."
     },
     {
       "name": "engine",
