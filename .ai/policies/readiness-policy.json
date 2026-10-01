@@ -1,0 +1,73 @@
+{
+  "schema": "readiness-policy/1",
+  "repository": {
+    "id": "skills",
+    "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+  },
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "ac2032a97672bfc31fabe01e73417ea68c97db022d59012c1ff0c63829bb0e33"
+    },
+    {
+      "path": ".rules.ts",
+      "sha256": "758e68adb486fc8b1ee170d8d37da2006a50b093fbbaf1830168b8bce599e955"
+    },
+    {
+      "path": ".ai/rules/security.md",
+      "sha256": "d84c5ed3c5f955364dca5b88a17702eb0b69135c48e89f9bea5c78a32794e812"
+    },
+    {
+      "path": ".ai/rules/technical-bounds.md",
+      "sha256": "0a4f5dcb339bfef4c01ff02a06cecfa36bcc17f18d8b94bbf30123ad43801c18"
+    }
+  ],
+  "gates": [
+    {
+      "id": "own-execution",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "ownership",
+      "binding": {
+        "roles": [
+          "owner"
+        ]
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "own-review",
+      "stage": "merge",
+      "scope": {
+        "repository": true
+      },
+      "kind": "ownership",
+      "binding": {
+        "roles": [
+          "reviewer"
+        ]
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "tool-present",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "tooling",
+      "binding": {
+        "tool": "python3"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    }
+  ],
+  "not_applicable": {
+    "branch_target": "Declared per goal as an additive branch_target requirement (target main), so one policy serves goals on different branches",
+    "fixtures": "No goal needs an isolation fixture; verification is the repo test suite (tests use temporary directories internally)",
+    "registration_approval": "Single-maintainer repo: the owner authors and registers plans; merge approval is the own-review gate",
+    "harness_trust": "Local single-maintainer harness; no in-repo trust anchor exists pre-merge, and creating one would self-sign"
+  }
+}

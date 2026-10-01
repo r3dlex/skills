@@ -1,0 +1,58 @@
+{
+  "schema": "direct-goal/1",
+  "bundle": {
+    "schema": "handoff-goals/1",
+    "id": "sce-s4b",
+    "repository": {
+      "id": "skills",
+      "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+    },
+    "spec": {
+      "path": "docs/specifications/ACTIVE/skills-catalog-evals-consolidation.md",
+      "sha256": "dd4f77e64a7f55acf63677b3ee8c2dec0cc736188ee70eedcc07ddba077f9848"
+    },
+    "issue_ref": "local:aitool-root/.ai/work-intake/skills-catalog-evals-consolidation.md",
+    "planning_complete": true,
+    "status": "active",
+    "goals": [
+      {
+        "id": "SCE-S4b",
+        "repository": {
+          "id": "skills",
+          "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+        },
+        "issue_ref": "local:aitool-root/.ai/work-intake/skills-catalog-evals-consolidation.md#SCE-S4b",
+        "scope": [
+          "ADR \"consolidate overlaps into upstream-named survivors\", superseding skills-upstream-port decision #2"
+        ],
+        "acceptance_criteria": [
+          "G4: see canonical spec"
+        ],
+        "dependencies": [],
+        "verification": [
+          "bash tests/run-tests.sh"
+        ],
+        "coverage_status": "unknown",
+        "legacy_safe_tdd": true,
+        "legacy_risk_reason": "Coverage not measured in this repo yet",
+        "requirements": [
+          {
+            "id": "branch-sce-s4b",
+            "stage": "merge",
+            "kind": "branch_target",
+            "binding": {
+              "target": "main",
+              "branch": "sce/s4b-consolidation-adr"
+            },
+            "responsible": "Andres Silva Burgstahler"
+          }
+        ],
+        "readiness": {
+          "preparation": "ready",
+          "implementation": "ready",
+          "merge": "unknown"
+        }
+      }
+    ]
+  }
+}
