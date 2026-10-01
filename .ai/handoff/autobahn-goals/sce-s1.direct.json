@@ -1,0 +1,60 @@
+{
+  "schema": "direct-goal/1",
+  "bundle": {
+    "schema": "handoff-goals/1",
+    "id": "sce-s1",
+    "repository": {
+      "id": "skills",
+      "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+    },
+    "spec": {
+      "path": "docs/specifications/ACTIVE/skills-catalog-evals-consolidation.md",
+      "sha256": "dd4f77e64a7f55acf63677b3ee8c2dec0cc736188ee70eedcc07ddba077f9848"
+    },
+    "issue_ref": "local:aitool-root/.ai/work-intake/skills-catalog-evals-consolidation.md",
+    "planning_complete": true,
+    "status": "active",
+    "goals": [
+      {
+        "id": "SCE-S1",
+        "repository": {
+          "id": "skills",
+          "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+        },
+        "issue_ref": "local:aitool-root/.ai/work-intake/skills-catalog-evals-consolidation.md#SCE-S1",
+        "scope": [
+          "Routing evalset schema + description-blind cases for all 36 shipped skills. The deterministic gate fails on: a shipped skill with no cases; a case whose expected skill isn't in the catalog; schema errors; trigger-phrase collisions; TF-IDF cosine similarity over the threshold without an allowlist entry; an allowlist entry that matches nothing (so the allowlist can only shrink). Threshold = highest similarity among non-cluster skill pairs + 0.05, with the value and its calibration recorded in the gate config. Allowlist pre-seeded with the 4 clusters + 2 aliases. Wired into `ci.yml`"
+        ],
+        "acceptance_criteria": [
+          "AC-1: see canonical spec",
+          "AC-2: see canonical spec",
+          "G10: see canonical spec"
+        ],
+        "dependencies": [],
+        "verification": [
+          "bash tests/run-tests.sh"
+        ],
+        "coverage_status": "unknown",
+        "legacy_safe_tdd": true,
+        "legacy_risk_reason": "Coverage not measured in this repo yet",
+        "requirements": [
+          {
+            "id": "branch-sce-s1",
+            "stage": "merge",
+            "kind": "branch_target",
+            "binding": {
+              "target": "main",
+              "branch": "sce/s1-routing-evalset"
+            },
+            "responsible": "Andres Silva Burgstahler"
+          }
+        ],
+        "readiness": {
+          "preparation": "ready",
+          "implementation": "ready",
+          "merge": "unknown"
+        }
+      }
+    ]
+  }
+}
