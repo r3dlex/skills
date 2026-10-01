@@ -81,7 +81,8 @@ scan() {
 # --- denylist ----------------------------------------------------------------
 
 # resolving-merge-conflicts: lifecycle deprecated (cleanup 2026-10-01); dropped
-#   from default bundles. Allowed only in: its own deprecated SKILL.md (vendored-
+#   from default bundles. catalog_contract_test.sh references the name to
+#   assert it is excluded from default installs in CI. Allowed only in: its own deprecated SKILL.md (vendored-
 #   pin-compat notice), generated all-lifecycle surfaces (README/AGENTS/phase
 #   docs), the catalog, the ask-ai-catapult router inventory (generated), the
 #   committed audit artifact, and the gate itself (its denylist declares the
@@ -94,7 +95,8 @@ scan "resolving-merge-conflicts" \
   "./catalog.json" \
   "./01-discover-decide/ask-ai-catapult/*" \
   "./.ai/skills/*" \
-  "./tests/dead_reference_gate_test.sh"
+  "./tests/dead_reference_gate_test.sh" \
+  "./tests/catalog_contract_test.sh"
 
 # diagnose: deprecated alias of diagnosing-bugs (cleanup 2026-10-01). Allowed
 #   only in its own deprecated SKILL.md, generated all-lifecycle surfaces, the
@@ -111,22 +113,6 @@ scan "diagnose" \
   "./tests/readme-generate_test.sh" \
   "./docs/migration/*" \
   "./docs/specifications/*" \
-  "./.ai/skills/*" \
-  "./reference/fixtures/*" \
-  "./tests/dead_reference_gate_test.sh"
-
-# edit-article: supported_hosts [] (cleanup 2026-10-01) — retained as docs only.
-#   Allowed in its own SKILL.md (frontmatter name/triggers), generated
-#   all-lifecycle surfaces, the router inventory (generated), migration
-#   history, the audit artifact, and the gate itself.
-scan "edit-article" \
-  "./03-configure-generate/edit-article/*" \
-  "./03-configure-generate/README.md" \
-  "./README.md" \
-  "./AGENTS.md" \
-  "./catalog.json" \
-  "./01-discover-decide/ask-ai-catapult/*" \
-  "./docs/migration/*" \
   "./.ai/skills/*" \
   "./reference/fixtures/*" \
   "./tests/dead_reference_gate_test.sh"

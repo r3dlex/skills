@@ -37,33 +37,41 @@ catalog = json.loads((repo / 'catalog.json').read_text())
 # — is simply false once a lifecycle gates installation, and it held only
 # because the catalog had no non-default entry until ubiquitous-language was
 # deprecated. Keep this set in step with DEFAULT_LIFECYCLES in scripts/catalog.py.
-# supported_hosts is filtered the same way: an entry with no hosts (edit-article
-# after the 2026-10-01 cleanup) is documentation-only and installs nowhere.
+# supported_hosts is filtered the same way: an entry with no hosts is
+# documentation-only and installs nowhere.
 DEFAULT_LIFECYCLES = {'stable', 'compatibility'}
 entries = sorted(
     (item for item in catalog['skills']
      if item.get('lifecycle') in DEFAULT_LIFECYCLES and item.get('supported_hosts')),
     key=lambda item: item['name'],
 )
-skills = [entry['name'] for entry in entries]
-assert skills, 'catalog must not be empty'
+assert entries, 'catalog must not be empty'
+# Recursive-copy parity is host-scoped: each recursive host installs exactly the
+# entries that name it in supported_hosts (scripts/catalog.py resolution).
+codex_skills = [e['name'] for e in entries if 'codex' in e['supported_hosts']]
+claude_skills = [e['name'] for e in entries if 'claude-code' in e['supported_hosts']]
+auggie_skills = [e['name'] for e in entries if 'auggie' in e['supported_hosts']]
+gemini_skills = [e['name'] for e in entries if 'gemini' in e['supported_hosts']]
+copilot_skills = [e['name'] for e in entries if 'copilot' in e['supported_hosts']]
+assert codex_skills and claude_skills, 'recursive hosts must install a nonempty set'
 
-for entry in entries:
-    name = entry['name']
-    source = repo / entry['source_path'] / 'SKILL.md'
-    codex_copy = codex / name / 'SKILL.md'
-    claude_copy = claude / name / 'SKILL.md'
-    assert codex_copy.is_file(), f'Codex missing {name}'
-    assert claude_copy.is_file(), f'Claude Code missing {name}'
-    hashes = {hashlib.sha256(p.read_bytes()).hexdigest() for p in (source, codex_copy, claude_copy)}
-    assert len(hashes) == 1, f'host copies differ for {name}'
+for host_root, host_skills, host_name in ((codex, codex_skills, 'Codex'), (claude, claude_skills, 'Claude Code')):
+    for name in host_skills:
+        entry = next(e for e in entries if e['name'] == name)
+        source = repo / entry['source_path'] / 'SKILL.md'
+        copy = host_root / name / 'SKILL.md'
+        assert copy.is_file(), f'{host_name} missing {name}'
+        hashes = {hashlib.sha256(p.read_bytes()).hexdigest() for p in (source, copy)}
+        assert len(hashes) == 1, f'{host_name} copy differs for {name}'
 
-assert sorted(p.name for p in codex.iterdir() if p.is_dir()) == skills
-assert sorted(p.name for p in claude.iterdir() if p.is_dir()) == skills
+assert sorted(p.name for p in codex.iterdir() if p.is_dir()) == sorted(codex_skills)
+assert sorted(p.name for p in claude.iterdir() if p.is_dir()) == sorted(claude_skills)
 
 # Codex and Claude receive recursive skill directories. Other hosts receive
 # host-specific flattened or synthesized projections rather than false copies.
-sample = entries[0]['name']
+# Projections are host-scoped like the recursive hosts: sample/projection sets
+# exclude entries that do not name that host in supported_hosts.
+sample = next(e['name'] for e in entries if 'auggie' in e['supported_hosts'])
 assert (auggie / f'{sample}.md').is_file()
 assert not (auggie / sample).exists()
 assert (gemini / f'{sample}.md').is_file()
@@ -93,7 +101,14 @@ for prefix in ('reference', 'tests'):
         for path in (repo / prefix).rglob('*')
         if path.is_file()
     )
+flat_hosts = {
+    'Auggie': auggie_skills,
+    'Gemini': gemini_skills,
+    'GitHub Copilot': copilot_skills,
+}
 for entry in entries:
+    if not any(entry['name'] in names for names in flat_hosts.values()):
+        continue
     name = entry['name']
     source_dir = repo / entry['source_path']
     source_text = (source_dir / 'SKILL.md').read_text()
@@ -114,6 +129,8 @@ for entry in entries:
         own_sidecar_paths.add(relative)
 
     for host, locate in projection_for.items():
+        if name not in flat_hosts[host]:
+            continue
         projection = locate(name)
         assert projection.is_file(), f'{host} missing flattened {name}'
         content = projection.read_text()
@@ -137,9 +154,10 @@ for forbidden in (
     'autobahn/prereq-check.sh',
     'eval-a-skill/scaffold-eval.py',
 ):
-    for host, locate in projection_for.items():
-        for entry in entries:
-            content = locate(entry['name']).read_text()
+    for host, names in flat_hosts.items():
+        locate = projection_for[host]
+        for name in names:
+            content = locate(name).read_text()
             assert forbidden not in content, f'{host} retains executable reference: {forbidden}'
 
 readme = (repo / 'README.md').read_text()
@@ -149,5 +167,5 @@ assert 'Auggie, Gemini, and GitHub Copilot receive host-specific flattened or sy
 assert 'The canonical README generator is available only in the recursive Claude Code and Codex installations.' in normalized_readme
 assert 'The installers copy the complete skill directory' not in readme
 assert 'matching `SKILL.md` content across supported destinations' not in readme
-print(f'cross-host projection contract passed ({len(skills)} skills)')
+print(f'cross-host projection contract passed ({len(entries)} supported, {len(codex_skills)} recursive, {len(auggie_skills)}/{len(gemini_skills)}/{len(copilot_skills)} flat)')
 PY

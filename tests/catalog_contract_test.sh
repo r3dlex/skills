@@ -19,23 +19,31 @@ actual="$(wc -l < /tmp/catalog.default | tr -d ' ')"
 # lifecycle. Comparing default-vs-extended here would assert that no skill is
 # ever deprecated, which is a claim about the catalog's contents rather than
 # about host parity.
-python3 scripts/catalog-query.py --host codex \
-  --include-lifecycle experimental --include-lifecycle deprecated > /tmp/catalog.extended
-for host in codex claude-code gemini copilot auggie opencode; do
-  python3 scripts/catalog-query.py --host "$host" \
-    --include-lifecycle experimental --include-lifecycle deprecated > "/tmp/catalog.$host"
-  diff -u /tmp/catalog.extended "/tmp/catalog.$host"
-done
+# Host selection is supported_hosts membership, not host-independence: a skill
+# may legitimately be exclusive to one host (edit-article is opencode-only per
+# the 2026-10-01 SSCM amendment). Assert each host's extended view against
+# catalog.json membership directly; no cross-file /tmp state.
+python3 - <<'PY'
+import json, subprocess, sys
+query = [sys.executable, 'scripts/catalog-query.py']
+def run(*args):
+    return subprocess.run(query + list(args), capture_output=True, text=True, check=True).stdout
+codex_extended = run('--host', 'codex',
+                     '--include-lifecycle', 'experimental',
+                     '--include-lifecycle', 'deprecated').splitlines()
+assert codex_extended, 'extended codex view must not be empty'
+assert any(line.startswith('resolving-merge-conflicts\t') for line in codex_extended), \
+    'deprecated resolving-merge-conflicts missing from the extended query'
+for host in ('codex', 'claude-code', 'gemini', 'copilot', 'auggie', 'opencode'):
+    names = {line.split('\t', 1)[0] for line in run('--host', host).splitlines() if line}
+    expected = {
+        s['name'] for s in json.load(open('catalog.json'))['skills']
+        if s.get('lifecycle', 'stable') in {'stable', 'compatibility'}
+        and host in s.get('supported_hosts', [])
+    }
+    assert names == expected, f'--host {host} default view mismatch: off by {sorted(names ^ expected)}'
+PY
 
-# Default installs must exclude non-default lifecycles. Without this the
-# amendment above would let a deprecated skill silently ship by default.
-extended_count="$(wc -l < /tmp/catalog.extended | tr -d ' ')"
-[[ "$extended_count" -gt "$actual" ]] \
-  || die "extended catalog ($extended_count) must exceed the default ($actual) — no non-default lifecycle is being excluded"
-grep -q '^resolving-merge-conflicts	' /tmp/catalog.extended \
-  || die "deprecated resolving-merge-conflicts missing from the extended query"
-# `grep -q ... && die` would be wrong here: when grep finds nothing the whole
-# list returns non-zero and `set -e` aborts the run as a failure. Use `if`.
 if grep -q '^resolving-merge-conflicts	' /tmp/catalog.default; then
   die "deprecated resolving-merge-conflicts must not appear in a default install"
 fi

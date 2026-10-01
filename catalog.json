@@ -202,7 +202,9 @@
         "04-validate-handoff"
       ],
       "lifecycle": "stable",
-      "supported_hosts": []
+      "supported_hosts": [
+        "opencode"
+      ]
     },
     {
       "name": "eval-a-skill",
