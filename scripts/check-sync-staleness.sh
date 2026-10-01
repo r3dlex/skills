@@ -109,6 +109,10 @@ delta_days=$(( (now_epoch - lock_epoch) / 86400 ))
 stale_days=$(( delta_days > 0 ? delta_days : 0 ))
 
 if [[ "$stale_days" -lt "$THRESHOLD" ]]; then
+  if [[ "$real_unreachable" -eq 1 && "$MODE" == "hard" ]]; then
+    echo "FAIL: pinned_sha ${pinned:0:12}… not reachable (fetch the upstream refs or re-pin) — reachability is hard in hard mode" >&2
+    exit 1
+  fi
   echo "staleness: ok (lock ${updated}, ${stale_days}d < ${THRESHOLD}d)"
   exit 0
 fi
