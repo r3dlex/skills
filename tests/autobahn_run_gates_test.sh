@@ -72,8 +72,8 @@ PY
   echo "$root"
 }
 
-run() { bash "$ABS" --root "$1" --goal-record "$1/goal.json" "${@:2}" 2>&1; }
-rc()  { bash "$ABS" --root "$1" --goal-record "$1/goal.json" "${@:2}" >/dev/null 2>&1; }
+run() { bash "$ABS" --root "$1" --goal-record "$1/goal.json" --phase local-validation "${@:2}" 2>&1; }
+rc()  { bash "$ABS" --root "$1" --goal-record "$1/goal.json" --phase local-validation "${@:2}" >/dev/null 2>&1; }
 
 # --- the happy path ---------------------------------------------------------
 root="$(green_repo)"
@@ -97,10 +97,10 @@ rm -rf "$root"
 root="$(green_repo)"
 printf '#!/bin/sh\nexit 1\n' > "$root/tests/failing_ci.sh"
 printf 'jobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: bash tests/failing_ci.sh\n' > "$root/.github/workflows/ci.yml"
-if rc "$root" --phase pre-merge; then
-  bad "a failing workflow command blocks pre-merge"
+if rc "$root" --phase local-validation; then
+  bad "a failing workflow command blocks local validation"
 else
-  ok "a failing workflow command blocks pre-merge"
+  ok "a failing workflow command blocks local validation"
 fi
 rm -rf "$root"
 
@@ -181,7 +181,7 @@ root="$(green_repo)"
 broken="$(mktemp -d)/run-gates.sh"
 mkdir -p "$(dirname "$broken")"
 sed 's#\$HERE/lint-gate.sh#$HERE/deliberately-absent.sh#' "$ABS" > "$broken"
-if bash "$broken" --root "$root" --goal-record "$root/goal.json" >/dev/null 2>&1; then
+if bash "$broken" --root "$root" --goal-record "$root/goal.json" --phase local-validation >/dev/null 2>&1; then
   bad "a missing gate script blocks rather than being skipped"
 else
   ok "a missing gate script blocks rather than being skipped"
@@ -194,7 +194,7 @@ rm -rf "$root" "$(dirname "$broken")"
 # shell explicitly rather than only under whatever bash the suite happens to use.
 if [[ -x /bin/bash ]]; then
   root="$(green_repo)"
-  if /bin/bash "$ABS" --root "$root" --goal-record "$root/goal.json" >/dev/null 2>&1; then
+  if /bin/bash "$ABS" --root "$root" --goal-record "$root/goal.json" --phase local-validation >/dev/null 2>&1; then
     ok "the all-passed path works under /bin/bash ($(/bin/bash -c 'echo $BASH_VERSION'))"
   else
     bad "the all-passed path works under /bin/bash ($(/bin/bash -c 'echo $BASH_VERSION'))"

@@ -7,8 +7,10 @@ public seam; neither chooses an arbitrary registered handoff.
 |---------|-------------|-----------|
 | autobahn | Admit an exact v1 plan/direct goal, then ship one ready goal per PR | `--handoff <registered-id-or-path> --goal-id <id> --context <independent-context.json>` OR `--goal <direct-v1.json> --context <independent-context.json>`; optional `--engine <engine>` |
 
-1. Run `prereq-check.sh` with exact selectors and `--stage implementation`.
-2. Require zero exit, `stage=implementation`, `execution_ready=true` and the
+1. Run `prereq-check.sh` with exact selectors and `--stage implementation` for
+   feature work. Use `--stage preparation` only for an explicitly selected,
+   bounded preparation goal with separate authority; never for feature scope.
+2. Require zero exit, the exact requested stage, `execution_ready=true` and the
    exact requested repository/subject/goal set in the report.
 3. Independently check live policy approval and operation authority for the same
    subject/scope/stage using the host's supported boundary. The helper always
@@ -17,7 +19,9 @@ public seam; neither chooses an arbitrary registered handoff.
    posture and engine selection. Planning-only, unknown, blocked or absent live
    authority stops before either call. No new dispatch loop is introduced.
 
-Then follow existing review, gate-driver, CI, merge authority and cascade rules.
+Preparation and implementation both retain existing TDD, review, gate-driver,
+CI, merge authority and cascade rules. Preparation admission never authorizes
+dependent implementation or waives its current fixture, policy or trust gates.
 No command alias infers merge permission. RT-03/04 coordinate installed delivery
 and umbrella command projection; changing reusable source does not update an
 already loaded runtime.
@@ -71,7 +75,7 @@ helper, not inferred from these argument descriptors.
     {
       "name": "context",
       "required": true,
-      "description": "Independent readiness-context/1 input for exact subject, goals and stage; live authority must be verified separately before dispatch."
+      "description": "Independent readiness-context/1 input for exact subject, goals and stage; verify live authority separately before dispatch. Before ordinary or admin merges, require fresh merge-stage context for the original exact handoff/direct subject and selected goal; local-validation is supporting evidence, not merge admission."
     },
     {
       "name": "engine",

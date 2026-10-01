@@ -33,8 +33,9 @@ duplicate `ultragoal`'s ledger.
 For each sliced goal, in order:
 
 1. Resolve exact v1 handoff and goal IDs (or explicit direct envelope). Run
-   `prereq-check.sh --stage implementation`; require zero exit plus exact
-   repository/subject/goal identity, `stage=implementation` and
+   `prereq-check.sh --stage implementation` for feature work, or `--stage preparation`
+   only for an explicitly bounded preparation goal. Require zero exit plus exact
+   repository/subject/goal identity, the exact requested stage and
    `execution_ready=true`. Planning-stage success is never admission.
 2. Independently verify live policy approval and operation authority for that
    subject, goal set and stage through the supported host boundary. Context
@@ -47,7 +48,13 @@ For each sliced goal, in order:
 4. `run-gates.sh --phase pre-commit` — TDD evidence and lint, or stop.
 5. Commit the goal's staged diff and open its PR. See commit-protocol.md.
 6. Peer-review until all comments resolved.
-7. `run-gates.sh --phase pre-merge` plus exact-SHA remote host CI, all green, or stop.
+7. Refresh the independently established context for **merge**, preserving the
+   exact generation-addressed handoff (or direct envelope) and selected goal from
+   implementation admission. Run `run-gates.sh --phase pre-merge` with that
+   selection and context, plus exact-SHA remote host CI, all green, or stop.
+   The driver derives the goal ID from the command record and requires semantic
+   JSON equality with the selected goal before any verification command runs.
+   Implementation-stage readiness does not satisfy merge-stage gates.
 8. Use the authorized normal host merge, or the strict policy-bypass adapter
    when that path is explicitly authorized (see merge-authority.md).
 9. On merge, cascade-close the issue with a triage status.
@@ -82,7 +89,10 @@ merely against the rules:
 
 ```
 autobahn/run-gates.sh --root . --goal-record <goal.json> --phase pre-commit
-autobahn/run-gates.sh --root . --goal-record <goal.json> --phase pre-merge
+autobahn/run-gates.sh --root . --goal-record <goal.json> --phase pre-merge --handoff <generation-addressed-handoff-path> --context <fresh-merge-context.json>
+# Direct-goal equivalent: replace --handoff with --goal <same-direct-envelope.json>.
+# Supporting local checks only, without claiming merge admission:
+autobahn/run-gates.sh --root . --goal-record <goal.json> --phase local-validation
 ```
 
 It runs gates, **not** the goal loop — one goal record per invocation, and
@@ -90,8 +100,13 @@ sequencing stays with `ultragoal`. A driver that grew a goal loop would be the
 reimplementation autobahn exists to avoid, and
 `tests/autobahn_run_gates_test.sh` asserts it has not.
 
-By default every gate runs and every block is reported, so one pass shows
-everything to fix. `--fail-fast` stops at the first block.
+For `pre-merge` and default `all`, exact selection and merge-stage admission
+are mandatory; a missing or failed admission stops before other gates. Once
+admitted, every remaining gate runs and reports its blocks unless `--fail-fast`
+is set. `local-validation` runs TDD, lint, local CI and goal verification only:
+it is **not merge admission or authority**. Never use its success for either
+normal merge or the admin-bypass route. Context labels still cannot replace
+independent live policy and operation-authority verification.
 
 The table below is still the authority on what exists. A gate that ships without
 appearing here is inert — nothing in this repo detects an unwired script, which
@@ -108,7 +123,7 @@ is why the list is explicit rather than implied.
 | `local-ci.sh` | 7 | no safe executable subset, unsupported context/command, or a failing local command |
 | `ci-gate.sh --verify` | 7 | a failing or non-allowlisted `verification[]` command |
 | `merge-authority.sh` | 8 | any verdict short of host-policy-approved |
-| `run-gates.sh` | 4, 7 | invokes the four gates above; any of them blocking |
+| `run-gates.sh` | 4, 7 | merge-stage admission and exact record binding before pre-merge/all; then the four local gates |
 
 ## Safety rules
 
@@ -116,3 +131,9 @@ is why the list is explicit rather than implied.
 - Never advance a goal to merge with unresolved comments or red CI.
 - Resume is `ultragoal`'s responsibility; autobahn re-reads its status rather than
   re-running completed goals.
+
+## Scoped readiness recovery
+
+Inspect the exact stage verdict and remaining findings, not planning exit status. Dependency completion requires current revision-bound receipts; currently failing dependency gates still block dependents. Only independently admitted goals may reach engine selection. A ready independent goal may proceed without reopening unrelated blocked work. Preparation has separate stage authority and cannot bypass repository-wide trust. Reuse still-valid exact approval receipts; obtain only missing or invalidated evidence.
+
+Preparation is separately selected and authorized for its bounded setup scope; it cannot include feature implementation. Existing TDD, review, CI and merge obligations still apply to any preparation code. A completed preparation ancestor does not need readiness flags for another stage, but current applicable implementation policy/fixture/trust gates still govern its dependents.

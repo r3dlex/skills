@@ -3,7 +3,7 @@
     "ai-catapult-init.md": "d5d31a31d21991af96690beedaa2d910a526d936491e89362877905dcf3142a0",
     "ai-sdlc-init.md": "f25a6731f84c727d20a70dda403de90b5fbaa350da5d311b10fb222a33c7bc03",
     "ask-ai-catapult.md": "a815216f9dd23c9dddbde0614d69f6849c03158fc992c25e0936ac9d5d6faa9f",
-    "autobahn.md": "b649934b9c81249f9265ca717feb47744fae2459d9fef31e1bedab6bce5836f6",
+    "autobahn.md": "2ee8d366baf1f3c24902fef17cee5a0c21d1699aeed46536763062fc5f258c55",
     "code-review.md": "0a897bff4b7e5908f521cbc2f5a66b942df0a483fa17d2bc6b0274c375cb3efe",
     "codebase-design.md": "0ac786bd562a0a0734f8117df04eeef644b7d620d6a6f1e8e8e77ffa6a166d8a",
     "design-an-api-or-interface.md": "10af7f142fbd86a6fe9ee0aa428c9268d1d2793a9cbef883916944f6bd92d9f9",
@@ -41,7 +41,7 @@
     "ai-catapult-init.md": "d496a86ffd3366127996d014648beb547012b8cfbfabc7baf60e082682fe02ce",
     "ai-sdlc-init.md": "d71fa2de087e70786113018e2c8cc262f439be9db4205485a50fbf31a9d6a6a8",
     "ask-ai-catapult.md": "7236d82400bc096cc61ab91bde0a0e9dc0ab225d8d05ee846d4177727e1f1de8",
-    "autobahn.md": "d6ef2f735d316bf617d28b1954bd43806cad633280bcb236a3433ab8cea173ec",
+    "autobahn.md": "14e496af47a5489c1f7c8f9085a4feb0c3ce9cf7d8be6d38c0012f61f776f7eb",
     "code-review.md": "bbe1509c5ba2d2ec511cf557cf4f0274efbe37eae086357851a6a4411a123bed",
     "codebase-design.md": "f8603c65d4d0a6a61b8709d627700bad2899b689ac1e8b7eb9d12790584dbd53",
     "design-an-api-or-interface.md": "85efa720d116badeb395685f8311b4fb8458e323ff815ce4154d637837102356",
@@ -76,6 +76,6 @@
     "zoom-out.md": "f18106eedb9f35852ffd24bf1881273097a1de6e2459e7930de59e65ce42184f"
   },
   "copilot": {
-    "copilot-instructions.md": "4077f2f7327453bdb563d9982a4397394a457742f400c397b2258997df65156d"
+    "copilot-instructions.md": "f8b36e729e43783a621f25b6026d243fff1c4387e5c7d88e67e11bfefcf889f6"
   }
 }

@@ -14,7 +14,12 @@
     "scripts/scan-secret-material.py": "32c6edb4b5bebab36d4b83ea934c7d0052cb06f055aa808de72f3dde3849d16e",
     "scripts/validate-rules.sh": "d0cfc3fa258fabb12bf94247a84236af56f52371d161d7ce010c7198e1a005a1",
     "prek.toml": "77cbffa31b0aebadcf238a00b919b7be313e0fa987c676ef8a8aeb9aa04dc1a9",
-    "tests/security_workflow_test.sh": "d6857aaf8720f1a5a8b73b1825e9e08aa746ee3841edb53d9bfa5d89d828e19f"
+    "tests/security_workflow_test.sh": "d6857aaf8720f1a5a8b73b1825e9e08aa746ee3841edb53d9bfa5d89d828e19f",
+    "04-validate-handoff/autobahn/run-gates.sh": "d6368b640368aaf379fc449615df9934d9657e4055523e530148cfb911731e92",
+    "04-validate-handoff/autobahn/lib/readiness_contract.py": "da204c65a8f0801a7363d83ad7e5c8bce07719758184dd8feffcbbe331484cc2",
+    "tests/autobahn_run_gates_test.sh": "7aecec6ce97f22eebab0c394694b5a0b457951adf9843a4b0c3840e8beb6fefd",
+    "tests/readiness_merge_driver_test.py": "91c6af23052cbb04762565b72881eb5a22baa466cc325ad7a10fe8c1ff20af29",
+    "tests/readiness_merge_driver_test.sh": "59631f07b8987ae2803ebba89176ef4a742141cc57193044feb13df83620ef14"
   },
   "verification": [
     "bash tests/run-tests.sh",

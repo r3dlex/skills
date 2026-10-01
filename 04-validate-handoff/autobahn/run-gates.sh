@@ -16,7 +16,7 @@
 # first block, for when later gates are expensive or meaningless without it.
 #
 # Usage:
-#   run-gates.sh --root <dir> --goal-record <path> [--phase pre-commit|pre-merge|all] [--fail-fast]
+#   run-gates.sh --root <dir> --goal-record <path> [--phase pre-commit|pre-merge|all|local-validation] [--fail-fast]
 #
 # Exit codes: 0 every gate passed; 1 at least one gate blocked; 2 usage error.
 
@@ -28,6 +28,9 @@ ROOT="."
 RECORD=""
 PHASE="all"
 FAIL_FAST=0
+HANDOFF=""
+DIRECT=""
+CONTEXT=""
 
 usage() { echo "run-gates: $1" >&2; exit 2; }
 
@@ -35,6 +38,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --root)        ROOT="${2:-}";   shift 2 || usage "--root needs a value" ;;
     --goal-record) RECORD="${2:-}"; shift 2 || usage "--goal-record needs a value" ;;
+    --handoff)     HANDOFF="${2:-}"; shift 2 || usage "--handoff needs a value" ;;
+    --goal)        DIRECT="${2:-}"; shift 2 || usage "--goal needs a value" ;;
+    --context)     CONTEXT="${2:-}"; shift 2 || usage "--context needs a value" ;;
     --phase)       PHASE="${2:-}";  shift 2 || usage "--phase needs a value" ;;
     --fail-fast)   FAIL_FAST=1;     shift ;;
     *) usage "unknown argument: $1" ;;
@@ -43,7 +49,7 @@ done
 
 [[ -n "$ROOT" && -d "$ROOT" ]] || usage "--root is not a directory: ${ROOT:-<empty>}"
 [[ -n "$RECORD" ]] || usage "--goal-record is required"
-case "$PHASE" in pre-commit|pre-merge|all) : ;; *) usage "--phase must be pre-commit, pre-merge or all" ;; esac
+case "$PHASE" in pre-commit|pre-merge|all|local-validation) : ;; *) usage "--phase must be pre-commit, pre-merge, all or local-validation" ;; esac
 
 # The goal id addresses the evidence file. A record the driver cannot name is a
 # record whose evidence it cannot find, which is a block rather than a skip.
@@ -88,19 +94,40 @@ gate() {
   return 1
 }
 
-if [[ "$PHASE" == "pre-commit" || "$PHASE" == "all" ]]; then
+# Merge admission is a prerequisite, not an optional report-all gate. Never
+# execute verification under a different goal record or a stale/absent context.
+if [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" ]]; then
+  if [[ -z "$CONTEXT" || ( -z "$HANDOFF" && -z "$DIRECT" ) || ( -n "$HANDOFF" && -n "$DIRECT" ) ]]; then
+    echo "run-gates: BLOCKED — merge requires exact --handoff or --goal and fresh --context" >&2
+    exit 1
+  fi
+  SELECTION=()
+  if [[ -n "$HANDOFF" ]]; then
+    SELECTION=(--handoff "$HANDOFF" --goal-id "$GOAL_ID")
+  else
+    SELECTION=(--goal "$DIRECT")
+  fi
+  gate "merge readiness" bash "$HERE/prereq-check.sh" --root "$ROOT" "${SELECTION[@]}" \
+    --context "$CONTEXT" --stage merge --execution-record "$RECORD" || exit 1
+fi
+
+if [[ "$PHASE" == "pre-commit" || "$PHASE" == "all" || "$PHASE" == "local-validation" ]]; then
   gate "tdd-evidence" bash "$HERE/tdd-evidence.sh" --verify --goal "$GOAL_ID" --root "$ROOT"
   gate "lint-gate"    bash "$HERE/lint-gate.sh" --root "$ROOT"
 fi
 
-if [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" ]]; then
+if [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" || "$PHASE" == "local-validation" ]]; then
   gate "local safe CI subset" bash "$HERE/local-ci.sh" --root "$ROOT"
   gate "ci-gate --verify" bash "$HERE/ci-gate.sh" --verify --root "$ROOT" --goal-record "$RECORD"
 fi
 
 echo ""
 if [[ "${#BLOCKED[@]}" -eq 0 ]]; then
-  echo "run-gates: all gates passed for $GOAL_ID"
+  if [[ "$PHASE" == "local-validation" ]]; then
+    echo "run-gates: local validation passed for $GOAL_ID — not merge admission or authority"
+  else
+    echo "run-gates: $PHASE gates passed for $GOAL_ID — host authority remains separately required"
+  fi
   exit 0
 fi
 

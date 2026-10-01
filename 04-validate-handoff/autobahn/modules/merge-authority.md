@@ -54,6 +54,19 @@ local CI green, all comments resolved — see review-loop.md) **before** the
 authority decision. The adapter is the final gate, not a substitute for the
 review/CI gate.
 
+Before **either** normal host merge or policy-bypass adapter, rerun
+`run-gates.sh --phase pre-merge --root <repo> --goal-record <exact-selected-goal.json>
+--handoff <same-generation-addressed-handoff-path> --context <fresh-merge-context.json>`.
+For a direct goal, replace `--handoff` with `--goal <same-direct-envelope.json>`.
+The driver invokes the shared validator with `--stage merge`; it requires exact
+semantic equality between the selected goal and command record. Missing merge
+evidence, stale context, changed subject or mismatched record blocks before
+verification. Independently verify live operation authority for this exact
+subject/goal/stage; `dispatch_authorized=false` is never a host approval.
+`local-validation` and implementation readiness do not satisfy this prerequisite.
+All original review, TDD, lint, exact-head remote/local CI and host-policy gates
+remain required; readiness alone does not authorize a merge.
+
 ## How it is invoked + tested
 
 The adapter takes a **pre-normalized host-policy verdict object** and emits the

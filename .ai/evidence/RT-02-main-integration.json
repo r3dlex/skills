@@ -1,0 +1,19 @@
+{
+  "goal_id": "RT-02",
+  "integrated_main": "2d8aad5c62e4dd42c7bcbfa13e0171bf63389643",
+  "review_tree": "5563e770e600b1fdfd4f8c7292d60301129e1324",
+  "patch_sha256": "e3542a3166e502d3ed5a83b02db32123f4e67cd1b910c33e60fab3a09471919c",
+  "scope": "Native secret scan workflow/test/receipt and source manifest only; RT02 readiness implementation/docs preserved byte-for-byte after squash-ancestry conflict verification",
+  "gates": {
+    "command": "CI=true bash 04-validate-handoff/autobahn/run-gates.sh --root <clean exact-tree Git snapshot> --goal-record <RT02 local goal> --phase all",
+    "exit_code": 0,
+    "shell_assertions": 190,
+    "structure_assertions": 184,
+    "readiness_tests": 29,
+    "test_skips": 0,
+    "lint_skip": "Template-only archgate no applicable files; all applicable lint checks pass",
+    "log_sha256": "3737e032dc961dac59ca78f5355bc69552cac8c2cfe72c9e751588671d90cf5d"
+  },
+  "independent_review": "APPROVE; source hashes match, readiness unchanged, native security8/8 and readiness65/65 independently passed",
+  "limits": "Hosted CI must pass new committed exact head before merge; no fabricated hosted approval; historical receipts retained"
+}

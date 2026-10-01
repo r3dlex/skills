@@ -43,3 +43,7 @@ with a number.
   adversarial pass was explicitly skipped.
 - Do not offer or run the two adversarial skills independently of each other.
 - Do not reimplement any skill's loop; record only their outcome.
+
+## Scoped readiness recovery
+
+Before finishing, run planning-stage admission for the exact published handoff and every goal using repeated `--goal-id` selectors. Collect all preparation, implementation and merge findings in one report, including unassigned owners, missing fixtures/tools and independent trust. Ask for unresolved inputs together, not through repeated execution retries. Planning may complete while readiness is unknown; do not manufacture context or approval.
