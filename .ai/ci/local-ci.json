@@ -1,8 +1,8 @@
 {
   "schema": "local-ci/1",
   "workflows": {
-    ".github/workflows/ci-prek.yml": "5a1a50e2886f18c7e65baf8b3be9a839041dfbbd48b90e3a3a150ee6173cf971",
-    ".github/workflows/ci.yml": "6d64dd203ef0d610ac23abfbcc190d113c63e2d76174c706cddbd3b56b459093",
+    ".github/workflows/ci-prek.yml": "448aeaa2d3cfa2c6955cb459d5db4e6b00674525003f9ffa4053ff289401cfb2",
+    ".github/workflows/ci.yml": "6c5be6095ea3d71231ddb08eb7d7a56cc5bea7226245fc37fded1819bfd4c36f",
     ".github/workflows/security.yml": "ae8f9daeae5c7732727e6fb83aae9fc861af620ce995dbbd4a67267478d25bbd"
   },
   "sources": {
