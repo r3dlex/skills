@@ -31,7 +31,7 @@
     {
       "case_id": "case-005-direct-implementation-ready",
       "input": "autobahn is invoked without a northstar handoff but with one goal record whose context, root causes, evidence, solution, acceptance criteria, scope, verification, issue reference, and coverage are complete.",
-      "expected_behavior": "Runs the direct readiness gate, creates one durable goal, and proceeds through the normal TDD, engine, review, CI, merge-authority, and closure gates. If any readiness evidence is missing or contradictory, it stops and routes to northstar or diagnose rather than discovering during implementation.",
+      "expected_behavior": "Runs the direct readiness gate, creates one durable goal, and proceeds through the normal TDD, engine, review, CI, merge-authority, and closure gates. If any readiness evidence is missing or contradictory, it stops and routes to northstar or diagnosing-bugs rather than discovering during implementation.",
       "trajectory": ["readiness-check", "tdd-mode", "ultragoal", "engine-pick", "review-loop", "ci-green", "merge-authority", "cascade-closure"]
     },
     {

@@ -13,8 +13,8 @@ Install one representative skill for Codex:
 ```bash
 git clone https://github.com/r3dlex/skills.git
 cd skills
-./scripts/install-codex.sh --skill diagnose
-test -f "$HOME/.codex/skills/diagnose/SKILL.md"
+./scripts/install-codex.sh --skill diagnosing-bugs
+test -f "$HOME/.codex/skills/diagnosing-bugs/SKILL.md"
 ```
 
 Start Codex and invoke the installed workflow:
@@ -24,10 +24,10 @@ codex
 ```
 
 ```text
-$diagnose "why does this command fail?"
+$diagnosing-bugs "why does this command fail?"
 ```
 
-**Expected result:** Codex discovers `diagnose/SKILL.md` and begins the
+**Expected result:** Codex discovers `diagnosing-bugs/SKILL.md` and begins the
 reproduce-minimize-hypothesize-instrument-fix loop.
 
 ## Install for another host
@@ -68,7 +68,7 @@ when needed. See [`CONTEXT.md`](CONTEXT.md) for the shared domain language.
   handoff through TDD, review, CI, and fail-closed merge gates.
 - [`write-a-skill`](03-configure-generate/write-a-skill/SKILL.md) creates a skill
   with progressive disclosure and portable host behavior.
-- [`diagnose`](04-validate-handoff/diagnose/SKILL.md) runs a disciplined debugging
+- [`diagnosing-bugs`](04-validate-handoff/diagnosing-bugs/SKILL.md) runs a disciplined debugging
   loop from reproduction through verified fix.
 
 ## Complete catalog
@@ -86,7 +86,7 @@ when editing this README.
 | [`code-review`](04-validate-handoff/code-review/SKILL.md) | Review changes since a fixed point along two axes, Standards and Spec, reported side by side. Use when reviewing a branch, a PR, or work in progress. | `stable` | `04-validate-handoff` |
 | [`codebase-design`](02-govern-plan/codebase-design/SKILL.md) | Shared vocabulary for designing deep modules. Use when shaping an interface, placing a seam, finding deepening opportunities, or when another skill needs it. | `stable` | `02-govern-plan` |
 | [`design-an-api-or-interface`](02-govern-plan/design-an-api-or-interface/SKILL.md) | Design APIs/interfaces with Design It Twice: create alternatives, compare tradeoffs, choose one. Use when designing an API, module, class, or boundary. | `stable` | `02-govern-plan` |
-| [`diagnose`](04-validate-handoff/diagnose/SKILL.md) | Run a reproduce-minimize-hypothesize-instrument-fix loop. Use when debugging bugs, failures, thrown errors, or performance regressions. | `stable` | `04-validate-handoff` |
+| [`diagnose`](04-validate-handoff/diagnose/SKILL.md) | Run a reproduce-minimize-hypothesize-instrument-fix loop. Use when debugging bugs, failures, thrown errors, or performance regressions. | `deprecated` | `04-validate-handoff` |
 | [`diagnosing-bugs`](04-validate-handoff/diagnosing-bugs/SKILL.md) | Diagnosis loop for hard bugs and performance regressions. Use when asked to diagnose or debug, or when something is broken, throwing, failing, or slow. | `stable` | `04-validate-handoff` |
 | [`domain-modeling`](01-discover-decide/domain-modeling/SKILL.md) | Build and sharpen a project domain model or ubiquitous language. Use when pinning down domain terms, recording an architectural decision, or keeping a glossary. | `stable` | `01-discover-decide` |
 | [`edit-article`](03-configure-generate/edit-article/SKILL.md) | Edit and improve articles by restructuring sections, improving clarity, and tightening prose | `stable` | `03-configure-generate` |
@@ -99,10 +99,12 @@ when editing this README.
 | [`improve-codebase-architecture`](02-govern-plan/improve-codebase-architecture/SKILL.md) | Find deepening opportunities from CONTEXT.md and ADRs. Use when refactoring shallow modules, boundaries, coupling, or testability. | `stable` | `02-govern-plan` |
 | [`init-ai-repo`](03-configure-generate/init-ai-repo/SKILL.md) | Deprecated compatibility alias for ai-catapult-init. Use only when legacy prompts invoke "init-ai-repo"; otherwise use "ai-catapult-init". | `compatibility` | `03-configure-generate` |
 | [`northstar`](02-govern-plan/northstar/SKILL.md) | Planning-only intake: turn intent into a tracked, sliced plan and A→B handoff; never implement product changes. Use before autobahn execution. | `stable` | `02-govern-plan` |
+| [`pr`](04-validate-handoff/pr/SKILL.md) | Use when writing a PR body: summary with the smallest clarifying visual, before/after evidence, and merge-danger (door + blast radius). | `stable` | `04-validate-handoff` |
 | [`prototype`](03-configure-generate/prototype/SKILL.md) | Build a throwaway prototype to answer a design question. Use when sanity-checking a state model or logic, or exploring what a UI should look like. | `stable` | `03-configure-generate` |
 | [`publish-semver`](04-validate-handoff/publish-semver/SKILL.md) | Set up semantic or calendar versioning and package publishing across supported ecosystems. Use when configuring release automation or changelogs. | `stable` | `04-validate-handoff` |
 | [`research`](01-discover-decide/research/SKILL.md) | Investigate a question against high-trust primary sources and write the findings to a Markdown file. Use when a topic needs researching or API facts gathered. | `stable` | `01-discover-decide` |
-| [`resolving-merge-conflicts`](04-validate-handoff/resolving-merge-conflicts/SKILL.md) | Resolve an in-progress git merge or rebase conflict hunk by hunk. Use when a merge or rebase has stopped with conflicts that need resolving. | `stable` | `04-validate-handoff` |
+| [`resolving-merge-conflicts`](04-validate-handoff/resolving-merge-conflicts/SKILL.md) | Resolve an in-progress git merge or rebase conflict hunk by hunk. Use when a merge or rebase has stopped with conflicts that need resolving. | `deprecated` | `04-validate-handoff` |
+| [`retro`](04-validate-handoff/retro/SKILL.md) | Conduct a retrospective on a coding agent session: propose environment improvements ranked by severity. Invoked by the user after a session or post-merge. | `stable` | `04-validate-handoff` |
 | [`setup-skills`](03-configure-generate/setup-skills/SKILL.md) | Configure AGENTS/CLAUDE and docs/agents for tracker, triage labels, and domain docs. Use before issue, PRD, triage, TDD, or diagnosis skills. | `stable` | `03-configure-generate` |
 | [`tdd`](03-configure-generate/tdd/SKILL.md) | Run red-green-refactor with one failing test, one implementation, then cleanup. Use when building features or fixes test-first. | `stable` | `03-configure-generate` |
 | [`to-issues`](02-govern-plan/to-issues/SKILL.md) | Break a plan, spec, or PRD into traceable implementation issues. Use when converting requirements into tickets or agent-ready work. | `stable` | `02-govern-plan` |
@@ -110,7 +112,6 @@ when editing this README.
 | [`to-spec`](02-govern-plan/to-spec/SKILL.md) | Turn the current conversation into a spec and raise it as an issue. Use after a design discussion — no interview, just synthesis of what was already decided. | `stable` | `02-govern-plan` |
 | [`to-tickets`](02-govern-plan/to-tickets/SKILL.md) | Break a plan, spec, or conversation into tracer-bullet tickets, each declaring its blocking edges. Use when turning a plan into agent-grabbable slices. | `stable` | `02-govern-plan` |
 | [`triage`](02-govern-plan/triage/SKILL.md) | Triage issues through canonical state labels and ownership roles. Use when creating, reviewing, prioritizing, or preparing issues for agents. | `stable` | `02-govern-plan` |
-| [`ubiquitous-language`](01-discover-decide/ubiquitous-language/SKILL.md) | Extract and save a DDD glossary, flag ambiguities, and propose canonical terms. Use when defining domain language or a shared vocabulary. | `deprecated` | `01-discover-decide` |
 | [`using-git-worktrees`](03-configure-generate/using-git-worktrees/SKILL.md) | Create isolated git worktrees with safety checks and setup guidance. Use when starting feature work that needs separation from the main checkout. | `stable` | `03-configure-generate` |
 | [`wayfinder`](02-govern-plan/wayfinder/SKILL.md) | Chart work too big for one agent session as a map of decision tickets, resolved one at a time. Use when the way to the destination is not yet visible. | `stable` | `02-govern-plan` |
 | [`wizard`](03-configure-generate/wizard/SKILL.md) | Generate an interactive bash wizard for steps only a human can do, not for steps the agent can do itself. Use when provisioning infra or capturing CI secrets. | `stable` | `03-configure-generate` |

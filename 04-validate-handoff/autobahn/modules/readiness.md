@@ -144,3 +144,8 @@ lock itself, and must retain its digest. Diagnostics distinguish unavailable
 sources from expected/actual mismatch and identify the anchor. Credential-bearing
 URLs are redacted from failure details. Recovery obtains independent provenance;
 it never rewrites the trusted commit to match the lock.
+
+Do not infer missing root causes or solutions during Autobahn execution.
+Incomplete or contradictory diagnostic evidence requires northstar or
+`diagnosing-bugs`; never mark such a record implementation-ready.
+Direct intake remains one bounded goal and one PR, not an implicit multi-goal plan.
