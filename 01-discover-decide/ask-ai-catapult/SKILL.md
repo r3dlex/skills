@@ -66,7 +66,6 @@ Route by where the user actually is, not where a tidy process would start them:
 - Something is broken, slow, or throwing → `diagnosing-bugs`.
 - A pile of untriaged issues → `triage`.
 - Work too big to hold in one session, and the route is not yet visible → `wayfinder`.
-- A merge or rebase has stopped with conflicts → `resolving-merge-conflicts`.
 - Repo not yet initialized for this workflow → `ai-catapult-init`.
 
 ## Vocabulary layer

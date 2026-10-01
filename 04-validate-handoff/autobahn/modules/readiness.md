@@ -21,5 +21,5 @@ the schema does not weaken peer review, CI, merge authority, or one-PR-per-goal.
 
 - Do not infer missing root causes or solutions during Autobahn execution.
 - If evidence is incomplete or contradictory, stop and route through northstar
-  or `diagnose`; do not mark the record implementation-ready.
+  or `diagnosing-bugs`; do not mark the record implementation-ready.
 - Direct intake is one bounded goal and one PR, never an implicit multi-goal plan.

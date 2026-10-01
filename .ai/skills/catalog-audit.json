@@ -7,7 +7,7 @@
     "max_body_lines_with_exception": 180,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 38,
+  "skill_count": 39,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -38,7 +38,7 @@
       "path": "01-discover-decide/ask-ai-catapult/SKILL.md",
       "description_chars": 151,
       "description_status": "target",
-      "body_lines": 85,
+      "body_lines": 84,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
@@ -93,7 +93,7 @@
       "path": "04-validate-handoff/diagnose/SKILL.md",
       "description_chars": 135,
       "description_status": "target",
-      "body_lines": 68,
+      "body_lines": 73,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
@@ -232,6 +232,17 @@
       "status": "pass"
     },
     {
+      "name": "pr",
+      "path": "04-validate-handoff/pr/SKILL.md",
+      "description_chars": 135,
+      "description_status": "target",
+      "body_lines": 72,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
       "name": "prototype",
       "path": "03-configure-generate/prototype/SKILL.md",
       "description_chars": 146,
@@ -269,7 +280,18 @@
       "path": "04-validate-handoff/resolving-merge-conflicts/SKILL.md",
       "description_chars": 140,
       "description_status": "target",
-      "body_lines": 38,
+      "body_lines": 43,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "retro",
+      "path": "04-validate-handoff/retro/SKILL.md",
+      "description_chars": 154,
+      "description_status": "target",
+      "body_lines": 36,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
@@ -353,17 +375,6 @@
       "status": "pass"
     },
     {
-      "name": "ubiquitous-language",
-      "path": "01-discover-decide/ubiquitous-language/SKILL.md",
-      "description_chars": 137,
-      "description_status": "target",
-      "body_lines": 87,
-      "body_status": "target",
-      "cross_skill_links": "not-required",
-      "ai_sdlc_compatible": true,
-      "status": "pass"
-    },
-    {
       "name": "using-git-worktrees",
       "path": "03-configure-generate/using-git-worktrees/SKILL.md",
       "description_chars": 145,
@@ -401,7 +412,7 @@
       "path": "03-configure-generate/write-a-skill/SKILL.md",
       "description_chars": 153,
       "description_status": "target",
-      "body_lines": 58,
+      "body_lines": 60,
       "body_status": "target",
       "cross_skill_links": "present",
       "ai_sdlc_compatible": true,

@@ -44,6 +44,29 @@ For each sliced goal, in order:
    when that path is explicitly authorized (see merge-authority.md).
 9. On merge, cascade-close the issue with a triage status.
 
+## Why not port `implement-spec`
+
+Upstream (engineering skills at v1.3) also ships an `implement-spec` skill: it
+implements a written spec end-to-end with its own spec-intake, plan, and
+execution loop. It was a candidate port and was rejected (SSCM-06, 2026-09-30);
+this is the decision record, so a future port attempt does not silently
+duplicate a seam that is already owned.
+
+Enumerated delta — what `implement-spec` offers vs the owning module:
+
+| `implement-spec` capability | Autobahn owner already providing it |
+| --- | --- |
+| spec intake / refuse unsettled spec | [implementation.md](implementation.md) (`implement` refuses an unsettled spec) |
+| implement the spec's decisions | [implementation.md](implementation.md) + [engine-pick.md](engine-pick.md) (engine executes under `implement`'s contract) |
+| verify each spec point | [review-loop.md](review-loop.md) + the CI gate (`run-gates.sh`, [ci-gate.md](ci-gate.md)) |
+| per-spec-point progress | the goal record itself (`scope`, `acceptance_criteria`, `verification`) |
+
+Trigger conditions to revisit: only if autobahn starts accepting goals that are
+**not** implementation-ready (no acceptance criteria, no verification commands)
+— at that point `implement-spec`'s spec-intake loop would be the missing piece.
+While every goal record passes the readiness gate first, the port would add a
+second, weaker intake path.
+
 ## Wired gate scripts
 
 `run-gates.sh` invokes the gates, so a skipped gate is impossible rather than

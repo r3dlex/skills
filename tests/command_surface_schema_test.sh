@@ -151,6 +151,78 @@ for needle in '$autobahn' "/oh-my-claudecode:autobahn"; do
   fi
 done
 
+# --- opencode surface (SSCM-07) ----------------------------------------------
+# .ai/commands/opencode/<skill>.json is a registered third surface: invocation
+# is the /<name> form (opencode's own slash command), everything else identical.
+
+o_module="02-govern-plan/northstar/modules/command-surface.md"
+for needle in '"opencode"' '/<name>' ; do
+  if grep -qF -- "$needle" "$o_module" 2>/dev/null; then
+    ok "northstar command-surface module documents opencode '$needle'"
+  else
+    bad "northstar command-surface module documents opencode '$needle'"
+  fi
+done
+for needle in '"opencode"' '/<name>' ; do
+  if grep -qF -- "$needle" "$A_MODULE" 2>/dev/null; then
+    ok "autobahn command-surface module documents opencode '$needle'"
+  else
+    bad "autobahn command-surface module documents opencode '$needle'"
+  fi
+done
+
+python3 - "$FIXTURE" <<'PY'
+import json, sys
+root = sys.argv[1]
+errs = []
+for skill in ("northstar", "autobahn"):
+    p = f"{root}/.ai/commands/opencode/{skill}.json"
+    try:
+        doc = json.load(open(p))
+    except Exception as e:
+        errs.append(f"load {p}: {e}"); continue
+    required = {"name","surface","skill","invocation","args","description","delegates_to"}
+    missing = required - set(doc)
+    if missing:
+        errs.append(f"opencode/{skill} missing fields: {sorted(missing)}")
+    if doc.get("surface") != "opencode":
+        errs.append(f"opencode/{skill} surface != opencode: {doc.get('surface')!r}")
+    if doc.get("invocation") != f"/{skill}":
+        errs.append(f"opencode/{skill} invocation must be /{skill}, got {doc.get('invocation')!r}")
+if errs:
+    print("\n".join(errs), file=sys.stderr); sys.exit(1)
+PY
+if [[ $? -eq 0 ]]; then
+  ok "opencode fixture entries carry required fields; /<name> invocation form"
+else
+  bad "opencode command-surface schema validation"
+fi
+
+# Negative: a surface outside the enum must be rejected by the same validator.
+tmpdir="$(mktemp -d)"
+cp -R "$FIXTURE/." "$tmpdir/"
+python3 - "$tmpdir" <<'PY'
+import json, sys
+root = sys.argv[1]
+p = f"{root}/.ai/commands/opencode/autobahn.json"
+doc = json.load(open(p))
+doc["surface"] = "vscode"
+json.dump(doc, open(p, "w"))
+PY
+tmpfix="$tmpdir/.ai/commands/opencode/autobahn.json"
+if python3 - "$tmpfix" <<'PY' 2>/dev/null
+import json, sys
+doc = json.load(open(sys.argv[1]))
+SURFACES = {"omx", "omc", "opencode"}  # enum per command-surface.md
+raise SystemExit(0 if doc["surface"] in SURFACES else 1)
+PY
+then
+  bad "negative: surface outside enum was accepted (vscode)"
+else
+  ok "negative: surface outside enum rejected (vscode)"
+fi
+rm -rf "$tmpdir"
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

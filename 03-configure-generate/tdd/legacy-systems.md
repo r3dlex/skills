@@ -34,6 +34,6 @@ Coverage is a risk signal, not a target for this PR.
 - The characterization test exposes contradictory or unknown required behavior.
 - The blast-radius budget must expand across multiple coupled subsystems.
 
-When one occurs, stop implementation and route to `diagnose`, architecture work,
+When one occurs, stop implementation and route to `diagnosing-bugs`, architecture work,
 or a separately planned characterization/refactoring goal. Never manufacture a
 large test harness merely to preserve strict TDD appearances.

@@ -9,6 +9,8 @@
 | [`diagnosing-bugs`](../04-validate-handoff/diagnosing-bugs/SKILL.md) | 03-configure-generate, 04-validate-handoff |
 | [`eval-a-skill`](../04-validate-handoff/eval-a-skill/SKILL.md) | 03-configure-generate, 04-validate-handoff |
 | [`handoff`](../04-validate-handoff/handoff/SKILL.md) | 04-validate-handoff |
+| [`pr`](../04-validate-handoff/pr/SKILL.md) | 04-validate-handoff |
 | [`publish-semver`](../04-validate-handoff/publish-semver/SKILL.md) | 03-configure-generate, 04-validate-handoff |
 | [`resolving-merge-conflicts`](../04-validate-handoff/resolving-merge-conflicts/SKILL.md) | 04-validate-handoff |
+| [`retro`](../04-validate-handoff/retro/SKILL.md) | 04-validate-handoff |
 <!-- GENERATED:SKILL-CATALOG:END -->
