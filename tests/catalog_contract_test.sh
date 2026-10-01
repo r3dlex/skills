@@ -21,11 +21,32 @@ actual="$(wc -l < /tmp/catalog.default | tr -d ' ')"
 # about host parity.
 python3 scripts/catalog-query.py --host codex \
   --include-lifecycle experimental --include-lifecycle deprecated > /tmp/catalog.extended
-for host in codex claude-code gemini copilot auggie opencode; do
-  python3 scripts/catalog-query.py --host "$host" \
-    --include-lifecycle experimental --include-lifecycle deprecated > "/tmp/catalog.$host"
-  diff -u /tmp/catalog.extended "/tmp/catalog.$host"
-done
+# Host selection is supported_hosts membership, not host-independence: a skill
+# may legitimately be exclusive to one host (edit-article is opencode-only per
+# the 2026-10-01 SSCM amendment), so each host's view must equal the shared
+# set minus entries that do not name that host — checked directly in
+# catalog.json below rather than by diffing whole views.
+python3 - <<'PY'
+import json
+cat = json.load(open('catalog.json'))
+lifecycles = {'stable', 'compatibility', 'experimental', 'deprecated'}
+supported = {
+    s['name'] for s in cat.get('skills', [])
+    if s.get('lifecycle', 'stable') in lifecycles or not s.get('lifecycle')
+}
+for host in ('codex', 'claude-code', 'gemini', 'copilot', 'auggie', 'opencode'):
+    names = {
+        line.split('\t', 1)[0]
+        for line in open(f'/tmp/catalog.{host}').read().splitlines() if line
+    }
+    expected = {
+        s['name'] for s in cat.get('skills', [])
+        if (s.get('lifecycle', 'stable') in {'stable', 'compatibility', 'experimental', 'deprecated'})
+        and host in s.get('supported_hosts', [])
+    }
+    assert names == expected, f'--host {host} view mismatch: off by {names ^ expected}'
+assert supported, 'catalog has no lifecycled skills'
+PY
 
 # Default installs must exclude non-default lifecycles. Without this the
 # amendment above would let a deprecated skill silently ship by default.
