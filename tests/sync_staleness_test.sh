@@ -38,7 +38,7 @@ mklock() { # mklock <path> <updated-date> <sha>
 FORK_SHA="$(git rev-parse HEAD)"
 UNREACHABLE_SHA="deadbeef0000000000000000000000000000dead"
 
-old_date="$(date -v-$((THRESHOLD - 1))d -u +%Y-%m-%d 2>/dev/null || date -u -d "-${THRESHOLD} days" +%Y-%m-%d)"
+old_date="$(date -v-$((THRESHOLD - 1))d -u +%Y-%m-%d 2>/dev/null || date -u -d "-$((THRESHOLD - 2)) days" +%Y-%m-%d)"
 stale_date="$(date -v-$((THRESHOLD + 7))d -u +%Y-%m-%d 2>/dev/null || date -u -d "-$((THRESHOLD + 7)) days" +%Y-%m-%d)"
 
 # ---------------------------------------------------------------------------
