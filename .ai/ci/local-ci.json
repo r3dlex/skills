@@ -3,7 +3,7 @@
   "workflows": {
     ".github/workflows/ci-prek.yml": "5a1a50e2886f18c7e65baf8b3be9a839041dfbbd48b90e3a3a150ee6173cf971",
     ".github/workflows/ci.yml": "6d64dd203ef0d610ac23abfbcc190d113c63e2d76174c706cddbd3b56b459093",
-    ".github/workflows/gitguardian.yml": "d379bed21ef7ae56e36a09f93c36a180f3219227214ed399d27d8dd03952301a"
+    ".github/workflows/security.yml": "ae8f9daeae5c7732727e6fb83aae9fc861af620ce995dbbd4a67267478d25bbd"
   },
   "sources": {
     "tests/run-tests.sh": "88dbbab43bd958d545320497c7decaccb5974bb85ab325b0823c4ad7e6ba2f93",
@@ -13,7 +13,8 @@
     "tests/local_security_scan.sh": "43c0f4e4cc32b6609c1ba687a82171979c7b18e827a83882bb138db8548fbdc3",
     "scripts/scan-secret-material.py": "32c6edb4b5bebab36d4b83ea934c7d0052cb06f055aa808de72f3dde3849d16e",
     "scripts/validate-rules.sh": "d0cfc3fa258fabb12bf94247a84236af56f52371d161d7ce010c7198e1a005a1",
-    "prek.toml": "77cbffa31b0aebadcf238a00b919b7be313e0fa987c676ef8a8aeb9aa04dc1a9"
+    "prek.toml": "77cbffa31b0aebadcf238a00b919b7be313e0fa987c676ef8a8aeb9aa04dc1a9",
+    "tests/security_workflow_test.sh": "d6857aaf8720f1a5a8b73b1825e9e08aa746ee3841edb53d9bfa5d89d828e19f"
   },
   "verification": [
     "bash tests/run-tests.sh",
