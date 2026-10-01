@@ -166,10 +166,7 @@ expect 'post-commit rerun retains committed set and cleans journal' pass python3
 [[ ! -e "$TMP/workspace/.ai/execution/generated/.ci-adapters.journal.json" ]] \
   && pass 'committed recovery removes durable journal' || fail 'committed journal was not cleaned'
 
-python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace" --hold-lock-seconds 2 >/dev/null 2>&1 & lock_pid=$!
-sleep .2
-expect 'workspace lock rejects concurrent renderer' fail python3 "$RENDER" --profile "$TMP/gitlab.json" --output "$TMP/workspace"
-wait "$lock_pid" && pass 'workspace lock owner completes' || fail 'workspace lock owner failed'
+expect 'workspace lock rejects contender and owner explicitly completes' pass python3 "$ROOT/tests/helpers/lock_contention.py" "$RENDER" acquire_workspace_lock 'held by another renderer' --profile "$TMP/gitlab.json" --output "$TMP/workspace"
 
 mkdir -p "$TMP/collision/.ai"; printf '{}\n' > "$TMP/collision/.ai/matrix.json"; printf 'manual\n' > "$TMP/collision/azure-pipelines.yml"
 expect 'unowned target collision fails closed' fail python3 "$RENDER" --profile "$TMP/ado.json" --output "$TMP/collision"

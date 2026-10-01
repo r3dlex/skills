@@ -50,7 +50,7 @@ cp -R "$X/out" "$X/before";expect 'mid-render failure' fail "${G[@]}" --matrix "
 "${G[@]}" --matrix "$X/v11.json" --crash-at after-promote >/dev/null 2>&1
 "${G[@]}" --matrix "$X/v11.json"&&ok 'post-promote crash recovered'||bad 'post-promote recovery'
 # live lock and stale lock
-"${G[@]}" --matrix "$X/v11.json" --hold-lock-seconds 2 >/dev/null 2>&1 & hp=$!;sleep .2;expect 'live lock blocks concurrent writer' fail "${G[@]}" --matrix "$X/v11.json";wait $hp
+expect 'live lock rejects contender and owner explicitly completes' pass python3 "$ROOT/tests/helpers/lock_contention.py" "$T" acquire 'held by a live process' project --profiles "$X/profiles" --overrides "$X/overrides" --output "$X/out" --matrix "$X/v11.json"
 printf '{"pid":%s,"created_at":0,"token":"live-owner"}\n' "$$" > "$X/.out.lock";expect 'old live lock is never stolen' fail "${G[@]}" --matrix "$X/v11.json" --stale-after 1;rm "$X/.out.lock"
 : > "$X/.out.lock";expect 'malformed initialization recovers' pass "${G[@]}" --matrix "$X/v11.json"
 python3 - "$X/.out.lock.recovery" <<'PY'
@@ -60,9 +60,7 @@ PY
 printf '{"pid":999999,"created_at":0,"token":"orphan-recovery"}\n' > "$X/.out.lock";expect 'orphaned recovery mutex crash releases lock' pass "${G[@]}" --matrix "$X/v11.json"
 printf '{"pid":999999,"created_at":0}\n' > "$X/.out.lock";expect 'stale lock recovered' pass "${G[@]}" --matrix "$X/v11.json" --stale-after 1
 printf '{"pid":999999,"created_at":0,"token":"stale-owner"}\n' > "$X/.out.lock"
-"${G[@]}" --matrix "$X/v11.json" --hold-lock-seconds 2 >/dev/null 2>&1 & ap=$!;sleep .2
-expect 'stale ABA contender cannot move new live lock' fail "${G[@]}" --matrix "$X/v11.json"
-kill -0 "$ap" 2>/dev/null&&ok 'stale ABA winner remains owner'||bad 'stale ABA winner lost ownership';wait "$ap"
+expect 'stale ABA winner retains exact lock until explicit release' pass python3 "$ROOT/tests/helpers/lock_contention.py" "$T" acquire 'held by a live process' project --profiles "$X/profiles" --overrides "$X/overrides" --output "$X/out" --matrix "$X/v11.json"
 expect 'check current' pass "${G[@]}" --matrix "$X/v11.json" --check;printf '\n' >> "$X/out/two.json";expect 'check drift' fail "${G[@]}" --matrix "$X/v11.json" --check
 mut(){ python3 - "$X/v11.json" "$X/bad.json" "$1" <<'PY'
 import json,sys
