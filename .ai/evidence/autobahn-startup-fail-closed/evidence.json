@@ -1,0 +1,61 @@
+{
+  "schema_version": "autobahn-startup-repair-evidence/1",
+  "goal": "autobahn-startup-fail-closed",
+  "base_commit": "dad05ec6f541f88b2240a4df98cd98deaf7e26e5",
+  "command": "bash tests/autobahn_engine_input_test.sh",
+  "red_green": [
+    {
+      "slice": "options",
+      "red_exit": 1,
+      "green_exit": 0,
+      "provenance": [
+        "options-before.txt",
+        "options-after.txt"
+      ],
+      "red_output": "options-red.log.json",
+      "green_output": "options-green.log.json"
+    },
+    {
+      "slice": "goals",
+      "red_exit": 1,
+      "green_exit": 0,
+      "provenance": [
+        "goals-before.txt",
+        "goals-after.txt"
+      ],
+      "red_output": "goals-red.log.json",
+      "green_output": "goals-green.log.json"
+    }
+  ],
+  "acceptance": {
+    "options": "Missing, empty and next-option values reject promptly with exit 2 and empty stdout.",
+    "goals": "Malformed, unreadable and non-object goals cannot choose an engine, including under an override."
+  },
+  "fresh_validation_exit_codes": {
+    "goals-green": 0,
+    "options-red": 1,
+    "autobahn_tdd_evidence": 0,
+    "autobahn_engine_pick": 0,
+    "goals-red": 1,
+    "autobahn_engine_input": 0,
+    "options-green": 0,
+    "readiness_contract": 0,
+    "prek": 0,
+    "full-suite": 0,
+    "autobahn_tdd_mode": 0,
+    "unreadable": 0,
+    "autobahn_coverage_unknown": 0,
+    "autobahn_docs": 0
+  },
+  "review": "Independent architect review approved exact source/test identities; no blocking findings.",
+  "limits": [
+    "Local evidence is not hosted CI, installed activation, admission, live authority or merge authority.",
+    "Existing legacy engine inventory is unchanged; host capability routing needs a separate contract.",
+    "The small-work root remains unready; this is a separately requested helper repair."
+  ],
+  "sha256": {
+    "04-validate-handoff/autobahn/engine-pick.sh": "2bfb2d3251216efd74a75b770017bf0f86b0a193aa13e1a6ddf4e83acdf82b28",
+    "04-validate-handoff/autobahn/modules/engine-pick.md": "baf68d7f27f47b3d637b1776586e4ab5b1d266fc885a9cd49f830b17ce371553",
+    "tests/autobahn_engine_input_test.sh": "e75988d1e4220755db13e22b3a840ae4fc32a001023530f299abba25713bb59a"
+  }
+}

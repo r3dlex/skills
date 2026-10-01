@@ -1,0 +1,5 @@
+{
+  "encoding": "utf-8",
+  "sha256_raw": "e4cb3254c1490993c8409152652000ed320aea4a4e89c67bc5a26627f220871d",
+  "combined_output": "test_invalid_goal_cannot_select_an_engine (__main__.EngineInputTest.test_invalid_goal_cannot_select_an_engine) ... ok\ntest_missing_option_values (__main__.EngineInputTest.test_missing_option_values) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.576s\n\nOK\n"
+}

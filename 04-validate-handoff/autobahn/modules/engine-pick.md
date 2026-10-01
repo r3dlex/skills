@@ -41,9 +41,13 @@ silently falling back, so a typo never ships under the wrong engine.
 `engine-pick.sh` reads the signals from a goal-record JSON file (`--goal <path>`)
 or accepts them as inline flags for testability; either way the result is the same
 pure mapping. The goal record is part of what the northstar handoff references.
+Every value-taking option requires a non-empty value, not another option. A
+supplied goal must be a readable JSON object, even when `--engine` is supplied.
+Invalid input exits 2 without emitting an engine; an override changes selection,
+not input validity.
 
 ## Safety rules
 
 - Pure and deterministic: no model, no network, no clock-dependence.
-- A valid `--engine` override always wins; an invalid one fails closed.
-- Exactly one engine is emitted per goal.
+- With valid input, a valid `--engine` override wins; an invalid one fails closed.
+- Exactly one engine is emitted on success; none is emitted on invalid input.

@@ -26,7 +26,7 @@
 #   prints the chosen engine name to stdout
 # Exit:
 #   0  an engine was chosen and printed
-#   2  usage error / invalid --engine override
+#   2  usage error / invalid --engine override / unreadable or invalid goal
 #
 
 set -uo pipefail
@@ -38,6 +38,14 @@ VALID_ENGINES="ultraqa ultrawork ralph team"
 GOAL="" ; OVERRIDE=""
 QA="" ; PAR="" ; PERSIST="" ; KIND=""
 while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --goal|--engine|--qa-heavy|--parallelizable|--needs-persistence|--kind)
+      if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+        echo "engine-pick: $1 requires a non-empty value" >&2
+        exit 2
+      fi
+      ;;
+  esac
   case "$1" in
     --goal)               GOAL="${2:-}";    shift 2 ;;
     --engine)             OVERRIDE="${2:-}"; shift 2 ;;
@@ -57,6 +65,39 @@ is_valid_engine() {
   return 1
 }
 
+# --- resolve signals from the goal record, inline flags take precedence ------
+if [[ -n "$GOAL" ]]; then
+  if [[ ! -f "$GOAL" ]]; then
+    echo "engine-pick: --goal '$GOAL' not found" >&2
+    exit 2
+  fi
+  if ! goal_signals="$(python3 - "$GOAL" <<'PY'
+import json, sys
+try:
+    with open(sys.argv[1]) as source:
+        g = json.load(source)
+    if not isinstance(g, dict):
+        raise ValueError("goal must be a JSON object")
+except (OSError, ValueError) as e:
+    print(f"engine-pick: could not parse --goal '{sys.argv[1]}': {e}", file=sys.stderr)
+    sys.exit(2)
+def b(v): return "true" if v is True else ("false" if v is False else "")
+qa = b(g.get("qa_heavy"))
+par = b(g.get("parallelizable"))
+persist = b(g.get("needs_persistence", g.get("long_running")))
+kind = g.get("kind", "") or "-"
+print(qa or "-", par or "-", persist or "-", kind)
+PY
+)"; then
+    exit 2
+  fi
+  read -r g_qa g_par g_persist g_kind <<< "$goal_signals"
+  [[ -z "$QA"      && "$g_qa"      != "-" ]] && QA="$g_qa"
+  [[ -z "$PAR"     && "$g_par"     != "-" ]] && PAR="$g_par"
+  [[ -z "$PERSIST" && "$g_persist" != "-" ]] && PERSIST="$g_persist"
+  [[ -z "$KIND"    && "$g_kind"    != "-" ]] && KIND="$g_kind"
+fi
+
 # --- override wins (fail-closed on unknown engine) ---------------------------
 if [[ -n "$OVERRIDE" ]]; then
   if is_valid_engine "$OVERRIDE"; then
@@ -65,33 +106,6 @@ if [[ -n "$OVERRIDE" ]]; then
   fi
   echo "engine-pick: invalid --engine override '$OVERRIDE' (valid: $VALID_ENGINES)" >&2
   exit 2
-fi
-
-# --- resolve signals from the goal record, inline flags take precedence ------
-if [[ -n "$GOAL" ]]; then
-  if [[ ! -f "$GOAL" ]]; then
-    echo "engine-pick: --goal '$GOAL' not found" >&2
-    exit 2
-  fi
-  read -r g_qa g_par g_persist g_kind < <(python3 - "$GOAL" <<'PY'
-import json, sys
-try:
-    g = json.load(open(sys.argv[1]))
-except Exception as e:
-    print("err err err err"); sys.exit(0)
-def b(v): return "true" if v is True else ("false" if v is False else "")
-qa = b(g.get("qa_heavy"))
-par = b(g.get("parallelizable"))
-persist = b(g.get("needs_persistence", g.get("long_running")))
-kind = g.get("kind", "") or "-"
-print(qa or "-", par or "-", persist or "-", kind)
-PY
-)
-  [[ "$g_qa" == "err" ]] && { echo "engine-pick: could not parse --goal '$GOAL'" >&2; exit 2; }
-  [[ -z "$QA"      && "$g_qa"      != "-" ]] && QA="$g_qa"
-  [[ -z "$PAR"     && "$g_par"     != "-" ]] && PAR="$g_par"
-  [[ -z "$PERSIST" && "$g_persist" != "-" ]] && PERSIST="$g_persist"
-  [[ -z "$KIND"    && "$g_kind"    != "-" ]] && KIND="$g_kind"
 fi
 
 # --- deterministic mapping with fixed precedence -----------------------------

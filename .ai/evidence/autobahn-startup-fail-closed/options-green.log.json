@@ -1,0 +1,5 @@
+{
+  "encoding": "utf-8",
+  "sha256_raw": "d7f5e9bc1058d84d2800741214a863943f70ed30c67ea05b24ae6a6174c4ce27",
+  "combined_output": "test_missing_option_values (__main__.EngineInputTest.test_missing_option_values) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.074s\n\nOK\n"
+}
