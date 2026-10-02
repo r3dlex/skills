@@ -10,6 +10,8 @@ bridge does not govern excluded repositories or authorize execution.
 - `mapped-handoff-goals/1` adds mandatory `execution`. Its `repository` contains
   a distinct ID and exact absolute canonical root. The roots must be disjoint,
   not aliases or nested. Each goal uses that execution repository and scope.
+  Mapped scopes are literal file or directory paths, including new files; wildcard
+  characters (`*`, `?`, `[` and `]`) are rejected, not expanded.
 - The binding also contains exact `target`, full lowercase 40-character
   `source_revision`, execution instruction `sources` and `validation`, either
   `local` or `external-only`. The source revision is a stable baseline, not

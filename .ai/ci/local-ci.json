@@ -16,7 +16,7 @@
     "prek.toml": "77cbffa31b0aebadcf238a00b919b7be313e0fa987c676ef8a8aeb9aa04dc1a9",
     "tests/security_workflow_test.sh": "d6857aaf8720f1a5a8b73b1825e9e08aa746ee3841edb53d9bfa5d89d828e19f",
     "04-validate-handoff/autobahn/run-gates.sh": "f650a9bd7a7f41643357bbb374a2bacefe7c49b0a95698a355bce03f0b46c74d",
-    "04-validate-handoff/autobahn/lib/readiness_contract.py": "bb99be8c15ac66d0c841e38477de72162150f930429c1558cbe8382d8689b7e0",
+    "04-validate-handoff/autobahn/lib/readiness_contract.py": "75d37fbcbec73f500774c82107ef056cd13d49bf634d605c9e89a292835ff189",
     "tests/autobahn_run_gates_test.sh": "7aecec6ce97f22eebab0c394694b5a0b457951adf9843a4b0c3840e8beb6fefd",
     "tests/readiness_merge_driver_test.py": "91c6af23052cbb04762565b72881eb5a22baa466cc325ad7a10fe8c1ff20af29",
     "tests/readiness_merge_driver_test.sh": "59631f07b8987ae2803ebba89176ef4a742141cc57193044feb13df83620ef14"

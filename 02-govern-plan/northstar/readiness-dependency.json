@@ -1,7 +1,7 @@
 {
   "schema": "readiness-contract/1",
   "files": {
-    "lib/readiness_contract.py": "bb99be8c15ac66d0c841e38477de72162150f930429c1558cbe8382d8689b7e0",
+    "lib/readiness_contract.py": "75d37fbcbec73f500774c82107ef056cd13d49bf634d605c9e89a292835ff189",
     "lib/verification.py": "572819a9c8a1039173c5483d0f7f9a33362588d197e27731bb97b5dd78d33524",
     "schemas/readiness-contract.json": "a830d13da572d2346550715785d74c48a55bb8f7f93d93500ee924a0a0431038"
   }
