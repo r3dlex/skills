@@ -11,6 +11,9 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
+import shlex
+import stat
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -77,6 +80,173 @@ def relative(root, name, exists=True):
     return path
 
 
+def git_read(root, *arguments):
+    # Ignore caller-selected repositories, object stores, indexes, config injection,
+    # and replacement objects. Only argument-vector read operations are used.
+    env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull,
+               GIT_NO_REPLACE_OBJECTS='1', GIT_OPTIONAL_LOCKS='0')
+    result = subprocess.run(['git', '--no-lazy-fetch', '--no-replace-objects', '-c', 'core.fsmonitor=false', '-c', 'core.filemode=true', '-c', 'core.hooksPath=' + os.devnull, '-C', str(root), *arguments],
+                            env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    require(result.returncode == 0, 'worktree_git_proof_failed:' + arguments[0])
+    return result.stdout
+
+
+def exact_root(value):
+    path = Path(value)
+    require(path.exists(), 'worktree_root_missing')
+    require(path.is_absolute() and str(path) == str(path.resolve(strict=True))
+            and path.is_dir() and not any(p.is_symlink() for p in (path, *path.parents)),
+            'worktree_root_not_canonical')
+    require(git_read(path, 'rev-parse', '--show-toplevel').decode().strip() == str(path),
+            'worktree_toplevel_mismatch')
+    require(git_read(path, 'rev-parse', '--is-bare-repository').strip() == b'false',
+            'worktree_bare_repository')
+    return path
+
+
+def worktree_observation(identity_root, files_root, base_commit, clean=False, inputs=()):
+    identity_root, files_root = exact_root(identity_root), exact_root(files_root)
+    require(identity_root != files_root, 'worktree_must_be_distinct')
+    require(isinstance(base_commit, str) and REVISION.fullmatch(base_commit), 'worktree_base_required')
+    common = Path(git_read(identity_root, 'rev-parse', '--path-format=absolute', '--git-common-dir').decode().strip()).resolve(strict=True)
+    actual_common = Path(git_read(files_root, 'rev-parse', '--path-format=absolute', '--git-common-dir').decode().strip()).resolve(strict=True)
+    require(common == actual_common, 'worktree_common_dir_mismatch')
+    git_dir = Path(git_read(files_root, 'rev-parse', '--absolute-git-dir').decode().strip()).resolve(strict=True)
+    require(git_dir != common and (files_root / '.git').is_file(), 'linked_worktree_required')
+    records = git_read(identity_root, 'worktree', 'list', '--porcelain', '-z').split(b'\0\0')
+    require(any(b'worktree ' + os.fsencode(files_root) in record.split(b'\0') for record in records),
+            'registered_worktree_required')
+    head = git_read(files_root, 'rev-parse', '--verify', 'HEAD^{commit}').decode().strip()
+    branch = git_read(files_root, 'symbolic-ref', '--quiet', 'HEAD').decode().strip()
+    require(branch.startswith('refs/heads/'), 'worktree_branch_required')
+    target_ref = 'refs/remotes/origin/main'
+    target = git_read(files_root, 'rev-parse', '--verify', target_ref + '^{commit}').decode().strip()
+    require(git_read(files_root, 'rev-parse', '--verify', base_commit + '^{commit}').decode().strip() == base_commit,
+            'worktree_base_not_commit')
+    git_read(files_root, 'merge-base', '--is-ancestor', base_commit, head)
+    git_read(files_root, 'merge-base', '--is-ancestor', base_commit, target)
+    if clean:
+        flags = git_read(files_root, 'ls-files', '-v', '-z').split(b'\0')
+        require(all(not entry or (entry[:1].isupper() and entry[:1] != b'S') for entry in flags),
+                'worktree_merge_index_flags_unsupported')
+    tracked = git_read(files_root, 'ls-files', '--cached', '-z').split(b'\0')
+    paths = {os.fsdecode(p) for p in tracked if p}
+    # Exact worktree freshness includes ignored/untracked files too. Only the
+    # linked worktree's root Git metadata is outside the observed working tree.
+    def unreadable_directory(error):
+        raise Invalid('worktree_unreadable_directory') from error
+
+    for directory, directories, names in os.walk(files_root, onerror=unreadable_directory):
+        if Path(directory) == files_root:
+            directories[:] = [name for name in directories if name != '.git']
+            names = [name for name in names if name != '.git']
+        for name in directories:
+            require(not (Path(directory) / name).is_symlink(), 'worktree_symlink_directory')
+        paths.update((Path(directory) / name).relative_to(files_root).as_posix() for name in names)
+    for name in inputs:
+        require(not any(char in name for char in '*?[]'), 'worktree_glob_scope_unsupported')
+        path = relative(files_root, name, exists=False)
+        paths.add(name)
+        if path.is_dir():
+            paths.update(p.relative_to(files_root).as_posix() for p in path.rglob('*') if not p.is_dir())
+    state = []
+    for name in sorted(paths):
+        path = relative(files_root, name, exists=False)
+        # lstat records deletion and mode changes; symlinks are not followed.
+        if not path.exists() and not path.is_symlink():
+            state.append([name, 'deleted'])
+            continue
+        mode = path.lstat().st_mode
+        require(not stat.S_ISLNK(mode), 'worktree_symlink_input:' + name)
+        if stat.S_ISDIR(mode):
+            state.append([name, 'directory', stat.S_IMODE(mode)])
+        else:
+            require(stat.S_ISREG(mode), 'worktree_nonregular_input:' + name)
+            state.append([name, stat.S_IMODE(mode), digest(path)])
+    if clean:
+        tree = {}
+        for entry in git_read(files_root, 'ls-tree', '-r', '-z', head).split(b'\0'):
+            if entry:
+                metadata, name = entry.split(b'\t', 1)
+                mode, kind, object_id = metadata.split()
+                require(kind == b'blob' and mode in (b'100644', b'100755'), 'worktree_merge_tree_type_unsupported')
+                tree[os.fsdecode(name)] = (mode, object_id)
+        index = {}
+        for entry in git_read(files_root, 'ls-files', '--stage', '-z').split(b'\0'):
+            if entry:
+                metadata, name = entry.split(b'\t', 1)
+                mode, object_id, stage = metadata.split()
+                require(stage == b'0', 'worktree_merge_unmerged_index')
+                index[os.fsdecode(name)] = (mode, object_id)
+        require(index == tree, 'worktree_merge_index_mismatch')
+        actual_files = {name for name in paths if (files_root / name).is_file()}
+        require(actual_files == set(tree), 'worktree_merge_uncommitted_files')
+        for name, (mode, object_id) in tree.items():
+            path = files_root / name
+            disk_mode = b'100755' if path.stat().st_mode & stat.S_IXUSR else b'100644'
+            raw_hash = git_read(files_root, 'hash-object', '--no-filters', '--', name).strip()
+            require(disk_mode == mode and raw_hash == object_id, 'worktree_merge_head_bytes_mismatch')
+    return {'schema': 'git-worktree/1', 'root': str(files_root), 'base_commit': base_commit,
+            'target_ref': target_ref, 'common_dir': str(common), 'head': head,
+            'branch': branch, 'target_revision': target, 'state_sha256': canonical(state)}
+
+
+def worktree_binding(observation):
+    return {key: observation[key] for key in ('schema', 'root', 'base_commit', 'target_ref')}
+
+
+def worktree_inputs(bundle, root):
+    paths = {'.ai/matrix.json', MANIFEST, GRAPH, REGISTRY, POLICY, GEN, bundle['spec']['path'],
+             'prek.toml', '.pre-commit-config.yaml', 'package.json', '.ai/ci', '.github/workflows'}
+
+    def command_inputs(command, cwd=root):
+        if not isinstance(command, str):
+            return
+        for token in shlex.split(command):
+            if not Path(token).is_absolute() and (cwd / token).is_file():
+                path = relative(root, (cwd / token).relative_to(root).as_posix())
+                paths.add(path.relative_to(root).as_posix())
+
+    for goal in bundle['goals']:
+        paths.update(goal['scope'])
+        for command in goal['verification']:
+            if isinstance(command, dict):
+                cwd = root if command.get('cwd') == '.' else relative(root, command.get('cwd'))
+                command_inputs(command.get('command'), cwd)
+            else:
+                command_inputs(command)
+    # Recursively collect explicit file references, including typed trust/fixture
+    # inputs. Unsupported shapes still fail closed during normal validation.
+    def collect(value):
+        if isinstance(value, dict):
+            if isinstance(value.get('path'), str):
+                paths.add(value['path'])
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+    collect(bundle)
+    collect(read(relative(root, POLICY)))
+    paths.update(instruction_paths(bundle, root))
+    return sorted(paths)
+
+
+def worktree_request(args, identity_root):
+    target, base = getattr(args, 'worktree_root', None), getattr(args, 'base_commit', None)
+    require(bool(target) == bool(base), 'worktree_root_and_base_required')
+    require(not target or not getattr(args, 'execution_root', None), 'worktree_mapped_conflict')
+    if not target:
+        return identity_root, None
+    require(args.root == str(identity_root), 'worktree_identity_alias')
+    files_root = Path(target)
+    context = getattr(args, 'context', None)
+    require(not context or not Path(context).resolve().is_relative_to(files_root.resolve()),
+            'worktree_context_must_be_external')
+    return files_root, worktree_observation(identity_root, files_root, base, clean=args.stage == 'merge')
+
+
 def repository(value, root):
     require(isinstance(value, dict) and ID.fullmatch(value.get('id', '')),
             'repository_id_required')
@@ -124,7 +294,7 @@ def execution_shape(bundle, root):
     return target_root
 
 
-def execution_instruction_sources(bundle, root):
+def instruction_paths(bundle, root):
     directories = {root}
     for goal in bundle['goals']:
         for scope in goal['scope']:
@@ -136,24 +306,29 @@ def execution_instruction_sources(bundle, root):
                 directories.update(p for p in path.rglob('*') if p.is_dir())
     required = {'AGENTS.md'}
     for directory in directories:
-        for name in ('AGENTS.md', '.rules.ts'):
+        for name in ('AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.rules.ts'):
             path = directory / name
             if path.is_file():
                 required.add(path.relative_to(root).as_posix())
         rules = directory / '.ai/rules'
         if rules.is_dir():
             required.update(p.relative_to(root).as_posix() for p in rules.rglob('*') if p.is_file())
-    require(required <= {x['path'] for x in bundle['execution']['sources']}, 'execution_source_set_incomplete')
+    return required
 
 
-def goal_shape(goal, root):
+def execution_instruction_sources(bundle, root):
+    require(instruction_paths(bundle, root) <= {x['path'] for x in bundle['execution']['sources']}, 'execution_source_set_incomplete')
+
+
+def goal_shape(goal, root, files_root=None):
+    files_root = root if files_root is None else files_root
     require(isinstance(goal, dict) and ID.fullmatch(goal.get('id', '')), 'goal_id_required')
     repository(goal.get('repository'), root)
     require(string(goal.get('issue_ref')), 'goal_issue_required')
     for key in ('scope', 'acceptance_criteria'):
         require(isinstance(goal.get(key), list) and goal[key] and all(string(x) for x in goal[key]), key + '_required')
     for scope in goal['scope']:
-        relative(root, scope, exists=False)
+        relative(files_root, scope, exists=False)
     deps = goal.get('dependencies')
     require(isinstance(deps, list) and all(isinstance(x, str) and ID.fullmatch(x) for x in deps)
             and len(set(deps)) == len(deps) and goal['id'] not in deps, 'invalid_dependencies')
@@ -163,7 +338,8 @@ def goal_shape(goal, root):
     require(isinstance(goal.get('verification'), list) and goal['verification'], 'verification_required')
 
 
-def bundle_shape(bundle, root):
+def bundle_shape(bundle, root, files_root=None):
+    files_root = root if files_root is None else files_root
     require(isinstance(bundle, dict) and bundle.get('schema') in ('handoff-goals/1', MAPPED), 'migration_required:handoff-goals/1')
     require(ID.fullmatch(bundle.get('id', '')), 'bundle_id_required')
     repository(bundle.get('repository'), root)
@@ -172,11 +348,11 @@ def bundle_shape(bundle, root):
     require(string(bundle.get('issue_ref')), 'bundle_issue_required')
     require(isinstance(bundle.get('planning_complete'), bool), 'planning_complete_required')
     require(bundle.get('status') in ('active', 'blocked', 'superseded'), 'bundle_status_required')
-    file_ref(root, bundle.get('spec'))
+    file_ref(files_root, bundle.get('spec'))
     goals = bundle.get('goals')
     require(isinstance(goals, list) and goals, 'goals_required')
     for goal in goals:
-        goal_shape(goal, goal_root)
+        goal_shape(goal, goal_root, goal_root if mapped(bundle) else files_root)
         require(goal['repository'] == (bundle['execution']['repository'] if mapped(bundle) else bundle['repository']), 'goal_repository_mismatch')
     if mapped(bundle):
         execution_instruction_sources(bundle, goal_root)
@@ -265,7 +441,7 @@ def goal_revision(bundle, gid):
     return revisions[gid]
 
 
-def dependency_complete(bundle, gid, receipts, execution_revision=None):
+def dependency_complete(bundle, gid, receipts, execution_revision=None, worktree=None):
     matches = [r for r in receipts if isinstance(r, dict) and r.get('goal') == gid]
     if len(matches) != 1:
         return False
@@ -276,6 +452,13 @@ def dependency_complete(bundle, gid, receipts, execution_revision=None):
             fields.add('execution_revision')
             require(isinstance(execution_revision, str) and REVISION.fullmatch(execution_revision)
                     and receipt.get('execution_revision') == execution_revision, 'completion_execution_revision')
+        if worktree:
+            fields.update({'integration_commit', 'execution_commit'})
+            predecessor = receipt.get('execution_commit')
+            require(isinstance(predecessor, str) and REVISION.fullmatch(predecessor), 'completion_execution_required')
+            commit = receipt.get('integration_commit')
+            require(isinstance(commit, str) and REVISION.fullmatch(commit), 'completion_integration_required')
+            git_read(Path(worktree['root']), 'merge-base', '--is-ancestor', commit, worktree['base_commit'])
         require(set(receipt) == fields, 'completion_fields')
         require(receipt['status'] == 'complete' and receipt['goal_sha256'] == goal_revision(bundle, gid), 'completion_revision')
         provenance(receipt)
@@ -295,7 +478,7 @@ def provenance(receipt):
             'evidence_expired_or_future')
 
 
-def gate_subject(bundle, gate, sources, policy, execution_revision=None):
+def gate_subject(bundle, gate, sources, policy, execution_revision=None, worktree=None):
     # The exact gate (including declared source hashes) and governed goal revisions,
     # not unrelated goals or their receipts. Full-file bindings remain full-file.
     goals = [g['id'] for g in bundle['goals'] if applies(gate['scope'], g['id'])]
@@ -303,11 +486,13 @@ def gate_subject(bundle, gate, sources, policy, execution_revision=None):
     if mapped(bundle):
         require(isinstance(execution_revision, str) and REVISION.fullmatch(execution_revision), 'gate_execution_revision_required')
         binding = {'execution': bundle['execution'], 'execution_revision': execution_revision}
+    if worktree:
+        binding['worktree'] = worktree
     return canonical({**binding, 'repository': bundle['repository'], 'plan_id': bundle['id'], 'gate': gate, 'policy_sources': sources, 'policy': policy,
                       'goals': {gid: goal_revision(bundle, gid) for gid in sorted(goals)}})
 
 
-def typed_gate(root, bundle, gate, context):
+def typed_gate(root, bundle, gate, context, files_root=None, worktree=None):
     binding, kind = gate['binding'], gate['kind']
     fields = {'ownership': {'roles'}, 'branch_target': {'target', 'branch'},
               'fixture': {'file', 'command', 'isolation', 'tool'}, 'tooling': {'tool'},
@@ -348,7 +533,7 @@ def typed_gate(root, bundle, gate, context):
         except (Invalid, OSError) as error:
             raise Invalid('trust_source_unavailable:expected=unavailable:actual=unverified:independent_source=' + str(binding['anchor'].get('path')) + ':' + str(error)) from error
         require(not os.path.samefile(relative(root, binding['lock']['path']), relative(root, binding['anchor']['path'])), 'trust_anchor_not_independent')
-        require(binding['anchor']['sha256'] != bundle['spec']['sha256'] and not os.path.samefile(relative(root, binding['anchor']['path']), relative(Path(bundle['repository']['root']), bundle['spec']['path'])), 'trust_anchor_is_plan_source')
+        require(binding['anchor']['sha256'] != bundle['spec']['sha256'] and not os.path.samefile(relative(root, binding['anchor']['path']), relative(files_root if files_root is not None else Path(bundle['repository']['root']), bundle['spec']['path'])), 'trust_anchor_is_plan_source')
         require(binding['anchor'] in (context['execution']['sources'] if gate.get('root') == 'execution' else context['sources']), 'trust_anchor_not_independently_approved')
         anchor_data = read(relative(root, binding['anchor']['path']))
         require(isinstance(anchor_data, dict) and not ({'goals', 'bundle', 'readiness', 'planning_complete'} & set(anchor_data)), 'trust_anchor_is_plan_source')
@@ -358,6 +543,8 @@ def typed_gate(root, bundle, gate, context):
         require(isinstance(expected, str) and re.fullmatch(r'[a-f0-9]{40}', expected), 'trust_expected_commit_unavailable')
         require(isinstance(actual, str) and re.fullmatch(r'[a-f0-9]{40}', actual), 'trust_actual_commit_unavailable')
         require(expected == actual, 'trust_commit_mismatch:expected=' + expected + ':actual=' + actual + ':independent_source=' + binding['anchor']['path'])
+    if worktree and kind == 'branch_target':
+        require(binding['target'] == worktree['target_ref'] and binding['branch'] == worktree['branch'], 'worktree_branch_target_mismatch')
     if kind in ('fixture', 'tooling'):
         tool = binding['tool']
         require(string(tool) and re.fullmatch(r'[A-Za-z0-9_.+-]+', tool), 'tool_name_required')
@@ -367,7 +554,7 @@ def typed_gate(root, bundle, gate, context):
     receipt = results[0]
     require(set(receipt) == {'gate', 'status', 'stage', 'scope', 'subject_sha256', 'issuer', 'evidence', 'observed_at', 'expires_at', 'value'}, 'typed_evidence_fields')
     require(receipt['status'] == 'pass' and receipt['stage'] == gate['stage'] and receipt['scope'] == gate['scope']
-            and receipt['subject_sha256'] == gate_subject(bundle, gate, context['sources'], context['policy'], context.get('execution_revision')), 'typed_evidence_subject_mismatch')
+            and receipt['subject_sha256'] == gate_subject(bundle, gate, context['sources'], context['policy'], context.get('execution_revision'), worktree), 'typed_evidence_subject_mismatch')
     provenance(receipt)
     value = receipt['value']
     if kind == 'ownership':
@@ -421,7 +608,9 @@ def scoped_findings(gaps, requested, ancestors):
     return visible
 
 
-def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=None):
+def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=None, files_root=None, worktree=None):
+    identity_root = root
+    root = root if files_root is None else files_root
     gaps = []
     requested = set(selected)
     edges = {g['id']: g['dependencies'] for g in bundle['goals']}
@@ -446,7 +635,7 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
             add(gaps, 'goal_not_ready', goal['readiness'][stage], [goal['id']], stage,
                 'unknown' if goal['readiness'][stage] == 'unknown' else 'blocked')
         for dependency in goal['dependencies']:
-            if not dependency_complete(bundle, dependency, (context.get('completed_goals', []) if isinstance(context, dict) and isinstance(context.get('completed_goals', []), list) else []), context.get('execution_revision') if isinstance(context, dict) else None):
+            if not dependency_complete(bundle, dependency, (context.get('completed_goals', []) if isinstance(context, dict) and isinstance(context.get('completed_goals', []), list) else []), context.get('execution_revision') if isinstance(context, dict) else None, worktree=worktree):
                 add(gaps, 'dependency_incomplete', dependency, [goal['id']], stage)
         try:
             if goal['id'] in requested:
@@ -470,19 +659,22 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
             additive_gates.append(dict(gate, scope={'goals': [goal['id']]}))
     try:
         require(context.get('schema') == 'readiness-context/1', 'independent_context_required')
-        require(set(context) <= ({'schema', 'repository', 'policy', 'sources', 'authority', 'results', 'completed_goals', 'extensions'} | ({'execution', 'execution_revision'} if mapped(bundle) else set())), 'unsupported_context_fields')
+        require(set(context) <= ({'schema', 'repository', 'policy', 'sources', 'authority', 'results', 'completed_goals', 'extensions'} | ({'execution', 'execution_revision'} if mapped(bundle) else set()) | ({'worktree'} if worktree else set())), 'unsupported_context_fields')
         require(isinstance(context.get('results'), list) and all(isinstance(r, dict) for r in context['results']), 'invalid_independent_results')
         require(isinstance(context.get('completed_goals'), list) and all(isinstance(g, dict) for g in context['completed_goals']), 'invalid_completed_goals')
-        repository(context.get('repository'), root)
+        repository(context.get('repository'), identity_root)
         require((root / POLICY).is_file(), 'unsupported_policy_source:' + POLICY)
         policy_path = relative(root, POLICY)
         policy = read(policy_path)
         require(policy.get('schema') == 'readiness-policy/1', 'unsupported_policy_schema')
-        require(set(policy) <= ({'schema', 'repository', 'sources', 'gates', 'not_applicable', 'extensions'} | ({'execution'} if mapped(bundle) else set())), 'unsupported_policy_fields')
+        require(set(policy) <= ({'schema', 'repository', 'sources', 'gates', 'not_applicable', 'extensions'} | ({'execution'} if mapped(bundle) else set()) | ({'worktree'} if worktree else set())), 'unsupported_policy_fields')
         require(policy.get('repository') == bundle['repository'] == context['repository'], 'policy_repository_mismatch')
         if mapped(bundle):
             require(policy.get('execution') == bundle['execution'] == context.get('execution'), 'execution_mapping_mismatch')
             require(isinstance(context.get('execution_revision'), str) and REVISION.fullmatch(context['execution_revision']), 'execution_revision_required')
+        if worktree:
+            require(policy.get('worktree') == worktree_binding(worktree), 'worktree_policy_mismatch')
+            require(context.get('worktree') == worktree, 'worktree_context_mismatch')
         approved = context.get('policy', {})
         require(isinstance(approved, dict) and set(approved) == {'sha256', 'revision', 'issuer'}, 'unsupported_approval_fields')
         require(approved.get('sha256') == digest(policy_path) and string(approved.get('issuer')) and string(approved.get('revision')), 'unapproved_policy_revision')
@@ -493,6 +685,8 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
         rules = root / '.ai/rules'
         if rules.is_dir():
             required_sources |= {p.relative_to(root).as_posix() for p in rules.rglob('*') if p.is_file()}
+        if worktree:
+            required_sources |= instruction_paths(bundle, root)
         require(required_sources <= {x.get('path') for x in sources}, 'policy_source_set_incomplete')
         for source in sources:
             file_ref(root, source)
@@ -535,7 +729,9 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
                              'recovery': 'Reevaluate if repository policy changes', 'reason': reason})
     try:
         authority = context.get('authority', {})
-        require(isinstance(authority, dict) and set(authority) == ({'status', 'stage', 'subject_sha256', 'issuer', 'goals'} | ({'execution_revision'} if mapped(bundle) else set())), 'unsupported_authority_fields')
+        require(isinstance(authority, dict) and set(authority) == ({'status', 'stage', 'subject_sha256', 'issuer', 'goals'} | ({'execution_revision'} if mapped(bundle) else set()) | ({'worktree', 'policy_sha256'} if worktree else set())), 'unsupported_authority_fields')
+        if worktree:
+            require(authority.get('worktree') == worktree and authority.get('policy_sha256') == context['policy']['sha256'], 'authority_worktree_mismatch')
         if mapped(bundle):
             require(authority.get('execution_revision') == context['execution_revision'], 'authority_execution_revision_mismatch')
         require(authority.get('status') == 'pass' and authority.get('stage') == stage
@@ -562,12 +758,14 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
                             not isinstance(g.get('coverage_percent'), bool) and
                             0 <= g['coverage_percent'] <= 100 for g in bundle['goals'] if g['id'] in targets & evaluated), 'measured_coverage_required')
             elif kind in ('ownership', 'branch_target', 'fixture', 'protected_approval', 'harness_trust', 'tooling'):
-                typed_gate(gate_root, bundle, gate, context)
+                typed_gate(gate_root, bundle, gate, context, files_root=root, worktree=worktree)
             elif kind == 'independent_result':
                 results = [x for x in context.get('results', []) if x.get('gate') == gate['id']]
                 require(len(results) == 1, 'independent_result_missing_or_ambiguous')
                 result = results[0]
-                require(set(result) == ({'gate', 'status', 'stage', 'scope', 'subject_sha256', 'issuer'} | ({'execution_revision'} if mapped(bundle) else set())), 'unsupported_result_fields')
+                require(set(result) == ({'gate', 'status', 'stage', 'scope', 'subject_sha256', 'issuer'} | ({'execution_revision'} if mapped(bundle) else set()) | ({'worktree', 'policy_sha256'} if worktree else set())), 'unsupported_result_fields')
+                if worktree:
+                    require(result.get('worktree') == worktree and result.get('policy_sha256') == context['policy']['sha256'], 'result_worktree_mismatch')
                 if mapped(bundle):
                     require(result.get('execution_revision') == context['execution_revision'], 'result_execution_revision_mismatch')
                 require(result.get('status') == 'pass' and result.get('stage') == stage and result.get('scope') == scope
@@ -604,14 +802,19 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
     return scoped_findings(gaps, requested, ancestors)
 
 
-def select(root, args):
+def select(root, args, files_root=None):
+    identity_root = root
+    root = root if files_root is None else files_root
     require(bool(args.goal) != bool(args.handoff), 'selection_required:use exact --handoff with --goal-id or explicit --goal')
     if args.goal:
         require(not args.goal_id, 'direct_goal_selector_conflict')
+        if files_root is not None and root != identity_root:
+            require(Path(args.goal).is_absolute() and root in Path(args.goal).parents, 'worktree_direct_goal_outside_root')
+            relative(root, Path(args.goal).relative_to(root).as_posix())
         envelope = read(Path(args.goal))
         require(isinstance(envelope, dict) and envelope.get('schema') == 'direct-goal/1', 'migration_required:direct-goal/1')
         bundle = envelope.get('bundle')
-        bundle_shape(bundle, root)
+        bundle_shape(bundle, identity_root, root)
         require(len(bundle['goals']) == 1, 'direct_requires_one_goal')
         return bundle, [bundle['goals'][0]['id']], digest(args.goal), None
     require(args.goal_id and len(set(args.goal_id)) == len(args.goal_id), 'goal_selection_required')
@@ -649,7 +852,7 @@ def select(root, args):
         loaded[name] = relative(root, ref['path'])
     require(entry.get('handoff_path') == paths['handoff']['path'], 'handoff_path_mismatch')
     bundle = read(loaded['bundle'])
-    bundle_shape(bundle, root)
+    bundle_shape(bundle, identity_root, root)
     require(entry.get('plan_id') == bundle['id'], 'plan_identity_mismatch')
     require(set(args.goal_id) <= {g['id'] for g in bundle['goals']}, 'requested_goal_missing')
     require(generation == canonical(bundle), 'generation_digest_mismatch')
@@ -672,10 +875,18 @@ def admit(args):
               'planning_complete': False, 'execution_ready': False, 'dispatch_authorized': False,
               'authority_verification': 'external-required', 'goals': args.goal_id or [], 'gaps': [], 'resolved': []}
     try:
-        require(all((root / name).is_file() for name in ('.ai/matrix.json', MANIFEST, GRAPH)), 'v3_root_required')
+        files_root, worktree = worktree_request(args, root)
+        require(all((files_root / name).is_file() for name in ('.ai/matrix.json', MANIFEST, GRAPH)), 'v3_root_required')
         for name in ('.ai/matrix.json', MANIFEST, GRAPH):
-            require(isinstance(read(relative(root, name)), dict), 'v3_root_malformed')
-        bundle, selected, subject, entry = select(root, args)
+            require(isinstance(read(relative(files_root, name)), dict), 'v3_root_malformed')
+        bundle, selected, subject, entry = select(root, args, files_root)
+        require(not worktree or not mapped(bundle), 'worktree_mapped_conflict')
+        if worktree:
+            inputs = worktree_inputs(bundle, files_root)
+            if args.goal:
+                inputs.append(Path(args.goal).relative_to(files_root).as_posix())
+            worktree = worktree_observation(root, files_root, args.base_commit, clean=args.stage == 'merge', inputs=inputs)
+            report['worktree'] = worktree
         if mapped(bundle):
             require(bool(getattr(args, 'execution_root', None)), 'execution_root_required')
         if getattr(args, 'execution_root', None):
@@ -701,7 +912,7 @@ def admit(args):
                           execution_revision_source='independent-context')
         stages = STAGES if args.stage == 'planning' else (args.stage,)
         for stage in stages:
-            report['gaps'].extend(policy_admit(root, bundle, selected, context, stage, subject, report['resolved']))
+            report['gaps'].extend(policy_admit(root, bundle, selected, context, stage, subject, report['resolved'], files_root, worktree))
             if not bundle['planning_complete'] or bundle['status'] != 'active':
                 add(report['gaps'], 'plan_not_active_or_incomplete', bundle['status'], 'repository', stage)
             if context_error:
@@ -714,6 +925,8 @@ def admit(args):
                             applies(gap['scope'], gid)]
                 status = 'blocked' if any(f['status'] == 'blocked' for f in findings) else ('unknown' if findings else 'ready')
                 report['per_goal'][gid][stage] = {'status': status, 'findings': findings + [r for r in report['resolved'] if r['stage'] == stage and applies(r['scope'], gid)]}
+        if worktree:
+            require(worktree == worktree_observation(root, files_root, args.base_commit, clean=args.stage == 'merge', inputs=inputs), 'worktree_changed_during_validation')
         report['execution_ready'] = args.stage != 'planning' and not report['gaps']
     except (Invalid, OSError, ValueError, TypeError, AttributeError, KeyError) as error:
         add(report['gaps'], 'admission_failed', str(error), 'repository', args.stage)
@@ -766,7 +979,7 @@ def handoff_text(bundle):
             ', '.join(g['id'] for g in bundle['goals']) + '\n')
 
 
-def validate_generation(root, prefix, bundle, generation, spec):
+def validate_generation(root, prefix, bundle, generation, spec, identity_root=None):
     paths = {name: relative(root, prefix + '/' + name) for name in ('goals.json', 'graph.json', 'handoff.md')}
     require(all(p.is_file() for p in paths.values()), 'generation_collision:non-file')
     require(read(paths['goals.json']) == bundle and paths['handoff.md'].read_text() == handoff_text(bundle), 'generation_collision:payload')
@@ -790,11 +1003,17 @@ def validate_generation(root, prefix, bundle, generation, spec):
 
 
 def publish(args):
-    root = Path(args.root).resolve(strict=True)
+    identity_root = Path(args.root).resolve(strict=True)
+    root, worktree = worktree_request(args, identity_root)
     candidate = Path(args.bundle).resolve(strict=True)
+    if worktree:
+        require(root in candidate.parents, 'worktree_candidate_outside_root')
+        relative(root, candidate.relative_to(root).as_posix())
+        require(read(relative(root, POLICY)).get('worktree') == worktree_binding(worktree), 'worktree_policy_mismatch')
     candidate_hash = digest(candidate)
     bundle = read(candidate)
-    bundle_shape(bundle, root)
+    require(not worktree or not mapped(bundle), 'worktree_mapped_conflict')
+    bundle_shape(bundle, identity_root, root)
     generation = canonical(bundle)
     base = relative(root, f'{GEN}/{bundle["id"]}', exists=False)
     base.mkdir(parents=True, exist_ok=True)
@@ -831,7 +1050,7 @@ def publish(args):
         final = base / generation
         prefix = f'{GEN}/{bundle["id"]}/{generation}'
         if final.exists():
-            graph = validate_generation(root, prefix, bundle, generation, matching[0])
+            graph = validate_generation(root, prefix, bundle, generation, matching[0], identity_root=identity_root)
         else:
             spec_node = copy.deepcopy(matching[0])
             parent_id = 'handoff:' + bundle['repository']['id'] + ':' + bundle['id'] + ':' + generation
@@ -880,14 +1099,17 @@ def publish(args):
         for edge in graph['edges']:
             if edge not in live_graph.setdefault('edges', []):
                 live_graph['edges'].append(edge)
-        bundle_shape(bundle, root)
+        bundle_shape(bundle, identity_root, root)
         require(digest(candidate) == candidate_hash, 'candidate_changed')
         require((digest(registry_path) if registry_path.exists() else None) == registry_hash and digest(graph_path) == graph_hash, 'publication_source_changed')
         # Visibility boundary 1: additive graph, never completion by itself.
+        if worktree:
+            current = worktree_observation(identity_root, root, args.base_commit)
+            require(all(current[key] == value for key, value in worktree.items() if key != 'state_sha256'), 'worktree_changed_during_publication')
         replace_json(graph_path, live_graph)
         require(digest(candidate) == candidate_hash, 'candidate_changed')
         require((digest(registry_path) if registry_path.exists() else None) == registry_hash, 'publication_source_changed')
-        bundle_shape(bundle, root)
+        bundle_shape(bundle, identity_root, root)
         registry['plans'] = [entry if b.get('id') == registration else b for b in branches]
         if not previous:
             registry['plans'].append(entry)
@@ -900,7 +1122,9 @@ def publish(args):
         lock.rmdir()
 
 
+
 def migrate(args):
+    require(not getattr(args, 'worktree_root', None) and not getattr(args, 'base_commit', None), 'worktree_migration_unsupported')
     """Explicit normalization assistance, not migration-by-default or admission."""
     root = Path(args.root).resolve(strict=True)
     legacy = read(args.legacy)
@@ -927,6 +1151,8 @@ def main():
     parser.add_argument('--context')
     parser.add_argument('--execution-record')
     parser.add_argument('--execution-root')
+    parser.add_argument('--worktree-root')
+    parser.add_argument('--base-commit')
     parser.add_argument('--bundle')
     parser.add_argument('--legacy')
     parser.add_argument('--stage', choices=('planning', *STAGES), default='implementation')

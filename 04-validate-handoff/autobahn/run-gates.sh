@@ -32,6 +32,8 @@ HANDOFF=""
 DIRECT=""
 CONTEXT=""
 EXECUTION_ROOT=""
+WORKTREE_ROOT=""
+BASE_COMMIT=""
 
 usage() { echo "run-gates: $1" >&2; exit 2; }
 
@@ -42,6 +44,8 @@ while [[ $# -gt 0 ]]; do
     --handoff)     HANDOFF="${2:-}"; shift 2 || usage "--handoff needs a value" ;;
     --goal)        DIRECT="${2:-}"; shift 2 || usage "--goal needs a value" ;;
     --execution-root) EXECUTION_ROOT="${2:-}"; shift 2 || usage "--execution-root needs a value" ;;
+    --worktree-root) WORKTREE_ROOT="${2:-}"; shift 2 || usage "--worktree-root needs a value" ;;
+    --base-commit) BASE_COMMIT="${2:-}"; shift 2 || usage "--base-commit needs a value" ;;
     --context)     CONTEXT="${2:-}"; shift 2 || usage "--context needs a value" ;;
     --phase)       PHASE="${2:-}";  shift 2 || usage "--phase needs a value" ;;
     --fail-fast)   FAIL_FAST=1;     shift ;;
@@ -52,6 +56,11 @@ done
 [[ -n "$ROOT" && -d "$ROOT" ]] || usage "--root is not a directory: ${ROOT:-<empty>}"
 [[ -n "$RECORD" ]] || usage "--goal-record is required"
 case "$PHASE" in pre-commit|pre-merge|all|local-validation) : ;; *) usage "--phase must be pre-commit, pre-merge, all or local-validation" ;; esac
+
+if [[ -n "$WORKTREE_ROOT" || -n "$BASE_COMMIT" ]]; then
+  [[ -n "$WORKTREE_ROOT" && "$BASE_COMMIT" =~ ^[0-9a-f]{40}$ ]] || usage "--worktree-root and full --base-commit are required together"
+  [[ -z "$EXECUTION_ROOT" ]] || usage "worktree and mapped execution modes are mutually exclusive"
+fi
 
 # The goal id addresses the evidence file. A record the driver cannot name is a
 # record whose evidence it cannot find, which is a block rather than a skip.
@@ -96,8 +105,71 @@ gate() {
   return 1
 }
 
+# Same-repository worktree mode preserves the canonical identity root while
+# every executable gate uses the independently admitted worktree. No phase can
+# borrow primary-checkout green checks or omit exact-record admission.
+if [[ -n "$WORKTREE_ROOT" ]]; then
+  if [[ -z "$CONTEXT" || ( -z "$HANDOFF" && -z "$DIRECT" ) || ( -n "$HANDOFF" && -n "$DIRECT" ) ]]; then
+    echo "run-gates: BLOCKED - worktree execution requires exact selection and current --context" >&2
+    exit 1
+  fi
+  # Gate scripts invoke Git too: inherited repository-selection/configuration
+  # overrides must not redirect their observations away from the admitted root.
+  for git_variable in $(compgen -v GIT_); do
+    unset "$git_variable" || exit 1
+  done
+  export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null
+  export GIT_NO_REPLACE_OBJECTS=1 GIT_OPTIONAL_LOCKS=0
+  IDENTITY_ROOT="$ROOT"
+  SELECTION=()
+  if [[ -n "$HANDOFF" ]]; then
+    SELECTION=(--handoff "$HANDOFF" --goal-id "$GOAL_ID")
+  else
+    SELECTION=(--goal "$DIRECT")
+  fi
+  STAGE="implementation"
+  [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" ]] && STAGE="merge"
+  REPORT="$(mktemp)" || exit 1
+  trap 'rm -f "$REPORT"' EXIT
+  ADMISSION_SNAPSHOT=""
+  worktree_admission() {
+    if ! bash "$HERE/prereq-check.sh" --root "$IDENTITY_ROOT" "${SELECTION[@]}" \
+        --worktree-root "$WORKTREE_ROOT" --base-commit "$BASE_COMMIT" \
+        --context "$CONTEXT" --stage "$STAGE" --execution-record "$RECORD" > "$REPORT"; then
+      cat "$REPORT"
+      echo "run-gates: BLOCKED - worktree readiness" >&2
+      return 1
+    fi
+    cat "$REPORT"
+    local snapshot
+    snapshot="$(python3 - "$REPORT" "$WORKTREE_ROOT" "$CONTEXT" "$RECORD" <<'PY_WORKTREE'
+import hashlib, json, sys
+from pathlib import Path
+report = json.loads(Path(sys.argv[1]).read_text())
+if report.get('execution_ready') is not True or report.get('worktree', {}).get('root') != sys.argv[2]:
+    raise SystemExit('worktree_root_mismatch')
+if report.get('dispatch_authorized') is not False:
+    raise SystemExit('worktree_authority_boundary_invalid')
+payload = json.dumps(report['worktree'], sort_keys=True).encode()
+for name in sys.argv[3:]:
+    payload += hashlib.sha256(Path(name).read_bytes()).digest()
+print(hashlib.sha256(payload).hexdigest())
+PY_WORKTREE
+)" || return 1
+    if [[ -n "$ADMISSION_SNAPSHOT" && "$snapshot" != "$ADMISSION_SNAPSHOT" ]]; then
+      echo "run-gates: BLOCKED - worktree admission changed during gates" >&2
+      return 1
+    fi
+    ADMISSION_SNAPSHOT="$snapshot"
+  }
+  worktree_admission || exit 1
+  ROOT="$WORKTREE_ROOT"
+fi
+
 # A foreign goal or mapped selector cannot borrow planning-root checks. This
 # detection grants nothing; the pinned validator below admits the exact record.
+MAPPED_RUN="no"
+if [[ -z "$WORKTREE_ROOT" ]]; then
 MAPPED_RUN="$(ROOT="$ROOT" RECORD="$RECORD" DIRECT="$DIRECT" HANDOFF="$HANDOFF" EXECUTION_ROOT="$EXECUTION_ROOT" python3 - <<'PY_DETECT'
 import json, os
 from pathlib import Path
@@ -120,6 +192,8 @@ if os.environ['HANDOFF']:
 print('yes' if mapped else 'no')
 PY_DETECT
 )" || { echo "run-gates: BLOCKED - unreadable execution selection" >&2; exit 1; }
+
+fi
 
 if [[ "$MAPPED_RUN" == "yes" ]]; then
   if [[ -z "$EXECUTION_ROOT" || -z "$CONTEXT" || ( -z "$HANDOFF" && -z "$DIRECT" ) || ( -n "$HANDOFF" && -n "$DIRECT" ) ]]; then
@@ -163,7 +237,7 @@ fi
 
 # Merge admission is a prerequisite, not an optional report-all gate. Never
 # execute verification under a different goal record or a stale/absent context.
-if [[ "$MAPPED_RUN" == "no" && ( "$PHASE" == "pre-merge" || "$PHASE" == "all" ) ]]; then
+if [[ -z "$WORKTREE_ROOT" && "$MAPPED_RUN" == "no" && ( "$PHASE" == "pre-merge" || "$PHASE" == "all" ) ]]; then
   if [[ -z "$CONTEXT" || ( -z "$HANDOFF" && -z "$DIRECT" ) || ( -n "$HANDOFF" && -n "$DIRECT" ) ]]; then
     echo "run-gates: BLOCKED — merge requires exact --handoff or --goal and fresh --context" >&2
     exit 1
@@ -186,6 +260,12 @@ fi
 if [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" || "$PHASE" == "local-validation" ]]; then
   gate "local safe CI subset" bash "$HERE/local-ci.sh" --root "$ROOT"
   gate "ci-gate --verify" bash "$HERE/ci-gate.sh" --verify --root "$ROOT" --goal-record "$RECORD"
+fi
+
+# Reobserve the exact context after commands: HEAD, working bytes, policy and
+# instruction changes invalidate the run, even if the individual gates passed.
+if [[ -n "$WORKTREE_ROOT" ]]; then
+  gate "worktree readiness recheck" worktree_admission
 fi
 
 echo ""

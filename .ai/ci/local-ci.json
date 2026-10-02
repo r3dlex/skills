@@ -15,11 +15,19 @@
     "scripts/validate-rules.sh": "d0cfc3fa258fabb12bf94247a84236af56f52371d161d7ce010c7198e1a005a1",
     "prek.toml": "77cbffa31b0aebadcf238a00b919b7be313e0fa987c676ef8a8aeb9aa04dc1a9",
     "tests/security_workflow_test.sh": "d6857aaf8720f1a5a8b73b1825e9e08aa746ee3841edb53d9bfa5d89d828e19f",
-    "04-validate-handoff/autobahn/run-gates.sh": "f650a9bd7a7f41643357bbb374a2bacefe7c49b0a95698a355bce03f0b46c74d",
-    "04-validate-handoff/autobahn/lib/readiness_contract.py": "75d37fbcbec73f500774c82107ef056cd13d49bf634d605c9e89a292835ff189",
+    "04-validate-handoff/autobahn/run-gates.sh": "41a4f16cbea5db65146e0fa22b3bf96e38c8e6c327f7f57b9840e0e9b9d9e256",
+    "04-validate-handoff/autobahn/lib/readiness_contract.py": "30cfb9bf7436ff1f6b14c0b16542a62a6893321f5eface820c827ae4ec600166",
     "tests/autobahn_run_gates_test.sh": "7aecec6ce97f22eebab0c394694b5a0b457951adf9843a4b0c3840e8beb6fefd",
     "tests/readiness_merge_driver_test.py": "91c6af23052cbb04762565b72881eb5a22baa466cc325ad7a10fe8c1ff20af29",
-    "tests/readiness_merge_driver_test.sh": "59631f07b8987ae2803ebba89176ef4a742141cc57193044feb13df83620ef14"
+    "tests/readiness_merge_driver_test.sh": "59631f07b8987ae2803ebba89176ef4a742141cc57193044feb13df83620ef14",
+    "tests/readiness_worktree_test.py": "310aad2a904a6508ecb3f257bd6eee97e41ba4a653762c465c40b9afecc1ea20",
+    "tests/readiness_worktree_test.sh": "44da71e3bb405cf7c45ede68e6ee6aae3e657b1169294931ea0e8cacefed5e81",
+    "tests/autobahn_worktree_run_gates_test.sh": "778e939dce02e51bbe2f6b258388286616d19105cd60cd6b799a616d4233846f",
+    "04-validate-handoff/autobahn/schemas/readiness-contract.json": "f05119f6d00d2d2cf58270c81073e70016d2644042e3f8185ac0371ef88aa384",
+    "04-validate-handoff/autobahn/readiness-dependency.json": "e95f145f7fa55a16fd6a2b18daf8d4674ada61b6283693ab5116e56c5ef040ca",
+    "02-govern-plan/northstar/readiness-dependency.json": "e95f145f7fa55a16fd6a2b18daf8d4674ada61b6283693ab5116e56c5ef040ca",
+    "tests/autobahn_worktree_driver_integration_test.py": "f25547edf4971aae10f2f27786d05571f655db0d44c123bdcb6aaea0b4340b50",
+    "tests/autobahn_worktree_driver_integration_test.sh": "90ab35eb0357581331a9060811cf0ddd2f2007890bb5f490d369334ee67c4d79"
   },
   "verification": [
     "bash tests/run-tests.sh",
