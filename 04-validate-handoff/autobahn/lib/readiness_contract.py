@@ -128,6 +128,7 @@ def execution_instruction_sources(bundle, root):
     directories = {root}
     for goal in bundle['goals']:
         for scope in goal['scope']:
+            require(not any(char in scope for char in '*?[]'), 'execution_scope_must_be_literal')
             path = relative(root, scope, exists=False)
             directories.update(p for p in path.parents if p == root or root in p.parents)
             if path.is_dir():

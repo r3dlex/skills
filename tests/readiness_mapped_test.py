@@ -166,6 +166,38 @@ class MappedTests(unittest.TestCase):
         self.save()
         self.rejected(self.admit())
 
+    def test_glob_scopes_cannot_bypass_nested_instructions(self):
+        nested = self.execution / 'tests/nested'
+        nested.mkdir()
+        (nested / 'AGENTS.md').write_text('Nested execution instructions')
+        for scope in ('tests/**', 'tests/*', 'tests/?', 'tests/[nested]', 'tests/nested]'):
+            with self.subTest(scope=scope):
+                self.bundle['goals'][0]['scope'] = [scope]
+                self.save()
+                result = self.admit()
+                self.rejected(result)
+                self.assertIn('execution_scope_must_be_literal', json.dumps(result['gaps']))
+
+    def test_literal_directory_requires_recursive_instruction_binding(self):
+        nested = self.execution / 'tests/nested'
+        nested.mkdir()
+        source = nested / 'AGENTS.md'
+        source.write_text('Nested execution instructions')
+        self.bundle['goals'][0]['scope'] = ['tests']
+        self.save()
+        result = self.admit()
+        self.rejected(result)
+        self.assertIn('execution_source_set_incomplete', json.dumps(result['gaps']))
+        for binding in (self.bundle['execution'], self.policy['execution'], self.context['execution']):
+            binding['sources'].append({'path': 'tests/nested/AGENTS.md', 'sha256': digest(source)})
+        self.save()
+        self.assertTrue(self.admit()['execution_ready'])
+
+    def test_nonexistent_literal_file_scope_is_allowed(self):
+        self.bundle['goals'][0]['scope'] = ['tests/new/nested/check.py']
+        self.save()
+        self.assertTrue(self.admit()['execution_ready'])
+
     def test_execution_source_traversal_and_symlink_rejected(self):
         (self.execution / 'alias.md').symlink_to(self.execution / 'AGENTS.md')
         for path in ('../application/AGENTS.md', 'alias.md'):
