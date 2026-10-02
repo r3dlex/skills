@@ -1,0 +1,20 @@
+{
+  "goal_id": "xskp-p5-policy-preparation",
+  "green": {
+    "command": "bash tests/xskp_p5_readiness_policy_test.sh",
+    "exit_code": 0,
+    "observed": "Results: PASS=37 FAIL=0 against proposed policy sha256 1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444"
+  },
+  "red": {
+    "command": "bash tests/xskp_p5_readiness_policy_test.sh",
+    "exit_code": 1,
+    "observed": "Results: PASS=35 FAIL=2 against previous PR head policy sha256 31addf1c0da136085e7eec64986c340b0ef7fa493a00b45c4ed6fb4a81116aed (FAIL: policy digest is the pinned approval subject; FAIL: tool observation gate: git)"
+  },
+  "prior_red": {
+    "command": "bash tests/xskp_p5_readiness_policy_test.sh",
+    "exit_code": 1,
+    "observed": "Results: PASS=14 FAIL=22 against base main policy sha256 bdca65ade44ed6ab2c6d2e9bd7c54773c884998eb9a21a56a7edbcf38643f5e5 (no P5 gates; stale AGENTS.md source digest; contract rejected the policy context)"
+  },
+  "red_then_green": true,
+  "scope": "Preparation regression only. Not feature TDD, not a readiness-context/1, not a gate receipt, not policy approval."
+}
