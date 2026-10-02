@@ -23,6 +23,11 @@ The bundled `lib/readiness_contract.py` is the versioned producer/consumer
 implementation. `schemas/readiness-contract.json` describes the vocabulary;
 semantic checks live in that single helper, with no JSON Schema dependency.
 
+Mapped bundles explicitly separate planning from execution. See
+[execution-mapping.md](execution-mapping.md) when an excluded or isolated
+execution repository differs from the planning root. Single-root v1 stays
+unchanged; migration never creates authority or copies governance.
+
 ## Supported minimum policy
 
 Policy is loaded **only** from `.ai/policies/readiness-policy.json`. A

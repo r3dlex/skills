@@ -25,6 +25,8 @@ REGISTRY = '.ai/workflows/northstar-readiness-v1.json'
 GEN = '.ai/handoff/readiness-v1'
 ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]*$')
 SHA = re.compile(r'^[a-f0-9]{64}$')
+REVISION = re.compile(r'^[a-f0-9]{40}$')
+MAPPED = 'mapped-handoff-goals/1'
 STAGES = ('preparation', 'implementation', 'merge')
 DIMENSIONS = {'owners', 'reviewer', 'branch_target', 'fixtures', 'tooling', 'registration_approval', 'harness_trust'}
 
@@ -87,6 +89,62 @@ def file_ref(root, value):
     require(path.is_file() and digest(path) == value['sha256'], 'stale_file:' + value['path'])
 
 
+def mapped(bundle):
+    return bundle.get('schema') == MAPPED
+
+
+def execution_root(bundle, planning_root):
+    return Path(bundle['execution']['repository']['root']) if mapped(bundle) else planning_root
+
+
+def execution_shape(bundle, root):
+    binding = bundle.get('execution')
+    require(isinstance(binding, dict) and set(binding) ==
+            {'repository', 'target', 'source_revision', 'sources', 'validation'}, 'execution_binding_required')
+    repo = binding['repository']
+    require(isinstance(repo, dict) and set(repo) == {'id', 'root'} and string(repo.get('root')),
+            'execution_repository_required')
+    target_root = Path(repo['root'])
+    require(target_root.is_absolute() and str(target_root.resolve(strict=True)) == repo['root']
+            and target_root.is_dir(), 'execution_root_not_canonical')
+    require(not any(p.is_symlink() for p in (target_root, *target_root.parents)), 'execution_root_symlink')
+    repository(repo, target_root)
+    require(repo['id'] != bundle['repository']['id'] and target_root != root
+            and root not in target_root.parents and target_root not in root.parents, 'execution_roots_not_disjoint')
+    require(string(binding['target']) and not re.search(r'\s|[;&|`$<>]', binding['target']), 'execution_target_required')
+    require(isinstance(binding['source_revision'], str) and REVISION.fullmatch(binding['source_revision']),
+            'execution_source_revision_required')
+    require(binding['validation'] in ('local', 'external-only'), 'execution_validation_required')
+    sources = binding['sources']
+    require(isinstance(sources, list) and sources and all(isinstance(x, dict) and
+            set(x) == {'path', 'sha256'} for x in sources), 'execution_sources_required')
+    require(len({x['path'] for x in sources}) == len(sources), 'duplicate_execution_sources')
+    for source in sources:
+        file_ref(target_root, source)
+    return target_root
+
+
+def execution_instruction_sources(bundle, root):
+    directories = {root}
+    for goal in bundle['goals']:
+        for scope in goal['scope']:
+            path = relative(root, scope, exists=False)
+            directories.update(p for p in path.parents if p == root or root in p.parents)
+            if path.is_dir():
+                directories.add(path)
+                directories.update(p for p in path.rglob('*') if p.is_dir())
+    required = {'AGENTS.md'}
+    for directory in directories:
+        for name in ('AGENTS.md', '.rules.ts'):
+            path = directory / name
+            if path.is_file():
+                required.add(path.relative_to(root).as_posix())
+        rules = directory / '.ai/rules'
+        if rules.is_dir():
+            required.update(p.relative_to(root).as_posix() for p in rules.rglob('*') if p.is_file())
+    require(required <= {x['path'] for x in bundle['execution']['sources']}, 'execution_source_set_incomplete')
+
+
 def goal_shape(goal, root):
     require(isinstance(goal, dict) and ID.fullmatch(goal.get('id', '')), 'goal_id_required')
     repository(goal.get('repository'), root)
@@ -105,9 +163,11 @@ def goal_shape(goal, root):
 
 
 def bundle_shape(bundle, root):
-    require(isinstance(bundle, dict) and bundle.get('schema') == 'handoff-goals/1', 'migration_required:handoff-goals/1')
+    require(isinstance(bundle, dict) and bundle.get('schema') in ('handoff-goals/1', MAPPED), 'migration_required:handoff-goals/1')
     require(ID.fullmatch(bundle.get('id', '')), 'bundle_id_required')
     repository(bundle.get('repository'), root)
+    require(mapped(bundle) or 'execution' not in bundle, 'execution_requires_mapped_schema')
+    goal_root = execution_shape(bundle, root) if mapped(bundle) else root
     require(string(bundle.get('issue_ref')), 'bundle_issue_required')
     require(isinstance(bundle.get('planning_complete'), bool), 'planning_complete_required')
     require(bundle.get('status') in ('active', 'blocked', 'superseded'), 'bundle_status_required')
@@ -115,8 +175,10 @@ def bundle_shape(bundle, root):
     goals = bundle.get('goals')
     require(isinstance(goals, list) and goals, 'goals_required')
     for goal in goals:
-        goal_shape(goal, root)
-        require(goal['repository'] == bundle['repository'], 'goal_repository_mismatch')
+        goal_shape(goal, goal_root)
+        require(goal['repository'] == (bundle['execution']['repository'] if mapped(bundle) else bundle['repository']), 'goal_repository_mismatch')
+    if mapped(bundle):
+        execution_instruction_sources(bundle, goal_root)
     ids = [g['id'] for g in goals]
     require(len(set(ids)) == len(ids), 'duplicate_goal_ids')
     edges = {g['id']: g['dependencies'] for g in goals}
@@ -197,17 +259,23 @@ def goal_revision(bundle, gid):
         else:
             revisions[current] = canonical({'repository': bundle['repository'], 'plan_id': bundle['id'],
                 'spec': bundle['spec'], 'goal': goal,
+                **({'execution': bundle['execution']} if mapped(bundle) else {}),
                 'dependencies': {dep: revisions[dep] for dep in sorted(goal['dependencies'])}})
     return revisions[gid]
 
 
-def dependency_complete(bundle, gid, receipts):
+def dependency_complete(bundle, gid, receipts, execution_revision=None):
     matches = [r for r in receipts if isinstance(r, dict) and r.get('goal') == gid]
     if len(matches) != 1:
         return False
     receipt = matches[0]
     try:
-        require(set(receipt) == {'goal', 'goal_sha256', 'status', 'issuer', 'evidence', 'observed_at', 'expires_at'}, 'completion_fields')
+        fields = {'goal', 'goal_sha256', 'status', 'issuer', 'evidence', 'observed_at', 'expires_at'}
+        if mapped(bundle):
+            fields.add('execution_revision')
+            require(isinstance(execution_revision, str) and REVISION.fullmatch(execution_revision)
+                    and receipt.get('execution_revision') == execution_revision, 'completion_execution_revision')
+        require(set(receipt) == fields, 'completion_fields')
         require(receipt['status'] == 'complete' and receipt['goal_sha256'] == goal_revision(bundle, gid), 'completion_revision')
         provenance(receipt)
         return True
@@ -226,11 +294,15 @@ def provenance(receipt):
             'evidence_expired_or_future')
 
 
-def gate_subject(bundle, gate, sources, policy):
+def gate_subject(bundle, gate, sources, policy, execution_revision=None):
     # The exact gate (including declared source hashes) and governed goal revisions,
     # not unrelated goals or their receipts. Full-file bindings remain full-file.
     goals = [g['id'] for g in bundle['goals'] if applies(gate['scope'], g['id'])]
-    return canonical({'repository': bundle['repository'], 'plan_id': bundle['id'], 'gate': gate, 'policy_sources': sources, 'policy': policy,
+    binding = {}
+    if mapped(bundle):
+        require(isinstance(execution_revision, str) and REVISION.fullmatch(execution_revision), 'gate_execution_revision_required')
+        binding = {'execution': bundle['execution'], 'execution_revision': execution_revision}
+    return canonical({**binding, 'repository': bundle['repository'], 'plan_id': bundle['id'], 'gate': gate, 'policy_sources': sources, 'policy': policy,
                       'goals': {gid: goal_revision(bundle, gid) for gid in sorted(goals)}})
 
 
@@ -275,8 +347,8 @@ def typed_gate(root, bundle, gate, context):
         except (Invalid, OSError) as error:
             raise Invalid('trust_source_unavailable:expected=unavailable:actual=unverified:independent_source=' + str(binding['anchor'].get('path')) + ':' + str(error)) from error
         require(not os.path.samefile(relative(root, binding['lock']['path']), relative(root, binding['anchor']['path'])), 'trust_anchor_not_independent')
-        require(binding['anchor']['sha256'] != bundle['spec']['sha256'] and not os.path.samefile(relative(root, binding['anchor']['path']), relative(root, bundle['spec']['path'])), 'trust_anchor_is_plan_source')
-        require(binding['anchor'] in context['sources'], 'trust_anchor_not_independently_approved')
+        require(binding['anchor']['sha256'] != bundle['spec']['sha256'] and not os.path.samefile(relative(root, binding['anchor']['path']), relative(Path(bundle['repository']['root']), bundle['spec']['path'])), 'trust_anchor_is_plan_source')
+        require(binding['anchor'] in (context['execution']['sources'] if gate.get('root') == 'execution' else context['sources']), 'trust_anchor_not_independently_approved')
         anchor_data = read(relative(root, binding['anchor']['path']))
         require(isinstance(anchor_data, dict) and not ({'goals', 'bundle', 'readiness', 'planning_complete'} & set(anchor_data)), 'trust_anchor_is_plan_source')
         require(set(anchor_data) == {'commit'}, 'unsupported_trust_anchor_shape')
@@ -294,7 +366,7 @@ def typed_gate(root, bundle, gate, context):
     receipt = results[0]
     require(set(receipt) == {'gate', 'status', 'stage', 'scope', 'subject_sha256', 'issuer', 'evidence', 'observed_at', 'expires_at', 'value'}, 'typed_evidence_fields')
     require(receipt['status'] == 'pass' and receipt['stage'] == gate['stage'] and receipt['scope'] == gate['scope']
-            and receipt['subject_sha256'] == gate_subject(bundle, gate, context['sources'], context['policy']), 'typed_evidence_subject_mismatch')
+            and receipt['subject_sha256'] == gate_subject(bundle, gate, context['sources'], context['policy'], context.get('execution_revision')), 'typed_evidence_subject_mismatch')
     provenance(receipt)
     value = receipt['value']
     if kind == 'ownership':
@@ -321,7 +393,8 @@ def gate_dimensions(gate):
 def gate_shape(gate):
     require(isinstance(gate, dict) and ID.fullmatch(gate.get('id', '')), 'gate_id_required')
     require(gate.get('stage') in STAGES and string(gate.get('kind')), 'unknown_gate_stage_or_kind')
-    allowed = {'id', 'stage', 'scope', 'kind', 'dimension', 'responsible'}
+    allowed = {'id', 'stage', 'scope', 'kind', 'dimension', 'responsible', 'root'}
+    require(gate.get('root', 'planning') in ('planning', 'execution'), 'invalid_gate_root')
     if gate['kind'] == 'file_digest':
         allowed |= {'path', 'sha256'}
     elif gate['kind'] == 'executable_presence':
@@ -372,11 +445,11 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
             add(gaps, 'goal_not_ready', goal['readiness'][stage], [goal['id']], stage,
                 'unknown' if goal['readiness'][stage] == 'unknown' else 'blocked')
         for dependency in goal['dependencies']:
-            if not dependency_complete(bundle, dependency, (context.get('completed_goals', []) if isinstance(context, dict) and isinstance(context.get('completed_goals', []), list) else [])):
+            if not dependency_complete(bundle, dependency, (context.get('completed_goals', []) if isinstance(context, dict) and isinstance(context.get('completed_goals', []), list) else []), context.get('execution_revision') if isinstance(context, dict) else None):
                 add(gaps, 'dependency_incomplete', dependency, [goal['id']], stage)
         try:
             if goal['id'] in requested:
-                validate_commands(root, goal['verification'])
+                validate_commands(execution_root(bundle, root), goal['verification'])
         except (VerificationError, OSError) as error:
             add(gaps, 'verification_invalid', str(error), [goal['id']], stage)
         # Goal requirements are additive only. Unsupported predicates never pass.
@@ -396,7 +469,7 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
             additive_gates.append(dict(gate, scope={'goals': [goal['id']]}))
     try:
         require(context.get('schema') == 'readiness-context/1', 'independent_context_required')
-        require(set(context) <= {'schema', 'repository', 'policy', 'sources', 'authority', 'results', 'completed_goals', 'extensions'}, 'unsupported_context_fields')
+        require(set(context) <= ({'schema', 'repository', 'policy', 'sources', 'authority', 'results', 'completed_goals', 'extensions'} | ({'execution', 'execution_revision'} if mapped(bundle) else set())), 'unsupported_context_fields')
         require(isinstance(context.get('results'), list) and all(isinstance(r, dict) for r in context['results']), 'invalid_independent_results')
         require(isinstance(context.get('completed_goals'), list) and all(isinstance(g, dict) for g in context['completed_goals']), 'invalid_completed_goals')
         repository(context.get('repository'), root)
@@ -404,8 +477,11 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
         policy_path = relative(root, POLICY)
         policy = read(policy_path)
         require(policy.get('schema') == 'readiness-policy/1', 'unsupported_policy_schema')
-        require(set(policy) <= {'schema', 'repository', 'sources', 'gates', 'not_applicable', 'extensions'}, 'unsupported_policy_fields')
+        require(set(policy) <= ({'schema', 'repository', 'sources', 'gates', 'not_applicable', 'extensions'} | ({'execution'} if mapped(bundle) else set())), 'unsupported_policy_fields')
         require(policy.get('repository') == bundle['repository'] == context['repository'], 'policy_repository_mismatch')
+        if mapped(bundle):
+            require(policy.get('execution') == bundle['execution'] == context.get('execution'), 'execution_mapping_mismatch')
+            require(isinstance(context.get('execution_revision'), str) and REVISION.fullmatch(context['execution_revision']), 'execution_revision_required')
         approved = context.get('policy', {})
         require(isinstance(approved, dict) and set(approved) == {'sha256', 'revision', 'issuer'}, 'unsupported_approval_fields')
         require(approved.get('sha256') == digest(policy_path) and string(approved.get('issuer')) and string(approved.get('revision')), 'unapproved_policy_revision')
@@ -436,6 +512,12 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
                     (set(scope) == {'goals'} and isinstance(scope['goals'], list) and scope['goals']
                      and all(isinstance(g, str) and g in all_ids for g in scope['goals']))), 'explicit_gate_scope_required')
         gates = [*gates, *additive_gates]
+        require(mapped(bundle) or all(g.get('root', 'planning') == 'planning' for g in gates), 'execution_requires_mapped_schema')
+        if mapped(bundle) and stage in ('implementation', 'merge'):
+            require('branch_target' not in exclusions, 'mapped_branch_target_cannot_be_exempted')
+            for gid in evaluated:
+                target_gates = [g for g in gates if g['kind'] == 'branch_target' and g['stage'] == stage and applies(g['scope'], gid)]
+                require(target_gates and all(g['binding'].get('target') == bundle['execution']['target'] for g in target_gates), 'mapped_branch_target_required')
         gate_ids = [g['id'] for g in gates]
         require(len(set(gate_ids)) == len(gate_ids), 'duplicate_policy_gate_ids')
     except (Invalid, OSError, ValueError, TypeError, AttributeError, KeyError) as error:
@@ -452,7 +534,9 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
                              'recovery': 'Reevaluate if repository policy changes', 'reason': reason})
     try:
         authority = context.get('authority', {})
-        require(isinstance(authority, dict) and set(authority) == {'status', 'stage', 'subject_sha256', 'issuer', 'goals'}, 'unsupported_authority_fields')
+        require(isinstance(authority, dict) and set(authority) == ({'status', 'stage', 'subject_sha256', 'issuer', 'goals'} | ({'execution_revision'} if mapped(bundle) else set())), 'unsupported_authority_fields')
+        if mapped(bundle):
+            require(authority.get('execution_revision') == context['execution_revision'], 'authority_execution_revision_mismatch')
         require(authority.get('status') == 'pass' and authority.get('stage') == stage
                 and authority.get('subject_sha256') == subject_hash and string(authority.get('issuer'))
                 and isinstance(authority.get('goals'), list) and set(selected) <= set(authority['goals']), 'independent_authority_required')
@@ -465,10 +549,11 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
             continue
         try:
             kind = gate.get('kind')
+            gate_root = execution_root(bundle, root) if gate.get('root') == 'execution' else root
             if kind == 'file_digest':
-                file_ref(root, gate)
+                file_ref(gate_root, gate)
             elif kind == 'executable_presence':
-                path = relative(root, gate.get('path'))
+                path = relative(gate_root, gate.get('path'))
                 require(path.is_file() and os.access(path, os.X_OK), 'executable_unavailable')
             elif kind == 'measured_coverage':
                 require(all(g.get('coverage_status', 'measured') == 'measured' and
@@ -476,12 +561,14 @@ def policy_admit(root, bundle, selected, context, stage, subject_hash, resolved=
                             not isinstance(g.get('coverage_percent'), bool) and
                             0 <= g['coverage_percent'] <= 100 for g in bundle['goals'] if g['id'] in targets & evaluated), 'measured_coverage_required')
             elif kind in ('ownership', 'branch_target', 'fixture', 'protected_approval', 'harness_trust', 'tooling'):
-                typed_gate(root, bundle, gate, context)
+                typed_gate(gate_root, bundle, gate, context)
             elif kind == 'independent_result':
                 results = [x for x in context.get('results', []) if x.get('gate') == gate['id']]
                 require(len(results) == 1, 'independent_result_missing_or_ambiguous')
                 result = results[0]
-                require(set(result) == {'gate', 'status', 'stage', 'scope', 'subject_sha256', 'issuer'}, 'unsupported_result_fields')
+                require(set(result) == ({'gate', 'status', 'stage', 'scope', 'subject_sha256', 'issuer'} | ({'execution_revision'} if mapped(bundle) else set())), 'unsupported_result_fields')
+                if mapped(bundle):
+                    require(result.get('execution_revision') == context['execution_revision'], 'result_execution_revision_mismatch')
                 require(result.get('status') == 'pass' and result.get('stage') == stage and result.get('scope') == scope
                         and result.get('subject_sha256') == subject_hash and string(result.get('issuer')), 'independent_result_invalid')
             else:
@@ -588,6 +675,10 @@ def admit(args):
         for name in ('.ai/matrix.json', MANIFEST, GRAPH):
             require(isinstance(read(relative(root, name)), dict), 'v3_root_malformed')
         bundle, selected, subject, entry = select(root, args)
+        if mapped(bundle):
+            require(bool(getattr(args, 'execution_root', None)), 'execution_root_required')
+        if getattr(args, 'execution_root', None):
+            require(mapped(bundle) and args.execution_root == bundle['execution']['repository']['root'], 'execution_root_mismatch')
         if getattr(args, 'execution_record', None):
             record = read(Path(args.execution_record))
             selected_records = [goal for goal in bundle['goals'] if goal['id'] in selected]
@@ -603,6 +694,10 @@ def admit(args):
                 context = read(args.context)
             except (OSError, ValueError) as error:
                 context_error = str(error)
+        if mapped(bundle):
+            report.update(execution=bundle['execution'],
+                          execution_revision=context.get('execution_revision') if isinstance(context, dict) else None,
+                          execution_revision_source='independent-context')
         stages = STAGES if args.stage == 'planning' else (args.stage,)
         for stage in stages:
             report['gaps'].extend(policy_admit(root, bundle, selected, context, stage, subject, report['resolved']))
@@ -830,6 +925,7 @@ def main():
     parser.add_argument('--goal')
     parser.add_argument('--context')
     parser.add_argument('--execution-record')
+    parser.add_argument('--execution-root')
     parser.add_argument('--bundle')
     parser.add_argument('--legacy')
     parser.add_argument('--stage', choices=('planning', *STAGES), default='implementation')

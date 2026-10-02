@@ -35,6 +35,33 @@ changes; delivery/version floor is RT-03, umbrella coordinated adoption RT-04.
 
 ## Authority and limits
 
+### Explicit planning/execution bridge
+
+The opt-in `mapped-handoff-goals/1` bundle keeps the planning repository as the
+admission root. That root owns governance, specification, registry and immutable
+generations. A mandatory `execution` binding identifies one distinct, disjoint
+execution repository, exact canonical worktree, target, source revision,
+instruction sources and validation mode. Execution does not inherit planning
+governance and needs no copied `.ai/` scaffold. Nested execution repositories
+are not supported by this bridge.
+
+The fixed planning policy must authorize that exact binding. Independent context
+must repeat it and provide the current full `execution_revision`. Neither a goal
+nor context can select policy or weaken its requirements. Execution binding is
+part of goal revisions; gate subjects also bind the current execution revision.
+Mapped authority, independent-result and dependency-completion receipts must
+match that revision. This is context-supplied observation, not a Git HEAD check
+or proof of authenticated authority. Old readers reject the mapped schema.
+
+The gate driver requires explicit `--execution-root`, exact intake selection and
+stage context before checking mapped work. Local checks use the execution root,
+never planning-root green evidence. `external-only` validation fails closed with
+`external_validation_adapter_required` before local gates. It does not run local
+application builds or translate unrelated hosted results into readiness. A
+supported independently verified external-validation adapter remains required
+for ADO-only delivery. Structural bridge tests establish no real application
+readiness, fixture authority, ticket eligibility or dispatch permission.
+
 JSON consistency is not authenticated approval. Reports always state
 `dispatch_authorized: false`; the orchestrator must independently verify live
 policy and operation authority before dispatch. No signing platform or generic

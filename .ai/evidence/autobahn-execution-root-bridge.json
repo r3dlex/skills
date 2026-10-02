@@ -1,0 +1,39 @@
+{
+  "goal_id": "autobahn-execution-root-bridge",
+  "green": {
+    "command": "bash tests/readiness_mapped_test.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "baseline_revision": "60b839cce4e87380cc7964bbc6087077f2963daa",
+    "harness": {
+      "tests/readiness_mapped_test.py": "4807b7f0f62c1c52230daf267874da46e4573420e198c41372423a7c811d8d0d",
+      "tests/readiness_mapped_test.sh": "33eb9d108c5fccf450206abba54f9d31499cd586b813060d5aff8a8712788bfa"
+    },
+    "implementation_manifest_sha256": "a37ab3265e8a7482952575c36a7ee31d6914cb87a9fef2ec408829beb3eb5404",
+    "kind": "baseline-red/candidate-green replay; original development ordering not claimed",
+    "observations": {
+      "green": {
+        "discovered_tests": 24,
+        "exit_code": 0,
+        "observed_at": "2026-10-02T07:09:48.030950+00:00",
+        "receipt_sha256": "d0c929df919760e9518e878a213cbe80d6f67500ffe02d2acf4c6e8ebd540d3d",
+        "stderr_sha256": "cc92e4516bbd99c53a56fb4e9e5a7039ae964ff9095de545b66c59f11406314b",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "red": {
+        "discovered_tests": 24,
+        "exit_code": 1,
+        "observed_at": "2026-10-02T07:09:03.858268+00:00",
+        "receipt_sha256": "1895852328acc148690d5fe51738d477e591ce71e4eed37980a8e2fcbb8e5ac7",
+        "stderr_sha256": "d2344bd2023bcae035798ac518fa91bf105f53a47338b221bd208adb9b456de8",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "scope": "isolated tooling validation, not application admission or hosted CI"
+  },
+  "red": {
+    "command": "bash tests/readiness_mapped_test.sh",
+    "exit_code": 1
+  }
+}

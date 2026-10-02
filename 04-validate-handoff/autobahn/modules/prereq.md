@@ -16,6 +16,13 @@ repository/spec identities are revalidated. Legacy inputs need explicit
 migration. Missing/mismatched local helper fingerprints fail closed without
 PATH, network, legacy-writer or permissive fallback.
 
+For `mapped-handoff-goals/1`, this root is the planning root, not the execution
+repository. Supply the exact `--execution-root` when driving gates. The fixed
+planning policy and independent context must match the explicit mapping; the
+execution root does not need planning governance. See
+[execution-mapping.md](execution-mapping.md). Missing mapping authority or an
+external-only validation adapter blocks execution.
+
 A zero structural admission exit is not dispatch authorization. The live
 orchestrator must separately check independent operation authority. Missing
 authority blocks the action, not planning. All helper reports explicitly keep
