@@ -7,7 +7,7 @@
   "sources": [
     {
       "path": "AGENTS.md",
-      "sha256": "ac2032a97672bfc31fabe01e73417ea68c97db022d59012c1ff0c63829bb0e33"
+      "sha256": "55ff94b7be1d7a960fdc4ebc36120182cffb6897ba351d0dd8c006564a200b88"
     },
     {
       "path": ".rules.ts",
@@ -52,7 +52,151 @@
       "responsible": "Andres Silva Burgstahler"
     },
     {
-      "id": "tool-present",
+      "id": "branch-xskp-p5-01",
+      "stage": "implementation",
+      "scope": {
+        "goals": [
+          "XSKP-P5-01"
+        ]
+      },
+      "kind": "branch_target",
+      "binding": {
+        "branch": "feat/knowledge-contract-copy-XSKP-P5-01",
+        "target": "main"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "approval-xskp-p5-01",
+      "stage": "implementation",
+      "scope": {
+        "goals": [
+          "XSKP-P5-01"
+        ]
+      },
+      "kind": "protected_approval",
+      "binding": {
+        "subject": {
+          "mode": "goal-scope",
+          "goal": "XSKP-P5-01",
+          "goal_sha256": "059499be88c7d2fa3deda7db242b33e3e6b423adba10d76f8f52c2d99e8a4808"
+        }
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "branch-xskp-p5-02",
+      "stage": "implementation",
+      "scope": {
+        "goals": [
+          "XSKP-P5-02"
+        ]
+      },
+      "kind": "branch_target",
+      "binding": {
+        "branch": "feat/knowledge-producers-planning-XSKP-P5-02",
+        "target": "main"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "approval-xskp-p5-02",
+      "stage": "implementation",
+      "scope": {
+        "goals": [
+          "XSKP-P5-02"
+        ]
+      },
+      "kind": "protected_approval",
+      "binding": {
+        "subject": {
+          "mode": "goal-scope",
+          "goal": "XSKP-P5-02",
+          "goal_sha256": "76fea8df567b84a0d10875f284b6bcf479093a3079abd23951630458db9a1963"
+        }
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "branch-xskp-p5-03",
+      "stage": "implementation",
+      "scope": {
+        "goals": [
+          "XSKP-P5-03"
+        ]
+      },
+      "kind": "branch_target",
+      "binding": {
+        "branch": "feat/knowledge-producers-review-XSKP-P5-03",
+        "target": "main"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "approval-xskp-p5-03",
+      "stage": "implementation",
+      "scope": {
+        "goals": [
+          "XSKP-P5-03"
+        ]
+      },
+      "kind": "protected_approval",
+      "binding": {
+        "subject": {
+          "mode": "goal-scope",
+          "goal": "XSKP-P5-03",
+          "goal_sha256": "0e5a0f90c86239b07f11c86f1dde18b90cd42f5fe95583033e0a7e17ee615ab9"
+        }
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "branch-xskp-p5-04",
+      "stage": "implementation",
+      "scope": {
+        "goals": [
+          "XSKP-P5-04"
+        ]
+      },
+      "kind": "branch_target",
+      "binding": {
+        "branch": "feat/knowledge-init-templates-XSKP-P5-04",
+        "target": "main"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "approval-xskp-p5-04",
+      "stage": "implementation",
+      "scope": {
+        "goals": [
+          "XSKP-P5-04"
+        ]
+      },
+      "kind": "protected_approval",
+      "binding": {
+        "subject": {
+          "mode": "goal-scope",
+          "goal": "XSKP-P5-04",
+          "goal_sha256": "d846d45fe622157871578e818ca4fbf952f32842721f3b72541af41ff94a20ed"
+        }
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "tool-bash",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "tooling",
+      "binding": {
+        "tool": "bash"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "tool-python3",
       "stage": "implementation",
       "scope": {
         "repository": true
@@ -62,12 +206,50 @@
         "tool": "python3"
       },
       "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "tool-prek",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "tooling",
+      "binding": {
+        "tool": "prek"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "tool-catalog-validator",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "executable_presence",
+      "path": "scripts/validate-skill-catalog.py",
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
+      "id": "planning-inputs-on-main",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "independent_result",
+      "responsible": "Andres Silva Burgstahler"
     }
   ],
   "not_applicable": {
-    "branch_target": "Declared per goal as an additive branch_target requirement (target main), so one policy serves goals on different branches",
-    "fixtures": "No goal needs an isolation fixture; verification is the repo test suite (tests use temporary directories internally)",
-    "registration_approval": "Single-maintainer repo: the owner authors and registers plans; merge approval is the own-review gate",
-    "harness_trust": "Local single-maintainer harness; no in-repo trust anchor exists pre-merge, and creating one would self-sign"
+    "fixtures": "XSKP P5 has no independently provisioned prerequisite fixture. Its temporary-directory test copies (contract fingerprint mutation, producer and template tests) are implementation deliverables run by bash tests/run-tests.sh, not pre-existing external services; their absence stays blocked by acceptance criteria and TDD/CI gates.",
+    "harness_trust": "XSKP P5 edits Markdown skills, init templates and a byte-identical contract copy, not a pinned executable harness or vendor delivery. The frozen contract lock binds content integrity, not an independent 40-character harness commit anchor. This exemption does not attest to installed runtime trust."
+  },
+  "extensions": {
+    "active_plan": "xskp-p5-skill-producers",
+    "registration": "northstar-plan-xskp-p5-skill-producers",
+    "generation": "4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c",
+    "bundle_sha256": "8089c7c77e5aadb62c1a003fb7b30c78465ceb65541fc5b7927b3e2a0bd58cff",
+    "approval_status": "pending-independent-approval",
+    "supersedes_policy_sha256": "bdca65ade44ed6ab2c6d2e9bd7c54773c884998eb9a21a56a7edbcf38643f5e5",
+    "scope_limit": "Active P5 bundle only: readiness-contract/1 rejects policy goal scopes outside the admitted bundle. Other handoffs require a separately reviewed policy rollover; prior policy approval receipts are not reusable."
   }
 }
