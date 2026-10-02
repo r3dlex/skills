@@ -31,6 +31,7 @@ FAIL_FAST=0
 HANDOFF=""
 DIRECT=""
 CONTEXT=""
+EXECUTION_ROOT=""
 
 usage() { echo "run-gates: $1" >&2; exit 2; }
 
@@ -40,6 +41,7 @@ while [[ $# -gt 0 ]]; do
     --goal-record) RECORD="${2:-}"; shift 2 || usage "--goal-record needs a value" ;;
     --handoff)     HANDOFF="${2:-}"; shift 2 || usage "--handoff needs a value" ;;
     --goal)        DIRECT="${2:-}"; shift 2 || usage "--goal needs a value" ;;
+    --execution-root) EXECUTION_ROOT="${2:-}"; shift 2 || usage "--execution-root needs a value" ;;
     --context)     CONTEXT="${2:-}"; shift 2 || usage "--context needs a value" ;;
     --phase)       PHASE="${2:-}";  shift 2 || usage "--phase needs a value" ;;
     --fail-fast)   FAIL_FAST=1;     shift ;;
@@ -94,9 +96,74 @@ gate() {
   return 1
 }
 
+# A foreign goal or mapped selector cannot borrow planning-root checks. This
+# detection grants nothing; the pinned validator below admits the exact record.
+MAPPED_RUN="$(ROOT="$ROOT" RECORD="$RECORD" DIRECT="$DIRECT" HANDOFF="$HANDOFF" EXECUTION_ROOT="$EXECUTION_ROOT" python3 - <<'PY_DETECT'
+import json, os
+from pathlib import Path
+root = Path(os.environ['ROOT']).resolve(strict=True)
+record = json.loads(Path(os.environ['RECORD']).read_text())
+foreign = record.get('repository', {}).get('root', str(root)) != str(root)
+mapped = bool(os.environ['EXECUTION_ROOT']) or foreign
+if os.environ['DIRECT']:
+    envelope = json.loads(Path(os.environ['DIRECT']).read_text())
+    mapped |= envelope.get('bundle', {}).get('schema') == 'mapped-handoff-goals/1'
+if os.environ['HANDOFF']:
+    registry = root / '.ai/workflows/northstar-readiness-v1.json'
+    if registry.exists():
+        for entry in json.loads(registry.read_text()).get('plans', []):
+            if os.environ['HANDOFF'] in (entry.get('id'), entry.get('handoff_path')):
+                path = root / entry['artifacts']['bundle']['path']
+                if root not in path.resolve(strict=True).parents:
+                    raise ValueError('unsafe bundle path')
+                mapped |= json.loads(path.read_text()).get('schema') == 'mapped-handoff-goals/1'
+print('yes' if mapped else 'no')
+PY_DETECT
+)" || { echo "run-gates: BLOCKED - unreadable execution selection" >&2; exit 1; }
+
+if [[ "$MAPPED_RUN" == "yes" ]]; then
+  if [[ -z "$EXECUTION_ROOT" || -z "$CONTEXT" || ( -z "$HANDOFF" && -z "$DIRECT" ) || ( -n "$HANDOFF" && -n "$DIRECT" ) ]]; then
+    echo "run-gates: BLOCKED - mapped execution requires --execution-root, exact selection and current --context" >&2
+    exit 1
+  fi
+  SELECTION=()
+  if [[ -n "$HANDOFF" ]]; then
+    SELECTION=(--handoff "$HANDOFF" --goal-id "$GOAL_ID")
+  else
+    SELECTION=(--goal "$DIRECT")
+  fi
+  STAGE="implementation"
+  [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" ]] && STAGE="merge"
+  REPORT="$(mktemp)" || exit 1
+  trap 'rm -f "$REPORT"' EXIT
+  if ! bash "$HERE/prereq-check.sh" --root "$ROOT" "${SELECTION[@]}" \
+      --execution-root "$EXECUTION_ROOT" --context "$CONTEXT" --stage "$STAGE" \
+      --execution-record "$RECORD" > "$REPORT"; then
+    cat "$REPORT"
+    echo "run-gates: BLOCKED - mapped readiness" >&2
+    exit 1
+  fi
+  cat "$REPORT"
+  if ! python3 - "$REPORT" "$EXECUTION_ROOT" <<'PY_ROUTE'
+import json, sys
+from pathlib import Path
+report = json.loads(Path(sys.argv[1]).read_text())
+execution = report.get('execution', {})
+if not report.get('execution_ready') or execution.get('repository', {}).get('root') != sys.argv[2]:
+    raise SystemExit('execution_root_mismatch')
+if execution.get('validation') != 'local':
+    raise SystemExit('external_validation_adapter_required')
+PY_ROUTE
+  then
+    echo "run-gates: BLOCKED - mapped validation adapter" >&2
+    exit 1
+  fi
+  ROOT="$EXECUTION_ROOT"
+fi
+
 # Merge admission is a prerequisite, not an optional report-all gate. Never
 # execute verification under a different goal record or a stale/absent context.
-if [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" ]]; then
+if [[ "$MAPPED_RUN" == "no" && ( "$PHASE" == "pre-merge" || "$PHASE" == "all" ) ]]; then
   if [[ -z "$CONTEXT" || ( -z "$HANDOFF" && -z "$DIRECT" ) || ( -n "$HANDOFF" && -n "$DIRECT" ) ]]; then
     echo "run-gates: BLOCKED — merge requires exact --handoff or --goal and fresh --context" >&2
     exit 1

@@ -134,6 +134,14 @@ is why the list is explicit rather than implied.
 
 ## Scoped readiness recovery
 
+Mapped intake keeps admission at the planning root and runs executable gates at
+the explicitly selected execution root. Every mapped driver phase requires the
+original exact intake selection and stage context. `external-only` mappings
+stop before local TDD, lint, CI or verification with
+`external_validation_adapter_required`; workspace checks cannot fill that gap.
+See [execution-mapping.md](execution-mapping.md). Mapping is not permission to
+dispatch, use a retired engine, bypass host gates, merge or cascade-close.
+
 Inspect the exact stage verdict and remaining findings, not planning exit status. Dependency completion requires current revision-bound receipts; currently failing dependency gates still block dependents. Only independently admitted goals may reach engine selection. A ready independent goal may proceed without reopening unrelated blocked work. Preparation has separate stage authority and cannot bypass repository-wide trust. Reuse still-valid exact approval receipts; obtain only missing or invalidated evidence.
 
 Preparation is separately selected and authorized for its bounded setup scope; it cannot include feature implementation. Existing TDD, review, CI and merge obligations still apply to any preparation code. A completed preparation ancestor does not need readiness flags for another stage, but current applicable implementation policy/fixture/trust gates still govern its dependents.
