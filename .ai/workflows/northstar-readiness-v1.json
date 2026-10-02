@@ -1,0 +1,29 @@
+{
+  "plans": [
+    {
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/goals.json",
+          "sha256": "9ebeedd3f7c26062702b00cb8c65217675e9aba0d275b320d9068f9dd7f72075"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/graph.json",
+          "sha256": "b268f00aa17e0a1d92fa76dd9f6a5e1fd6c99fbb720f2ef4ee4338a1562427d0"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/handoff.md",
+          "sha256": "5780239e17573c05902a55947ee296ff3c53447a6707857d80661c76a61c4bb5"
+        }
+      },
+      "execution_admitted": false,
+      "generation": "182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "handoff_path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/handoff.md",
+      "id": "northstar-plan-xskp-p5-skill-producers",
+      "plan_id": "xskp-p5-skill-producers",
+      "planning_complete": true,
+      "schema": "readiness-contract/1",
+      "status": "active"
+    }
+  ],
+  "schema": "readiness-contract/1"
+}

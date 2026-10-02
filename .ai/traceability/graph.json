@@ -1,34 +1,233 @@
 {
   "edges": [
     {
-      "source": "plan:skills:northstar-installer-skill-discovery-seam",
-      "target": "handoff:skills:northstar-installer-skill-discovery-seam",
-      "relation": "summarized-by",
       "created_by": "northstar",
-      "evidence_path": ".ai/handoff/northstar-installer-skill-discovery-seam.md"
+      "evidence_path": ".ai/handoff/northstar-installer-skill-discovery-seam.md",
+      "relation": "summarized-by",
+      "source": "plan:skills:northstar-installer-skill-discovery-seam",
+      "target": "handoff:skills:northstar-installer-skill-discovery-seam"
+    },
+    {
+      "source": "issue:skills:xskp-p5-skill-producers",
+      "target": "spec:skills:xskp-p5-skill-producers",
+      "type": "specified-by"
+    },
+    {
+      "source": "spec:skills:xskp-p5-skill-producers",
+      "target": "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-01:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-02:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-03:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-04:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "type": "plans"
+    },
+    {
+      "source": "spec:skills:xskp-p5-skill-producers",
+      "target": "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-01:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-02:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-03:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-04:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
   "nodes": [
     {
+      "backlinks": [],
       "id": "plan:skills:northstar-installer-skill-discovery-seam",
-      "type": "plan",
-      "title": "northstar sliced plan: installer-skill-discovery-seam",
-      "status": "active",
-      "repo_id": "skills",
       "path": ".ai/handoff/northstar-installer-skill-discovery-seam.md",
-      "backlinks": []
+      "repo_id": "skills",
+      "status": "active",
+      "title": "northstar sliced plan: installer-skill-discovery-seam",
+      "type": "plan"
     },
     {
-      "id": "handoff:skills:northstar-installer-skill-discovery-seam",
-      "type": "handoff",
-      "title": "northstar A->B handoff: installer-skill-discovery-seam",
-      "status": "active",
-      "repo_id": "skills",
-      "path": ".ai/handoff/northstar-installer-skill-discovery-seam.md",
       "backlinks": [
         "plan:skills:northstar-installer-skill-discovery-seam"
-      ]
+      ],
+      "id": "handoff:skills:northstar-installer-skill-discovery-seam",
+      "path": ".ai/handoff/northstar-installer-skill-discovery-seam.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "northstar A->B handoff: installer-skill-discovery-seam",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "issue:skills:xskp-p5-skill-producers",
+        "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+        "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159"
+      ],
+      "id": "spec:skills:xskp-p5-skill-producers",
+      "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5-skill-producers.md",
+      "repo_id": "skills",
+      "sha256": "f2c315e2843033cde9d4e609b2ab2b3c841ac1321f1a461f21c09c1b29120fa4",
+      "status": "active",
+      "title": "P5 \u2014 Skills producers and init module (`skills`, plan `xskp-p5-skill-producers`) \u2014 plan-scoped planning specification",
+      "type": "spec"
+    },
+    {
+      "backlinks": [
+        "spec:skills:xskp-p5-skill-producers"
+      ],
+      "id": "issue:skills:xskp-p5-skill-producers",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/xskp-p5-skill-producers.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "P5 \u2014 Skills producers and init module (`skills`, plan `xskp-p5-skill-producers`) \u2014 local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "spec:skills:xskp-p5-skill-producers",
+        "plan:skills:xskp-p5-skill-producers:XSKP-P5-01:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+        "plan:skills:xskp-p5-skill-producers:XSKP-P5-02:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+        "plan:skills:xskp-p5-skill-producers:XSKP-P5-03:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+        "plan:skills:xskp-p5-skill-producers:XSKP-P5-04:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4"
+      ],
+      "id": "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "xskp-p5-skill-producers",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4"
+      ],
+      "id": "plan:skills:xskp-p5-skill-producers:XSKP-P5-01:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4"
+      ],
+      "id": "plan:skills:xskp-p5-skill-producers:XSKP-P5-02:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5-02",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4"
+      ],
+      "id": "plan:skills:xskp-p5-skill-producers:XSKP-P5-03:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5-03",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5-skill-producers:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4"
+      ],
+      "id": "plan:skills:xskp-p5-skill-producers:XSKP-P5-04:d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/d374daa86bb5eb1f3259919ecf6438bb89ae3bed29da7407a14abcee4ef7abd4/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5-04",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "spec:skills:xskp-p5-skill-producers",
+        "plan:skills:xskp-p5-skill-producers:XSKP-P5-01:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+        "plan:skills:xskp-p5-skill-producers:XSKP-P5-02:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+        "plan:skills:xskp-p5-skill-producers:XSKP-P5-03:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+        "plan:skills:xskp-p5-skill-producers:XSKP-P5-04:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159"
+      ],
+      "id": "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "xskp-p5-skill-producers",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159"
+      ],
+      "id": "plan:skills:xskp-p5-skill-producers:XSKP-P5-01:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159"
+      ],
+      "id": "plan:skills:xskp-p5-skill-producers:XSKP-P5-02:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5-02",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159"
+      ],
+      "id": "plan:skills:xskp-p5-skill-producers:XSKP-P5-03:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5-03",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5-skill-producers:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159"
+      ],
+      "id": "plan:skills:xskp-p5-skill-producers:XSKP-P5-04:182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159",
+      "path": ".ai/handoff/readiness-v1/xskp-p5-skill-producers/182c7739e1d5954e100efacf68ec7300f282bac1f5166b37673c1ebdf62d6159/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5-04",
+      "type": "plan"
     }
   ],
   "root_repo_id": "skills",
