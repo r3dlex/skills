@@ -1,0 +1,190 @@
+{
+  "attachments": {
+    "consensus_plan": "aitool-root .omc/plans/ralplan-cross-surface-knowledge-publication.md (local, gitignored, non-authoritative; its goal objects are restated verbatim here)",
+    "contract_pack_lock": "docs/specifications/ACTIVE/cross-surface-knowledge-publication.contract/contract.lock.json sha256 9f5d7edfc17554c383b06aa4726dfffe564ecc8d657b16baa89ce72098d5e102",
+    "independence": "No goal depends on a goal in another plan; the six xskp-* plans are callable by separate autobahn runs in any order.",
+    "requirements_closure": "aitool-root .omc/specs/deep-interview-cross-surface-knowledge-publication.md (local, gitignored, non-authoritative)",
+    "umbrella_spec": "r3dlex/ai-tool-workspace docs/specifications/ACTIVE/cross-surface-knowledge-publication.md sha256 d50488d9b480fdfdea6c2fa2b7265a507d98fdae97758c3b1d2f501951415586"
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "AC-1: .ai/knowledge/contract is a byte-identical copy of the repo's docs/specifications/ACTIVE/cross-surface-knowledge-publication.contract; tests/knowledge_contract_fingerprint_test.sh verifies both copies against contract.lock.json, pins lock sha256 9f5d7edfc17554c383b06aa4726dfffe564ecc8d657b16baa89ce72098d5e102, and goes red on a mutated byte in a temp copy.",
+        "The test is discovered by tests/test-scripts.sh (find tests -name '*_test.sh') under tests/run-tests.sh.",
+        "python3 scripts/scan-secret-material.py reports no offenders, and the markdown-link and dead-reference suites stay green with the two contract copies present.",
+        "The checkout's pre-existing branch and dirty files are untouched; work happens in a worktree from the default branch.",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "coverage_status": "unknown",
+      "dependencies": [],
+      "id": "XSKP-P5-01",
+      "issue_ref": "issue:skills:xskp-p5-skill-producers",
+      "legacy_risk_reason": "Coverage unknown (skills is Markdown and bash; no line-coverage tooling). New files only (contract copy and fingerprint test discovered by tests/run-tests.sh); legacy-safe is equivalent to standard test-first here.",
+      "legacy_safe_tdd": true,
+      "owner": "unassigned",
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "blocked"
+      },
+      "readiness_notes": {
+        "implementation": "Unknown until preparation clears; needs independent live authority and an observed red/green.",
+        "merge": "Unknown until implementation; needs local and hosted CI, resolved review, and fresh merge-stage admission.",
+        "preparation": "Planning inputs (plan-scoped spec, contract pack planning copy) must be committed to the default branch by the owner before worktrees are cut from origin/main (B5). Registration grants no execution authority."
+      },
+      "repository": {
+        "id": "skills",
+        "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+      },
+      "scope": [
+        ".ai/knowledge/contract",
+        "tests/knowledge_contract_fingerprint_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "A shared module defines the host-neutral producer step: when .ai/knowledge/registry.json exists, run the publish argv declared by .ai/commands/<host>/knowledge.json; otherwise record 'unpublished: no-registry'; on a missing descriptor or non-zero exit, record 'unpublished: <token>'. The skill never fails because of the registry.",
+        "northstar, to-spec, to-prd, to-issues and research each end with a pointer of at most 3 lines to that module and declare their kind.",
+        "Every description stays at most 160 characters; northstar/SKILL.md (105 lines at planning) has a net line delta of 0 or less; other bodies stay at most 100 lines.",
+        "tests/knowledge_producers_test.sh asserts the pointer and kind in each skill and is discovered by tests/run-tests.sh; scripts/validate-skill-catalog.py, tests/codex_parity_test.sh and tests/opencode_parity_test.sh pass under run-tests.sh.",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "coverage_status": "unknown",
+      "dependencies": [
+        "XSKP-P5-01"
+      ],
+      "id": "XSKP-P5-02",
+      "issue_ref": "issue:skills:xskp-p5-skill-producers",
+      "legacy_risk_reason": "Coverage unknown (skills is Markdown and bash; no line-coverage tooling). Existing seams: northstar, to-spec, to-prd, to-issues and research SKILL.md files, shipped to three hosts via ai-catapult. Characterize current catalog output and line budgets; sprout behavior into the new knowledge-publish module, minimal SKILL.md edits.",
+      "legacy_safe_tdd": true,
+      "owner": "unassigned",
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "blocked"
+      },
+      "readiness_notes": {
+        "implementation": "Unknown until preparation clears; needs independent live authority and an observed red/green.",
+        "merge": "Unknown until implementation; needs local and hosted CI, resolved review, and fresh merge-stage admission.",
+        "preparation": "Planning inputs (plan-scoped spec, contract pack planning copy) must be committed to the default branch by the owner before worktrees are cut from origin/main (B5). Registration grants no execution authority."
+      },
+      "repository": {
+        "id": "skills",
+        "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+      },
+      "scope": [
+        "03-configure-generate/ai-catapult-init/modules/knowledge-publish.md",
+        "02-govern-plan/northstar/SKILL.md",
+        "02-govern-plan/to-spec/SKILL.md",
+        "02-govern-plan/to-prd/SKILL.md",
+        "02-govern-plan/to-issues/SKILL.md",
+        "01-discover-decide/research/SKILL.md",
+        "tests/knowledge_producers_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "handoff (kind handoff), retro (learning), domain-modeling (adr, target docs/architecture/adr/) and code-review (review) end with the same pointer to the shared producer module.",
+        "Catalog limits (description at most 160 characters, body at most 100 lines) and Codex/OpenCode parity hold under tests/run-tests.sh.",
+        "tests/knowledge_producers_test.sh covers all nine producer skills.",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "coverage_status": "unknown",
+      "dependencies": [
+        "XSKP-P5-02"
+      ],
+      "id": "XSKP-P5-03",
+      "issue_ref": "issue:skills:xskp-p5-skill-producers",
+      "legacy_risk_reason": "Coverage unknown (skills is Markdown and bash; no line-coverage tooling). Existing seams: handoff, retro, code-review and domain-modeling SKILL.md files. Characterize catalog output and line budgets; minimal references to the shared module.",
+      "legacy_safe_tdd": true,
+      "owner": "unassigned",
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "blocked"
+      },
+      "readiness_notes": {
+        "implementation": "Unknown until preparation clears; needs independent live authority and an observed red/green.",
+        "merge": "Unknown until implementation; needs local and hosted CI, resolved review, and fresh merge-stage admission.",
+        "preparation": "Planning inputs (plan-scoped spec, contract pack planning copy) must be committed to the default branch by the owner before worktrees are cut from origin/main (B5). Registration grants no execution authority."
+      },
+      "repository": {
+        "id": "skills",
+        "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+      },
+      "scope": [
+        "04-validate-handoff/handoff/SKILL.md",
+        "04-validate-handoff/retro/SKILL.md",
+        "04-validate-handoff/code-review/SKILL.md",
+        "01-discover-decide/domain-modeling/SKILL.md",
+        "tests/knowledge_producers_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "migration.md and documentation-blueprint.md reference the knowledge-registry/1 contract and the 'ai-catapult adopt' engine by name only, with no runtime dependency.",
+        "The templates gain dot-ai/knowledge/entries/.gitkeep and dot-ai/knowledge/registry.json whose bytes after {{REPO_ID}} substitution equal the P4 init bytes ({entries: [], generated_from: '.ai/knowledge/entries', repo_id, schema: 'knowledge-registry/1'} under the contract serialization); any template boundary manifest is updated so tests/ai-catapult-templates_test.sh passes under tests/run-tests.sh.",
+        "reference/fixtures/v3/standalone/.ai/commands is unchanged; the ai-catapult skills lock bump is a follow-up (installed lane: report only, none until the bump).",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "coverage_status": "unknown",
+      "dependencies": [
+        "XSKP-P5-01"
+      ],
+      "id": "XSKP-P5-04",
+      "issue_ref": "issue:skills:xskp-p5-skill-producers",
+      "legacy_risk_reason": "Coverage unknown (skills is Markdown and bash; no line-coverage tooling). Existing seams: ai-catapult-init modules migration.md and documentation-blueprint.md, the templates every scaffolded repo receives, and tests/ai-catapult-templates_test.sh. Characterize template output; additive changes only.",
+      "legacy_safe_tdd": true,
+      "owner": "unassigned",
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "blocked"
+      },
+      "readiness_notes": {
+        "implementation": "Unknown until preparation clears; needs independent live authority and an observed red/green.",
+        "merge": "Unknown until implementation; needs local and hosted CI, resolved review, and fresh merge-stage admission.",
+        "preparation": "Planning inputs (plan-scoped spec, contract pack planning copy) must be committed to the default branch by the owner before worktrees are cut from origin/main (B5). Registration grants no execution authority."
+      },
+      "repository": {
+        "id": "skills",
+        "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+      },
+      "scope": [
+        "03-configure-generate/ai-catapult-init/modules/migration.md",
+        "03-configure-generate/ai-catapult-init/modules/documentation-blueprint.md",
+        "03-configure-generate/ai-catapult-init/templates/dot-ai/knowledge",
+        "tests/ai-catapult-templates_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "xskp-p5-skill-producers",
+  "issue_ref": "issue:skills:xskp-p5-skill-producers",
+  "planning_complete": true,
+  "repository": {
+    "id": "skills",
+    "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+  },
+  "schema": "handoff-goals/1",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5-skill-producers.md",
+    "sha256": "f2c315e2843033cde9d4e609b2ab2b3c841ac1321f1a461f21c09c1b29120fa4"
+  },
+  "status": "active"
+}
