@@ -208,6 +208,18 @@
       "responsible": "Andres Silva Burgstahler"
     },
     {
+      "id": "tool-git",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "tooling",
+      "binding": {
+        "tool": "git"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
       "id": "tool-prek",
       "stage": "implementation",
       "scope": {

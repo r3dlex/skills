@@ -12,7 +12,7 @@ from pathlib import Path
 import readiness_contract as rc
 
 ROOT = Path.cwd()
-POLICY_SHA256 = '31addf1c0da136085e7eec64986c340b0ef7fa493a00b45c4ed6fb4a81116aed'
+POLICY_SHA256 = '1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444'
 SUPERSEDES = 'bdca65ade44ed6ab2c6d2e9bd7c54773c884998eb9a21a56a7edbcf38643f5e5'
 REGISTRATION = 'northstar-plan-xskp-p5-skill-producers'
 GENERATION = '4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c'
@@ -24,7 +24,7 @@ GOALS = {
     'XSKP-P5-03': ('feat/knowledge-producers-review-XSKP-P5-03', '0e5a0f90c86239b07f11c86f1dde18b90cd42f5fe95583033e0a7e17ee615ab9'),
     'XSKP-P5-04': ('feat/knowledge-init-templates-XSKP-P5-04', 'd846d45fe622157871578e818ca4fbf952f32842721f3b72541af41ff94a20ed'),
 }
-TOOLS = ('bash', 'python3', 'prek')
+TOOLS = ('bash', 'python3', 'git', 'prek')
 REPO = {'repository': True}
 failures, passes = [], 0
 
@@ -126,7 +126,7 @@ try:
     codes = {g['code'] for g in gaps}
     check('contract accepts the policy shape (no policy_context_invalid)', 'policy_context_invalid' not in codes)
     failed = {g['source']['gate'] for g in gaps if g['code'] == 'gate_failed'}
-    expected = {gid for gid, g in gates.items() if g['stage'] == 'implementation'} - {'tool-catalog-validator', 'tool-bash', 'tool-python3', 'tool-prek'}
+    expected = {gid for gid, g in gates.items() if g['stage'] == 'implementation'} - {'tool-catalog-validator'}
     check('every evidence-bound implementation gate stays unproven without receipts', expected <= failed)
     check('authority and dependency blockers remain', {'authority_unavailable', 'dependency_incomplete', 'goal_not_ready'} <= codes)
 finally:

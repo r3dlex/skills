@@ -15,7 +15,7 @@ configuration does not approve its digest.
 - Requested stage: **implementation**, admitted one goal at a time in dependency
   order (`01` → `02` → `03`; `01` → `04`).
 - Proposed policy: `.ai/policies/readiness-policy.json`.
-- Proposed policy SHA-256: `31addf1c0da136085e7eec64986c340b0ef7fa493a00b45c4ed6fb4a81116aed`.
+- Proposed policy SHA-256: `1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444`.
 - Previous policy SHA-256: `bdca65ade44ed6ab2c6d2e9bd7c54773c884998eb9a21a56a7edbcf38643f5e5`
   (retained in Git at `610baaa`).
 - Proposed responsible party: Andres Silva Burgstahler, retained from the prior
@@ -36,7 +36,7 @@ configuration does not approve its digest.
   each goal now needs an exact branch gate and a protected approval bound to its
   goal revision.
 - The single repository-wide `tool-present` (python3) gate becomes explicit
-  observations for `bash`, `python3` and `prek`, plus an `executable_presence`
+  observations for `bash`, `python3`, `git` and `prek`, plus an `executable_presence`
   gate on `scripts/validate-skill-catalog.py`.
 - B5 is a machine-visible `planning-inputs-on-main` independent-result gate; no
   passing B5 result is claimed.
