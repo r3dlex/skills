@@ -13,6 +13,19 @@ The source spec must already have one unambiguous node in the traceability graph
 Publication uses the exact pinned Autobahn helper in canonical source layout or
 sibling-flat install; missing/mismatched producer/consumer dependencies stop.
 
+## Same-repository worktree publication
+
+To preserve canonical repository identity while publishing only in a verified
+linked worktree, pair `--worktree-root /worktrees/plan` and
+`--base-commit <40-hex-base>` with `--root /repo` on `handoff-write.sh`.
+The helper validates the Git relationship; specification, graph, immutable
+payloads, lock and registry are read/written in the linked worktree, not the
+primary checkout. Registry-last publication and enrichment preservation still
+apply. This opt-in does not transform a bundle into cross-repository mapping,
+approve its policy, grant protected-path write authority or admit implementation.
+See [worktree execution](../../../04-validate-handoff/autobahn/modules/worktree-execution.md)
+for subsequent independent admission and stage-context requirements.
+
 ## Publication boundary and recovery
 
 All cooperating writers acquire `.ai/workflows/.northstar-readiness-v1.lock` by

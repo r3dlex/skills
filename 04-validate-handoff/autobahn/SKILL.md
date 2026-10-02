@@ -12,12 +12,12 @@ Autobahn ships implementation-ready goals one PR at a time. It delegates engines
 
 1. Gate either a northstar handoff or one direct implementation-ready goal:
    `bash autobahn/prereq-check.sh --root . --handoff <registered-id> --goal-id <id> --context <independent-context.json>`; direct intake uses `--goal <direct-v1.json>`. Mapped intake adds `--execution-root`; see [execution-mapping.md](modules/execution-mapping.md).
+   Same-repository linked worktrees instead pair `--worktree-root` with `--base-commit`; see [worktree-execution.md](modules/worktree-execution.md).
 2. Select standard or legacy-safe TDD, then pick the execution engine.
 3. Implement one goal per PR, peer-review, then require fresh merge-stage context for the original exact selection through `run-gates.sh --phase pre-merge` before either merge-authority route. `local-validation` is supporting evidence, not merge admission or authority.
 4. On merge, cascade-close the goal's issue with a triage status.
 
 ## Prereq (fail-closed)
-
 Requires `ai-catapult-init` v3 at the planning root plus an exact versioned northstar handoff or an evidence-complete
 direct goal passing `readiness-check.sh` — direct intake is for already-understood
 work, not a shortcut past discovery. Planning completion is separate from execution readiness. Both routes use one pinned, non-writing validator and fixed approved policy. Reports never grant dispatch authority: independently verify live policy/operation authority before dispatch. Missing authority blocks; a self-authored context cannot authorize execution.
