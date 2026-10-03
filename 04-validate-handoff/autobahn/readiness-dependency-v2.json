@@ -1,0 +1,17 @@
+{
+  "files": {
+    "contract-run-v2.sh": "a812721b26f66d5ff781e9f2ae907b0d34c66d474eb0eb960cfc6f1fc77ffba4",
+    "contract-run.sh": "c3b7e45567714c751df68768b56d05bd1eaf0dc2e56e865c85e1a393b13d8848",
+    "lib/observer.py": "6ec2a78ed45d62997ec1401057e4bf665a4fad6d7ca8d7f33ca180edbaa41d5b",
+    "lib/readiness_contract.py": "30cfb9bf7436ff1f6b14c0b16542a62a6893321f5eface820c827ae4ec600166",
+    "lib/readiness_contract_v2.py": "acc66ca2d0aeb582b38c5ece7d5dcd0a1cb341a9c2b924241f000bbed169840f",
+    "lib/verification.py": "572819a9c8a1039173c5483d0f7f9a33362588d197e27731bb97b5dd78d33524",
+    "merge-authority.sh": "f607c62edb0e35564c43f79ebee730c450da23d5f23dcc0febffdf1d3bde92f4",
+    "migrate-handoff.sh": "08e12c7d4385a7e03cd26fb13a2006f8747fbbe4418cac95d7fb83a9c2a74145",
+    "northstar/handoff-write.sh": "49465bce958b43f2921ac3c613e06fa9f8dd6cceb5e713ce63b410f012b3b6a3",
+    "prereq-check.sh": "fbffee1880ce0291662b5ff48eb7221c4cfab189924c87a775c4f0a172d62b24",
+    "run-gates.sh": "902ada2a2928b49db49d75c79006f5225a363a8dfa147cf57f86b08d4bd9bf3c",
+    "schemas/readiness-contract-v2.json": "f59355272cd8a01355c593a34aa809e7145a349c17e58d900bea3de8991c0f41"
+  },
+  "schema": "readiness-contract/2"
+}

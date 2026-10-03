@@ -22,7 +22,14 @@
 # string, and it does not recompute who is an admin.
 #
 # Usage:
-#   merge-authority.sh --verdict <host-policy-verdict.json>
+#   merge-authority.sh --verdict <host-policy-verdict.json>   (v1 path)
+#   merge-authority.sh --pr <number> [--admin]                 (readiness-contract/2)
+#
+# readiness-contract/2 route: once origin/<target> of the repository this runs in
+# carries a v2 registry or a live readiness-policy/2, --pr is mandatory on every
+# call, --verdict included. --pr selects v1 or v2 by observing the PR head branch
+# against that v2 registry. A v2 PR never takes a verdict: the pinned v2 driver
+# re-observes every fact behind its merge certificate (modules/merge-authority.md).
 # Output:
 #   prints the decision (merge | ready-for-human | fail-closed) + reason
 # Exit:
@@ -36,12 +43,24 @@ set -uo pipefail
 
 command -v python3 >/dev/null 2>&1 || { echo "merge-authority: python3 is required (fail-closed prerequisite)." >&2; exit 2; }
 
+# Route first. Exit 10 means "not a v2 decision" (no v2 artifacts on
+# origin/<target>, outside a repository, or a PR that is not a v2 goal branch) and
+# continues on the unchanged v1 adapter below; any other status is the v2 decision.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bash "$HERE/contract-run.sh" merge-v2 "$@"
+v2_route=$?
+if [[ "$v2_route" -ne 10 ]]; then
+  exit "$v2_route"
+fi
+
 VERDICT=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --verdict) VERDICT="${2:-}"; shift 2 ;;
     --verdict=*) VERDICT="${1#--verdict=}"; shift ;;
-    *) echo "usage: merge-authority.sh --verdict <host-policy-verdict.json>" >&2; exit 2 ;;
+    --pr) shift 2 ;;
+    --pr=*) shift ;;
+    *) echo "usage: merge-authority.sh --verdict <host-policy-verdict.json> [--pr <number>]" >&2; exit 2 ;;
   esac
 done
 
