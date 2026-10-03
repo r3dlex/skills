@@ -716,9 +716,19 @@ class EntryPointTests(unittest.TestCase):
         for name in ('admit)', 'publish)', 'migrate)', 'admit|', 'publish|', 'migrate|'):
             self.assertNotIn(name, prelude)
 
+    def test_help_is_a_usage_refusal_never_exit_0(self):
+        for argv in (['-h'], ['--help'], ['merge-v2', '-h'], ['merge-v2', '--help'], ['admit-v2', '--help']):
+            self.assertEqual(observer.run(argv)[0], 2, argv)
+        with tempfile.TemporaryDirectory() as tmp:
+            for args in (['-h'], ['--help'], ['--pr', '1', '--help']):
+                result = subprocess.run(['bash', str(AUTO / 'merge-authority.sh'), *args], cwd=tmp, capture_output=True,
+                                        text=True, stdin=subprocess.DEVNULL)
+                self.assertEqual(result.returncode, 2, args)
+
     def test_unknown_arguments_and_proceed_text_exit_2(self):
         for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2'):
-            for extra in (['proceed'], ['override'], ['--force'], ['--admin', 'if', 'necessary'], ['--anchor', '/x']):
+            for extra in (['proceed'], ['override'], ['--force'], ['--admin', 'if', 'necessary'], ['--anchor', '/x'],
+                          ['-h'], ['--help']):
                 with self.subTest(operation=operation, extra=extra):
                     exit_code, result = observer.run([operation, *extra])
                     self.assertEqual(exit_code, 2, result)

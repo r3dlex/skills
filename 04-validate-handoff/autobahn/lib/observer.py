@@ -983,11 +983,13 @@ HANDLERS = {'admit-v2': op_admit, 'publish-v2': op_publish, 'approval-request': 
 
 
 def parser():
-    main_parser = argparse.ArgumentParser(prog='contract-run.sh (readiness-contract/2)', allow_abbrev=False)
+    # No help action: argparse help exits 0, and exit 0 means "authorized: merge" to merge-authority.sh.
+    main_parser = argparse.ArgumentParser(prog='contract-run.sh (readiness-contract/2)', allow_abbrev=False, add_help=False)
     operations = main_parser.add_subparsers(dest='operation', required=True)
 
     def operation(name):
-        return operations.add_parser(name, allow_abbrev=False, prog='contract-run.sh %s (readiness-contract/2)' % name)
+        return operations.add_parser(name, allow_abbrev=False, add_help=False,
+                                     prog='contract-run.sh %s (readiness-contract/2)' % name)
     admit = operation('admit-v2')
     admit.add_argument('--root', required=True)
     admit.add_argument('--handoff', required=True)
@@ -1057,9 +1059,9 @@ def run(argv, now=None, adapter=None):
     """Parse, run one operation, log the exit code. Unknown arguments exit 2."""
     try:
         args = parser().parse_args(argv)
-    except SystemExit as exit_:
-        return (exit_.code if isinstance(exit_.code, int) else 2), {
-            'schema': v2.VERSION, 'refusals': [{'code': 'usage', 'detail': 'unknown or missing argument'}]}
+    except SystemExit:
+        # Every parser exit is a usage refusal; nothing argparse does may yield exit 0.
+        return 2, {'schema': v2.VERSION, 'refusals': [{'code': 'usage', 'detail': 'unknown or missing argument'}]}
     now = now or datetime.now(timezone.utc).replace(microsecond=0)
     handler = HANDLERS.get(args.operation, op_reserved)
     try:

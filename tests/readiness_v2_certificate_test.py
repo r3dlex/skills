@@ -188,7 +188,7 @@ class CertificateIssueTests(unittest.TestCase):
         self.c.host({'checks': {self.c.head: [pending]}})
         skip = {'SKIP': 'all', 'SKIP_GATES': '1', 'SKIP_CHECKS': '1', 'AI_FACTORY_ALLOW_UNREACHABLE_UMBRELLA': '1'}
         self.refused(self.c.certify(env=skip), 'check_pending')
-        for extra in (['proceed'], ['override'], ['--force'], ['--admin', 'if', 'necessary']):
+        for extra in (['proceed'], ['override'], ['--force'], ['--admin', 'if', 'necessary'], ['-h'], ['--help']):
             self.assertEqual(self.c.certify(extra=extra)[0], 2)
             self.assertEqual(self.c.merge(*extra)[0], 2)
             for operation in ('admit-v2', 'publish-v2', 'approval-request'):
@@ -381,7 +381,7 @@ class MergeAuthorityEntryTests(unittest.TestCase):
             self.assertEqual(call['env']['GH_CONFIG_DIR'], str(Path(home) / '.config/gh'))
             self.assertLessEqual(names - {'PATH', 'LANG', 'LC_ALL', 'TMPDIR', 'SSH_AUTH_SOCK', 'GH_TOKEN', 'HOME',
                                           'GH_CONFIG_DIR', '__CF_USER_TEXT_ENCODING'}, set(), names)
-        for extra in (['proceed'], ['override'], ['--force'], ['--admin', 'if', 'necessary']):
+        for extra in (['proceed'], ['override'], ['--force'], ['--admin', 'if', 'necessary'], ['-h'], ['--help']):
             self.assertEqual(self.authority(c.fixture.work, '--pr', PR, *extra, env=env).returncode, 2, extra)
             gates = subprocess.run(['bash', str(AUTO / 'run-gates.sh'), '--root', str(c.fixture.work), '--goal-record',
                                     str(self.base / 'absent.json'), '--phase', 'pre-merge', *extra],
