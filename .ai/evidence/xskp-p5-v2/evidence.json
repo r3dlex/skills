@@ -1,0 +1,33 @@
+{
+  "approval_status": "pending",
+  "base_commit": "48f90f11f5ce443451c2bfaeda3e2e4657791828",
+  "bootstrap_regression_red_output": "bootstrap-regression-red.log",
+  "command": "bash tests/xskp_p5_v2_successor_test.sh",
+  "generation": "07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+  "green_exit": 0,
+  "green_output": "preparation-green.log",
+  "green_tests": 8,
+  "handoff": "northstar-plan-xskp-p5-skill-producers-v2",
+  "live_policy_changed": false,
+  "purpose": "successor preparation only; not feature TDD, approval, admission or merge certificate",
+  "red_exit": 1,
+  "red_output": "preparation-red.log",
+  "schema": "xskp-p5-v2-preparation-evidence/1",
+  "validation": {
+    "full_tests": {
+      "command": "bash tests/run-tests.sh",
+      "exit": 0,
+      "suites_passed": 2
+    },
+    "independent_review": "native code-reviewer approved preparation only; no approval/admission/merge authority",
+    "lint": {
+      "command": "bash tests/local_lint.sh",
+      "exit": 0
+    },
+    "security_scan": {
+      "command": "bash tests/local_security_scan.sh",
+      "exit": 0
+    },
+    "static_checks": "Python AST, generated JSON and git diff --check passed"
+  }
+}

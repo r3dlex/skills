@@ -1,0 +1,35 @@
+..F.....
+======================================================================
+FAIL: test_historical_policy_regressions_survive_approved_bootstrap (__main__.SuccessorTests.test_historical_policy_regressions_survive_approved_bootstrap)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-xskp-p5-v2-20261004/tests/xskp_p5_v2_successor_test.py", line 137, in test_historical_policy_regressions_survive_approved_bootstrap
+    self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 :   FAIL: policy digest is the pinned approval subject
+  FAIL: policy is readiness-policy/1 with only supported worktree-mode fields
+  FAIL: worktree binding names the exact linked worktree, base and full target ref
+  PASS: registration is active at the pinned generation
+  PASS: bundle bytes match the registered digest
+  PASS: generation is the canonical bundle digest
+  FAIL: policy repository equals the bundle repository
+  PASS: bundle names the plan-scoped spec copy at its current digest
+  PASS: spec copy pins the umbrella spec digest
+  PASS: generation is exactly one goal, ACH-S-01
+  PASS: all three stages ready as published
+  PASS: owner stays unassigned in the frozen bundle
+  PASS: no goal dependencies (S-01 completion is a B5 input, not a dependency)
+  PASS: verification commands are exact
+  PASS: goal revision is the pinned approval subject
+  FAIL: extensions name the active plan, generation and superseded P5 policy
+  FAIL: superseded P5 policy bytes are retained
+  FAIL: approval is pending, never claimed
+Traceback (most recent call last):
+  File "<stdin>", line 93, in <module>
+TypeError: string indices must be integers, not 'str'
+
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.144s
+
+FAILED (failures=1)

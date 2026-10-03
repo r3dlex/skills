@@ -46,6 +46,10 @@ policy = rc.read(policy_path)
 gates = {g['id']: g for g in policy['gates']}
 check('retained policy bytes keep the pinned approval subject digest', rc.digest(policy_path) == POLICY_SHA256)
 live = rc.read(ROOT / rc.POLICY)
+# Under policy/2, test the historical supersession chain using frozen ACH-S-01
+# bytes; do not require the new plan-agnostic policy to carry v1 extensions.
+if live.get('schema') == 'readiness-policy/2':
+    live = rc.read(ROOT / '.ai/handoff/ach-s01-readiness-policy.retained.json')
 check('live policy displaces P5 and names the retained bytes',
       rc.digest(ROOT / rc.POLICY) != POLICY_SHA256
       and live.get('extensions', {}).get('supersedes_policy_sha256') == POLICY_SHA256
