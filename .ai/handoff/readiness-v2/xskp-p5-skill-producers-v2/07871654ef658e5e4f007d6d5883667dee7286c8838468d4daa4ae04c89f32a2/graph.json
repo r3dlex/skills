@@ -1,0 +1,83 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers-v2:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "target": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-00:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers-v2:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "target": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-01:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers-v2:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "target": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-02:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers-v2:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "target": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-03:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5-skill-producers-v2:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "target": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-04:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "type": "plans"
+    }
+  ],
+  "generation": "07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+  "goal_ids": [
+    "XSKP-P5-00",
+    "XSKP-P5-01",
+    "XSKP-P5-02",
+    "XSKP-P5-03",
+    "XSKP-P5-04"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:xskp-p5-skill-producers-v2:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "4010f8279c1468736805754da0dd18b1413b6bdc16839258034605510830a5b1",
+      "id": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-00:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "f30701b7a6209f1fccbca2e3f76c55282e40391e37d2701f481a122aa6bc0639",
+      "id": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-01:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "74c6274b3b678b0048f462bcfaf1b22a820ea691e90d4b7d74cfab62ec8b4dc0",
+      "id": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-02:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "365cad2ceeb3f0b4d7d98e5f781297dab5ca63c76877edde176a76292963c303",
+      "id": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-03:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "b638957040c8a39c8acb3f22663ce0096afb09d673d90d425007e5db8b014bac",
+      "id": "plan:skills:xskp-p5-skill-producers-v2:XSKP-P5-04:07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "xskp-p5-skill-producers-v2",
+  "schema_version": "1.1"
+}

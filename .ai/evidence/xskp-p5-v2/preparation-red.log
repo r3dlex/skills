@@ -1,0 +1,22 @@
+E
+======================================================================
+ERROR: setUpClass (__main__.SuccessorTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-xskp-p5-v2-20261004/tests/xskp_p5_v2_successor_test.py", line 37, in setUpClass
+    registry = read(ROOT / v2.REGISTRY)
+  File "/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-xskp-p5-v2-20261004/tests/xskp_p5_v2_successor_test.py", line 27, in read
+    return json.loads(Path(path).read_text())
+                      ~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 787, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 771, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-xskp-p5-v2-20261004/.ai/workflows/northstar-readiness-v2.json'
+
+----------------------------------------------------------------------
+Ran 0 tests in 0.001s
+
+FAILED (errors=1)

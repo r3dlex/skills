@@ -35,6 +35,42 @@
         "sha256": "ba7431dd22b71206ecb111fc05592941d33b24b54b080e973f28d16b341e020a"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "52c61dc5e6d406ea2654885281ec7464c8b6efece173ddf8ee5f2d7997294fb4",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/goals.json",
+          "sha256": "f662123b092d95f9e470bb9a6ce49d11a5c47d89d4c22198286ea6eb5c3ab56f"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/graph.json",
+          "sha256": "3ddbb1e4e1512246bac08d1e573bc94ef7e1566517489c2755c17170a34174e5"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/handoff.md",
+          "sha256": "e39059f53dda6752c90a8f303bf8d9b65569bed569f7e61fca10a1509714fcbe"
+        },
+        "policy_candidate": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/policy-candidate.json",
+          "sha256": "a39e092c8cac708139546fca863406e326c51277dbcda2a415c18ede0f67668e"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/sidecar.json"
+        }
+      },
+      "generation": "07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2",
+      "handoff_path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers-v2/07871654ef658e5e4f007d6d5883667dee7286c8838468d4daa4ae04c89f32a2/handoff.md",
+      "id": "northstar-plan-xskp-p5-skill-producers-v2",
+      "mode": "bootstrap",
+      "plan_id": "xskp-p5-skill-producers-v2",
+      "policy_sha256": "a39e092c8cac708139546fca863406e326c51277dbcda2a415c18ede0f67668e",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/xskp-p5-readiness-v2.md",
+        "sha256": "1045ab7ea26d0fcad2255040dfad24b60c9c319c90e667501bed6541a48d641d"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [

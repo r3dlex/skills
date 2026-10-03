@@ -1,0 +1,180 @@
+{
+  "approval": {
+    "accept": [
+      "ssh-tag"
+    ],
+    "anchor_sha256": "52c61dc5e6d406ea2654885281ec7464c8b6efece173ddf8ee5f2d7997294fb4",
+    "max_age_days": 14
+  },
+  "branch_pattern": "^feat/<plan_id>-<goal_id>$",
+  "gates": [
+    {
+      "binding": {
+        "roles": [
+          "owner"
+        ]
+      },
+      "id": "owner",
+      "kind": "ownership",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "binding": {
+        "roles": [
+          "reviewer"
+        ]
+      },
+      "id": "reviewer",
+      "kind": "ownership",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
+    },
+    {
+      "id": "approval",
+      "kind": "plan_approval",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "id": "approval-merge",
+      "kind": "plan_approval",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
+    },
+    {
+      "id": "branch",
+      "kind": "branch_target",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "id": "branch-merge",
+      "kind": "branch_target",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
+    },
+    {
+      "id": "tools",
+      "kind": "tooling",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "binding": {
+        "commits": [
+          "277cc698e8403131f87549b0d8ac64a7906a7c3e"
+        ]
+      },
+      "id": "planning-inputs-on-target",
+      "kind": "git_ancestor",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "binding": {
+        "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication.contract/contract.lock.json",
+        "sha256": "9f5d7edfc17554c383b06aa4726dfffe564ecc8d657b16baa89ce72098d5e102"
+      },
+      "id": "contract-lock",
+      "kind": "file_digest",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "binding": {
+        "path": "scripts/validate-skill-catalog.py",
+        "sha256": "eb9d7cc931314bd66959414e445aa5e66f131920176ca7cad5c0d7385f4fac2f"
+      },
+      "id": "catalog-validator",
+      "kind": "file_digest",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "id": "checks",
+      "kind": "hosted_checks",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
+    },
+    {
+      "id": "review",
+      "kind": "review",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
+    },
+    {
+      "id": "fixtures",
+      "kind": "fixture",
+      "not_applicable": {
+        "reason": "no-fixture-dependency"
+      },
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "id": "harness",
+      "kind": "harness_trust",
+      "not_applicable": {
+        "reason": "no-pinned-harness"
+      },
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    }
+  ],
+  "identity_model": "multi",
+  "repository": {
+    "id": "skills"
+  },
+  "required_checks": [
+    "Test Suite",
+    "Pre-commit Hooks",
+    "Repository Secret Scan"
+  ],
+  "reviewer_requirements": {
+    "independent_lane": true
+  },
+  "schema": "readiness-policy/2",
+  "skippable_checks": [],
+  "sources": [
+    "AGENTS.md",
+    ".rules.ts",
+    ".ai/rules/security.md",
+    ".ai/rules/technical-bounds.md"
+  ],
+  "target": "main",
+  "tools": [
+    "bash",
+    "python3",
+    "git",
+    "prek"
+  ]
+}
