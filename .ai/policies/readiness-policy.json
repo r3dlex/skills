@@ -32,7 +32,7 @@
   ],
   "worktree": {
     "schema": "git-worktree/1",
-    "root": "/private/tmp/claude-502/-Users-andresilvaburgstahler-Ws-Personal-AiTool/94f42008-9018-42b5-b61e-b0edc80d9a34/scratchpad/wt-ps1",
+    "root": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01",
     "base_commit": "92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3",
     "target_ref": "refs/remotes/origin/main"
   },
@@ -159,6 +159,16 @@
       "responsible": "Andres Silva Burgstahler"
     },
     {
+      "id": "tool-catalog-validator",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "executable_presence",
+      "path": "scripts/validate-skill-catalog.py",
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
       "id": "planning-inputs-on-main",
       "stage": "implementation",
       "scope": {
@@ -170,7 +180,7 @@
   ],
   "not_applicable": {
     "fixtures": "ACH-S-01 has no independently provisioned prerequisite fixture. Its fixtures (ephemeral keys, temporary trust anchors and temporary git repositories) are disposable temporary-directory deliverables of its own tests, run by bash tests/run-tests.sh; they are not pre-existing external services, and their absence stays blocked by acceptance criteria and TDD/CI gates. v1 accepts any not_applicable reason (P7), so this reason is a disclosure, not a control.",
-    "harness_trust": "ACH-S-01 is the harness: it builds the v2 gate driver (validator, observer, certificate and merge authority), so no independently pinned prior harness commit can anchor trust. Trust rests on the independent review lane, the hosted checks (Pre-commit Hooks, Test Suite, Repository Secret Scan) and the hand-written readiness-context/1 records; v1 gates run from a detached worktree at the base commit, never from the ACH-S-01 head. v1 accepts any not_applicable reason (P7), so this reason is a disclosure, not a control. This exemption does not attest to installed runtime trust."
+    "harness_trust": "ACH-S-01 is the harness: it builds the v2 gate driver (validator, observer, certificate and merge authority), so no independently pinned prior harness commit can anchor trust. Trust rests on the independent review lane, the hosted checks (Pre-commit Hooks, Test Suite, Repository Secret Scan) and the hand-written readiness-context/1 records; v1 gates run from a detached worktree at the bound base commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 (worktree.base_commit), never from the ACH-S-01 head. v1 accepts any not_applicable reason (P7), so this reason is a disclosure, not a control. This exemption does not attest to installed runtime trust."
   },
   "extensions": {
     "active_plan": "ach-skills-contract-v2",

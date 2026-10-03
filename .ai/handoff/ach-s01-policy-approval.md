@@ -9,7 +9,7 @@ Preparing this configuration does not approve its digest.
 - Repository: `skills`, `r3dlex/skills`.
 - Canonical root (identity): `/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills`.
 - Bound linked worktree (`git-worktree/1`):
-  - root: `/private/tmp/claude-502/-Users-andresilvaburgstahler-Ws-Personal-AiTool/94f42008-9018-42b5-b61e-b0edc80d9a34/scratchpad/wt-ps1`
+  - root: `/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01`
   - base commit: `92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3` (skills `origin/main` at authoring)
   - target ref: `refs/remotes/origin/main`
 - Registered handoff: `northstar-plan-ach-skills-contract-v2`.
@@ -21,13 +21,14 @@ Preparing this configuration does not approve its digest.
 - Selected goal: `ACH-S-01` only. Stages: **implementation** and **merge**, each
   admitted separately under `readiness-contract/1`.
 - Proposed policy: `.ai/policies/readiness-policy.json`.
-- Proposed policy SHA-256: `29ae6feeb3a408496095601cf4e0d58798f2445d844245c33ebcdef9a32fd9e3`.
+- Proposed policy SHA-256: `4b022b867bef6700fa53727c7c4aeba893a28d8127fbce17c063751198d3d91f`.
 - Previous policy SHA-256: `1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444`
   (XSKP P5), retained byte-for-byte at `.ai/handoff/xskp-p5-readiness-policy.retained.json`
   and in Git at `9286514`.
 - Proposed responsible party: Andres Silva Burgstahler, retained from the prior
   policy. This is not an owner-assignment receipt: the frozen goal still says
-  `unassigned`.
+  `unassigned`, and the owner and reviewer are named only through the
+  `own-execution` and `own-review` receipts (see What remains).
 
 | Goal | Exact branch (full ref) | Target (full ref) | Approval subject (`goal_revision()`) |
 |---|---|---|---|
@@ -35,7 +36,7 @@ Preparing this configuration does not approve its digest.
 
 ## What approving authorizes
 
-Approving digest `29ae6fee…` authorizes **only** `ACH-S-01` admission under
+Approving digest `4b022b86…` authorizes **only** `ACH-S-01` admission under
 readiness-contract v1, from the bound worktree above, at the implementation and
 merge stages, once every gate below has a valid independent receipt. It does not
 approve:
@@ -51,20 +52,34 @@ approve:
   - owners and reviewer: `own-execution` (implementation) and `own-review` (merge), preserved unchanged;
   - `branch_target`: `branch-ach-s-01`, in the #92 worktree **full-ref** form. v1 compares the binding with the observed `branch` and `target_ref` as full refs (`readiness_contract.py:546-547`), so a short name would fail `worktree_branch_target_mismatch` and force a second rollover;
   - `registration_approval`: `approval-ach-s-01`, goal-scope, bound to the revision above;
-  - `tooling`: `bash`, `python3`, `git`, `prek` and `ssh-keygen`;
+  - `tooling`: `bash`, `python3`, `git`, `prek` and `ssh-keygen`, plus P5's repository-scoped `tool-catalog-validator` `executable_presence` gate on `scripts/validate-skill-catalog.py`, kept byte-identical (an existing gate is never weakened or dropped);
   - `fixtures`: `not_applicable`, because S-01's fixtures are disposable temporary-directory deliverables of its own tests;
-  - `harness_trust`: `not_applicable`, stated honestly. ACH-S-01 is the harness: it builds the v2 gate driver, so no independently pinned prior harness commit can anchor trust. Trust rests on the independent review lane, hosted checks and the hand-written contexts.
+  - `harness_trust`: `not_applicable`, stated honestly. ACH-S-01 is the harness: it builds the v2 gate driver, so no independently pinned prior harness commit can anchor trust. Trust rests on the independent review lane, hosted checks and the hand-written contexts, and v1 gates run from a detached worktree at the bound base commit `9286514`, never from the ACH-S-01 head.
   - v1 accepts any `not_applicable` reason (P7), so these reasons are a disclosure, not a control.
 - **B5** stays a `planning-inputs-on-main` independent-result gate. No passing B5 result is claimed.
 - **Worktree binding** added (`policy.worktree`). While this policy is live, v1 admission in skills works only from the bound worktree.
 - **Sources** add `CLAUDE.md` and `GEMINI.md`, which worktree-mode admission requires; every digest is current at the base commit.
-- **Removed:** P5's four branch and approval gates, and its `scripts/validate-skill-catalog.py` presence gate, which is outside the planned S-01 tooling set.
+- **Removed:** only P5's four goal-scoped branch and approval gates. v1 rejects gate scopes naming goals outside the admitted bundle, so they cannot stay. Every repository-scoped P5 gate is kept unchanged: owner, reviewer, the four tool gates, the catalog validator and B5.
 
 **v1 limitation.** The policy is active-bundle-specific and binds one worktree and
 base at a time. It invalidates every P5 policy receipt; no old approval is reused.
 `tests/ach_s01_readiness_policy_test.sh` pins this digest, the full refs, the goal
 revision and the gate scopes. `tests/xskp_p5_readiness_policy_test.sh` now pins
 the retained P5 bytes.
+
+**Second-rollover triggers.** Each of these makes this policy unusable for
+ACH-S-01 and forces another reviewed rollover with a new digest and approval:
+
+- **Any republish of the generation**, including one made only to assign an
+  owner. The owner field is part of the goal, so a republish changes the goal
+  revision pinned by `approval-ach-s-01`.
+- **Any change to a pinned source** on the observed tree: `AGENTS.md`,
+  `.rules.ts`, `.ai/rules/**`, `CLAUDE.md` or `GEMINI.md`. Admission requires
+  every policy source digest to be current (`readiness_contract.py:690-692`).
+  Merging skills `main` into the ACH-S-01 branch after such a change makes the
+  pinned sources stale. **Freeze these five paths on skills `main` from approval
+  until ACH-S-01 merges.**
+- **Moving the bound worktree or changing its base** (`policy.worktree`).
 
 ## Assurance (K1, K2)
 
@@ -84,9 +99,11 @@ alone.
    green: independent review lane recorded, every hosted check SUCCESS at the
    exact head, the audited `merge-authority.sh` host-policy path, and an audit
    entry carrying `assurance`.
-2. **Assign an owner** through the supported planning path. Do not rewrite frozen
-   generation files in place; the `own-execution` and `own-review` receipts need
-   named, non-placeholder people.
+2. **Name the owner and reviewer only through the ownership receipts.** The
+   `own-execution` and `own-review` receipts' `value` must name real,
+   non-placeholder people (`readiness_contract.py:560-562`). Do not republish the
+   generation to assign an owner, and do not rewrite frozen generation files in
+   place. Any republish changes the goal revision and forces another rollover.
 3. **Re-bind the worktree.** After this PR merges as `M`, remove this preparation
    worktree and cut `feat/ach-skills-contract-v2-ACH-S-01` from `M` at the same
    path. `9286514` stays an ancestor, as the worktree observation requires.
@@ -99,14 +116,16 @@ alone.
    Each binds the full worktree observation, including `head`,
    `target_revision` and `state_sha256`. A moved `origin/main` or head voids it.
    Announce a skills `main` merge freeze from the merge-stage context until
-   ACH-S-01 merges. Count and report every extra context.
-5. **Run v1 gates for S-01 from a detached worktree at `M`**, never from S-01's
-   head, with `PYTHONDONTWRITEBYTECODE=1` for the whole lane:
+   ACH-S-01 merges. **No review fix may land after the merge-stage context**: a
+   new head voids it. Count and report every extra context.
+5. **Run v1 gates for S-01 from a detached worktree at base `B`**
+   (`92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3`), never from S-01's head, with
+   `PYTHONDONTWRITEBYTECODE=1` for the whole lane:
 
 ```sh
-bash <detached-worktree-at-M>/04-validate-handoff/autobahn/prereq-check.sh \
+bash <detached-worktree-at-9286514>/04-validate-handoff/autobahn/prereq-check.sh \
   --root /Users/andresilvaburgstahler/Ws/Personal/AiTool/skills \
-  --worktree-root /private/tmp/claude-502/-Users-andresilvaburgstahler-Ws-Personal-AiTool/94f42008-9018-42b5-b61e-b0edc80d9a34/scratchpad/wt-ps1 \
+  --worktree-root /Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01 \
   --base-commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 \
   --handoff northstar-plan-ach-skills-contract-v2 \
   --goal-id ACH-S-01 \

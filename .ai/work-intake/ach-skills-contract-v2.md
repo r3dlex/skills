@@ -8,7 +8,7 @@
 - **Owner:** unassigned
 - **Repository:** `skills`
 - **Parent:** `issue:aitool-root:admission-complete-handoffs` (umbrella `.ai/work-intake/admission-complete-handoffs.md`)
-- **Delivery posture:** `ACH-S-01` is one independent readiness-v1 handoff (`ach-skills-contract-v2`), callable by its own `autobahn` run under the S-01 v1 policy rollover. It is not dispatchable yet: the rollover policy needs explicit approval of its digest, an owner, and two hand-written `readiness-context/1` records. `ACH-S-02` to `ACH-S-06` are published later, once, in the v2 generation.
+- **Delivery posture:** `ACH-S-01` is one independent readiness-v1 handoff (`ach-skills-contract-v2`), callable by its own `autobahn` run under the S-01 v1 policy rollover. It is not dispatchable yet: the rollover policy needs explicit approval of its digest, an owner and reviewer named only through the `own-execution`/`own-review` receipts (a republish to assign an owner would change the goal revision and force another rollover), and two hand-written `readiness-context/1` records. `ACH-S-02` to `ACH-S-06` are published later, once, in the v2 generation.
 - **Hosted reconciliation:** local-first planning record only. No hosted issue was created.
 
 ## Traceability

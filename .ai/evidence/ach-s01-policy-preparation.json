@@ -3,17 +3,22 @@
   "red": {
     "command": "bash tests/ach_s01_readiness_policy_test.sh",
     "exit_code": 1,
-    "observed": "Results: PASS=25 FAIL=21 against the pre-rollover policy sha256 1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444 (XSKP P5, base 9286514) swapped into .ai/policies/readiness-policy.json for the run only (FAIL: policy digest; worktree-mode fields; worktree binding; extensions; retained P5 bytes; sources lack CLAUDE.md and GEMINI.md; gate set; full-ref branch gate; protected approval; tool ssh-keygen; gate scope outside the bundle; harness_trust disclosure; contract rejected the policy context at implementation and merge; full-ref and short-name branch checks)"
+    "observed": "Results: PASS=37 FAIL=10 against the previous PR head policy sha256 29ae6feeb3a408496095601cf4e0d58798f2445d844245c33ebcdef9a32fd9e3 swapped in for the run only (FAIL: policy digest; worktree binding (old scratchpad root); gate set; P5 catalog validator presence gate preserved exactly; contract rejected the policy context (worktree_policy_mismatch) at implementation and merge, so the evidence-bound and authority checks failed too)"
   },
   "green": {
     "command": "bash tests/ach_s01_readiness_policy_test.sh",
     "exit_code": 0,
-    "observed": "Results: PASS=46 FAIL=0 against proposed policy sha256 29ae6feeb3a408496095601cf4e0d58798f2445d844245c33ebcdef9a32fd9e3"
+    "observed": "Results: PASS=47 FAIL=0 against proposed policy sha256 4b022b867bef6700fa53727c7c4aeba893a28d8127fbce17c063751198d3d91f"
+  },
+  "prior_red": {
+    "command": "bash tests/ach_s01_readiness_policy_test.sh",
+    "exit_code": 1,
+    "observed": "Results: PASS=25 FAIL=21 at the first PR head, against the pre-rollover policy sha256 1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444 (XSKP P5, base 9286514) swapped in for the run only (FAIL: digest; worktree-mode fields; worktree binding; extensions; retained P5 bytes; sources; gate set; full-ref branch gate; protected approval; tool ssh-keygen; gate scope; harness_trust disclosure; contract rejected the policy context; full-ref and short-name branch checks)"
   },
   "retarget_red": {
     "command": "bash tests/xskp_p5_readiness_policy_test.sh",
     "exit_code": 1,
-    "observed": "Results: PASS=21 FAIL=16 with the pre-retarget test (base 9286514 bytes) against the S-01 rollover policy (FAIL: policy digest; P5 extensions; sources; XSKP-P5-01..04 branch and approval gates; catalog validator presence gate; gate scope outside the bundle; contract rejected the policy context; implementation gates; authority and dependency blockers)"
+    "observed": "Results: PASS=21 FAIL=16 with the pre-retarget test (base 9286514 bytes) against rollover policy sha256 29ae6feeb3a408496095601cf4e0d58798f2445d844245c33ebcdef9a32fd9e3 (FAIL: policy digest; P5 extensions; sources; XSKP-P5-01..04 branch and approval gates; catalog validator presence gate; gate scope outside the bundle; contract rejected the policy context; implementation gates; authority and dependency blockers)"
   },
   "retarget_green": {
     "command": "bash tests/xskp_p5_readiness_policy_test.sh",
@@ -21,14 +26,24 @@
     "observed": "Results: PASS=38 FAIL=0 against the retained P5 bytes .ai/handoff/xskp-p5-readiness-policy.retained.json sha256 1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444"
   },
   "publication": {
-    "command": "bash 02-govern-plan/northstar/handoff-write.sh --root /Users/andresilvaburgstahler/Ws/Personal/AiTool/skills --worktree-root /private/tmp/claude-502/-Users-andresilvaburgstahler-Ws-Personal-AiTool/94f42008-9018-42b5-b61e-b0edc80d9a34/scratchpad/wt-ps1 --base-commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 --bundle <candidate inside the worktree, removed after publication>",
+    "command": "bash 02-govern-plan/northstar/handoff-write.sh --root /Users/andresilvaburgstahler/Ws/Personal/AiTool/skills --worktree-root <first worktree path, a session scratchpad, since moved> --base-commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 --bundle <candidate inside the worktree, removed after publication>",
     "exit_code": 0,
-    "observed": "Published northstar-plan-ach-skills-contract-v2 generation ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0, goals.json sha256 1c7b4837af54742374b140ed06fda2561ec62a1cc86ed847afe1029bce9a8dcd; goal_revision(ACH-S-01) d3f083e87a52b06691a7e3c22432e7d466642b32ef132b5a22151ef700802212 equals the policy approval pin"
+    "observed": "Published northstar-plan-ach-skills-contract-v2 generation ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0, goals.json sha256 1c7b4837af54742374b140ed06fda2561ec62a1cc86ed847afe1029bce9a8dcd; goal_revision(ACH-S-01) d3f083e87a52b06691a7e3c22432e7d466642b32ef132b5a22151ef700802212 equals the policy approval pin. No published artifact names the worktree path."
+  },
+  "worktree_move": {
+    "command": "git -C /Users/andresilvaburgstahler/Ws/Personal/AiTool/skills worktree move <first worktree path> /Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01",
+    "exit_code": 0,
+    "observed": "Same branch chore/ach-s01-bootstrap-preparation and head; policy.worktree.root re-derived to the new path, base_commit unchanged; generation, goals.json digest and goal revision recomputed unchanged"
+  },
+  "republish_at_new_root": {
+    "command": "bash 02-govern-plan/northstar/handoff-write.sh --root /Users/andresilvaburgstahler/Ws/Personal/AiTool/skills --worktree-root /Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01 --base-commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 --bundle <byte copy of the published goals.json inside the worktree, removed after the run>",
+    "exit_code": 0,
+    "observed": "Idempotent: same generation ba4a7996... and goals.json sha256 1c7b4837...; no tracked file changed"
   },
   "planning_admission": {
-    "command": "bash 04-validate-handoff/autobahn/prereq-check.sh --root /Users/andresilvaburgstahler/Ws/Personal/AiTool/skills --worktree-root /private/tmp/claude-502/-Users-andresilvaburgstahler-Ws-Personal-AiTool/94f42008-9018-42b5-b61e-b0edc80d9a34/scratchpad/wt-ps1 --base-commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 --handoff northstar-plan-ach-skills-contract-v2 --goal-id ACH-S-01 --stage planning",
+    "command": "bash 04-validate-handoff/autobahn/prereq-check.sh --root /Users/andresilvaburgstahler/Ws/Personal/AiTool/skills --worktree-root /Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01 --base-commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 --handoff northstar-plan-ach-skills-contract-v2 --goal-id ACH-S-01 --stage planning",
     "exit_code": 0,
-    "observed": "planning_complete true, execution_ready false, dispatch_authorized false; worktree observation accepted; gaps: policy_context_invalid:independent_context_required (status unknown) at preparation, implementation and merge; per_goal ACH-S-01 unknown x3"
+    "observed": "planning_complete true, execution_ready false, dispatch_authorized false; worktree observation accepted at the new root; gaps: policy_context_invalid:independent_context_required (status unknown) at preparation, implementation and merge"
   },
   "red_then_green": true,
   "scope": "Preparation regression only. Not feature TDD, not a readiness-context/1, not a gate receipt, not policy approval."

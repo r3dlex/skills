@@ -13,7 +13,7 @@ from pathlib import Path
 import readiness_contract as rc
 
 ROOT = Path.cwd()
-POLICY_SHA256 = '29ae6feeb3a408496095601cf4e0d58798f2445d844245c33ebcdef9a32fd9e3'
+POLICY_SHA256 = '4b022b867bef6700fa53727c7c4aeba893a28d8127fbce17c063751198d3d91f'
 SUPERSEDES = '1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444'
 RETAINED = '.ai/handoff/xskp-p5-readiness-policy.retained.json'
 REGISTRATION = 'northstar-plan-ach-skills-contract-v2'
@@ -25,7 +25,7 @@ SPEC = 'docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-contra
 UMBRELLA_SPEC_SHA256 = 'fded0858d0c3aa2ba06cdc9b6d716053cb92dd82a3afa22e6a13774e30f6ddd5'
 WORKTREE = {
     'schema': 'git-worktree/1',
-    'root': '/private/tmp/claude-502/-Users-andresilvaburgstahler-Ws-Personal-AiTool/94f42008-9018-42b5-b61e-b0edc80d9a34/scratchpad/wt-ps1',
+    'root': '/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01',
     'base_commit': '92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3',
     'target_ref': 'refs/remotes/origin/main',
 }
@@ -104,7 +104,7 @@ check('sources cover exactly the worktree-mode instruction set',
 check('every source digest is current', all(rc.digest(ROOT / s['path']) == s['sha256'] for s in policy.get('sources', [])))
 
 expected_ids = {'own-execution', 'own-review', 'branch-ach-s-01', 'approval-ach-s-01',
-                'planning-inputs-on-main'} | {'tool-' + t for t in TOOLS}
+                'tool-catalog-validator', 'planning-inputs-on-main'} | {'tool-' + t for t in TOOLS}
 check('gate set is exact (none added or removed)', set(gates) == expected_ids and len(policy.get('gates', [])) == len(expected_ids))
 check('own-execution owner gate',
       gates.get('own-execution', {}).get('binding') == {'roles': ['owner']}
@@ -126,6 +126,11 @@ for tool in TOOLS:
     check('tool observation gate: ' + tool,
           t.get('kind') == 'tooling' and t.get('binding') == {'tool': tool}
           and t.get('stage') == 'implementation' and t.get('scope') == REPO)
+cv = gates.get('tool-catalog-validator', {})
+check('P5 catalog validator presence gate preserved exactly',
+      cv == {'id': 'tool-catalog-validator', 'stage': 'implementation', 'scope': REPO, 'kind': 'executable_presence',
+             'path': 'scripts/validate-skill-catalog.py', 'responsible': RESPONSIBLE}
+      and cv == next((g for g in rc.read(ROOT / RETAINED)['gates'] if g['id'] == 'tool-catalog-validator'), None))
 b5 = gates.get('planning-inputs-on-main', {})
 check('B5 planning-inputs-on-main independent result gate',
       b5.get('kind') == 'independent_result' and b5.get('stage') == 'implementation' and b5.get('scope') == REPO)
@@ -166,8 +171,8 @@ try:
         codes = {g['code'] for g in gaps}
         check(stage + ': contract accepts the policy shape (no policy_context_invalid)', 'policy_context_invalid' not in codes)
         failed = {g['source']['gate'] for g in gaps if g['code'] == 'gate_failed'}
-        stage_gates = {gid for gid, g in gates.items() if g.get('stage') == stage}
-        check(stage + ': every gate stays unproven without receipts', bool(stage_gates) and stage_gates == failed)
+        stage_gates = {gid for gid, g in gates.items() if g.get('stage') == stage} - {'tool-catalog-validator'}
+        check(stage + ': every evidence-bound gate stays unproven without receipts', bool(stage_gates) and stage_gates == failed)
         check(stage + ': authority blocker remains and the goal itself is ready',
               'authority_unavailable' in codes and 'goal_not_ready' not in codes)
     branch_gate = gates.get('branch-ach-s-01', {})
