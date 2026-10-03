@@ -94,14 +94,19 @@ fi
 
 echo "run-gates: goal=$GOAL_ID phase=$PHASE root=$ROOT"
 
-# readiness-contract/2: detection grants nothing; the v2 driver re-reads every
-# planning input from origin/<target> and refuses on any difference.
+# readiness-contract/2: decided from the registry on origin/main, never from the
+# working tree. Detection grants nothing; the v2 driver re-reads every planning
+# input from origin/<target> and refuses on any difference.
 V2_RUN="no"
-if [[ -n "$HANDOFF" && -f "$ROOT/.ai/workflows/northstar-readiness-v2.json" ]]; then
-  V2_RUN="$(python3 -I -B -c 'import json, sys
-plans = json.load(open(sys.argv[1])).get("plans", [])
-print("yes" if any(isinstance(p, dict) and sys.argv[2] in (p.get("id"), p.get("handoff_path")) for p in plans) else "no")' \
-    "$ROOT/.ai/workflows/northstar-readiness-v2.json" "$HANDOFF")" || { echo "run-gates: BLOCKED - unreadable v2 registry" >&2; exit 1; }
+if [[ -n "$HANDOFF" ]]; then
+  V2_REGISTRY="$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_INDEX_FILE -u GIT_OBJECT_DIRECTORY \
+    git --no-replace-objects -C "$ROOT" cat-file blob refs/remotes/origin/main:.ai/workflows/northstar-readiness-v2.json 2>/dev/null || true)"
+  if [[ -n "$V2_REGISTRY" ]]; then
+    V2_RUN="$(V2_REGISTRY="$V2_REGISTRY" python3 -I -B -c 'import json, os, sys
+plans = json.loads(os.environ["V2_REGISTRY"]).get("plans", [])
+print("yes" if any(isinstance(p, dict) and sys.argv[1] in (p.get("id"), p.get("handoff_path")) for p in plans) else "no")' \
+      "$HANDOFF")" || { echo "run-gates: BLOCKED - unreadable v2 registry on origin/main" >&2; exit 1; }
+  fi
 fi
 if [[ "$V2_RUN" == "yes" ]]; then
   [[ -z "$CONTEXT$WORKTREE_ROOT$BASE_COMMIT$EXECUTION_ROOT$DIRECT" ]] \

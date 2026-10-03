@@ -820,7 +820,10 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
     pull, lane = facts['pr']['value'], facts['review_lane']['value']
     key = None
     if certifier is None:
-        key, certifier = signing_identity(anchor)
+        try:
+            key, certifier = signing_identity(anchor)
+        except (Invalid, OSError) as error:
+            refusals.append(v2.code(error) if isinstance(error, Invalid) else 'certifier_key_unavailable')
     goal = next(g for g in gen['bundle']['goals'] if g['id'] == goal_id)
     gates = run_local_gates(root, goal) if not refusals and clean_before and pull['head'] == head_before else []
     head_after, clean_after = tree_state(root)
@@ -894,34 +897,69 @@ def op_certify(args, now, adapter):
     return 0, result
 
 
+def carries_v2(root, rev):
+    """True when rev carries a v2 registry or a readiness-policy/2 at the fixed path."""
+    if show(root, rev, v2.REGISTRY) is not None:
+        return True
+    data = show(root, rev, v2.POLICY)
+    try:
+        return data is not None and json.loads(data).get('schema') == v2.POLICY_SCHEMA
+    except (ValueError, AttributeError):
+        return False
+
+
+def generic_pattern(pattern):
+    any_id = '[A-Za-z0-9][A-Za-z0-9._-]*'
+    return pattern.replace('<plan_id>', any_id).replace('<goal_id>', any_id)
+
+
 def route(cwd, pr, target, adapter):
-    """('v1', None) unless origin/<target> carries v2 artifacts and the PR is a v2 goal branch."""
+    """('v1', None) only while no v2 artifact is observable anywhere: on origin/<target>
+    (checked against git ls-remote), on the ls-remote commit, or at HEAD. Once one
+    exists, every ambiguity refuses; nothing falls back to the verdict path."""
     top = git(cwd, 'rev-parse', '--show-toplevel', check=False)
     if top.returncode:
         return 'v1', None
     root = Path(top.stdout.decode().strip()).resolve()
     ref = target_ref(target)
-    if git(root, 'rev-parse', '--verify', '--quiet', ref + '^{commit}', check=False).returncode:
+    local = git(root, 'rev-parse', '--verify', '--quiet', ref + '^{commit}', check=False)
+    local_sha = local.stdout.decode().strip() if local.returncode == 0 else None
+    has_head = git(root, 'rev-parse', '--verify', '--quiet', 'HEAD^{commit}', check=False).returncode == 0
+    remote_sha = None
+    if git(root, 'remote', 'get-url', 'origin', check=False).returncode == 0:
+        listed = git(root, 'ls-remote', 'origin', 'refs/heads/' + target, check=False).stdout.split()
+        remote_sha = listed[0].decode() if listed else None
+    remote_known = remote_sha is not None and git(root, 'cat-file', '-e', remote_sha + '^{commit}', check=False).returncode == 0
+    if not ((has_head and carries_v2(root, 'HEAD')) or (local_sha and carries_v2(root, ref))
+            or (remote_known and carries_v2(root, remote_sha))):
         return 'v1', None
-    registry_bytes, policy_bytes = show(root, ref, v2.REGISTRY), show(root, ref, v2.POLICY)
-    try:
-        live2 = policy_bytes is not None and json.loads(policy_bytes).get('schema') == v2.POLICY_SCHEMA
-    except (ValueError, AttributeError):
-        live2 = False
-    if registry_bytes is None and not live2:
-        return 'v1', None
+    v2.check(local_sha is not None, 'target_ref_unobservable', ref + ' is missing while v2 artifacts exist')
+    v2.check(remote_sha is not None, 'target_ref_unobservable', 'git ls-remote origin %s returned nothing' % target)
+    v2.check(local_sha == remote_sha, 'target_ref_rewound', '%s is %s but origin has %s; fetch first' % (ref, local_sha, remote_sha))
     v2.check(pr is not None, 'pr_required', '%s carries readiness-contract/2 artifacts; every merge-authority call needs --pr' % ref)
     adapter = adapter or hosted_adapter_factory(root)
     pull = adapter.pull(pr)
-    registry = parse_json(registry_bytes, 'registry') if registry_bytes else {'plans': []}
-    for entry in registry.get('plans', []):
+    registry_bytes = show(root, ref, v2.REGISTRY)
+    registry = parse_json(registry_bytes, 'registry') if registry_bytes is not None else {'plans': []}
+    v2.check(isinstance(registry, dict) and isinstance(registry.get('plans'), list), 'plan_unloadable', 'registry')
+    patterns = []
+    for entry in registry['plans']:
         try:
             gen = load_generation(root, ref, entry['id'])
-        except (Invalid, KeyError, TypeError):
-            continue
+        except (Invalid, KeyError, TypeError, OSError) as error:
+            v2.refuse('plan_unloadable', '%s: %s' % (entry.get('id') if isinstance(entry, dict) else entry, error))
         for goal in gen['bundle']['goals']:
             if re.fullmatch(v2.fill(gen['policy']['branch_pattern'], gen['bundle']['id'], goal['id']), pull['head_ref']):
                 return 'v2', {'root': root, 'handoff': entry['id'], 'goal_id': goal['id'], 'pull': pull, 'adapter': adapter}
+        patterns.append(gen['policy']['branch_pattern'])
+    live = show(root, ref, v2.POLICY)
+    if live is not None and carries_v2(root, ref) and parse_json(live, 'policy').get('schema') == v2.POLICY_SCHEMA:
+        try:
+            patterns.append(v2.validate_policy(parse_json(live, 'policy'))['branch_pattern'])
+        except Invalid as error:
+            v2.refuse('policy_unloadable', str(error))
+    for pattern in patterns:
+        v2.check(not re.fullmatch(generic_pattern(pattern), pull['head_ref']), 'v2_branch_without_plan', pull['head_ref'])
     return 'v1', None
 
 

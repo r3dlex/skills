@@ -144,6 +144,19 @@ class CertificateIssueTests(unittest.TestCase):
             self.assertLessEqual(set(call['env']), allowed, call['args'])
             self.assertEqual(call['env']['HOME'], observer.passwd_home())
 
+    def test_run_gates_decides_v2_from_origin_not_the_worktree(self):
+        work = self.c.fixture.work
+        record = write_json(self.base / 'record.json', self.c.fixture.bundle['goals'][0])
+        (work / REGISTRY).unlink()
+        result = subprocess.run(['bash', str(AUTO / 'run-gates.sh'), '--root', str(work), '--goal-record', str(record),
+                                 '--handoff', 'northstar-plan-plan-a', '--phase', 'pre-merge', '--pr', PR,
+                                 '--review-record', str(self.c.review)], capture_output=True, text=True,
+                                env=dict(os.environ, PATH=self.c.env()['PATH']), stdin=subprocess.DEVNULL)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('readiness-contract/2', result.stdout + result.stderr, result.stdout + result.stderr)
+        self.assertNotIn('merge requires exact --handoff', result.stderr)
+        git(work, 'checkout', '-q', '--', REGISTRY)
+
     def test_local_gates_run_isolated_and_never_dirty_the_tree(self):
         work, dump = self.c.fixture.work, self.base / 'gate-env.txt'
         (work / '.gitignore').write_text('__pycache__/\n')
@@ -366,6 +379,44 @@ class MergeAuthorityEntryTests(unittest.TestCase):
         outside = self.base / 'not-a-repository'
         outside.mkdir()
         self.assertEqual(self.authority(outside, '--verdict', str(self.verdict)).returncode, 0)
+
+    def shimmed(self, name, head_ref):
+        state, log = self.base / (name + '-gh.json'), self.base / (name + '-gh.jsonl')
+        write_json(state, {'pulls': {'9': {'head': {'sha': '1' * 40, 'ref': head_ref}, 'base': {'sha': '2' * 40, 'ref': 'main'}}}})
+        shim = gh_shim(self.base / (name + '-bin'), state, log)
+        return dict(os.environ, PATH=str(shim.parent) + os.pathsep + os.environ['PATH'])
+
+    def fail_closed(self, work, *args, env=None, code=None):
+        result = self.authority(work, *args, env=env)
+        self.assertEqual(result.returncode, 4, result.stdout + result.stderr)
+        if code:
+            self.assertIn(code, result.stdout + result.stderr)
+        self.assertNotIn('host-policy authorized', result.stdout)
+
+    def test_routing_never_falls_back_to_the_verdict_path_once_v2_exists(self):
+        from readiness_v2_core_test import sample_policy
+        broken = self.repository('broken', {REGISTRY: {'schema': 'readiness-contract/2', 'plans': [
+            {'id': 'northstar-plan-broken', 'plan_id': 'broken', 'generation': 'a' * 64, 'status': 'active', 'artifacts': {}}]}})
+        self.fail_closed(broken, '--pr', '9', '--verdict', str(self.verdict), env=self.shimmed('broken', 'docs/x'),
+                         code='plan_unloadable')
+        live = self.repository('live', {POLICY: sample_policy('4' * 64), REGISTRY: {'schema': 'readiness-contract/2', 'plans': []}})
+        self.fail_closed(live, '--pr', '9', '--verdict', str(self.verdict), env=self.shimmed('live', 'feat/other-plan-G9'),
+                         code='v2_branch_without_plan')
+        self.assertEqual(self.authority(live, '--pr', '9', '--verdict', str(self.verdict),
+                                        env=self.shimmed('live-docs', 'docs/readme')).returncode, 0)
+        rewound = self.repository('rewound', {})
+        before = git(rewound, 'rev-parse', 'HEAD')
+        write_json(rewound / REGISTRY, {'schema': 'readiness-contract/2', 'plans': []})
+        git(rewound, 'add', '-A')
+        git(rewound, 'commit', '-q', '-m', 'v2 registry')
+        git(rewound, 'push', '-q', 'origin', 'HEAD:refs/heads/main')
+        git(rewound, 'fetch', '-q', 'origin')
+        git(rewound, 'reset', '-q', '--hard', before)
+        git(rewound, 'update-ref', 'refs/remotes/origin/main', before)
+        self.fail_closed(rewound, '--verdict', str(self.verdict), code='target_ref_rewound')
+        orphan = self.repository('orphan', {REGISTRY: {'schema': 'readiness-contract/2', 'plans': []}})
+        git(orphan, 'update-ref', '-d', 'refs/remotes/origin/main')
+        self.fail_closed(orphan, '--verdict', str(self.verdict), code='target_ref_unobservable')
 
     def test_module_shadowing_in_cwd_cannot_hijack_entry_points(self):
         work = self.repository('shadow', {REGISTRY: {'schema': 'readiness-contract/2', 'plans': []}})
