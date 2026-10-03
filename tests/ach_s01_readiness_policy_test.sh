@@ -55,7 +55,12 @@ def raised(call):
     return None
 
 
+# Once policy/2 is installed, this remains a historical v1 regression, not
+# a demand to roll the live policy back. Retained bytes keep the exact digest.
+ACH_RETAINED = '.ai/handoff/ach-s01-readiness-policy.retained.json'
 policy_path = ROOT / rc.POLICY
+if rc.read(policy_path).get('schema') == 'readiness-policy/2':
+    policy_path = ROOT / ACH_RETAINED
 policy = rc.read(policy_path)
 gates = {g.get('id'): g for g in policy.get('gates', [])}
 check('policy digest is the pinned approval subject', rc.digest(policy_path) == POLICY_SHA256)
@@ -159,7 +164,8 @@ check('unsigned approval request names this policy digest and goal revision',
 # unproven.
 observed = dict(WORKTREE, common_dir='simulated', head='simulated', branch=BRANCH['branch'],
                 target_revision='simulated', state_sha256='simulated')
-original = rc.repository
+original, original_policy = rc.repository, rc.POLICY
+rc.POLICY = str(policy_path.relative_to(ROOT))
 rc.repository = lambda value, root: rc.require(isinstance(value, dict) and rc.ID.fullmatch(value.get('id', '')), 'repository_id_required')
 try:
     sim = {'schema': 'readiness-context/1', 'repository': bundle['repository'],
@@ -182,7 +188,7 @@ try:
     check('a short-name binding is refused as worktree_branch_target_mismatch',
           raised(lambda: rc.typed_gate(ROOT, bundle, short, sim, worktree=observed)) == 'worktree_branch_target_mismatch')
 finally:
-    rc.repository = original
+    rc.repository, rc.POLICY = original, original_policy
 
 print('Results: PASS=%d FAIL=%d' % (passes, len(failures)))
 raise SystemExit(1 if failures else 0)

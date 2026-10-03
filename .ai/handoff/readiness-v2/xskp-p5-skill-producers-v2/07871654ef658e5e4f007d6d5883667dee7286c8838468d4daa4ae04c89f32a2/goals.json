@@ -1,0 +1,123 @@
+{
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "Install the exact bytes of this generation's readiness-policy/2 candidate at .ai/policies/readiness-policy.json after exact v2 plan approval and fresh bootstrap admission.",
+        "Every sibling goal transitively depends on this policy bootstrap; the candidate remains inert until its bound approval verifies.",
+        "The policy requires all hosted checks, independent signed review and a fresh merge certificate; no admin route, digest-echo approval, gate exemption or trust-anchor mutation is introduced.",
+        "Frozen v1 artifacts, retained policies and unsigned approval requests remain byte-identical; no feature, catalog, runtime or template change is included."
+      ],
+      "dependencies": [],
+      "id": "XSKP-P5-00",
+      "scope": [
+        ".ai/policies/readiness-policy.json"
+      ],
+      "verification": [
+        "bash tests/readiness_v2_core_test.sh",
+        "bash tests/readiness_v2_approval_test.sh",
+        "bash tests/readiness_v2_certificate_test.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "AC-1: .ai/knowledge/contract is a byte-identical copy of the repo's docs/specifications/ACTIVE/cross-surface-knowledge-publication.contract; tests/knowledge_contract_fingerprint_test.sh verifies both copies against contract.lock.json, pins lock sha256 9f5d7edfc17554c383b06aa4726dfffe564ecc8d657b16baa89ce72098d5e102, and goes red on a mutated byte in a temp copy.",
+        "The test is discovered by tests/test-scripts.sh (find tests -name '*_test.sh') under tests/run-tests.sh.",
+        "python3 scripts/scan-secret-material.py reports no offenders, and the markdown-link and dead-reference suites stay green with the two contract copies present.",
+        "The checkout's pre-existing branch and dirty files are untouched; work happens in a worktree from the default branch.",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "dependencies": [
+        "XSKP-P5-00"
+      ],
+      "id": "XSKP-P5-01",
+      "scope": [
+        ".ai/knowledge/contract",
+        "tests/knowledge_contract_fingerprint_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "A shared module defines the host-neutral producer step: when .ai/knowledge/registry.json exists, run the publish argv declared by .ai/commands/<host>/knowledge.json; otherwise record 'unpublished: no-registry'; on a missing descriptor or non-zero exit, record 'unpublished: <token>'. The skill never fails because of the registry.",
+        "northstar, to-spec, to-prd, to-issues and research each end with a pointer of at most 3 lines to that module and declare their kind.",
+        "Every description stays at most 160 characters; northstar/SKILL.md (105 lines at planning) has a net line delta of 0 or less; other bodies stay at most 100 lines.",
+        "tests/knowledge_producers_test.sh asserts the pointer and kind in each skill and is discovered by tests/run-tests.sh; scripts/validate-skill-catalog.py, tests/codex_parity_test.sh and tests/opencode_parity_test.sh pass under run-tests.sh.",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "dependencies": [
+        "XSKP-P5-01"
+      ],
+      "id": "XSKP-P5-02",
+      "scope": [
+        "03-configure-generate/ai-catapult-init/modules/knowledge-publish.md",
+        "02-govern-plan/northstar/SKILL.md",
+        "02-govern-plan/to-spec/SKILL.md",
+        "02-govern-plan/to-prd/SKILL.md",
+        "02-govern-plan/to-issues/SKILL.md",
+        "01-discover-decide/research/SKILL.md",
+        "tests/knowledge_producers_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "handoff (kind handoff), retro (learning), domain-modeling (adr, target docs/architecture/adr/) and code-review (review) end with the same pointer to the shared producer module.",
+        "Catalog limits (description at most 160 characters, body at most 100 lines) and Codex/OpenCode parity hold under tests/run-tests.sh.",
+        "tests/knowledge_producers_test.sh covers all nine producer skills.",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "dependencies": [
+        "XSKP-P5-02"
+      ],
+      "id": "XSKP-P5-03",
+      "scope": [
+        "04-validate-handoff/handoff/SKILL.md",
+        "04-validate-handoff/retro/SKILL.md",
+        "04-validate-handoff/code-review/SKILL.md",
+        "01-discover-decide/domain-modeling/SKILL.md",
+        "tests/knowledge_producers_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "migration.md and documentation-blueprint.md reference the knowledge-registry/1 contract and the 'ai-catapult adopt' engine by name only, with no runtime dependency.",
+        "The templates gain dot-ai/knowledge/entries/.gitkeep and dot-ai/knowledge/registry.json whose bytes after {{REPO_ID}} substitution equal the P4 init bytes ({entries: [], generated_from: '.ai/knowledge/entries', repo_id, schema: 'knowledge-registry/1'} under the contract serialization); any template boundary manifest is updated so tests/ai-catapult-templates_test.sh passes under tests/run-tests.sh.",
+        "reference/fixtures/v3/standalone/.ai/commands is unchanged; the ai-catapult skills lock bump is a follow-up (installed lane: report only, none until the bump).",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "dependencies": [
+        "XSKP-P5-01"
+      ],
+      "id": "XSKP-P5-04",
+      "scope": [
+        "03-configure-generate/ai-catapult-init/modules/migration.md",
+        "03-configure-generate/ai-catapult-init/modules/documentation-blueprint.md",
+        "03-configure-generate/ai-catapult-init/templates/dot-ai/knowledge",
+        "tests/ai-catapult-templates_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "xskp-p5-skill-producers-v2",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/xskp-p5-readiness-v2.md"
+  }
+}
