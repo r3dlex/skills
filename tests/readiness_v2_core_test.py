@@ -78,7 +78,7 @@ class Keys:
     def __init__(self, base):
         self.dir = Path(tempfile.mkdtemp(prefix='keys-', dir=base))
         self.paths = {}
-        for name in ('approver', 'certifier', 'reviewer', 'outsider'):
+        for name in ('approver', 'certifier', 'reviewer', 'outsider', 'certonly'):
             path = self.dir / name
             subprocess.run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-C', name, '-f', str(path)],
                            check=True, capture_output=True)
@@ -97,6 +97,14 @@ class Keys:
                  'reviewer@agent namespaces="%s" %s' % (agent, self.public('reviewer'))]
         self.anchor.write_text('\n'.join(lines) + '\n')
         return sha(self.anchor)
+
+
+def fake_sk_line(principal, namespaces):
+    """A parseable sk-ssh-ed25519 anchor line for a key nobody holds."""
+    import base64
+    blob = b''.join(len(part).to_bytes(4, 'big') + part for part in
+                    (b'sk-ssh-ed25519@openssh.com', bytes(range(32)), b'ssh:'))
+    return '%s namespaces="%s" sk-ssh-ed25519@openssh.com %s\n' % (principal, namespaces, base64.b64encode(blob).decode())
 
 
 def gh_shim(directory, state_path, log_path):
@@ -240,9 +248,11 @@ class Fixture:
     """A disposable repository with a bare origin, a published v2 generation and role keys."""
 
     def __init__(self, base, *, identity_model='single', accept=('ssh-tag', 'in-session'), bundle=None,
-                 candidate=False, live_policy=True):
+                 candidate=False, live_policy=True, anchor_prefix=''):
         self.base = Path(base)
         self.keys = Keys(self.base)
+        if anchor_prefix:
+            self.keys.anchor.write_text(anchor_prefix + self.keys.anchor.read_text())
         self.anchor_sha256 = sha(self.keys.anchor)
         self.origin = self.base / 'origin.git'
         self.work = self.base / 'work'

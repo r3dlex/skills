@@ -414,9 +414,11 @@ def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0):
     check(anchor is not None, 'anchor_unset')
     carrier = carrier or {}
     facts = carrier.get('anchor') or {}
+    check(not facts.get('symlink'), 'anchor_symlink')
     check(facts.get('present'), 'anchor_missing')
     check(not facts.get('inside_worktree'), 'anchor_inside_worktree')
     check(facts.get('sha256') == anchor, 'anchor_digest_mismatch')
+    check(not facts.get('ambiguous'), 'anchor_principal_ambiguous', ','.join(facts.get('ambiguous') or []))
     check(carrier.get('tag'), 'approval_tag_missing', 'approval/%s/%s' % (expected['plan_id'], expected['generation'][:12]))
     check(carrier.get('annotated'), 'approval_tag_not_annotated', carrier['tag'])
     check(carrier.get('on_origin'), 'approval_tag_not_on_origin', carrier['tag'])

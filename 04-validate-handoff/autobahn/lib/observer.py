@@ -12,6 +12,7 @@ the observer state under the repository's git common directory (certificates,
 review records and the driver log). Approvals are never signed or written here.
 """
 import argparse
+import atexit
 import base64
 import json
 import os
@@ -20,6 +21,7 @@ import pwd
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -280,34 +282,95 @@ def anchor_lines(anchor):
     return lines
 
 
+def ambiguous_principals(lines):
+    """Principals listed on more than one line, or lines naming several principals."""
+    seen, ambiguous = {}, set()
+    for entry in lines:
+        if len(entry['principals']) != 1:
+            ambiguous.update(entry['principals'])
+        for principal in entry['principals']:
+            seen[principal] = seen.get(principal, 0) + 1
+    return sorted(ambiguous | {p for p, count in seen.items() if count > 1})
+
+
+_PRIVATE = []
+
+
+def private_copy(data):
+    """A read-once private copy of the anchor; ssh-keygen only ever reads this copy."""
+    if not _PRIVATE:
+        _PRIVATE.append(tempfile.mkdtemp(prefix='observer-anchor-'))
+        atexit.register(shutil.rmtree, _PRIVATE[0], True)
+    descriptor, name = tempfile.mkstemp(dir=_PRIVATE[0])
+    with os.fdopen(descriptor, 'wb') as handle:
+        handle.write(data)
+    os.chmod(name, 0o600)
+    return Path(name)
+
+
 def observe_anchor():
+    """(private copy or None, facts). The anchor itself must be a regular, non-symlink
+    file whose resolved location lies outside every git worktree."""
     path = Path(anchor_locator())
-    present = path.is_file()
-    inside = any((parent / '.git').exists() for parent in path.parents)
-    if present and not inside and path.parent.is_dir():
-        inside = git(path.parent, 'rev-parse', '--is-inside-work-tree', check=False).stdout.strip() == b'true'
-    return path, {'present': present, 'inside_worktree': inside, 'sha256': v2.sha256(path.read_bytes()) if present else None}
+    facts = {'present': False, 'symlink': False, 'inside_worktree': False, 'sha256': None, 'ambiguous': []}
+    try:
+        mode = os.lstat(path).st_mode
+    except OSError:
+        return None, facts
+    if stat.S_ISLNK(mode):
+        facts['symlink'] = True
+        return None, facts
+    if not stat.S_ISREG(mode):
+        return None, facts
+    resolved = path.resolve(strict=True)
+    inside = any((parent / '.git').exists() for parent in resolved.parents)
+    if not inside:
+        inside = git(resolved.parent, 'rev-parse', '--is-inside-work-tree', check=False).stdout.strip() == b'true'
+    data = resolved.read_bytes()
+    copy = private_copy(data)
+    facts.update(present=True, inside_worktree=inside, sha256=v2.sha256(data),
+                 ambiguous=ambiguous_principals(anchor_lines(copy)))
+    return copy, facts
+
+
+def signature_public_key(signature_text):
+    """(key type, base64 public key blob) of the key that made an SSHSIG signature."""
+    body = ''.join(line.strip() for line in signature_text.strip().splitlines() if not line.startswith('-----'))
+    blob = base64.b64decode(body, validate=True)
+    if blob[:6] != b'SSHSIG' or len(blob) < 14:
+        raise ValueError('not an SSHSIG signature')
+    length = int.from_bytes(blob[10:14], 'big')
+    public = blob[14:14 + length]
+    type_length = int.from_bytes(public[:4], 'big')
+    return public[4:4 + type_length].decode(), base64.b64encode(public).decode()
 
 
 def verify_signature(anchor, signature_text, data, namespace):
-    """find-principals then verify -I <principal> -n <namespace>; roles come from namespaces=."""
+    """Select the anchor line by the signing public key, require that line to be the
+    principal's only line, then ssh-keygen -Y verify -I <principal> -n <namespace>."""
+    refused = {'principal': None, 'verified': False, 'namespaces': [], 'key_type': None, 'options': []}
+    try:
+        key_type, key = signature_public_key(signature_text)
+    except (ValueError, UnicodeDecodeError):
+        return refused
+    lines = anchor_lines(anchor)
+    matches = [entry for entry in lines if (entry['key_type'], entry['key']) == (key_type, key)]
+    if len(matches) != 1 or len(matches[0]['principals']) != 1 or \
+            matches[0]['principals'][0] in ambiguous_principals(lines):
+        return dict(refused, ambiguous=bool(matches))
+    line, principal = matches[0], matches[0]['principals'][0]
     with tempfile.TemporaryDirectory(prefix='observer-') as tmp:
         signature = Path(tmp) / 'signature'
         signature.write_text(signature_text)
-        found = command(['ssh-keygen', '-Y', 'find-principals', '-s', signature, '-f', anchor])
-        principals = found.stdout.decode().split() if found.returncode == 0 else []
-        if len(principals) != 1:
-            return {'principal': None, 'verified': False, 'namespaces': [], 'key_type': None, 'options': []}
-        principal = principals[0]
-        line = next((entry for entry in anchor_lines(anchor) if principal in entry['principals']), None) or {}
         verified = command(['ssh-keygen', '-Y', 'verify', '-f', anchor, '-I', principal, '-n', namespace, '-s', signature],
                            data=data)
-        return {'principal': principal, 'verified': verified.returncode == 0, 'namespaces': line.get('namespaces', []),
-                'key_type': line.get('key_type'), 'options': line.get('options', [])}
+    return {'principal': principal, 'verified': verified.returncode == 0, 'namespaces': line['namespaces'],
+            'key_type': line['key_type'], 'options': line['options']}
 
 
 def signing_identity(anchor):
     """The anchor principal of the agent signing key (it must hold the certificate role)."""
+    v2.check(anchor is not None, 'anchor_missing', 'no usable trust anchor for the certifier key')
     key = Path(signing_key_locator())
     if key.suffix == '.pub':
         public = key.read_text().split()
@@ -316,12 +379,15 @@ def signing_identity(anchor):
         if derived.returncode:
             raise Invalid('certifier_key_unavailable:' + str(key))
         public = derived.stdout.decode().split()
-    for entry in anchor_lines(anchor):
-        if public[:2] == [entry['key_type'], entry['key']]:
-            if v2.NS_CERTIFICATE not in entry['namespaces'] or v2.NS_APPROVAL in entry['namespaces']:
-                raise Invalid('certifier_key_not_agent:' + entry['principals'][0])
-            return key, entry['principals'][0]
-    raise Invalid('certifier_key_not_in_anchor')
+    lines = anchor_lines(anchor)
+    matches = [entry for entry in lines if public[:2] == [entry['key_type'], entry['key']]]
+    v2.check(matches, 'certifier_key_not_in_anchor')
+    entry = matches[0]
+    v2.check(len(matches) == 1 and len(entry['principals']) == 1 and entry['principals'][0] not in ambiguous_principals(lines),
+             'anchor_principal_ambiguous', ','.join(entry['principals']))
+    v2.check(v2.NS_CERTIFICATE in entry['namespaces'] and v2.NS_APPROVAL not in entry['namespaces'],
+             'certifier_key_not_agent', entry['principals'][0])
+    return key, entry['principals'][0]
 
 
 def sign(key, namespace, data):
@@ -990,7 +1056,7 @@ def op_merge(args, now, adapter):
     anchor, _ = observe_anchor()
     signature = Path(str(path) + '.sig')
     signed = verify_signature(anchor, signature.read_text(), v2.canonical_bytes(stored), v2.NS_CERTIFICATE) \
-        if signature.is_file() and anchor.is_file() else {'principal': None, 'verified': False, 'namespaces': []}
+        if signature.is_file() and anchor is not None else {'principal': None, 'verified': False, 'namespaces': []}
     if not (signed['principal'] and signed['verified'] and v2.NS_CERTIFICATE in signed['namespaces']
             and v2.NS_APPROVAL not in signed['namespaces']):
         return refused('certificate_signature_invalid', str(signed['principal']))

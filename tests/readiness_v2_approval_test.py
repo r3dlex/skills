@@ -127,6 +127,37 @@ class ApprovalTests(unittest.TestCase):
         other.write_text(self.fixture.keys.anchor.read_text() + '# changed\n')
         self.refused('anchor_digest_mismatch', anchor=other)
 
+    def test_signing_key_line_decides_assurance_and_principals_are_unique(self):
+        from readiness_v2_core_test import fake_sk_line
+        signature = ssh_sign(self.fixture.keys.paths['approver'], v2.NS_APPROVAL, b'probe', self.base)
+        self.assertEqual(' '.join(observer.signature_public_key(signature)), self.fixture.keys.public('approver'))
+        base = self.base / 'two-lines'
+        base.mkdir()
+        doubled = Fixture(base, anchor_prefix=fake_sk_line('approver@human', v2.NS_APPROVAL))
+        doubled.approve('ssh-tag', record=doubled.record(assurance='user-presence'))
+        exit_code, context = doubled.admit()
+        self.assertNotEqual(exit_code, 0)
+        self.assertIn('anchor_principal_ambiguous', codes(context))
+        self.assertNotEqual(context['assurance'], 'user-presence')
+        doubled.approve('ssh-tag')
+        self.assertIn('anchor_principal_ambiguous', codes(doubled.admit()[1]))
+
+    def test_symlinked_or_resolved_inside_worktree_anchor_is_refused(self):
+        self.fixture.approve('ssh-tag')
+        link = self.base / 'linked' / 'allowed_signers'
+        link.parent.mkdir()
+        link.symlink_to(self.fixture.keys.anchor)
+        self.refused('anchor_symlink', anchor=link)
+        inside = self.fixture.work / 'vault'
+        inside.mkdir()
+        (inside / 'allowed_signers').write_bytes(self.fixture.keys.anchor.read_bytes())
+        through = self.base / 'through'
+        through.symlink_to(inside)
+        self.refused('anchor_inside_worktree', anchor=through / 'allowed_signers')
+        (inside / 'allowed_signers').unlink()
+        inside.rmdir()
+        self.assertEqual(self.fixture.admit()[0], 0)
+
     def test_anchor_locator_has_no_environment_or_flag_override(self):
         self.fixture.approve('ssh-tag')
         decoy = self.base / 'decoy' / 'allowed_signers'
