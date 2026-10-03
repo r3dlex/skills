@@ -18,7 +18,7 @@
 #
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PASSWD_HOME="$(python3 -B -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)')"
+PASSWD_HOME="$(python3 -I -B -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)')"
 ALLOWED=("PATH=${PATH:-/usr/bin:/bin}" "HOME=$PASSWD_HOME" "GH_CONFIG_DIR=$PASSWD_HOME/.config/gh")
 for name in LANG LC_ALL TMPDIR SSH_AUTH_SOCK GH_TOKEN; do
   if [[ -n "${!name+set}" ]]; then
@@ -54,4 +54,4 @@ sys.path.insert(0, str(root / "lib"))
 import observer
 sys.exit(observer.main(sys.argv[2:]))
 '
-exec env -i "${ALLOWED[@]}" python3 -B -c "$DRIVER" "$HERE" "$@"
+exec env -i "${ALLOWED[@]}" python3 -I -B -c "$DRIVER" "$HERE" "$@"

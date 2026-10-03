@@ -348,6 +348,18 @@ class MergeAuthorityEntryTests(unittest.TestCase):
         outside.mkdir()
         self.assertEqual(self.authority(outside, '--verdict', str(self.verdict)).returncode, 0)
 
+    def test_module_shadowing_in_cwd_cannot_hijack_entry_points(self):
+        work = self.repository('shadow', {REGISTRY: {'schema': 'readiness-contract/2', 'plans': []}})
+        for name in ('json.py', 'pathlib.py', 'hashlib.py', 'pwd.py'):
+            (work / name).write_text('import sys\nsys.exit(0)\n')
+        result = self.authority(work, '--verdict', str(self.verdict))
+        self.assertEqual(result.returncode, 4, result.stdout + result.stderr)
+        self.assertIn('pr_required', result.stdout + result.stderr)
+        v1 = subprocess.run(['bash', str(AUTO / 'contract-run.sh'), 'admit', '--root', str(self.base)], cwd=str(work),
+                            capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(v1.returncode, 1, v1.stdout + v1.stderr)
+        self.assertEqual(json.loads(v1.stdout)['schema'], 'readiness-contract/1')
+
     def test_v2_pr_with_verdict_refused_and_v1_pr_keeps_v1_path_and_environment_allowlist(self):
         c = CertificateFixture(self.base)
         env = dict(os.environ, PATH=str(c.shim.parent) + os.pathsep + os.environ['PATH'], GH_HOST='evil.example',

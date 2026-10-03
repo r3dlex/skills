@@ -74,7 +74,7 @@ fi
 
 # The goal id addresses the evidence file. A record the driver cannot name is a
 # record whose evidence it cannot find, which is a block rather than a skip.
-GOAL_ID="$(RECORD="$RECORD" python3 - <<'PY' 2>/dev/null
+GOAL_ID="$(RECORD="$RECORD" python3 -I -B - <<'PY' 2>/dev/null
 import json, os, sys
 from pathlib import Path
 try:
@@ -98,7 +98,7 @@ echo "run-gates: goal=$GOAL_ID phase=$PHASE root=$ROOT"
 # planning input from origin/<target> and refuses on any difference.
 V2_RUN="no"
 if [[ -n "$HANDOFF" && -f "$ROOT/.ai/workflows/northstar-readiness-v2.json" ]]; then
-  V2_RUN="$(python3 -B -c 'import json, sys
+  V2_RUN="$(python3 -I -B -c 'import json, sys
 plans = json.load(open(sys.argv[1])).get("plans", [])
 print("yes" if any(isinstance(p, dict) and sys.argv[2] in (p.get("id"), p.get("handoff_path")) for p in plans) else "no")' \
     "$ROOT/.ai/workflows/northstar-readiness-v2.json" "$HANDOFF")" || { echo "run-gates: BLOCKED - unreadable v2 registry" >&2; exit 1; }
@@ -172,7 +172,7 @@ if [[ -n "$WORKTREE_ROOT" ]]; then
     fi
     cat "$REPORT"
     local snapshot
-    snapshot="$(python3 - "$REPORT" "$WORKTREE_ROOT" "$CONTEXT" "$RECORD" <<'PY_WORKTREE'
+    snapshot="$(python3 -I -B - "$REPORT" "$WORKTREE_ROOT" "$CONTEXT" "$RECORD" <<'PY_WORKTREE'
 import hashlib, json, sys
 from pathlib import Path
 report = json.loads(Path(sys.argv[1]).read_text())
@@ -200,7 +200,7 @@ fi
 # detection grants nothing; the pinned validator below admits the exact record.
 MAPPED_RUN="no"
 if [[ -z "$WORKTREE_ROOT" ]]; then
-MAPPED_RUN="$(ROOT="$ROOT" RECORD="$RECORD" DIRECT="$DIRECT" HANDOFF="$HANDOFF" EXECUTION_ROOT="$EXECUTION_ROOT" python3 - <<'PY_DETECT'
+MAPPED_RUN="$(ROOT="$ROOT" RECORD="$RECORD" DIRECT="$DIRECT" HANDOFF="$HANDOFF" EXECUTION_ROOT="$EXECUTION_ROOT" python3 -I -B - <<'PY_DETECT'
 import json, os
 from pathlib import Path
 root = Path(os.environ['ROOT']).resolve(strict=True)
@@ -248,7 +248,7 @@ if [[ "$MAPPED_RUN" == "yes" ]]; then
     exit 1
   fi
   cat "$REPORT"
-  if ! python3 - "$REPORT" "$EXECUTION_ROOT" <<'PY_ROUTE'
+  if ! python3 -I -B - "$REPORT" "$EXECUTION_ROOT" <<'PY_ROUTE'
 import json, sys
 from pathlib import Path
 report = json.loads(Path(sys.argv[1]).read_text())

@@ -112,7 +112,7 @@ if marker == "host-supported-bypass" and (
     marker = "unapproved"
 print("|".join([mode, has_token, marker]))
 '
-if ! verdict_fields="$(python3 -c "$_reader" "$VERDICT")"; then
+if ! verdict_fields="$(python3 -I -B -c "$_reader" "$VERDICT")"; then
   echo "fail-closed: could not evaluate host-policy verdict '$VERDICT' (reader failed); not merging" >&2
   exit 4
 fi
