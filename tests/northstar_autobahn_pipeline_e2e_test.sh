@@ -140,7 +140,12 @@ for args, expected in [(('--qa-heavy', 'true'), 'ultraqa'), ((), 'team')]:
     assert result.returncode == 0 and result.stdout.strip().splitlines()[-1] == expected, result
 print('PASS: engine selector retains qa-heavy and default behavior')
 verdict = REPO / 'reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json'
-result = subprocess.run(['bash', str(AUTO / 'merge-authority.sh'), '--verdict', str(verdict)], capture_output=True, text=True)
+# Run from a temporary git repository with no readiness-contract/2 artifacts, so a
+# v2 registry or policy/2 on this repository's HEAD or origin/main cannot change the
+# v1 verdict path asserted here (same treatment as autobahn_merge_authority_test.sh).
+with tempfile.TemporaryDirectory() as neutral:
+    subprocess.run(['git', 'init', '-q', neutral], check=True)
+    result = subprocess.run(['bash', str(AUTO / 'merge-authority.sh'), '--verdict', str(verdict)], capture_output=True, text=True, cwd=neutral)
 assert result.returncode == 0, result.stdout + result.stderr
 print('PASS: separate merge authority accepts its approved fixture verdict')
 PYTEST

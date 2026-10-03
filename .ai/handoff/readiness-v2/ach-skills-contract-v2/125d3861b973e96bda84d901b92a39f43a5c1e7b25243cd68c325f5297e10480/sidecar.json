@@ -1,0 +1,56 @@
+{
+  "goals": {
+    "ACH-S-02": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Replaces the live skills .ai/policies/readiness-policy.json (the S-01 v1 rollover) pinned by tests/ach_s01_readiness_policy_test.sh and tests/xskp_p5_readiness_policy_test.sh, adds a mechanical entry to 03-configure-generate/ai-catapult-init/templates/boundary-manifest.json guarded by tests/ai-catapult-templates_test.sh, and extends the v2 validator from ACH-S-01. For K3 it also extends ACH-S-01's v2 observer (lib/observer.py approval carrier parsing, signing and reports), the v2 schema enum and ADR-0016, characterized by tests/readiness_v2_core_test.py, tests/readiness_v2_approval_test.py and tests/readiness_v2_certificate_test.py, which must pass unmodified. Coverage unknown.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "ACH-S-03": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Touches lib/observer.py and run-gates.sh's worktree branch next to #92's merged v1 worktree mode; v1 helpers worktree_observation and exact_root are imported read-only, and tests/readiness_worktree_test.sh, tests/autobahn_worktree_run_gates_test.sh and tests/autobahn_worktree_driver_integration_test.sh characterize v1 and must stay unmodified. It also touches the five v1 local gate scripts tdd-evidence.sh, tdd-mode.sh, lint-gate.sh, ci-gate.sh and local-ci.sh (embedded python3 invocations only), characterized by tests/autobahn_tdd_evidence_test.sh, tests/autobahn_tdd_mode_test.sh, tests/autobahn_coverage_unknown_test.sh, tests/autobahn_lint_gate_test.sh, tests/autobahn_ci_gate_test.sh, tests/autobahn_local_ci_test.sh, tests/local_ci_contract_test.py, tests/autobahn_run_gates_test.sh and tests/autobahn_worktree_run_gates_test.sh, which must pass unmodified; and the v2 manifest seam contract-run-v2.sh with tests/readiness_v2_core_test.py. Coverage unknown.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "ACH-S-04": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Touches 02-govern-plan/northstar/handoff-write.sh, the shared v1 publish entry characterized by tests/northstar_handoff_test.sh, tests/northstar_lineage_test.sh and tests/northstar_autobahn_pipeline_e2e_test.sh, and extends v2 files from earlier goals; v1 publication stays byte-identical and lib/verification.py is reused unmodified. Coverage unknown.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "ACH-S-05": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Touches 04-validate-handoff/autobahn/migrate-handoff.sh, the v1 legacy migrator characterized by tests/readiness_legacy_matrix_test.sh and the migration cases in tests/readiness_contract_test.sh, and appends to the skills v2 registry and .ai/traceability/graph.json (v1 entries and generations immutable); default migration output stays byte-identical. Coverage unknown.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "ACH-S-06": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Extends only v2 files from earlier goals (lib/observer.py, contract-run-v2.sh, modules/readiness-v2.md) and adds new test files (tests/readiness_v2_fixture.py, tests/readiness_v2_e2e_test.py and its wrapper); no v1 seam is touched, so legacy-safe is equivalent to standard test-first.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "ach-skills-contract-v2",
+  "schema": "readiness-sidecar/1"
+}

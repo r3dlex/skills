@@ -1,0 +1,244 @@
+{
+  "attachments": {
+    "consensus_plan": "aitool-root .omc/plans/ralplan-admission-complete-handoffs.md (local, non-authoritative); Appendix A.1 goal objects ACH-S-02..ACH-S-06 projected per the v2 publisher projection, with the section 9 execution-log amendments applied to ACH-S-03",
+    "generation_scope": "v2 generation is ACH-S-02..ACH-S-06 plus the skills readiness-policy/2 candidate (O9). ACH-S-01 was published once on v1 and merged as r3dlex/skills#97 at f6be8346c1254fa2fc12ad853b2bacd0e6c1056e; its completion is a B5-observed input, never a dependency.",
+    "owner": "not in the bundle or sidecar: owner and reviewer lane are recorded once in plan-approval/1 (O1, section 2.3)",
+    "plan_amendments": [
+      "Section 9 (2026-10-03): ACH-S-03 gives python3 -I -B to tdd-evidence.sh:82,116, tdd-mode.sh:31, lint-gate.sh:77, ci-gate.sh:47,375 and local-ci.sh:39, pins all five in readiness-dependency-v2.json and adds one shadowing negative per script; contract-run-v2.sh and tests/readiness_v2_core_test.py join its scope because the merged code pins the exact v2 manifest file set (contract-run-v2.sh:31-33, readiness_v2_core_test.py:760-763). ACH-S-06 is the fallback.",
+      "K3 (user decision 2026-10-04): approval modes agent (default, agent-self), prompt (in-session on explicit request) and optional ssh-tag; delivered by ACH-S-02; this generation's candidate keeps accept [ssh-tag, in-session].",
+      "Spec: K3 is recorded in a second plan-scoped copy, admission-complete-handoffs-ach-skills-contract-v2-gen2.md; the first copy (sha256 f588f9b0...) stays byte-frozen because the merged v1 ACH-S-01 generation and tests/ach_s01_readiness_policy_test.sh pin it."
+    ],
+    "readiness_notes": {
+      "ACH-S-02": {
+        "implementation": "No hold. Bootstrap admission against the bound candidate from a linked worktree, context rebuilt by admission, and an observed red/green.",
+        "merge": "No hold. merge-certificate/1 at the exact head (three required checks SUCCESS, zero unresolved threads, agent-signed distinct review lane, admin allowed only because the candidate declares single, assurance recorded, head policy bytes equal policy_sha256) and merge-authority.sh re-observation.",
+        "preparation": "No hold. Admission observes: ACH-S-01's merge commit and the P-S2 planning-input PR (v2 generation, empty-hold sidecar, skills policy-candidate.json) are ancestors of origin/main (B5); the trust anchor exists outside every worktree and its sha256 equals the candidate's anchor_sha256; the P-S2 hosted-adapter preflight (gh auth status through the real adapter under the driver's environment allowlist, HOME/GH_CONFIG_DIR from the passwd home) succeeded; one plan-approval/1 for this generation verifies (it also approves skills policy/2, O3); run from the skills source lane at origin/main verified by readiness-dependency-v2.json."
+      },
+      "ACH-S-03": {
+        "implementation": "No hold. Transitive dependency check: ACH-S-02's merge commit is an ancestor of origin/main (live skills policy/2); v2 admission from a linked worktree and an observed red/green.",
+        "merge": "No hold. merge-certificate/1 at the exact head and merge-authority.sh re-observation, assurance recorded.",
+        "preparation": "No hold. Admission observes the P-S2 publication commit on origin/main (B5), the anchor, and the generation's single verified plan-approval/1; skills source lane verified by readiness-dependency-v2.json."
+      },
+      "ACH-S-04": {
+        "implementation": "No hold. Transitive dependency check on ACH-S-02's merge commit; v2 admission from a linked worktree and an observed red/green.",
+        "merge": "No hold. merge-certificate/1 at the exact head and merge-authority.sh re-observation, assurance recorded.",
+        "preparation": "No hold. Admission observes the P-S2 publication commit on origin/main (B5), the anchor, and the generation's single verified plan-approval/1; skills source lane verified by readiness-dependency-v2.json."
+      },
+      "ACH-S-05": {
+        "implementation": "No hold. Transitive dependency check on ACH-S-04 (and through it ACH-S-02); v2 admission from a linked worktree and an observed red/green.",
+        "merge": "No hold. merge-certificate/1 at the exact head and merge-authority.sh re-observation, assurance recorded.",
+        "preparation": "No hold. Admission observes the P-S2 publication commit on origin/main (B5), the anchor, and the generation's single verified plan-approval/1; skills source lane verified by readiness-dependency-v2.json."
+      },
+      "ACH-S-06": {
+        "implementation": "No hold. Transitive dependency check on ACH-S-03 and ACH-S-05 (and their ancestors); v2 admission from a linked worktree and an observed red/green.",
+        "merge": "No hold. merge-certificate/1 at the exact head and merge-authority.sh re-observation, assurance recorded; this merge is the O8 release.",
+        "preparation": "No hold. Admission observes the P-S2 publication commit on origin/main (B5), the anchor, and the generation's single verified plan-approval/1; skills source lane verified by readiness-dependency-v2.json."
+      }
+    },
+    "umbrella_spec": "r3dlex/ai-tool-workspace docs/specifications/ACTIVE/admission-complete-handoffs.md sha256 fded0858d0c3aa2ba06cdc9b6d716053cb92dd82a3afa22e6a13774e30f6ddd5"
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "[O9, O3, O5, P1] skills .ai/policies/readiness-policy.json becomes readiness-policy/2 with repository.id skills, an explicit identity_model single opt-in, required_checks exactly Pre-commit Hooks, Test Suite and Repository Secret Scan, approval.accept [\"ssh-tag\", \"in-session\"], tools bash/python3/git/prek/ssh-keygen/gh, repository-scoped gates only and no extensions; the merged bytes equal the generation's policy-candidate.json bound by policy_sha256.",
+        "[O10, v1 inventory] contract-run.sh inventory-v1 (the single implementation all four policy goals use) decides each v1 registry entry's fate: a goal counts as merged only through a hosted-API merged PR whose head branch contains the goal id as a token (case-insensitive, bounded by non-alphanumerics) and whose merge commit is an ancestor of origin/<target>, recorded as a {goal, pr, merge_commit} map listing every match; commit-message and title text are never signals. Fates: all goals merged = completed (retired_v1 record carrying the map); none merged or open = unstarted (migrate per O10); some merged and no unmerged goal with an open PR or unmerged origin branch carrying its token = partly merged (unmerged goals migrate per O10, merged entries become B5 inputs); any unmerged goal with such an open PR or branch = in flight (admission refuses); only an unreachable hosted API or an unattributable token match is ambiguous and treated as in flight. For skills: ach-skills-contract-v2's v1 generation (ACH-S-01 merged) is retired and xskp-p5-skill-producers is recorded unstarted for ACH-S-05; v1 registry and generation bytes stay unchanged.",
+        "[P1] tests/readiness_policy_v2_test.sh (discovered by tests/test-scripts.sh) asserts the conformance and that no plan or goal id from either registry appears in the policy; tests/ach_s01_readiness_policy_test.sh and tests/xskp_p5_readiness_policy_test.sh are retargeted to retained v1 bytes, never weakened against the live policy.",
+        "[Merged definition test] tests/readiness_v2_inventory_test.py (discovered by tests/test-scripts.sh via its .sh wrapper) replays recorded hosted-API PR and origin-branch data from aitool-root through the in-process adapter and reproduces the real fates: P1-01 merged by #81 although its title omits the id; P2-02/P2-03 merged by #88/#90 whose main commit messages omit the ids; #75 (chore/xskp-p1-admission-preparation) not counted for P1-02..04 although its text names them; G-03 mapped to both #71 and #72; xskp-p3-root-adoption partly merged (P3-01..04 by #89, #91, #92, #93; P3-05 with no PR and no branch) yielding migrate-P3-05 rather than in flight, with #83's open, unmerged fix/xskp-p3-policy-current-20261002 branch (no goal-id token) not counted; SWP-ROOT-01 unstarted. It also refuses a PR merged on a branch that is not an ancestor of origin/<target>, and classifies a partly merged plan with an open PR for an unmerged goal as in flight.",
+        "[Policy amendment] A policy-amendment generation kind (one goal scoping the fixed path while policy/2 is live, carrying a candidate bound by one new approval verified under the candidate's anchor) is accepted; tests/readiness_v2_policy_amend_test.py covers a renamed required check, a new agent principal and a key/anchor rotation, asserts every other approval in the repository is voided on merge, and asserts the documented recovery (re-sign the same generation) restores admission.",
+        "[O2, O5, K3, Spec Delivery: Init] templates/dot-ai/policies/readiness-policy.json is the plan-agnostic baseline (identity_model multi, accept [\"agent-self\", \"ssh-tag\", \"in-session\"] and approval.default_mode agent (K3), fail-closed placeholders: unset anchor_sha256 and empty required_checks each refuse admission with a named gap); boundary-manifest.json lists it as mechanical with mechanical_count updated, the reference fixtures carry it, and tests/ai-catapult-templates_test.sh passes.",
+        "[K3, O2, O5] readiness-policy/2 approval gains the agent-self form and an optional approval.default_mode of agent, prompt or ssh-tag (lib/readiness_contract_v2.py validate_policy and schemas/readiness-contract-v2.json); a default_mode whose form is not in accept (agent needs agent-self, prompt needs in-session, ssh-tag needs ssh-tag) is refused with a named code. A policy without default_mode, including this generation's skills candidate (accept [\"ssh-tag\", \"in-session\"]), stays valid with unchanged semantics, so the merged skills policy bytes still equal policy_sha256.",
+        "[K3, U1 as amended by K3] In agent mode Autobahn issues the plan-approval/1 itself: the canonical record carries assurance agent-self, is signed with the agent signing key under the distinct namespace ai-catapult-agent-approval (never the human ai-catapult-plan-approval namespace), and is carried by the same single unsigned annotated tag approval/<plan_id>/<generation[0:12]>. Verification refuses, each with a distinct code: an agent-approval signature whose anchor principal lacks ai-catapult-agent-approval or also holds ai-catapult-plan-approval, a human-namespace signature or digest-echo record claiming agent-self, and an agent-self record when accept omits agent-self.",
+        "[K3, K1, K2] agent-self is a distinct assurance level, computed and never upgraded. Every approval, admission report, merge certificate, merge-authority decision, driver-log entry and audit-merges result carries it and prints it prominently, and a test asserts that no code path renders agent-self as in-session, key-held or user-presence, nor any of those as agent-self.",
+        "[K3] prompt mode admits only an explicit in-session human confirmation (the digest-echo record) and never an agent-self record; ssh-tag remains optional (no default requires it; a repository opts in with default_mode ssh-tag); tests/readiness_v2_approval_modes_test.py (discovered by tests/test-scripts.sh via its .sh wrapper) covers agent, prompt and ssh-tag mode, each accepted and refused case, and a policy without default_mode.",
+        "[K3, U2, U3] The merge bar is unchanged in every mode: merge-certificate/1 at one exact head, every required check SUCCESS, zero unresolved threads, an agent-signed independent review lane distinct from the certifier, admin only under single, and no text, flag, variable or mode maps to a waiver; tests/readiness_v2_core_test.py, tests/readiness_v2_approval_test.py and tests/readiness_v2_certificate_test.py pass unmodified.",
+        "[K3, G1] docs/architecture/adr/0016-git-native-plan-approval.md records K3: the agent-approval namespace and role, the agent-self assurance level, prompt and ssh-tag modes, and that the merge bar is unchanged.",
+        "[K3 follow-ups, recorded only] After this goal merges, a policy-amendment generation moves skills to default_mode agent (adding agent-self to accept), and the user adds ai-catapult-agent-approval to the agent principal's line in ~/.config/ai-catapult/allowed_signers (agents never write the anchor). Neither is part of this goal.",
+        "[AC-3, Hygiene] tests/readiness_v1_freeze_test.sh stays green; manifests and .ai/ci/local-ci.json are re-pinned; work happens in a worktree from origin/main."
+      ],
+      "dependencies": [],
+      "id": "ACH-S-02",
+      "issue_ref": "issue:skills:ach-skills-contract-v2",
+      "scope": [
+        ".ai/policies/readiness-policy.json",
+        ".ai/workflows/northstar-readiness-v2.json",
+        "tests/ach_s01_readiness_policy_test.sh",
+        "tests/xskp_p5_readiness_policy_test.sh",
+        "tests/readiness_policy_v2_test.sh",
+        "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "04-validate-handoff/autobahn/contract-run-v2.sh",
+        "04-validate-handoff/autobahn/modules/readiness-v2.md",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        "04-validate-handoff/autobahn/lib/observer.py",
+        "04-validate-handoff/autobahn/schemas/readiness-contract-v2.json",
+        "docs/architecture/adr/0016-git-native-plan-approval.md",
+        "tests/readiness_v2_approval_modes_test.py",
+        "tests/readiness_v2_approval_modes_test.sh",
+        "tests/readiness_v2_policy_amend_test.py",
+        "tests/readiness_v2_policy_amend_test.sh",
+        "03-configure-generate/ai-catapult-init/templates/boundary-manifest.json",
+        "03-configure-generate/ai-catapult-init/templates/dot-ai/policies/readiness-policy.json",
+        "reference/fixtures/v3/standalone/.ai/policies/readiness-policy.json",
+        "reference/fixtures/v3/umbrella/.ai/policies/readiness-policy.json",
+        "tests/ai-catapult-templates_test.sh",
+        ".ai/ci/local-ci.json",
+        "tests/readiness_v2_inventory_test.py",
+        "tests/readiness_v2_inventory_test.sh"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "[AC-6, P6] v2 admission from a registered linked worktree of the same git common-dir succeeds with no policy edit; tests/readiness_v2_identity_test.py (discovered by tests/test-scripts.sh) proves it from the primary checkout and two linked worktrees against one unchanged policy/2.",
+        "[P6, G3, AC-2] The certificate binds the observed common-dir and merge-authority.sh refuses when the merge-time common-dir differs; an unregistered worktree, a bare repository, a symlinked root and GIT_DIR/GIT_COMMON_DIR injection are each refused with a distinct code.",
+        "[G3] The observer snapshots worktree state (reusing #92's worktree_observation read-only) before and after gate commands; any change refuses with worktree_changed_during_gates; merge stage requires index and working tree to equal the HEAD tree.",
+        "[G5] v2 never reads policy.worktree: a policy/2 carrying a worktree field is refused as unknown; #92's v1 worktree mode and its three tests pass unmodified, and the PR body notifies #92's owner that v2 supersedes the approach without overriding v1.",
+        "[G3, AC-2, P8] The embedded Python of the five local gate scripts starts isolated: tdd-evidence.sh:82 and :116, tdd-mode.sh:31, lint-gate.sh:77, ci-gate.sh:47 and :375, and local-ci.sh:39 (line numbers at skills origin/main 48f90f1) run python3 -I -B, so neither the working directory, PYTHONPATH nor user site-packages of a PR checkout can supply a module to a gate. All five scripts are pinned in both readiness-dependency-v2.json copies, and contract-run-v2.sh's expected manifest set and tests/readiness_v2_core_test.py's pinned-set assertion are extended to match. tests/readiness_v2_gate_shadowing_test.py (discovered by tests/test-scripts.sh via its .sh wrapper) runs each of the five scripts from a PR checkout carrying shadowing stdlib modules (for example json.py, pathlib.py, hashlib.py, subprocess.py) in its root, its working directory and PYTHONPATH, one negative case per script, and asserts no shadow module is ever imported and the gate outcome is unchanged; each case is red before the -I -B change and green after. ACH-S-06 is the fallback only if this goal cannot land it.",
+        "[AC-3] tests/readiness_v1_freeze_test.sh stays green; both readiness-dependency-v2.json copies and .ai/ci/local-ci.json are re-pinned; modules/worktree-execution.md gains a v2 section and autobahn SKILL.md is untouched."
+      ],
+      "dependencies": [
+        "ACH-S-02"
+      ],
+      "id": "ACH-S-03",
+      "issue_ref": "issue:skills:ach-skills-contract-v2",
+      "scope": [
+        "04-validate-handoff/autobahn/lib/observer.py",
+        "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "04-validate-handoff/autobahn/run-gates.sh",
+        "04-validate-handoff/autobahn/modules/worktree-execution.md",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        "tests/readiness_v2_identity_test.py",
+        "tests/readiness_v2_identity_test.sh",
+        "04-validate-handoff/autobahn/tdd-evidence.sh",
+        "04-validate-handoff/autobahn/tdd-mode.sh",
+        "04-validate-handoff/autobahn/lint-gate.sh",
+        "04-validate-handoff/autobahn/ci-gate.sh",
+        "04-validate-handoff/autobahn/local-ci.sh",
+        "04-validate-handoff/autobahn/contract-run-v2.sh",
+        "tests/readiness_v2_core_test.py",
+        "tests/readiness_v2_gate_shadowing_test.py",
+        "tests/readiness_v2_gate_shadowing_test.sh",
+        ".ai/ci/local-ci.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "[P3, Context builder] contract-run.sh context-build exposes the same builder admission uses, producing readiness-context/2 from fresh observation plus a verified approval; without a valid approval the output states it carries no authority; any supplied context that differs from the rebuilt one is refused (tests/readiness_v2_context_test.py, discovered by tests/test-scripts.sh).",
+        "[P4] Dependency completion is transitive: a goal is refused until every ancestor goal's PR merge commit is an ancestor of origin/<target> and admitted after, for merge-commit and squash-merge fixtures, with no hand-written receipt.",
+        "[AC-5] Two v2 plans in one fixture repository are admitted concurrently, with interleaved admissions, against one policy/2 whose digest does not change.",
+        "[Proceed semantics] A blocked admission emits one consolidated, deterministically ordered report listing every missing input (gate, fact, source, recovery) and exits non-zero with no partial authority.",
+        "[AC-7, P5] handoff-write.sh given a v2 bundle runs planning-stage admission and refuses planning_complete:true unless the only remaining gap is plan_approval, printing the consolidated report; a v2 publication carries no holds; a v1 bundle takes the unchanged v1 path (AC-3). Tested in tests/northstar_v2_publish_test.py.",
+        "[Generation defaults, publish-time verification] v2 publication defaults coverage_status unknown with legacy_safe_tdd true and refuses a goal without a non-empty legacy_risk_reason; every verification entry passes lib/verification.py's allowlist and PATH lookup and every bash tests/... path exists at the base commit (git cat-file -e); scope entries are safe relative literal paths; dependencies are intra-generation.",
+        "[U1, O2, K2, G4] approve.sh (northstar approve) records owner and reviewer lane once, prints the plan-approval/1 digest, anchor sha256, the preferred ssh-keygen -Y sign plus unsigned annotated tag commands, then the in-session digest-echo fallback labelled assurance in-session; it never signs or writes the anchor; with no anchor it prints the human-only key and allowed_signers (namespaces= roles) setup steps. approve.sh is added to readiness-dependency-v2.json. modules/approval.md defines Plan approval as distinct from Spec approval, which remains not a state.",
+        "[Catalog, Codex parity] northstar and autobahn SKILL.md are unchanged or net-zero lines with descriptions unchanged; manifests and .ai/ci/local-ci.json are re-pinned; tests/readiness_v1_freeze_test.sh stays green."
+      ],
+      "dependencies": [
+        "ACH-S-02"
+      ],
+      "id": "ACH-S-04",
+      "issue_ref": "issue:skills:ach-skills-contract-v2",
+      "scope": [
+        "02-govern-plan/northstar/handoff-write.sh",
+        "02-govern-plan/northstar/approve.sh",
+        "02-govern-plan/northstar/modules/handoff.md",
+        "02-govern-plan/northstar/modules/approval.md",
+        "04-validate-handoff/autobahn/contract-run-v2.sh",
+        "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "04-validate-handoff/autobahn/lib/observer.py",
+        "04-validate-handoff/autobahn/schemas/readiness-contract-v2.json",
+        "04-validate-handoff/autobahn/modules/readiness-v2.md",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        "tests/readiness_v2_context_test.py",
+        "tests/readiness_v2_context_test.sh",
+        "tests/northstar_v2_publish_test.py",
+        "tests/northstar_v2_publish_test.sh",
+        ".ai/ci/local-ci.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "[R1, O10] migrate-handoff.sh --to readiness-contract/2 --legacy <v1 goals.json> emits a reviewable v2 candidate of the unmerged goals only (merged goals, determined by the inventory-v1 {goal, pr, merge_commit} map rather than commit text, become B5 inputs): content preserved (goal_revision_v2 deterministic), an empty-hold sidecar, the legacy bundle and sha256 retained under extensions, no write to .ai/handoff/readiness-v1/**, and no authority; admission refuses the migrated generation until one new plan approval binds it (tests/readiness_v2_migrate_test.py, discovered by tests/test-scripts.sh).",
+        "[AC-3] migrate-handoff.sh without --to keeps the current v1 legacy-migration output byte-identical; existing migration tests pass unmodified and tests/readiness_v1_freeze_test.sh stays green.",
+        "[O6] The xskp-p5-skill-producers v1 generation (unstarted per ACH-S-02's inventory) is migrated and published through the admission-complete v2 publisher into .ai/handoff/readiness-v2 and .ai/workflows/northstar-readiness-v2.json; its v1 generations and v1 registry entry stay byte-unchanged.",
+        "[AC-7] The migrated P5 generation's planning-stage admission reports plan_approval as its only gap; its approval is P5's own and does not count toward this plan's approval.",
+        "[Hygiene] Manifests and .ai/ci/local-ci.json are re-pinned; no SKILL.md growth; work happens in a worktree from origin/main."
+      ],
+      "dependencies": [
+        "ACH-S-04"
+      ],
+      "id": "ACH-S-05",
+      "issue_ref": "issue:skills:ach-skills-contract-v2",
+      "scope": [
+        "04-validate-handoff/autobahn/migrate-handoff.sh",
+        "04-validate-handoff/autobahn/contract-run-v2.sh",
+        "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "04-validate-handoff/autobahn/modules/readiness-v2.md",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        ".ai/handoff/readiness-v2",
+        ".ai/workflows/northstar-readiness-v2.json",
+        ".ai/traceability/graph.json",
+        "tests/readiness_v2_migrate_test.py",
+        "tests/readiness_v2_migrate_test.sh",
+        ".ai/ci/local-ci.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "[O4, U2] contract-run.sh audit-merges --plan <id> re-observes every fact through the production adapter (merged PRs matching the branch pattern, mergedAt, merge commits, required checks at the merged head, threads, the certificate's signature against the anchor) instead of trusting stored claims, reports approval digest, assurance and lane_independence per PR, and flags any PR for which: no certificate exists, the certified head differs from the PR head at merge, any required check's completed_at is not earlier than the PR's mergedAt, or the approval's expires_at is not later than mergedAt. A negative e2e case merges directly with gh and writes a valid-looking certificate afterwards and asserts audit-merges flags it.",
+        "[AC-9 support, O4] contract-run.sh export-evidence --plan <id> writes .ai/evidence/approvals/<plan_id>/ with approval.json, approval.sig (absent for in-session), allowed_signers (byte copy of the public anchor), certificates/<goal_id>.json and .sig, and driver-log.jsonl; the e2e verifies them from a temporary copy with ssh-keygen -Y verify and a recomputed anchor_sha256.",
+        "[AC-1, R3a] tests/readiness_v2_e2e_test.py (discovered by tests/test-scripts.sh) builds a disposable repository with a bare origin, linked worktrees and an in-process fixture hosted adapter, models publication as a PR, then runs one approval and admission plus certified merge of every goal of a three-goal chain with stdin </dev/null; the sum of counted hook calls, TTY read attempts, exit-3 (ready-for-human) results and human-only report lines equals exactly 1, and the sidecar is never edited after signing.",
+        "[AC-2] The same fixture runs the full negative list (forged signature, agent-role signature, expired or digest-changed approval, agent-written context or verdict, forged agent-signed certificate, moved head, pending check, unlisted SKIPPED check, unresolved thread, missing review lane, self-review-only admin merge, anchor inside a worktree, proceed text or flag) and asserts each refuses with a distinct code.",
+        "[Edge cases, K2] Two plans whose generations share a 12-character prefix get distinct approval tags; an approval expiring between certificate issue and merge is refused at merge; an in-session approval runs end to end and is reported as assurance in-session everywhere.",
+        "[AC-3..AC-7, O8] The freeze test and the AC-4, AC-5, AC-6 and AC-7 checks pass in the end-to-end context, offline, with no environment-selected adapter; this goal's merge commit on skills main is the named O8 release that dependent plans check by git ancestry."
+      ],
+      "dependencies": [
+        "ACH-S-03",
+        "ACH-S-05"
+      ],
+      "id": "ACH-S-06",
+      "issue_ref": "issue:skills:ach-skills-contract-v2",
+      "scope": [
+        "04-validate-handoff/autobahn/lib/observer.py",
+        "04-validate-handoff/autobahn/contract-run-v2.sh",
+        "04-validate-handoff/autobahn/modules/readiness-v2.md",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        "tests/readiness_v2_fixture.py",
+        "tests/readiness_v2_e2e_test.py",
+        "tests/readiness_v2_e2e_test.sh",
+        ".ai/ci/local-ci.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "ach-skills-contract-v2",
+  "issue_ref": "issue:skills:ach-skills-contract-v2",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-contract-v2-gen2.md"
+  }
+}

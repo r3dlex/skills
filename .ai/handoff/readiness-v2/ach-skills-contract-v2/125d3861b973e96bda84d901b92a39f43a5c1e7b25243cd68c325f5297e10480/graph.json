@@ -1,0 +1,83 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:ach-skills-contract-v2:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "target": "plan:skills:ach-skills-contract-v2:ACH-S-02:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-contract-v2:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "target": "plan:skills:ach-skills-contract-v2:ACH-S-03:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-contract-v2:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "target": "plan:skills:ach-skills-contract-v2:ACH-S-04:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-contract-v2:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "target": "plan:skills:ach-skills-contract-v2:ACH-S-05:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-contract-v2:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "target": "plan:skills:ach-skills-contract-v2:ACH-S-06:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "type": "plans"
+    }
+  ],
+  "generation": "125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+  "goal_ids": [
+    "ACH-S-02",
+    "ACH-S-03",
+    "ACH-S-04",
+    "ACH-S-05",
+    "ACH-S-06"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:ach-skills-contract-v2:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "f4a8fcb037168228ac92590f5ce82d968dd0ae89ebefa13897a65c1a6e5611b2",
+      "id": "plan:skills:ach-skills-contract-v2:ACH-S-02:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "18eae1df0c9a9e4306d03ebde96930934632500dcd8258dcab9655f44ab56a02",
+      "id": "plan:skills:ach-skills-contract-v2:ACH-S-03:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "ce5200b91c59dc979b06b4c5baff458c838a548cc7bbc730e4198a16e3fcd000",
+      "id": "plan:skills:ach-skills-contract-v2:ACH-S-04:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "3498e923b6ee08b31881eaa1eb442eb0984d82207e29e3cd7c3be837563acbb6",
+      "id": "plan:skills:ach-skills-contract-v2:ACH-S-05:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "a2b546a39f856be85f2aafc2549d4aec20e1242229fdb454f01c6e5b22eba4d0",
+      "id": "plan:skills:ach-skills-contract-v2:ACH-S-06:125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480",
+      "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/125d3861b973e96bda84d901b92a39f43a5c1e7b25243cd68c325f5297e10480/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "ach-skills-contract-v2",
+  "schema_version": "1.1"
+}
