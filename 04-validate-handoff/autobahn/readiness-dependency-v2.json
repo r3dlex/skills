@@ -10,7 +10,7 @@
     "migrate-handoff.sh": "08e12c7d4385a7e03cd26fb13a2006f8747fbbe4418cac95d7fb83a9c2a74145",
     "northstar/handoff-write.sh": "49465bce958b43f2921ac3c613e06fa9f8dd6cceb5e713ce63b410f012b3b6a3",
     "prereq-check.sh": "fbffee1880ce0291662b5ff48eb7221c4cfab189924c87a775c4f0a172d62b24",
-    "run-gates.sh": "3243b355f92a9bc8a7b10884baf5204112f6a6d661ecc2a1a408a00a2fc29bfc",
+    "run-gates.sh": "3483f9c6c300ebb7c40f77276ca94f41a5171438c6e15510374bb74f0a055e26",
     "schemas/readiness-contract-v2.json": "f59355272cd8a01355c593a34aa809e7145a349c17e58d900bea3de8991c0f41"
   },
   "schema": "readiness-contract/2"

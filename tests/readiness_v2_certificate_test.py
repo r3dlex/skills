@@ -511,6 +511,37 @@ class MergeAuthorityEntryTests(unittest.TestCase):
         git(orphan, 'update-ref', '-d', 'refs/remotes/origin/main')
         self.fail_closed(orphan, '--verdict', str(self.verdict), code='target_ref_unobservable')
 
+    def test_run_gates_uses_the_selected_target_and_fails_closed_without_it(self):
+        from readiness_v2_core_test import sample_policy
+        origin, work = self.base / 'trunk.git', self.base / 'trunk'
+        git(self.base, 'init', '-q', '--bare', str(origin))
+        git(self.base, 'clone', '-q', str(origin), str(work))
+        policy = sample_policy('4' * 64)
+        policy['target'] = 'trunk'
+        write_json(work / POLICY, policy)
+        write_json(work / REGISTRY, {'schema': 'readiness-contract/2', 'plans': [
+            {'id': 'northstar-plan-x', 'plan_id': 'x', 'generation': 'a' * 64, 'status': 'active', 'artifacts': {}}]})
+        git(work, 'add', '-A')
+        git(work, 'commit', '-q', '-m', 'v2 artifacts on trunk')
+        git(work, 'push', '-q', 'origin', 'HEAD:refs/heads/trunk')
+        git(work, 'fetch', '-q', 'origin')
+        record = write_json(self.base / 'trunk-record.json', {'id': 'G1', 'verification': ['bash tests/check.sh']})
+
+        def gates(*extra):
+            return subprocess.run(['bash', str(AUTO / 'run-gates.sh'), '--root', str(work), '--goal-record', str(record),
+                                   '--handoff', 'northstar-plan-x', '--phase', 'pre-merge', '--pr', '1', *extra],
+                                  capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        selected = gates('--target', 'trunk')
+        self.assertIn('readiness-contract/2', selected.stdout + selected.stderr, selected.stdout + selected.stderr)
+        self.assertNotIn('merge requires exact --handoff', selected.stderr)
+        mismatch = gates()
+        self.assertEqual(mismatch.returncode, 1, mismatch.stdout + mismatch.stderr)
+        self.assertIn('targets trunk', mismatch.stderr)
+        git(work, 'update-ref', '-d', 'refs/remotes/origin/trunk')
+        missing = gates('--target', 'trunk')
+        self.assertEqual(missing.returncode, 1, missing.stdout + missing.stderr)
+        self.assertIn('refs/remotes/origin/trunk is missing', missing.stderr)
+
     def test_module_shadowing_in_cwd_cannot_hijack_entry_points(self):
         work = self.repository('shadow', {REGISTRY: {'schema': 'readiness-contract/2', 'plans': []}})
         for name in ('json.py', 'pathlib.py', 'hashlib.py', 'pwd.py'):
