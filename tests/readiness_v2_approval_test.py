@@ -172,16 +172,27 @@ class ApprovalTests(unittest.TestCase):
         self.assertEqual(self.fixture.admit()[0], 0)
 
     def test_anchor_locator_has_no_environment_or_flag_override(self):
+        # A decoy holding the exact pinned anchor bytes: if any variable or HOME redirected the
+        # locator, this CLI admission would pass. It must keep using the passwd-home anchor.
         self.fixture.approve('ssh-tag')
-        decoy = self.base / 'decoy' / 'allowed_signers'
-        decoy.parent.mkdir()
-        decoy.write_text('')
-        env = {name: str(decoy) for name in ('AI_CATAPULT_ANCHOR', 'ALLOWED_SIGNERS', 'SSH_ALLOWED_SIGNERS')}
-        env['HOME'] = str(decoy.parent)
-        exit_code, context = self.fixture.admit(env=env)
-        self.assertEqual(exit_code, 0, context['gaps'])
-        self.assertEqual(self.fixture.admit(extra=('--anchor', str(decoy)))[0], 2)
-        with mock.patch.dict(os.environ, {'HOME': '/nonexistent-home'}):
+        decoy = self.base / 'decoy' / '.config/ai-catapult/allowed_signers'
+        decoy.parent.mkdir(parents=True)
+        decoy.write_bytes(self.fixture.keys.anchor.read_bytes())
+        env = dict(os.environ, HOME=str(self.base / 'decoy'), XDG_CONFIG_HOME=str(self.base / 'decoy/.config'),
+                   **{name: str(decoy) for name in ('AI_CATAPULT_ANCHOR', 'ALLOWED_SIGNERS', 'SSH_ALLOWED_SIGNERS')})
+        command = ['bash', str(AUTO / 'contract-run.sh'), 'admit-v2', '--root', str(self.fixture.work),
+                   '--handoff', 'northstar-plan-plan-a', '--goal-id', 'G1']
+        result = subprocess.run(command, capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
+        context = json.loads(result.stdout)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertTrue({c for c in codes(context) if c.startswith('anchor_')}, codes(context))
+        flagged = subprocess.run(command + ['--anchor', str(decoy)], capture_output=True, text=True, env=env,
+                                 stdin=subprocess.DEVNULL)
+        self.assertEqual(flagged.returncode, 2)
+        self.assertEqual(self.fixture.admit()[0], 0)
+        redirect = {'HOME': '/nonexistent-home', 'XDG_CONFIG_HOME': str(decoy.parent.parent),
+                    **{name: str(decoy) for name in ('AI_CATAPULT_ANCHOR', 'ALLOWED_SIGNERS', 'SSH_ALLOWED_SIGNERS')}}
+        with mock.patch.dict(os.environ, redirect):
             self.assertEqual(observer.default_anchor_path(), Path(observer.passwd_home()) / '.config/ai-catapult/allowed_signers')
 
     def test_in_session_accepted_reported_and_narrowable(self):
@@ -222,6 +233,15 @@ class ApprovalTests(unittest.TestCase):
 
     def test_tag_must_be_annotated_on_origin_and_point_at_the_generation(self):
         tag = 'approval/plan-a/' + self.fixture.generation[:12]
+        first = git(self.fixture.work, 'rev-list', '--max-parents=0', 'HEAD')
+        self.fixture.approve('ssh-tag')
+        message = git(self.fixture.work, 'cat-file', 'tag', tag).split('\n\n', 1)[1] + '\n'
+        (self.fixture.inputs / 'retarget.msg').write_text(message)
+        git(self.fixture.work, 'tag', '-f', '-a', '--cleanup=verbatim', '-F', str(self.fixture.inputs / 'retarget.msg'), tag, first)
+        git(self.fixture.work, 'push', '-q', '-f', 'origin', 'refs/tags/' + tag)
+        self.refused('approval_tag_target_invalid')
+        git(self.fixture.work, 'push', '-q', 'origin', ':refs/tags/' + tag)
+        git(self.fixture.work, 'tag', '-d', tag)
         git(self.fixture.work, 'tag', tag, self.fixture.publication_commit)
         self.refused('approval_tag_not_annotated')
         git(self.fixture.work, 'tag', '-d', tag)
