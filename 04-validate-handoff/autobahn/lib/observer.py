@@ -456,14 +456,15 @@ def load_generation(root, ref, handoff):
             'digests': digests, 'prefix': prefix}
 
 
-def find_sidecar_v0(root, ref, path, digest):
-    """The approved sidecar is whichever committed version the approval's digest names."""
+def find_sidecar_v0(root, ref, path, digest, bundle):
+    """The approved sidecar is the committed, valid version whose digest the approval names."""
     for commit in git_text(root, 'log', '--format=%H', ref, '--', path).split():
         data = show(root, commit, path)
         try:
-            if data is not None and canonical(json.loads(data)) == digest:
-                return json.loads(data)
-        except ValueError:
+            sidecar = parse_json(data, 'sidecar') if data is not None else None
+            if sidecar is not None and canonical(sidecar) == digest:
+                return v2.validate_sidecar(sidecar, bundle)
+        except Invalid:
             continue
     return None
 
@@ -656,6 +657,16 @@ def manifest_paths():
     return [peer / name[len('northstar/'):] if name.startswith('northstar/') else HERE / name for name in manifest['files']]
 
 
+PROVENANCE = ('source-lane', 'base-copy')
+
+
+def checked_provenance(root, target):
+    """provenance() with its result checked; callers record it in every report."""
+    origin = provenance(root, target)
+    v2.check(origin in PROVENANCE, 'driver_provenance_unknown', origin)
+    return origin
+
+
 def provenance(root, target):
     """A driver inside the repository it admits must equal the target branch's copy."""
     driver = git(HERE, 'rev-parse', '--show-toplevel', check=False)
@@ -687,7 +698,7 @@ def admission_inputs(root, ref, handoff, goals, stage, adapter, now, pr=None, re
         sidecar_v0 = None
         record = carrier.get('record')
         if isinstance(record, dict) and record.get('sidecar_sha256') != canonical(gen['sidecar']):
-            sidecar_v0 = find_sidecar_v0(root, ref, gen['sidecar_path'], record.get('sidecar_sha256'))
+            sidecar_v0 = find_sidecar_v0(root, ref, gen['sidecar_path'], record.get('sidecar_sha256'), gen['bundle'])
         inputs.update(registered={'id': gen['entry']['id'], 'generation': gen['entry']['generation'], 'mode': gen['mode']},
                       policy=gen['policy'], policy_mode=gen['mode'], live_policy2=gen['live_policy2'],
                       candidate_is_live=gen['candidate_is_live'], bundle=gen['bundle'], sidecar=gen['sidecar'],
@@ -704,11 +715,12 @@ def admission_inputs(root, ref, handoff, goals, stage, adapter, now, pr=None, re
 def op_admit(args, now, adapter):
     root = Path(args.root).resolve(strict=True)
     ref = target_ref(args.target)
-    provenance(root, args.target)
+    origin = checked_provenance(root, args.target)
     adapter = adapter or hosted_adapter_factory(root)
     inputs, _ = admission_inputs(root, ref, args.handoff, args.goal_id, args.stage, adapter, now, args.pr,
                                  args.review_record)
     context = v2.admission(inputs)
+    context['provenance'] = origin
     context['observation'] = dict(context['observation'], adapter=adapter.name)
     refusals = []
     for kind, path, rebuilt in (('context', args.context, context), ('observation', args.observation, context['observation']),
@@ -826,7 +838,7 @@ def op_publish(args, now, adapter):
 def op_approval_request(args, now, adapter):
     root = Path(args.root).resolve(strict=True)
     ref = target_ref(args.target)
-    provenance(root, args.target)
+    origin = checked_provenance(root, args.target)
     gen = load_generation(root, ref, args.handoff)
     v2.check(1 <= args.days <= gen['policy']['approval']['max_age_days'], 'approval_request_invalid', 'days')
     publication = git_text(root, 'log', '-1', '--format=%H', ref, '--', gen['prefix'])
@@ -854,7 +866,7 @@ def op_approval_request(args, now, adapter):
         'fallback': {'assurance': 'in-session', 'record': fallback, 'digest': canonical(fallback), 'commands': [
             "printf '%%s\\ndigest-echo: %%s\\n' %s %s > approval.msg" % (shlex.quote(fallback_line), canonical(fallback)),
             *tag_commands]},
-        'signs': False}
+        'signs': False, 'provenance': origin}
 
 
 def run_local_gates(root, goal):
@@ -934,7 +946,7 @@ def certificate_path(root, plan_id, goal_id, pr, head):
 def op_certify(args, now, adapter):
     root = Path(args.root).resolve(strict=True)
     ref = target_ref(args.target)
-    provenance(root, args.target)
+    origin = checked_provenance(root, args.target)
     adapter = adapter or hosted_adapter_factory(root)
     derived, context, refusals = derive_certificate(root, ref, args.handoff, args.goal_id, args.pr, args.review_record,
                                                     adapter, now)
@@ -943,7 +955,8 @@ def op_certify(args, now, adapter):
         if read_json(args.goal_record) != goal:
             refusals.append('execution_record_mismatch')
     result = {'schema': 'merge-certificate-result/1', 'issued': False, 'pr': args.pr, 'plan_id': context.get('plan_id'),
-              'goal_id': args.goal_id, 'assurance': context.get('assurance'), 'context_gaps': context['gaps']}
+              'goal_id': args.goal_id, 'assurance': context.get('assurance'), 'context_gaps': context['gaps'],
+              'provenance': origin}
     if refusals:
         result['refusals'] = [{'code': c.split(':', 1)[0], 'detail': c} for c in refusals]
         return 1, result
@@ -1050,7 +1063,7 @@ def op_merge(args, now, adapter):
         return refused('verdict_refused_for_v2', 'a v2 PR merges only on a re-observed merge certificate')
     if type(adapter) is not GhAdapter:
         return refused('adapter_not_production', adapter.name)
-    provenance(root, args.target)
+    result['provenance'] = checked_provenance(root, args.target)
     pull = adapter.pull(args.pr)
     gen = load_generation(root, ref, found['handoff'])
     path = certificate_path(root, gen['bundle']['id'], found['goal_id'], args.pr, pull['head'])
@@ -1099,7 +1112,7 @@ def op_audit(args, now, adapter):
     merged head. Timing checks and export-evidence belong to a later goal."""
     root = Path(args.root).resolve(strict=True)
     ref = target_ref(args.target)
-    origin = provenance(root, args.target)
+    origin = checked_provenance(root, args.target)
     adapter = adapter or hosted_adapter_factory(root)
     report = {'schema': 'merge-audit/1', 'provenance': origin, 'adapter': adapter.name, 'prs': [], 'findings': []}
     if type(adapter) is not GhAdapter:
@@ -1205,22 +1218,25 @@ def parser():
     return main_parser
 
 
-def log_exit(args, code, result):
+def log_root(operation, root_arg):
+    """The repository whose observer state records a run: --root, or the cwd for merge-v2."""
+    if operation == 'merge-v2':
+        top = git(Path(os.getcwd()), 'rev-parse', '--show-toplevel', check=False)
+        return Path(top.stdout.decode().strip()) if top.returncode == 0 else None
+    return Path(root_arg).resolve(strict=True) if root_arg else None
+
+
+def log_exit(operation, root_arg, code, result, goal_id=None, pr=None):
+    """Append every driver exit code (usage errors included) to the driver log."""
     try:
-        if args.operation == 'merge-v2':
-            if code == EXIT_V1:
-                return
-            top = git(Path(os.getcwd()), 'rev-parse', '--show-toplevel', check=False)
-            if top.returncode:
-                return
-            root = Path(top.stdout.decode().strip())
-        else:
-            root = Path(args.root).resolve(strict=True)
+        root = log_root(operation, root_arg)
+        if root is None:
+            return
         directory = state_dir(root)
         directory.mkdir(parents=True, exist_ok=True)
-        entry = {'at': v2.stamp(datetime.now(timezone.utc)), 'op': args.operation, 'exit': code,
-                 'plan_id': result.get('plan_id'), 'goal_id': result.get('goal_id') or (getattr(args, 'goal_id', None)),
-                 'pr': getattr(args, 'pr', None), 'assurance': result.get('assurance'),
+        entry = {'at': v2.stamp(datetime.now(timezone.utc)), 'op': operation, 'exit': code,
+                 'plan_id': result.get('plan_id'), 'goal_id': result.get('goal_id') or goal_id, 'pr': pr,
+                 'assurance': result.get('assurance'), 'provenance': result.get('provenance'),
                  'codes': sorted({r['code'] for r in result.get('refusals', []) + result.get('gaps', [])
                                   + result.get('findings', [])})}
         with (directory / 'driver-log.jsonl').open('a') as handle:
@@ -1230,22 +1246,29 @@ def log_exit(args, code, result):
 
 
 def run(argv, now=None, adapter=None):
-    """Parse, run one operation, log the exit code. Unknown arguments exit 2."""
+    """Parse, run one operation, log the exit code. Unknown arguments exit 2; any
+    unexpected error refuses (merge-v2 fails closed with 4). Every run is logged."""
     try:
         args = parser().parse_args(argv)
     except SystemExit:
         # Every parser exit is a usage refusal; nothing argparse does may yield exit 0.
-        return 2, {'schema': v2.VERSION, 'refusals': [{'code': 'usage', 'detail': 'unknown or missing argument'}]}
+        result = {'schema': v2.VERSION, 'refusals': [{'code': 'usage', 'detail': 'unknown or missing argument'}]}
+        operation = argv[0] if argv and argv[0] in LOGGED else None
+        if operation:
+            root_arg = argv[argv.index('--root') + 1] if '--root' in argv[:-1] else None
+            log_exit(operation, root_arg, 2, result)
+        return 2, result
     now = now or datetime.now(timezone.utc).replace(microsecond=0)
     handler = HANDLERS.get(args.operation, op_reserved)
     try:
         code, result = handler(args, now, adapter)
-    except (Invalid, OSError, KeyError, TypeError, ValueError, VerificationError) as error:
+    except Exception as error:  # noqa: BLE001 - every failure is a refusal, never a crash or an exit 0
         code_text = v2.code(error) if isinstance(error, Invalid) else 'operation_failed'
         code = EXIT_FAIL_CLOSED if args.operation == 'merge-v2' else 1
-        result = {'schema': v2.VERSION, 'refusals': [{'code': code_text, 'detail': str(error)}]}
-    if args.operation in LOGGED:
-        log_exit(args, code, result)
+        result = {'schema': v2.VERSION, 'refusals': [{'code': code_text, 'detail': '%s: %s' % (type(error).__name__, error)}]}
+    if args.operation in LOGGED and code != EXIT_V1:
+        log_exit(args.operation, getattr(args, 'root', None), code, result, getattr(args, 'goal_id', None),
+                 getattr(args, 'pr', None))
     return code, result
 
 

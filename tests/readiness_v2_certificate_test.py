@@ -309,6 +309,31 @@ class MergeAuthorityTests(unittest.TestCase):
         self.assertEqual(self.audit()[0], 4)
         self.assertEqual(self.audit(adapter=observer.FixtureAdapter(many))[0], 4)
 
+    def test_unexpected_errors_fail_closed_and_every_run_is_logged(self):
+        class Exploding(observer.GhAdapter):
+            def pull(self, number):
+                raise RuntimeError('adapter exploded')
+        exit_code, result = self.c.merge(adapter=Exploding(self.c.fixture.work))
+        self.assertEqual(exit_code, 4, result)
+        self.assertIn('operation_failed', codes(result))
+        exit_code, result = self.c.fixture.run(['admit-v2', '--root', str(self.c.fixture.work), '--handoff',
+                                                'northstar-plan-plan-a', '--goal-id', 'G1', '--stage', 'merge', '--pr', PR],
+                                               adapter=Exploding(self.c.fixture.work))
+        self.assertEqual(exit_code, 1, result)
+        cwd = os.getcwd()
+        os.chdir(self.c.fixture.work)
+        try:
+            self.assertEqual(observer.run(['merge-v2', '--bogus'])[0], 2)
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(self.c.fixture.run(['certify-v2', '--root', str(self.c.fixture.work), '--nope'])[0], 2)
+        log = [json.loads(line) for line in (self.c.fixture.state_dir() / 'driver-log.jsonl').read_text().splitlines()]
+        self.assertEqual([(e['op'], e['exit']) for e in log[-4:]],
+                         [('merge-v2', 4), ('admit-v2', 1), ('merge-v2', 2), ('certify-v2', 2)])
+        self.assertEqual({e.get('provenance') for e in log if e['exit'] in (0, 1)} - {None}, {'source-lane'})
+        exit_code, context = self.c.fixture.admit()
+        self.assertEqual(context['provenance'], 'source-lane')
+
     def test_admin_merge_with_independent_lane_under_single_identity(self):
         exit_code, result = self.c.merge('--admin')
         self.assertEqual(exit_code, 0, json.dumps(result, indent=1))

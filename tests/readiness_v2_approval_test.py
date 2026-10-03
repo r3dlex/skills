@@ -109,6 +109,19 @@ class ApprovalTests(unittest.TestCase):
         self.fixture.commit_push('loosen sidecar')
         self.refused('sidecar_loosened')
 
+    def test_sidecar_v0_must_be_a_valid_sidecar(self):
+        path = self.fixture.work / '.ai/handoff/readiness-v2/plan-a' / self.fixture.generation / 'sidecar.json'
+        invalid = json.loads(path.read_text())
+        invalid['goals']['G1']['owner'] = 'smuggled'
+        write_json(path, invalid)
+        self.fixture.commit_push('an invalid sidecar version enters history')
+        self.fixture.approve('ssh-tag', record=self.fixture.record(sidecar_sha256=v2.canonical(invalid)))
+        valid = json.loads(path.read_text())
+        del valid['goals']['G1']['owner']
+        write_json(path, valid)
+        self.fixture.commit_push('restore a valid sidecar')
+        self.refused('approval_sidecar_mismatch')
+
     def test_anchor_missing_inside_worktree_and_digest_mismatch(self):
         self.fixture.approve('ssh-tag')
         self.refused('anchor_missing', anchor=self.base / 'absent' / 'allowed_signers')

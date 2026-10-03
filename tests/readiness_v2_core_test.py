@@ -711,6 +711,13 @@ class PublicationAndAdmissionTests(unittest.TestCase):
 
 
 class EntryPointTests(unittest.TestCase):
+    def setUp(self):
+        # In-process usage refusals are logged against the cwd repository: keep them out of this checkout.
+        self.cwd = tempfile.TemporaryDirectory()
+        self.addCleanup(self.cwd.cleanup)
+        self.addCleanup(os.chdir, os.getcwd())
+        os.chdir(self.cwd.name)
+
     def test_route_prelude_dispatches_only_v2_names(self):
         with tempfile.TemporaryDirectory() as tmp:
             run = lambda *args: subprocess.run(['bash', str(AUTO / 'contract-run.sh'), *args],
