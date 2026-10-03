@@ -85,6 +85,38 @@ so the normalized shape is anchored to a real artifact. The opaque-token case (a
 non-`ct-` token that still merges on an approved verdict) proves the adapter
 consumes the verdict verbatim and never recomputes the regex or admin rule.
 
+## readiness-contract/2 PRs
+
+Once a v2 registry (`.ai/workflows/northstar-readiness-v2.json`) or a live
+`readiness-policy/2` is observable, `--pr` is mandatory on every call,
+`--verdict` included. Observable means on `origin/<target>`, on the commit
+`git ls-remote` reports for it, or at HEAD of the repository it runs in. A
+verdict-only call is then refused with exit 4 and never exits 0.
+
+These also refuse with exit 4 and never fall back to the verdict path:
+- a missing or rewound target ref;
+- a plan that fails to load;
+- a branch that matches a v2 `branch_pattern` but no goal.
+
+`--pr` selects the path by observing the PR's head branch against that registry:
+
+| PR head branch | Path |
+| --- | --- |
+| a v2 goal branch (the policy `branch_pattern`) | v2: `--verdict` refused; merge only on a re-observed `merge-certificate/1` |
+| anything else | the unchanged v1 adapter above |
+
+The v2 path does not trust the certificate. It re-runs the local gates and
+re-observes every hosted fact and the plan approval, then refuses on any
+difference. It also refuses on a moved head (including between observation and
+merge), an expired approval, a missing certificate or a non-production adapter.
+It merges with `gh pr merge --match-head-commit`.
+
+`--admin` maps only to the host's review bypass, under U3: the policy declares
+`identity_model: single`, the certificate carries the admin flag, and an
+independent agent review lane signed it. An admin merge backed only by
+self-review is refused. Every decision records `assurance`. A call made outside
+the target repository takes the v1 path. See [readiness-v2.md](readiness-v2.md).
+
 ## Safety rules
 
 - Default is **ready-for-human**; merge only on an approved verdict + valid token.

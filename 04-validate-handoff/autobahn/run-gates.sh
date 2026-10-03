@@ -17,6 +17,12 @@
 #
 # Usage:
 #   run-gates.sh --root <dir> --goal-record <path> [--phase pre-commit|pre-merge|all|local-validation] [--fail-fast]
+#   run-gates.sh --root <dir> --goal-record <path> --handoff <v2-registration> --phase pre-merge --pr <n> --review-record <path> [--target <branch>]
+#
+# A --handoff registered in .ai/workflows/northstar-readiness-v2.json is a
+# readiness-contract/2 selection: pre-merge/all issue merge-certificate/1 through
+# the pinned v2 entry point, which re-observes everything itself; other phases run
+# v2 implementation admission and then the shared gates. No hand-written context.
 #
 # Exit codes: 0 every gate passed; 1 at least one gate blocked; 2 usage error.
 
@@ -34,6 +40,9 @@ CONTEXT=""
 EXECUTION_ROOT=""
 WORKTREE_ROOT=""
 BASE_COMMIT=""
+PR=""
+REVIEW_RECORD=""
+TARGET=""
 
 usage() { echo "run-gates: $1" >&2; exit 2; }
 
@@ -48,6 +57,9 @@ while [[ $# -gt 0 ]]; do
     --base-commit) BASE_COMMIT="${2:-}"; shift 2 || usage "--base-commit needs a value" ;;
     --context)     CONTEXT="${2:-}"; shift 2 || usage "--context needs a value" ;;
     --phase)       PHASE="${2:-}";  shift 2 || usage "--phase needs a value" ;;
+    --pr)          PR="${2:-}";     shift 2 || usage "--pr needs a value" ;;
+    --review-record) REVIEW_RECORD="${2:-}"; shift 2 || usage "--review-record needs a value" ;;
+    --target)      TARGET="${2:-}"; shift 2 || usage "--target needs a value" ;;
     --fail-fast)   FAIL_FAST=1;     shift ;;
     *) usage "unknown argument: $1" ;;
   esac
@@ -64,7 +76,7 @@ fi
 
 # The goal id addresses the evidence file. A record the driver cannot name is a
 # record whose evidence it cannot find, which is a block rather than a skip.
-GOAL_ID="$(RECORD="$RECORD" python3 - <<'PY' 2>/dev/null
+GOAL_ID="$(RECORD="$RECORD" python3 -I -B - <<'PY' 2>/dev/null
 import json, os, sys
 from pathlib import Path
 try:
@@ -83,6 +95,57 @@ if [[ -z "$GOAL_ID" ]]; then
 fi
 
 echo "run-gates: goal=$GOAL_ID phase=$PHASE root=$ROOT"
+
+# readiness-contract/2: decided from the registry on origin/<target>, never from
+# the working tree. The target is the selection (--target, default main); a
+# readiness-policy/2 at HEAD naming another target blocks rather than redirects,
+# because HEAD is PR-controlled. Once v2 artifacts exist, a missing target ref
+# blocks. Detection grants nothing; the v2 driver re-reads every planning input.
+V2_RUN="no"
+TARGET="${TARGET:-main}"
+if [[ -n "$HANDOFF" ]]; then
+  git_read() {
+    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_INDEX_FILE -u GIT_OBJECT_DIRECTORY \
+      git --no-replace-objects -C "$ROOT" "$@" 2>/dev/null
+  }
+  TARGET_REF="refs/remotes/origin/$TARGET"
+  HEAD_POLICY="$(git_read cat-file blob HEAD:.ai/policies/readiness-policy.json | python3 -I -B -c 'import json, sys
+try:
+    policy = json.load(sys.stdin)
+except ValueError:
+    policy = None
+if isinstance(policy, dict) and policy.get("schema") == "readiness-policy/2":
+    print(policy.get("target") if isinstance(policy.get("target"), str) and policy.get("target") else "?")' || true)"
+  if [[ -n "$HEAD_POLICY" && "$HEAD_POLICY" != "$TARGET" ]]; then
+    echo "run-gates: BLOCKED - readiness-policy/2 at HEAD targets $HEAD_POLICY; select it with --target" >&2
+    exit 1
+  fi
+  if ! git_read rev-parse --verify --quiet "$TARGET_REF^{commit}" >/dev/null; then
+    if [[ -n "$HEAD_POLICY" || -f "$ROOT/.ai/workflows/northstar-readiness-v2.json" ]] \
+        || git_read cat-file -e HEAD:.ai/workflows/northstar-readiness-v2.json; then
+      echo "run-gates: BLOCKED - $TARGET_REF is missing while readiness-contract/2 artifacts exist" >&2
+      exit 1
+    fi
+  else
+    V2_REGISTRY="$(git_read cat-file blob "$TARGET_REF:.ai/workflows/northstar-readiness-v2.json" || true)"
+    if [[ -n "$V2_REGISTRY" ]]; then
+      V2_RUN="$(V2_REGISTRY="$V2_REGISTRY" python3 -I -B -c 'import json, os, sys
+plans = json.loads(os.environ["V2_REGISTRY"]).get("plans", [])
+print("yes" if any(isinstance(p, dict) and sys.argv[1] in (p.get("id"), p.get("handoff_path")) for p in plans) else "no")' \
+        "$HANDOFF")" || { echo "run-gates: BLOCKED - unreadable v2 registry on $TARGET_REF" >&2; exit 1; }
+    fi
+  fi
+fi
+if [[ "$V2_RUN" == "yes" ]]; then
+  [[ -z "$CONTEXT$WORKTREE_ROOT$BASE_COMMIT$EXECUTION_ROOT$DIRECT" ]] \
+    || usage "a v2 selection takes no --context, --worktree-root, --base-commit, --execution-root or --goal"
+  if [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" ]]; then
+    [[ -n "$PR" ]] || usage "a v2 pre-merge run requires --pr"
+    V2_ARGS=(certify-v2 --root "$ROOT" --handoff "$HANDOFF" --goal-id "$GOAL_ID" --goal-record "$RECORD" --pr "$PR" --target "$TARGET")
+    [[ -z "$REVIEW_RECORD" ]] || V2_ARGS+=(--review-record "$REVIEW_RECORD")
+    exec bash "$HERE/contract-run.sh" "${V2_ARGS[@]}"
+  fi
+fi
 
 BLOCKED=()
 
@@ -142,7 +205,7 @@ if [[ -n "$WORKTREE_ROOT" ]]; then
     fi
     cat "$REPORT"
     local snapshot
-    snapshot="$(python3 - "$REPORT" "$WORKTREE_ROOT" "$CONTEXT" "$RECORD" <<'PY_WORKTREE'
+    snapshot="$(python3 -I -B - "$REPORT" "$WORKTREE_ROOT" "$CONTEXT" "$RECORD" <<'PY_WORKTREE'
 import hashlib, json, sys
 from pathlib import Path
 report = json.loads(Path(sys.argv[1]).read_text())
@@ -170,7 +233,7 @@ fi
 # detection grants nothing; the pinned validator below admits the exact record.
 MAPPED_RUN="no"
 if [[ -z "$WORKTREE_ROOT" ]]; then
-MAPPED_RUN="$(ROOT="$ROOT" RECORD="$RECORD" DIRECT="$DIRECT" HANDOFF="$HANDOFF" EXECUTION_ROOT="$EXECUTION_ROOT" python3 - <<'PY_DETECT'
+MAPPED_RUN="$(ROOT="$ROOT" RECORD="$RECORD" DIRECT="$DIRECT" HANDOFF="$HANDOFF" EXECUTION_ROOT="$EXECUTION_ROOT" python3 -I -B - <<'PY_DETECT'
 import json, os
 from pathlib import Path
 root = Path(os.environ['ROOT']).resolve(strict=True)
@@ -218,7 +281,7 @@ if [[ "$MAPPED_RUN" == "yes" ]]; then
     exit 1
   fi
   cat "$REPORT"
-  if ! python3 - "$REPORT" "$EXECUTION_ROOT" <<'PY_ROUTE'
+  if ! python3 -I -B - "$REPORT" "$EXECUTION_ROOT" <<'PY_ROUTE'
 import json, sys
 from pathlib import Path
 report = json.loads(Path(sys.argv[1]).read_text())
@@ -250,6 +313,11 @@ if [[ -z "$WORKTREE_ROOT" && "$MAPPED_RUN" == "no" && ( "$PHASE" == "pre-merge" 
   fi
   gate "merge readiness" bash "$HERE/prereq-check.sh" --root "$ROOT" "${SELECTION[@]}" \
     --context "$CONTEXT" --stage merge --execution-record "$RECORD" || exit 1
+fi
+
+if [[ "$V2_RUN" == "yes" ]]; then
+  gate "v2 implementation admission" bash "$HERE/contract-run.sh" admit-v2 --root "$ROOT" \
+    --handoff "$HANDOFF" --goal-id "$GOAL_ID" --stage implementation --target "$TARGET" || exit 1
 fi
 
 if [[ "$PHASE" == "pre-commit" || "$PHASE" == "all" || "$PHASE" == "local-validation" ]]; then

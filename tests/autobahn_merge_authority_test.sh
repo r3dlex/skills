@@ -21,9 +21,14 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT" || exit 1
+# Run from a temporary git repository with no readiness-contract/2 artifacts, so
+# a v2 registry or policy/2 on this repository's origin/main cannot change the
+# v1 path these assertions exercise (ACH-S-01, AC-3: only the cwd moves).
+WORKDIR="$(mktemp -d)"
+git -C "$WORKDIR" init -q
+cd "$WORKDIR" || exit 1
 
-SCRIPT="04-validate-handoff/autobahn/merge-authority.sh"
+SCRIPT="$REPO_ROOT/04-validate-handoff/autobahn/merge-authority.sh"
 
 PASS=0
 FAIL=0
@@ -51,7 +56,7 @@ else
 fi
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+trap 'rm -rf "$tmp" "$WORKDIR"' EXIT
 
 # (a) approved verdict from host-policy (mode=apply) + a token. Note the token
 # deliberately does NOT match ^ct-...$ — proving the adapter consumes the
@@ -176,7 +181,7 @@ fi
 
 # Anchor the verdict SHAPE to a committed host-policy fixture (not only inline
 # mocks), so drift in the normalized-verdict object is caught in CI.
-COMMITTED_VERDICT="reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json"
+COMMITTED_VERDICT="$REPO_ROOT/reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json"
 if [[ -f "$COMMITTED_VERDICT" ]]; then
   rc="$(run "$COMMITTED_VERDICT")"
   if [[ "$rc" -eq 0 ]]; then
@@ -242,6 +247,23 @@ PYTEST
     bad "$marker_json marker cannot inherit status approval"
   fi
 done
+
+# readiness-contract/2: once this repository's origin/main carries a v2 registry,
+# --pr is mandatory and a verdict-only call is refused (never exit 0).
+git init -q --bare "$tmp/origin.git"
+git -C "$WORKDIR" remote add origin "$tmp/origin.git"
+mkdir -p "$WORKDIR/.ai/workflows"
+printf '%s\n' '{"plans":[],"schema":"readiness-contract/2"}' > "$WORKDIR/.ai/workflows/northstar-readiness-v2.json"
+git -C "$WORKDIR" add -A
+git -C "$WORKDIR" -c user.name=fixture -c user.email=fixture@example.invalid -c commit.gpgsign=false \
+  -c core.hooksPath=/dev/null commit -q -m "fixture: v2 registry"
+git -C "$WORKDIR" push -q origin HEAD:refs/heads/main
+git -C "$WORKDIR" fetch -q origin
+if [[ "$(run "$tmp/approved.json")" -ne 0 ]]; then
+  ok "verdict-only call is refused once origin/main carries a v2 registry"
+else
+  bad "verdict-only call is refused once origin/main carries a v2 registry"
+fi
 
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

@@ -2,7 +2,13 @@
 # Pinned local dependency only. Never search PATH or the network for a helper.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec python3 -B - "$HERE" "$@" <<'PY'
+# readiness-contract/2 operation names route to their own pinned entry point.
+# Every other name, including v1 admit/publish/migrate, stays on the v1 path below.
+case "${1:-}" in
+  admit-v2|publish-v2|approval-request|certify-v2|merge-v2|context-build|inventory-v1|audit-merges|export-evidence)
+    exec bash "$HERE/contract-run-v2.sh" "$@" ;;
+esac
+exec python3 -I -B - "$HERE" "$@" <<'PY'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 try:

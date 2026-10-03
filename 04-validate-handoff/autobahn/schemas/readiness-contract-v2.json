@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-catapult:readiness-contract:2",
+  "title": "Readiness contract v2 public vocabulary",
+  "description": "Structural vocabulary only. The pinned pure validator (lib/readiness_contract_v2.py) owns every semantic rule and the pinned observer (lib/observer.py) owns every observed fact. No field here, and no supplied artifact, carries authority by itself: authority is one verified plan-approval/1 for the exact generation, and merges additionally need a re-observed merge-certificate/1.",
+  "oneOf": [
+    {"$ref": "#/$defs/policy"},
+    {"$ref": "#/$defs/bundle"},
+    {"$ref": "#/$defs/sidecar"},
+    {"$ref": "#/$defs/approval"},
+    {"$ref": "#/$defs/certificate"},
+    {"$ref": "#/$defs/review"}
+  ],
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "path": {"type": "string", "minLength": 1, "not": {"pattern": "(^/|\\\\|(^|/)\\.\\.?(/|$)|[*?\\[\\]])"}},
+    "assurance": {"enum": ["user-presence", "key-held", "in-session"]},
+    "names": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "repository", "identity_model", "sources", "required_checks", "skippable_checks", "branch_pattern", "target", "tools", "reviewer_requirements", "approval", "gates"],
+      "properties": {
+        "schema": {"const": "readiness-policy/2"},
+        "repository": {"type": "object", "additionalProperties": false, "required": ["id"], "properties": {"id": {"$ref": "#/$defs/id"}}},
+        "identity_model": {"enum": ["multi", "single"]},
+        "sources": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/path"}},
+        "required_checks": {"$ref": "#/$defs/names"},
+        "skippable_checks": {"$ref": "#/$defs/names"},
+        "branch_pattern": {"type": "string", "allOf": [{"pattern": "^\\^"}, {"pattern": "\\$$"}, {"pattern": "<plan_id>"}, {"pattern": "<goal_id>"}]},
+        "target": {"type": "string", "pattern": "^[A-Za-z0-9._/-]+$"},
+        "tools": {"$ref": "#/$defs/names"},
+        "reviewer_requirements": {"const": {"independent_lane": true}},
+        "approval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["anchor_sha256", "max_age_days", "accept"],
+          "properties": {
+            "anchor_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+            "max_age_days": {"const": 14},
+            "accept": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["ssh-tag", "in-session"]}}
+          }
+        },
+        "gates": {"type": "array", "items": {"$ref": "#/$defs/gate"}}
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "stage", "scope"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "kind": {"enum": ["ownership", "review", "branch_target", "tooling", "file_digest", "git_ancestor", "hosted_checks", "plan_approval", "fixture", "harness_trust"]},
+        "stage": {"enum": ["preparation", "implementation", "merge"]},
+        "scope": {"const": {"repository": true}},
+        "binding": {"type": "object"},
+        "not_applicable": {"type": "object", "additionalProperties": false, "required": ["reason"], "properties": {"reason": {"enum": ["no-fixture-dependency", "no-pinned-harness"]}}},
+        "responsible": {"type": "string", "minLength": 1}
+      }
+    },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "id", "repository", "spec", "goals"],
+      "properties": {
+        "schema": {"const": "handoff-goals/2"},
+        "id": {"$ref": "#/$defs/id"},
+        "repository": {"type": "object", "additionalProperties": false, "required": ["id"], "properties": {"id": {"$ref": "#/$defs/id"}}},
+        "spec": {"type": "object", "additionalProperties": false, "required": ["path"], "properties": {"path": {"$ref": "#/$defs/path"}}},
+        "issue_ref": {"type": "string"},
+        "attachments": {"type": "object"},
+        "goals": {"type": "array", "minItems": 1, "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "scope", "acceptance_criteria", "dependencies", "verification"],
+          "properties": {
+            "id": {"$ref": "#/$defs/id"},
+            "issue_ref": {"type": "string"},
+            "scope": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/path"}},
+            "acceptance_criteria": {"$ref": "#/$defs/names", "minItems": 1},
+            "dependencies": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+            "verification": {"type": "array", "minItems": 1}
+          }
+        }}
+      }
+    },
+    "sidecar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "plan_id", "goals"],
+      "properties": {
+        "schema": {"const": "readiness-sidecar/1"},
+        "plan_id": {"$ref": "#/$defs/id"},
+        "goals": {"type": "object", "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["readiness", "coverage_status", "legacy_safe_tdd", "legacy_risk_reason"],
+          "properties": {
+            "readiness": {"type": "object", "additionalProperties": false, "required": ["preparation", "implementation", "merge"],
+                          "properties": {"preparation": {"enum": ["unknown", "blocked"]}, "implementation": {"enum": ["unknown", "blocked"]}, "merge": {"enum": ["unknown", "blocked"]}}},
+            "coverage_status": {"enum": ["unknown", "measured"]},
+            "coverage_percent": {"type": "number", "minimum": 0, "maximum": 100},
+            "legacy_safe_tdd": {"type": "boolean"},
+            "legacy_risk_reason": {"type": "string", "minLength": 1}
+          }
+        }}
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "plan_id", "generation", "bundle_sha256", "spec_sha256", "policy_sha256", "sidecar_sha256", "goals", "stages", "owner", "reviewer_lane", "issued_at", "expires_at", "anchor_sha256", "assurance"],
+      "properties": {
+        "schema": {"const": "plan-approval/1"},
+        "plan_id": {"$ref": "#/$defs/id"},
+        "generation": {"$ref": "#/$defs/sha256"},
+        "bundle_sha256": {"$ref": "#/$defs/sha256"},
+        "spec_sha256": {"$ref": "#/$defs/sha256"},
+        "policy_sha256": {"$ref": "#/$defs/sha256"},
+        "sidecar_sha256": {"$ref": "#/$defs/sha256"},
+        "goals": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "stages": {"const": ["implementation", "merge"]},
+        "owner": {"type": "string", "minLength": 1},
+        "reviewer_lane": {"type": "string", "minLength": 1},
+        "issued_at": {"$ref": "#/$defs/timestamp"},
+        "expires_at": {"$ref": "#/$defs/timestamp"},
+        "anchor_sha256": {"$ref": "#/$defs/sha256"},
+        "assurance": {"$ref": "#/$defs/assurance"}
+      }
+    },
+    "certificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "repository", "plan_id", "generation", "goal_id", "approval_digest", "assurance", "pr", "head", "base", "base_ref", "merge_admission_digest", "local_gates", "required_checks", "unresolved_threads", "review_lane", "lane_independence", "admin", "adapter", "certifier", "issued_at"],
+      "properties": {
+        "schema": {"const": "merge-certificate/1"},
+        "approval_digest": {"$ref": "#/$defs/sha256"},
+        "assurance": {"$ref": "#/$defs/assurance"},
+        "pr": {"type": "integer", "minimum": 1},
+        "head": {"$ref": "#/$defs/commit"},
+        "base": {"$ref": "#/$defs/commit"},
+        "merge_admission_digest": {"$ref": "#/$defs/sha256"},
+        "unresolved_threads": {"const": 0},
+        "lane_independence": {"const": "declared"},
+        "admin": {"type": "boolean"},
+        "adapter": {"type": "string"},
+        "certifier": {"type": "string", "minLength": 1},
+        "issued_at": {"$ref": "#/$defs/timestamp"}
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["schema", "plan_id", "goal_id", "pr", "head", "verdict", "issued_at"],
+      "properties": {
+        "schema": {"const": "review-lane/1"},
+        "pr": {"type": "integer", "minimum": 1},
+        "head": {"$ref": "#/$defs/commit"},
+        "verdict": {"const": "approve"},
+        "issued_at": {"$ref": "#/$defs/timestamp"}
+      }
+    }
+  }
+}
