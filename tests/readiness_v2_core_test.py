@@ -94,7 +94,8 @@ class Keys:
         agent = v2.NS_REVIEW + ',' + v2.NS_CERTIFICATE
         lines = ['approver@human namespaces="%s" %s' % (approver_namespaces, self.public('approver')),
                  'certifier@agent namespaces="%s" %s' % (agent, self.public('certifier')),
-                 'reviewer@agent namespaces="%s" %s' % (agent, self.public('reviewer'))]
+                 'reviewer@agent namespaces="%s" %s' % (agent, self.public('reviewer')),
+                 'certonly@agent namespaces="%s" %s' % (v2.NS_CERTIFICATE, self.public('certonly'))]
         self.anchor.write_text('\n'.join(lines) + '\n')
         return sha(self.anchor)
 

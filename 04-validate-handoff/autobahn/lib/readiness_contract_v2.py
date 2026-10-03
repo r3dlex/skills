@@ -549,6 +549,8 @@ def evaluate_gate(gate, policy, bundle, goals, facts, approval):
             codes.append('review_lane_missing')
         elif lane.get('code'):
             codes.append(lane['code'])
+        elif approval is not None and lane.get('lane') != approval['reviewer_lane']:
+            codes.append('review_lane_not_approved:%s' % lane.get('lane'))
         if threads is None:
             codes.append('threads_unobserved')
         elif threads.get('unresolved', 1) != 0:

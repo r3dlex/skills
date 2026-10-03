@@ -23,9 +23,9 @@ BRANCH = 'feat/plan-a-G1'
 class CertificateFixture:
     """A published, approved generation with goal G1 implemented on its branch and a host state."""
 
-    def __init__(self, base, identity_model='single', form='ssh-tag'):
+    def __init__(self, base, identity_model='single', form='ssh-tag', anchor_prefix=''):
         self.base = base
-        self.fixture = Fixture(base, identity_model=identity_model)
+        self.fixture = Fixture(base, identity_model=identity_model, anchor_prefix=anchor_prefix)
         self.fixture.approve(form)
         work = self.fixture.work
         git(work, 'checkout', '-q', '-b', BRANCH)
@@ -63,7 +63,8 @@ class CertificateFixture:
 
     def review_record(self, key='reviewer', head=None, **overrides):
         record = dict({'schema': 'review-lane/1', 'plan_id': 'plan-a', 'goal_id': 'G1', 'pr': int(PR),
-                       'head': head or self.head, 'verdict': 'approve', 'issued_at': stamp(NOW - timedelta(minutes=10))},
+                       'head': head or self.head, 'verdict': 'approve', 'lane': 'independent review lane',
+                       'issued_at': stamp(NOW - timedelta(minutes=10))},
                       **overrides)
         line = json.dumps(record, sort_keys=True, separators=(',', ':'))
         path = Path(tempfile.mkdtemp(dir=self.base)) / 'review.json'
@@ -201,6 +202,11 @@ class CertificateIssueTests(unittest.TestCase):
         log = [json.loads(line) for line in (self.c.fixture.state_dir() / 'driver-log.jsonl').read_text().splitlines()]
         self.assertGreaterEqual(len(log), 10)
         self.assertTrue(all(entry['op'] == 'certify-v2' and entry['exit'] == 1 for entry in log))
+        self.assertEqual(self.c.certify()[0], 0)
+
+    def test_review_lane_needs_the_review_role_and_the_approved_lane(self):
+        self.refused(self.c.certify(review=self.c.review_record(lane='some other lane')), 'review_lane_not_approved')
+        self.refused(self.c.certify(review=self.c.review_record(key='certonly')), 'review_lane_role_invalid')
         self.assertEqual(self.c.certify()[0], 0)
 
     def test_admin_flag_only_under_single_identity(self):

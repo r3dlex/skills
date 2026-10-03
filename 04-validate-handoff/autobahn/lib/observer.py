@@ -622,20 +622,23 @@ def observe_review(path, pull, plan_id, goals):
     data = path.read_bytes()
     signature = Path(str(path) + '.sig')
     anchor, anchor_facts = observe_anchor()
-    lane = {'digest': v2.sha256(data), 'principal': None, 'verdict': None, 'code': None}
+    lane = {'digest': v2.sha256(data), 'principal': None, 'verdict': None, 'lane': None, 'code': None}
     try:
         record = json.loads(data)
     except ValueError:
         return dict(lane, code='review_lane_binding_mismatch')
     lane['verdict'] = record.get('verdict') if isinstance(record, dict) else None
+    lane['lane'] = record.get('lane') if isinstance(record, dict) else None
     if not anchor_facts['present'] or not signature.is_file():
         return dict(lane, code='review_lane_signature_invalid')
     verified = verify_signature(anchor, signature.read_text(), data, v2.NS_REVIEW)
     lane['principal'] = verified['principal']
-    if not verified['principal'] or not verified['verified']:
+    if not verified['principal']:
         return dict(lane, code='review_lane_signature_invalid')
-    if v2.NS_APPROVAL in verified['namespaces']:
+    if v2.NS_REVIEW not in verified['namespaces'] or v2.NS_APPROVAL in verified['namespaces']:
         return dict(lane, code='review_lane_role_invalid')
+    if not verified['verified']:
+        return dict(lane, code='review_lane_signature_invalid')
     binding = {'schema': v2.REVIEW_SCHEMA, 'plan_id': plan_id, 'pr': pull['number'], 'head': pull['head'], 'verdict': 'approve'}
     if not isinstance(record, dict) or any(record.get(k) != v for k, v in binding.items()) or record.get('goal_id') not in goals:
         return dict(lane, code='review_lane_binding_mismatch')
@@ -897,7 +900,7 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
     head_policy = show(root, 'HEAD', v2.POLICY)
     refusals += v2.certificate_refusals({
         'clean_before': clean_before, 'clean_after': clean_after, 'head_before': head_before, 'head_after': head_after,
-        'pr_head': pull['head'], 'local_gates': gates or [{'name': 'local gates not run', 'exit': 1}], 'now': now,
+        'pr_head': pull['head'], 'local_gates': gates, 'now': now,
         'runs': facts['checks']['value'], 'required_checks': gen['policy']['required_checks'],
         'skippable_checks': gen['policy']['skippable_checks'],
         'unresolved_threads': facts['threads']['value']['unresolved'], 'review_lane': lane if lane and not lane['code'] else None,
