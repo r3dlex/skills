@@ -870,9 +870,14 @@ def op_approval_request(args, now, adapter):
 
 
 def run_local_gates(root, goal):
+    # Gate scripts start `python3 -` from their cwd, so sys.path[0] is the cwd. They
+    # therefore run from a fresh empty directory and receive the PR checkout only
+    # through --root: a PR-root json.py can never stand in for a gate's own code.
     with tempfile.TemporaryDirectory(prefix='observer-') as tmp:
         home = Path(tmp) / 'home'
         home.mkdir()
+        neutral = Path(tmp) / 'cwd'
+        neutral.mkdir()
         record = Path(tmp) / 'goal.json'
         record.write_text(json.dumps({'id': goal['id'], 'verification': goal['verification']}))
         gates = [('tdd-evidence', ['bash', HERE / 'tdd-evidence.sh', '--verify', '--goal', goal['id'], '--root', root]),
@@ -881,7 +886,7 @@ def run_local_gates(root, goal):
                  ('ci-gate --verify', ['bash', HERE / 'ci-gate.sh', '--verify', '--root', root, '--goal-record', record])]
         results = []
         for name, argv in gates:
-            outcome = command(argv, cwd=root, env=gate_env(home))
+            outcome = command(argv, cwd=neutral, env=gate_env(home))
             if outcome.returncode:
                 sys.stderr.write(outcome.stdout.decode(errors='replace') + outcome.stderr.decode(errors='replace'))
             results.append({'name': name, 'exit': outcome.returncode})
@@ -959,6 +964,7 @@ def op_certify(args, now, adapter):
               'provenance': origin}
     if refusals:
         result['refusals'] = [{'code': c.split(':', 1)[0], 'detail': c} for c in refusals]
+        result['local_gates'] = derived['body']['local_gates'] if derived else []
         return 1, result
     body = derived['body']
     data = v2.canonical_bytes(body)

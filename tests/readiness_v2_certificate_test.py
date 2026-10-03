@@ -158,6 +158,23 @@ class CertificateIssueTests(unittest.TestCase):
         self.assertNotIn('merge requires exact --handoff', result.stderr)
         git(work, 'checkout', '-q', '--', REGISTRY)
 
+    def test_pr_root_module_shadowing_cannot_fake_local_gates(self):
+        work = self.c.fixture.work
+        (work / 'json.py').write_text('import sys\nsys.exit(0)\n')
+        (work / 'tests/check.sh').write_text('#!/bin/sh\nexit 1\n')
+        evidence = json.loads((work / '.ai/evidence/G1.json').read_text())
+        evidence['green']['exit_code'] = 1
+        (work / '.ai/evidence/G1.json').write_text(json.dumps(evidence))
+        self.c.head = self.c.fixture.commit_push('a PR that shadows json and fails its gates', branch=BRANCH)
+        self.c.host({})
+        self.c.review = self.c.review_record()
+        exit_code, result = self.c.certify()
+        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
+        self.assertIn('local_gate_failed', codes(result))
+        gates = {gate['name']: gate['exit'] for gate in result['local_gates']}
+        for name in ('tdd-evidence', 'local safe CI subset', 'ci-gate --verify'):
+            self.assertNotEqual(gates[name], 0, gates)
+
     def test_local_gates_run_isolated_and_never_dirty_the_tree(self):
         work, dump = self.c.fixture.work, self.base / 'gate-env.txt'
         (work / '.gitignore').write_text('__pycache__/\n')
