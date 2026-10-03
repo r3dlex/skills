@@ -1,8 +1,9 @@
 #!/bin/bash
-# Pins the proposed XSKP-P5 readiness-policy rollover: exact digest, live source
-# digests, per-goal branch/approval scopes bound to the registered generation's
-# goal revisions, explicit tool observations, the B5 gate, and contract acceptance.
-# Preparation regression only: it never creates context, receipts or approval.
+# Pins the XSKP-P5 readiness-policy rollover, displaced by the ACH-S-01 rollover
+# (R4) and retained byte-for-byte: exact digest, live source digests, per-goal
+# branch/approval scopes bound to the registered generation's goal revisions,
+# explicit tool observations, the B5 gate, and contract acceptance of the retained
+# bytes. Preparation regression only: it never creates context, receipts or approval.
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
@@ -14,6 +15,7 @@ import readiness_contract as rc
 ROOT = Path.cwd()
 POLICY_SHA256 = '1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444'
 SUPERSEDES = 'bdca65ade44ed6ab2c6d2e9bd7c54773c884998eb9a21a56a7edbcf38643f5e5'
+RETAINED = '.ai/handoff/xskp-p5-readiness-policy.retained.json'
 REGISTRATION = 'northstar-plan-xskp-p5-skill-producers'
 GENERATION = '4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c'
 BUNDLE_SHA256 = '8089c7c77e5aadb62c1a003fb7b30c78465ceb65541fc5b7927b3e2a0bd58cff'
@@ -39,10 +41,15 @@ def check(name, condition):
         print('  FAIL: ' + name)
 
 
-policy_path = ROOT / rc.POLICY
+policy_path = ROOT / RETAINED
 policy = rc.read(policy_path)
 gates = {g['id']: g for g in policy['gates']}
-check('policy digest is the pinned approval subject', rc.digest(policy_path) == POLICY_SHA256)
+check('retained policy bytes keep the pinned approval subject digest', rc.digest(policy_path) == POLICY_SHA256)
+live = rc.read(ROOT / rc.POLICY)
+check('live policy displaces P5 and names the retained bytes',
+      rc.digest(ROOT / rc.POLICY) != POLICY_SHA256
+      and live.get('extensions', {}).get('supersedes_policy_sha256') == POLICY_SHA256
+      and live.get('extensions', {}).get('superseded_policy_retained_at') == RETAINED)
 
 manifest = rc.read(ROOT / '.ai/workflows/northstar-readiness-v1.json')
 entry = next((p for p in manifest['plans'] if p['id'] == REGISTRATION), None)
@@ -112,12 +119,14 @@ check('only fixtures and harness_trust are exempt', exclusions == {'fixtures', '
 check('policy dimensions complete without contradiction',
       rc.DIMENSIONS <= exclusions | covered and not (exclusions & covered))
 
-# Contract acceptance in this checkout. The frozen bundle pins the canonical
-# checkout root, so only repository() root equality is relaxed here; every other
-# check runs unchanged. The context is simulated, ephemeral and carries no
-# results, so every gate must stay unproven.
-original = rc.repository
+# Contract acceptance of the retained bytes in this checkout. The frozen bundle
+# pins the canonical checkout root, so only repository() root equality is relaxed
+# and the fixed policy path is pointed at the retained bytes; every other check
+# runs unchanged. The context is simulated, ephemeral and carries no results, so
+# every gate must stay unproven.
+original, original_policy = rc.repository, rc.POLICY
 rc.repository = lambda value, root: rc.require(isinstance(value, dict) and rc.ID.fullmatch(value.get('id', '')), 'repository_id_required')
+rc.POLICY = RETAINED
 try:
     sim = {'schema': 'readiness-context/1', 'repository': bundle['repository'],
            'policy': {'sha256': rc.digest(policy_path), 'revision': 'simulated', 'issuer': 'simulated'},
@@ -130,7 +139,7 @@ try:
     check('every evidence-bound implementation gate stays unproven without receipts', expected <= failed)
     check('authority and dependency blockers remain', {'authority_unavailable', 'dependency_incomplete', 'goal_not_ready'} <= codes)
 finally:
-    rc.repository = original
+    rc.repository, rc.POLICY = original, original_policy
 
 print('Results: PASS=%d FAIL=%d' % (passes, len(failures)))
 raise SystemExit(1 if failures else 0)
