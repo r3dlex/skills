@@ -20,8 +20,22 @@
     {
       "path": ".ai/rules/technical-bounds.md",
       "sha256": "0a4f5dcb339bfef4c01ff02a06cecfa36bcc17f18d8b94bbf30123ad43801c18"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "2f9254f919e056cf6680e2c0897d96a2c26620bbc865a5e6b5e1dfc262c81a3d"
+    },
+    {
+      "path": "GEMINI.md",
+      "sha256": "2f9254f919e056cf6680e2c0897d96a2c26620bbc865a5e6b5e1dfc262c81a3d"
     }
   ],
+  "worktree": {
+    "schema": "git-worktree/1",
+    "root": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01",
+    "base_commit": "92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3",
+    "target_ref": "refs/remotes/origin/main"
+  },
   "gates": [
     {
       "id": "own-execution",
@@ -52,133 +66,34 @@
       "responsible": "Andres Silva Burgstahler"
     },
     {
-      "id": "branch-xskp-p5-01",
+      "id": "branch-ach-s-01",
       "stage": "implementation",
       "scope": {
         "goals": [
-          "XSKP-P5-01"
+          "ACH-S-01"
         ]
       },
       "kind": "branch_target",
       "binding": {
-        "branch": "feat/knowledge-contract-copy-XSKP-P5-01",
-        "target": "main"
+        "branch": "refs/heads/feat/ach-skills-contract-v2-ACH-S-01",
+        "target": "refs/remotes/origin/main"
       },
       "responsible": "Andres Silva Burgstahler"
     },
     {
-      "id": "approval-xskp-p5-01",
+      "id": "approval-ach-s-01",
       "stage": "implementation",
       "scope": {
         "goals": [
-          "XSKP-P5-01"
+          "ACH-S-01"
         ]
       },
       "kind": "protected_approval",
       "binding": {
         "subject": {
           "mode": "goal-scope",
-          "goal": "XSKP-P5-01",
-          "goal_sha256": "059499be88c7d2fa3deda7db242b33e3e6b423adba10d76f8f52c2d99e8a4808"
-        }
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "branch-xskp-p5-02",
-      "stage": "implementation",
-      "scope": {
-        "goals": [
-          "XSKP-P5-02"
-        ]
-      },
-      "kind": "branch_target",
-      "binding": {
-        "branch": "feat/knowledge-producers-planning-XSKP-P5-02",
-        "target": "main"
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "approval-xskp-p5-02",
-      "stage": "implementation",
-      "scope": {
-        "goals": [
-          "XSKP-P5-02"
-        ]
-      },
-      "kind": "protected_approval",
-      "binding": {
-        "subject": {
-          "mode": "goal-scope",
-          "goal": "XSKP-P5-02",
-          "goal_sha256": "76fea8df567b84a0d10875f284b6bcf479093a3079abd23951630458db9a1963"
-        }
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "branch-xskp-p5-03",
-      "stage": "implementation",
-      "scope": {
-        "goals": [
-          "XSKP-P5-03"
-        ]
-      },
-      "kind": "branch_target",
-      "binding": {
-        "branch": "feat/knowledge-producers-review-XSKP-P5-03",
-        "target": "main"
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "approval-xskp-p5-03",
-      "stage": "implementation",
-      "scope": {
-        "goals": [
-          "XSKP-P5-03"
-        ]
-      },
-      "kind": "protected_approval",
-      "binding": {
-        "subject": {
-          "mode": "goal-scope",
-          "goal": "XSKP-P5-03",
-          "goal_sha256": "0e5a0f90c86239b07f11c86f1dde18b90cd42f5fe95583033e0a7e17ee615ab9"
-        }
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "branch-xskp-p5-04",
-      "stage": "implementation",
-      "scope": {
-        "goals": [
-          "XSKP-P5-04"
-        ]
-      },
-      "kind": "branch_target",
-      "binding": {
-        "branch": "feat/knowledge-init-templates-XSKP-P5-04",
-        "target": "main"
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "approval-xskp-p5-04",
-      "stage": "implementation",
-      "scope": {
-        "goals": [
-          "XSKP-P5-04"
-        ]
-      },
-      "kind": "protected_approval",
-      "binding": {
-        "subject": {
-          "mode": "goal-scope",
-          "goal": "XSKP-P5-04",
-          "goal_sha256": "d846d45fe622157871578e818ca4fbf952f32842721f3b72541af41ff94a20ed"
+          "goal": "ACH-S-01",
+          "goal_sha256": "d3f083e87a52b06691a7e3c22432e7d466642b32ef132b5a22151ef700802212"
         }
       },
       "responsible": "Andres Silva Burgstahler"
@@ -232,6 +147,18 @@
       "responsible": "Andres Silva Burgstahler"
     },
     {
+      "id": "tool-ssh-keygen",
+      "stage": "implementation",
+      "scope": {
+        "repository": true
+      },
+      "kind": "tooling",
+      "binding": {
+        "tool": "ssh-keygen"
+      },
+      "responsible": "Andres Silva Burgstahler"
+    },
+    {
       "id": "tool-catalog-validator",
       "stage": "implementation",
       "scope": {
@@ -252,16 +179,17 @@
     }
   ],
   "not_applicable": {
-    "fixtures": "XSKP P5 has no independently provisioned prerequisite fixture. Its temporary-directory test copies (contract fingerprint mutation, producer and template tests) are implementation deliverables run by bash tests/run-tests.sh, not pre-existing external services; their absence stays blocked by acceptance criteria and TDD/CI gates.",
-    "harness_trust": "XSKP P5 edits Markdown skills, init templates and a byte-identical contract copy, not a pinned executable harness or vendor delivery. The frozen contract lock binds content integrity, not an independent 40-character harness commit anchor. This exemption does not attest to installed runtime trust."
+    "fixtures": "ACH-S-01 has no independently provisioned prerequisite fixture. Its fixtures (ephemeral keys, temporary trust anchors and temporary git repositories) are disposable temporary-directory deliverables of its own tests, run by bash tests/run-tests.sh; they are not pre-existing external services, and their absence stays blocked by acceptance criteria and TDD/CI gates. v1 accepts any not_applicable reason (P7), so this reason is a disclosure, not a control.",
+    "harness_trust": "ACH-S-01 is the harness: it builds the v2 gate driver (validator, observer, certificate and merge authority), so no independently pinned prior harness commit can anchor trust. Trust rests on the independent review lane, the hosted checks (Pre-commit Hooks, Test Suite, Repository Secret Scan) and the hand-written readiness-context/1 records; v1 gates run from a detached worktree at the bound base commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 (worktree.base_commit), never from the ACH-S-01 head. v1 accepts any not_applicable reason (P7), so this reason is a disclosure, not a control. This exemption does not attest to installed runtime trust."
   },
   "extensions": {
-    "active_plan": "xskp-p5-skill-producers",
-    "registration": "northstar-plan-xskp-p5-skill-producers",
-    "generation": "4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c",
-    "bundle_sha256": "8089c7c77e5aadb62c1a003fb7b30c78465ceb65541fc5b7927b3e2a0bd58cff",
+    "active_plan": "ach-skills-contract-v2",
+    "registration": "northstar-plan-ach-skills-contract-v2",
+    "generation": "ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+    "bundle_sha256": "1c7b4837af54742374b140ed06fda2561ec62a1cc86ed847afe1029bce9a8dcd",
     "approval_status": "pending-independent-approval",
-    "supersedes_policy_sha256": "bdca65ade44ed6ab2c6d2e9bd7c54773c884998eb9a21a56a7edbcf38643f5e5",
-    "scope_limit": "Active P5 bundle only: readiness-contract/1 rejects policy goal scopes outside the admitted bundle. Other handoffs require a separately reviewed policy rollover; prior policy approval receipts are not reusable."
+    "supersedes_policy_sha256": "1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444",
+    "superseded_policy_retained_at": ".ai/handoff/xskp-p5-readiness-policy.retained.json",
+    "scope_limit": "ACH-S-01 only: the last readiness-v1 rollover (R4). readiness-contract/1 rejects policy goal scopes outside the admitted bundle, so XSKP P5 v1 admission is displaced until P5 migrates to v2 (ACH-S-05); prior policy approval receipts are not reusable. The worktree binding admits one linked worktree at one base commit; relocation requires a new reviewed rollover."
   }
 }

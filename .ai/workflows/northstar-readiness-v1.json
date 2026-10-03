@@ -23,6 +23,30 @@
       "planning_complete": true,
       "schema": "readiness-contract/1",
       "status": "active"
+    },
+    {
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v1/ach-skills-contract-v2/ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0/goals.json",
+          "sha256": "1c7b4837af54742374b140ed06fda2561ec62a1cc86ed847afe1029bce9a8dcd"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v1/ach-skills-contract-v2/ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0/graph.json",
+          "sha256": "062488ed137a93a5de7253045f1ddfea7292a8a25639f8a5e016639d165c4077"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v1/ach-skills-contract-v2/ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0/handoff.md",
+          "sha256": "1815d86d1b61aa5c9cdc7f5199ac00b65c06fc04fc8523f0303e9a884c2540d2"
+        }
+      },
+      "execution_admitted": false,
+      "generation": "ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "handoff_path": ".ai/handoff/readiness-v1/ach-skills-contract-v2/ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0/handoff.md",
+      "id": "northstar-plan-ach-skills-contract-v2",
+      "plan_id": "ach-skills-contract-v2",
+      "planning_complete": true,
+      "schema": "readiness-contract/1",
+      "status": "active"
     }
   ],
   "schema": "readiness-contract/1"

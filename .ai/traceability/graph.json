@@ -86,6 +86,21 @@
       "source": "handoff:skills:xskp-p5-skill-producers:4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c",
       "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-04:4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:ach-skills-contract-v2",
+      "target": "spec:skills:ach-skills-contract-v2",
+      "type": "specified-by"
+    },
+    {
+      "source": "spec:skills:ach-skills-contract-v2",
+      "target": "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "target": "plan:skills:ach-skills-contract-v2:ACH-S-01:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -312,6 +327,54 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "XSKP-P5-04",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:ach-skills-contract-v2",
+        "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0"
+      ],
+      "id": "spec:skills:ach-skills-contract-v2",
+      "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-contract-v2.md",
+      "repo_id": "skills",
+      "sha256": "f588f9b02370e4a3b5d80a708f7bc92a05ddc8f704c30e25f34ad691af36f3a9",
+      "status": "active",
+      "title": "Contract v2 (`skills`, plan `ach-skills-contract-v2`) \u2014 plan-scoped planning specification",
+      "type": "spec"
+    },
+    {
+      "backlinks": [
+        "spec:skills:ach-skills-contract-v2"
+      ],
+      "id": "issue:skills:ach-skills-contract-v2",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/ach-skills-contract-v2.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "Contract v2 (`skills`, plan `ach-skills-contract-v2`) \u2014 local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "spec:skills:ach-skills-contract-v2",
+        "plan:skills:ach-skills-contract-v2:ACH-S-01:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0"
+      ],
+      "id": "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "path": ".ai/handoff/readiness-v1/ach-skills-contract-v2/ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "ach-skills-contract-v2",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0"
+      ],
+      "id": "plan:skills:ach-skills-contract-v2:ACH-S-01:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "path": ".ai/handoff/readiness-v1/ach-skills-contract-v2/ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "ACH-S-01",
       "type": "plan"
     }
   ],
