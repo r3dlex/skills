@@ -2,9 +2,9 @@
   "files": {
     "contract-run-v2.sh": "c80437fdb8cfb1ac32d94fe52b39b1d58ed729b07d109f85d8d08056d4a67e2b",
     "contract-run.sh": "ba2f1ca5b3bcdda0944da878b2ffdf1809c1e54fc22c5d8506371d72c68e4757",
-    "lib/observer.py": "6eec2eb9eb5f0e1ea17c49e275229404c6640faa1d7c53a136e00d5c3e01064d",
+    "lib/observer.py": "3c4b37e55d68f97210c1719d6f0e9fc46f2b6becad843b92c288b67419a5e288",
     "lib/readiness_contract.py": "30cfb9bf7436ff1f6b14c0b16542a62a6893321f5eface820c827ae4ec600166",
-    "lib/readiness_contract_v2.py": "d78dc2cdbed79a9d456ec585b4ccfe64c55ac5964f0313edadd3830cc9d37507",
+    "lib/readiness_contract_v2.py": "19c126fafee759baa301a58ede951b1845c6db202801a4f2cc85734f855f9bb1",
     "lib/verification.py": "572819a9c8a1039173c5483d0f7f9a33362588d197e27731bb97b5dd78d33524",
     "merge-authority.sh": "bd495cd7e4b1736cca212fc65718f5cfc652ec8986315cfa3fbea52bd6956f81",
     "migrate-handoff.sh": "08e12c7d4385a7e03cd26fb13a2006f8747fbbe4418cac95d7fb83a9c2a74145",

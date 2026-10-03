@@ -198,6 +198,9 @@ def validate_policy(policy):
         validate_gate(gate)
         check(gate['id'] not in seen, 'policy_gate_duplicate_id', gate['id'])
         seen.add(gate['id'])
+    for kind in ('hosted_checks', 'review'):
+        check(any(g['kind'] == kind and g['stage'] == 'merge' and 'not_applicable' not in g for g in gates),
+              'policy_merge_gate_required', kind)
     return policy
 
 
@@ -660,6 +663,13 @@ def certificate_refusals(facts):
     if facts['pr_head'] != facts['head_before']:
         refusals.append('pr_head_mismatch')
     refusals += ['local_gate_failed:' + g['name'] for g in facts['local_gates'] if g['exit'] != 0]
+    for name in facts['required_checks']:
+        group = [r for r in facts['runs'] if r.get('name') == name]
+        allowed = {'success', 'skipped'} if name in facts['skippable_checks'] else {'success'}
+        if not group:
+            refusals.append('check_missing:' + name)
+        elif any(r.get('status') != 'completed' or str(r.get('conclusion')).lower() not in allowed for r in group):
+            refusals.append('check_not_success:' + name)
     issued = facts['now']
     for run in facts['runs']:
         if run.get('name') in facts['required_checks']:

@@ -790,6 +790,31 @@ class ObserverFactTests(unittest.TestCase):
         self.assertEqual(v2.protection_gaps({'status': 'available', 'contexts': ['Test Suite', 'Hosted Lint']}, [success]),
                          ['protection_check_unsatisfied:Hosted Lint'])
 
+    def test_certificate_itself_refuses_unsatisfied_required_checks_and_missing_lane(self):
+        ok = {'name': 'Test Suite', 'status': 'completed', 'conclusion': 'success', 'completed_at': '2026-10-03T11:00:00Z'}
+        base = {'clean_before': True, 'clean_after': True, 'head_before': 'a' * 40, 'head_after': 'a' * 40,
+                'pr_head': 'a' * 40, 'local_gates': [{'name': 'tdd-evidence', 'exit': 0}], 'now': NOW, 'runs': [ok],
+                'required_checks': ['Test Suite'], 'skippable_checks': ['Optional Smoke'], 'unresolved_threads': 0,
+                'review_lane': {'principal': 'reviewer@agent'}, 'certifier': 'certifier@agent', 'policy_goal': None,
+                'goal_id': 'G1', 'head_policy_sha256': None, 'policy_sha256': 'b' * 64}
+        self.assertEqual(v2.certificate_refusals(base), [])
+        cases = [({'runs': [dict(ok, conclusion='failure')]}, 'check_not_success:Test Suite'),
+                 ({'runs': [dict(ok, conclusion='skipped')]}, 'check_not_success:Test Suite'),
+                 ({'runs': [dict(ok, name='Other')]}, 'check_missing:Test Suite'),
+                 ({'runs': [ok, dict(ok, status='in_progress', conclusion=None)]}, 'check_not_success:Test Suite'),
+                 ({'review_lane': None}, 'review_lane_missing')]
+        for change, expected in cases:
+            self.assertIn(expected, v2.certificate_refusals(dict(base, **change)), expected)
+        skippable = dict(base, required_checks=['Test Suite', 'Optional Smoke'],
+                         runs=[ok, dict(ok, name='Optional Smoke', conclusion='skipped')])
+        self.assertEqual(v2.certificate_refusals(skippable), [])
+        for kind in ('hosted_checks', 'review'):
+            policy = sample_policy('4' * 64)
+            policy['gates'] = [g for g in policy['gates'] if g['kind'] != kind]
+            with self.assertRaises(v2.Invalid) as raised:
+                v2.validate_policy(policy)
+            self.assertEqual(v2.code(raised.exception), 'policy_merge_gate_required', kind)
+
     def test_production_adapter_and_transitive_dependency_completion(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp).resolve()
