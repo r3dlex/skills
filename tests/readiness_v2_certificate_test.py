@@ -264,6 +264,51 @@ class MergeAuthorityTests(unittest.TestCase):
         log = [json.loads(line) for line in (self.c.fixture.state_dir() / 'driver-log.jsonl').read_text().splitlines()]
         self.assertEqual((log[-1]['op'], log[-1]['exit'], log[-1]['assurance']), ('merge-v2', 0, 'key-held'))
 
+    def audit(self, adapter=None):
+        return self.c.fixture.run(['audit-merges', '--root', str(self.c.fixture.work), '--handoff', 'northstar-plan-plan-a'],
+                                  env=self.c.env(), adapter=adapter)
+
+    def merged_pr(self, number, head, ref=BRANCH):
+        state = json.loads(self.c.state.read_text())
+        state.setdefault('merged_prs', []).append({'number': number, 'headRefName': ref, 'headRefOid': head,
+                                                   'mergeCommit': {'oid': 'c' * 40}, 'mergedAt': stamp(NOW)})
+        write_json(self.c.state, state)
+
+    def test_audit_merges_flags_uncertified_forged_and_moved_merges(self):
+        self.assertEqual(self.c.merge()[0], 0)
+        self.merged_pr(int(PR), self.c.head)
+        self.merged_pr(3, '3' * 40, ref='docs/unrelated')
+        exit_code, report = self.audit()
+        self.assertEqual(exit_code, 0, json.dumps(report, indent=1))
+        self.assertEqual([entry['pr'] for entry in report['prs']], [int(PR)])
+        entry = report['prs'][0]
+        self.assertEqual((entry['assurance'], entry['lane_independence'], entry['flags']), ('key-held', 'declared', []))
+        self.assertEqual(entry['approval_digest'], self.issued['certificate']['approval_digest'])
+        self.merged_pr(8, '8' * 40)
+        exit_code, report = self.audit()
+        self.assertEqual(exit_code, 1)
+        self.assertIn('merged_without_certificate', codes(report))
+        directory = Path(self.issued['path']).parent
+        forged = dict(self.issued['certificate'], pr=8, head='8' * 40)
+        line = json.dumps(forged, sort_keys=True, separators=(',', ':'))
+        (directory / ('8-' + '8' * 40 + '.json')).write_text(line)
+        (directory / ('8-' + '8' * 40 + '.json.sig')).write_text(
+            ssh_sign(self.c.fixture.keys.paths['outsider'], v2.NS_CERTIFICATE, line.encode(), self.base))
+        exit_code, report = self.audit()
+        self.assertEqual(exit_code, 1)
+        self.assertIn('certificate_signature_invalid', codes(report))
+        self.assertNotIn('merged_without_certificate', codes(report))
+        self.merged_pr(9, '9' * 40)
+        shutil.copyfile(self.issued['path'], directory / ('9-' + '7' * 40 + '.json'))
+        self.assertIn('certified_head_mismatch', codes(self.audit()[1]))
+        log = [json.loads(line) for line in (self.c.fixture.state_dir() / 'driver-log.jsonl').read_text().splitlines()]
+        self.assertEqual((log[-1]['op'], log[-1]['exit']), ('audit-merges', 1))
+        many = json.loads(self.c.state.read_text())
+        many['merged_prs'] = [dict(many['merged_prs'][0], number=n) for n in range(200)]
+        write_json(self.c.state, many)
+        self.assertEqual(self.audit()[0], 4)
+        self.assertEqual(self.audit(adapter=observer.FixtureAdapter(many))[0], 4)
+
     def test_admin_merge_with_independent_lane_under_single_identity(self):
         exit_code, result = self.c.merge('--admin')
         self.assertEqual(exit_code, 0, json.dumps(result, indent=1))

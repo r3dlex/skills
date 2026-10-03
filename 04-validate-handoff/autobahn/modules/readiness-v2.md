@@ -21,9 +21,11 @@ other name stays on the v1 path.
 | `admit-v2 --root R --handoff H --goal-id G --stage S` | Rebuilds `readiness-context/2` from fresh observation plus the verified approval, and exits 0 only when admitted. A supplied `--context`, `--observation` or `--verdict` is only compared with the rebuilt one; any difference refuses. |
 | `certify-v2` (through `run-gates.sh --phase pre-merge --pr N --review-record F`) | Issues an agent-signed `merge-certificate/1` and stores it in observer state. |
 | `merge-v2` (through `merge-authority.sh --pr N [--admin]`) | Re-observes every certificate claim, then merges with `gh pr merge --match-head-commit`. |
+| `audit-merges --root R --handoff H` | Lists merged PRs through the production adapter (fails closed at 200). It flags each goal-branch PR whose merged head has no certificate (`merged_without_certificate`), has a certificate not signed by an agent principal with the certificate role (`certificate_signature_invalid`), or was certified at another head (`certified_head_mismatch`). For each PR it reports the approval digest, assurance and `lane_independence`. Exits 1 when anything is flagged, 4 when unobservable. |
 
-`context-build`, `inventory-v1`, `audit-merges` and `export-evidence` are reserved
-names. They exit 2 until the goals that deliver them land.
+`context-build`, `inventory-v1` and `export-evidence` are reserved names. They
+exit 2 until the goals that deliver them land. Timing checks in `audit-merges`
+(check completion and approval expiry against `mergedAt`) also arrive later.
 
 ## Inputs on the target
 

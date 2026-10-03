@@ -59,7 +59,7 @@ def write_json(path, value):
 
 def codes(result):
     """Refusal or gap codes from any v2 result object."""
-    entries = result.get('gaps', []) + result.get('refusals', [])
+    entries = result.get('gaps', []) + result.get('refusals', []) + result.get('findings', [])
     return {entry['code'] for entry in entries}
 
 
@@ -718,7 +718,7 @@ class EntryPointTests(unittest.TestCase):
             v1 = run('admit', '--root', tmp)
             self.assertEqual(json.loads(v1.stdout)['schema'], 'readiness-contract/1')
             self.assertIn('invalid choice', run('not-an-operation').stderr)
-            for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2'):
+            for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2', 'audit-merges'):
                 result = run(operation, '--definitely-unknown')
                 self.assertEqual(result.returncode, 2, operation + result.stdout + result.stderr)
                 self.assertIn('readiness-contract/2', result.stderr)
@@ -737,7 +737,7 @@ class EntryPointTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2, args)
 
     def test_unknown_arguments_and_proceed_text_exit_2(self):
-        for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2'):
+        for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2', 'audit-merges'):
             for extra in (['proceed'], ['override'], ['--force'], ['--admin', 'if', 'necessary'], ['--anchor', '/x'],
                           ['-h'], ['--help']):
                 with self.subTest(operation=operation, extra=extra):

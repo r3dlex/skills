@@ -36,8 +36,9 @@ PASS_THROUGH = ('PATH', 'LANG', 'LC_ALL', 'TMPDIR', 'SSH_AUTH_SOCK', 'GH_TOKEN')
 GIT_SETTINGS = {'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_NO_REPLACE_OBJECTS': '1',
                 'GIT_OPTIONAL_LOCKS': '0'}
 OPERATIONS = ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2')
-RESERVED = ('context-build', 'inventory-v1', 'audit-merges', 'export-evidence')
-LOGGED = ('admit-v2', 'certify-v2', 'merge-v2')
+RESERVED = ('context-build', 'inventory-v1', 'export-evidence')
+LOGGED = ('admit-v2', 'certify-v2', 'merge-v2', 'audit-merges')
+AUDIT_LIMIT = 200
 EXIT_V1 = 10
 EXIT_FAIL_CLOSED = 4
 THREADS_QUERY = ('query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo)'
@@ -180,11 +181,11 @@ class GhAdapter:
         return {'status': 'available', 'contexts': sorted(set(contexts))}
 
     def merged_prs(self):
-        result = command(['gh', 'pr', 'list', '--state', 'merged', '--limit', '200', '--json',
-                          'number,headRefName,mergeCommit,mergedAt'], cwd=self.root)
+        result = command(['gh', 'pr', 'list', '--state', 'merged', '--limit', str(AUDIT_LIMIT), '--json',
+                          'number,headRefName,headRefOid,mergeCommit,mergedAt'], cwd=self.root)
         if result.returncode:
             raise Invalid('hosted_api_unavailable:pr list')
-        return [{'number': p.get('number'), 'head_ref': p.get('headRefName'),
+        return [{'number': p.get('number'), 'head_ref': p.get('headRefName'), 'head': p.get('headRefOid'),
                  'merge_commit': (p.get('mergeCommit') or {}).get('oid')} for p in parse_json(result.stdout, 'hosted_api')]
 
     def merge(self, number, head, admin):
@@ -216,7 +217,7 @@ class FixtureAdapter:
         return {'status': 'available', 'contexts': value.get('contexts', [])} if isinstance(value, dict) else {'status': 'unavailable'}
 
     def merged_prs(self):
-        return [{'number': p.get('number'), 'head_ref': p.get('headRefName'),
+        return [{'number': p.get('number'), 'head_ref': p.get('headRefName'), 'head': p.get('headRefOid'),
                  'merge_commit': (p.get('mergeCommit') or {}).get('oid')} for p in self.state.get('merged_prs', [])]
 
     def merge(self, number, head, admin):
@@ -1093,12 +1094,61 @@ def op_merge(args, now, adapter):
     return 0, result
 
 
+def op_audit(args, now, adapter):
+    """Re-observe merged v2 PRs: each must carry an agent-signed certificate for its
+    merged head. Timing checks and export-evidence belong to a later goal."""
+    root = Path(args.root).resolve(strict=True)
+    ref = target_ref(args.target)
+    origin = provenance(root, args.target)
+    adapter = adapter or hosted_adapter_factory(root)
+    report = {'schema': 'merge-audit/1', 'provenance': origin, 'adapter': adapter.name, 'prs': [], 'findings': []}
+    if type(adapter) is not GhAdapter:
+        report['refusals'] = [{'code': 'adapter_not_production', 'detail': adapter.name}]
+        return EXIT_FAIL_CLOSED, report
+    gen = load_generation(root, ref, args.handoff)
+    report.update(plan_id=gen['bundle']['id'], generation=gen['entry']['generation'])
+    merged = adapter.merged_prs()
+    if len(merged) >= AUDIT_LIMIT:
+        report['refusals'] = [{'code': 'audit_unobservable', 'detail': 'merged PR list reached %d' % AUDIT_LIMIT}]
+        return EXIT_FAIL_CLOSED, report
+    anchor, anchor_facts = observe_anchor()
+    if anchor is None or anchor_facts['ambiguous']:
+        report['refusals'] = [{'code': 'audit_unobservable', 'detail': 'no usable trust anchor'}]
+        return EXIT_FAIL_CLOSED, report
+    for pull in sorted(merged, key=lambda p: p['number'] or 0):
+        goal = next((g['id'] for g in gen['bundle']['goals'] if isinstance(pull['head_ref'], str) and
+                     re.fullmatch(v2.fill(gen['policy']['branch_pattern'], gen['bundle']['id'], g['id']), pull['head_ref'])), None)
+        if goal is None:
+            continue
+        entry = {'pr': pull['number'], 'goal_id': goal, 'head': pull['head'], 'merge_commit': pull['merge_commit'],
+                 'certificate': None, 'approval_digest': None, 'assurance': None, 'lane_independence': None, 'flags': []}
+        path = certificate_path(root, gen['bundle']['id'], goal, pull['number'], str(pull['head']))
+        others = sorted(path.parent.glob('%d-*.json' % pull['number'])) if path.parent.is_dir() else []
+        if not path.is_file():
+            entry['flags'].append('certified_head_mismatch' if others else 'merged_without_certificate')
+        else:
+            certificate = parse_json(path.read_bytes(), 'certificate')
+            signature = Path(str(path) + '.sig')
+            signed = verify_signature(anchor, signature.read_text(), v2.canonical_bytes(certificate), v2.NS_CERTIFICATE) \
+                if signature.is_file() else {'principal': None, 'verified': False, 'namespaces': []}
+            if not (signed['principal'] and signed['verified'] and v2.NS_CERTIFICATE in signed['namespaces']
+                    and v2.NS_APPROVAL not in signed['namespaces']):
+                entry['flags'].append('certificate_signature_invalid')
+            if certificate.get('head') != pull['head'] or certificate.get('pr') != pull['number']:
+                entry['flags'].append('certified_head_mismatch')
+            entry.update(certificate=str(path), approval_digest=certificate.get('approval_digest'),
+                         assurance=certificate.get('assurance'), lane_independence=certificate.get('lane_independence'))
+        report['prs'].append(entry)
+        report['findings'] += [{'code': flag, 'detail': 'PR %s' % pull['number']} for flag in entry['flags']]
+    return (1 if report['findings'] else 0), report
+
+
 def op_reserved(args, now, adapter):
     return 2, {'schema': v2.VERSION, 'refusals': [{'code': 'operation_not_in_this_release', 'detail': args.operation}]}
 
 
 HANDLERS = {'admit-v2': op_admit, 'publish-v2': op_publish, 'approval-request': op_approval_request,
-            'certify-v2': op_certify, 'merge-v2': op_merge}
+            'certify-v2': op_certify, 'merge-v2': op_merge, 'audit-merges': op_audit}
 
 
 def parser():
@@ -1146,6 +1196,10 @@ def parser():
     merge.add_argument('--verdict')
     merge.add_argument('--admin', action='store_true')
     merge.add_argument('--target', default='main')
+    audit = operation('audit-merges')
+    audit.add_argument('--root', required=True)
+    audit.add_argument('--handoff', required=True)
+    audit.add_argument('--target', default='main')
     for name in RESERVED:
         operation(name)
     return main_parser
@@ -1167,7 +1221,8 @@ def log_exit(args, code, result):
         entry = {'at': v2.stamp(datetime.now(timezone.utc)), 'op': args.operation, 'exit': code,
                  'plan_id': result.get('plan_id'), 'goal_id': result.get('goal_id') or (getattr(args, 'goal_id', None)),
                  'pr': getattr(args, 'pr', None), 'assurance': result.get('assurance'),
-                 'codes': sorted({r['code'] for r in result.get('refusals', []) + result.get('gaps', [])})}
+                 'codes': sorted({r['code'] for r in result.get('refusals', []) + result.get('gaps', [])
+                                  + result.get('findings', [])})}
         with (directory / 'driver-log.jsonl').open('a') as handle:
             handle.write(json.dumps(entry, sort_keys=True) + '\n')
     except (Invalid, OSError):
