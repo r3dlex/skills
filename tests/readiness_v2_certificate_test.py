@@ -144,6 +144,25 @@ class CertificateIssueTests(unittest.TestCase):
             self.assertLessEqual(set(call['env']), allowed, call['args'])
             self.assertEqual(call['env']['HOME'], observer.passwd_home())
 
+    def test_local_gates_run_isolated_and_never_dirty_the_tree(self):
+        work, dump = self.c.fixture.work, self.base / 'gate-env.txt'
+        (work / '.gitignore').write_text('__pycache__/\n')
+        (work / 'tests/gate_helper.py').write_text('VALUE = 1\n')
+        (work / 'tests/check.sh').write_text('#!/bin/sh\npython3 -c "import sys; sys.path.insert(0, \'tests\'); '
+                                             'import gate_helper"\nenv > %s\nexit 0\n' % dump)
+        self.c.head = self.c.fixture.commit_push('test: a gate that writes ignored bytecode', branch=BRANCH)
+        self.c.host({})
+        self.c.review = self.c.review_record()
+        secrets = {'GH_TOKEN': 'gh-secret', 'SSH_AUTH_SOCK': str(self.base / 'agent.sock'), 'GH_CONFIG_DIR': '/x'}
+        exit_code, result = self.c.certify(env=secrets)
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        self.assertFalse(list(work.rglob('__pycache__')))
+        seen = dict(line.split('=', 1) for line in dump.read_text().splitlines() if '=' in line)
+        self.assertEqual(seen.get('PYTHONDONTWRITEBYTECODE'), '1')
+        self.assertNotEqual(seen.get('HOME'), observer.passwd_home())
+        for name in ('GH_TOKEN', 'GH_CONFIG_DIR', 'SSH_AUTH_SOCK'):
+            self.assertNotIn(name, seen)
+
     def test_every_issue_refusal_and_driver_log(self):
         self.refused(self.c.certify(review=False), 'review_lane_missing')
         self.refused(self.c.certify(review=self.c.review_record(key='certifier')), 'review_lane_not_independent')

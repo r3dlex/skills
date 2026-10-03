@@ -72,8 +72,17 @@ anchor_locator = default_anchor_path
 signing_key_locator = default_signing_key
 
 
-def command(argv, cwd=None, data=None):
-    return subprocess.run([str(a) for a in argv], cwd=None if cwd is None else str(cwd), env=clean_env(),
+def gate_env(home):
+    """Local gates run PR code: no credentials, no agent socket, a throwaway HOME, and
+    never any bytecode written into the observed tree."""
+    env = {name: os.environ[name] for name in ('PATH', 'LANG', 'LC_ALL', 'TMPDIR') if name in os.environ}
+    env.setdefault('PATH', '/usr/bin:/bin')
+    env.update(HOME=str(home), PYTHONDONTWRITEBYTECODE='1')
+    return env
+
+
+def command(argv, cwd=None, data=None, env=None):
+    return subprocess.run([str(a) for a in argv], cwd=None if cwd is None else str(cwd), env=env or clean_env(),
                           input=data, stdin=None if data is not None else subprocess.DEVNULL,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -780,6 +789,8 @@ def op_approval_request(args, now, adapter):
 
 def run_local_gates(root, goal):
     with tempfile.TemporaryDirectory(prefix='observer-') as tmp:
+        home = Path(tmp) / 'home'
+        home.mkdir()
         record = Path(tmp) / 'goal.json'
         record.write_text(json.dumps({'id': goal['id'], 'verification': goal['verification']}))
         gates = [('tdd-evidence', ['bash', HERE / 'tdd-evidence.sh', '--verify', '--goal', goal['id'], '--root', root]),
@@ -788,7 +799,7 @@ def run_local_gates(root, goal):
                  ('ci-gate --verify', ['bash', HERE / 'ci-gate.sh', '--verify', '--root', root, '--goal-record', record])]
         results = []
         for name, argv in gates:
-            outcome = command(argv, cwd=root)
+            outcome = command(argv, cwd=root, env=gate_env(home))
             if outcome.returncode:
                 sys.stderr.write(outcome.stdout.decode(errors='replace') + outcome.stderr.decode(errors='replace'))
             results.append({'name': name, 'exit': outcome.returncode})
