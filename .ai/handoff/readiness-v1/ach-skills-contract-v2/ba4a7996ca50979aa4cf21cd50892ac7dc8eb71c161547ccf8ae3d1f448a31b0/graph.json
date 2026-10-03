@@ -1,0 +1,58 @@
+{
+  "edges": [
+    {
+      "source": "spec:skills:ach-skills-contract-v2",
+      "target": "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "target": "plan:skills:ach-skills-contract-v2:ACH-S-01:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "type": "plans"
+    }
+  ],
+  "generation": "ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+  "goal_ids": [
+    "ACH-S-01"
+  ],
+  "nodes": [
+    {
+      "backlinks": [
+        "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0"
+      ],
+      "id": "spec:skills:ach-skills-contract-v2",
+      "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-contract-v2.md",
+      "repo_id": "skills",
+      "sha256": "f588f9b02370e4a3b5d80a708f7bc92a05ddc8f704c30e25f34ad691af36f3a9",
+      "status": "active",
+      "title": "Contract v2 (`skills`, plan `ach-skills-contract-v2`) \u2014 plan-scoped planning specification",
+      "type": "spec"
+    },
+    {
+      "backlinks": [
+        "spec:skills:ach-skills-contract-v2",
+        "plan:skills:ach-skills-contract-v2:ACH-S-01:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0"
+      ],
+      "id": "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "path": ".ai/handoff/readiness-v1/ach-skills-contract-v2/ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "ach-skills-contract-v2",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:ach-skills-contract-v2:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0"
+      ],
+      "id": "plan:skills:ach-skills-contract-v2:ACH-S-01:ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "path": ".ai/handoff/readiness-v1/ach-skills-contract-v2/ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "ACH-S-01",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "ach-skills-contract-v2",
+  "schema_version": "1.1",
+  "source_graph_sha256": "4e6821e4bcbd3bcd7519da2ff1508739809a7bee017b8c34971ae7af22d58496"
+}
