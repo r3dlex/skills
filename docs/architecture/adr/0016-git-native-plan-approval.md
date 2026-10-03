@@ -89,6 +89,10 @@ once into a private copy.
   head. Its timing checks arrive in a later goal.
 - Any policy amendment changes `policy_sha256` and voids every approval in the
   repository. The recovery is to re-sign the same generation.
+- Local gates and verification run PR code as the same user. That code can
+  reach the gh keychain token and the agent signing key, so `gate_env`
+  stripping is not a sandbox. Gate results are evidence about PR-controlled
+  content; the independent review lane is the control.
 
 ## Verification
 
