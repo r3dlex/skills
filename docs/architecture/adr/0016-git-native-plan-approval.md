@@ -59,16 +59,34 @@ Assurance is computed from the anchor and never upgraded. No code path renders
 The baseline `approval.accept` is `["ssh-tag", "in-session"]`, by user decision.
 That decision keeps an accepted risk open: an agent could author a policy,
 approve it in-session and admin-merge on a `single`-identity repository. The
-path stays visible and is never presented as user presence. A repository closes
-it by narrowing `accept` to `["ssh-tag"]`.
+path stays visible and is never presented as user presence.
+
+**Narrowing `accept` to `["ssh-tag"]` does not close agent self-approval.**
+- The anchor and the agent keys sit under the same user's
+  `~/.config/ai-catapult`. An agent running as that user can read keys there
+  and can write the anchor itself.
+- `key-held` therefore proves only that some key listed in some anchor signed.
+  It does not prove that a human approved.
+- The validator checks the anchor against the policy's `anchor_sha256`. That
+  digest is only as trustworthy as the review that accepted it.
+- A human must verify each policy candidate's `anchor_sha256` against the
+  anchor they created, during the planning-input review, before the candidate
+  merges.
+- Only `user-presence` (an `sk-` hardware key with touch) evidences a person.
+
+Anchor lines are selected by the public key that signed. Each principal must
+appear on exactly one line, the anchor must not be a symlink, and it is read
+once into a private copy.
 
 ## Consequences
 
 - Two contract modules coexist until v1 retires. A shared core is extracted only
   after no v1 entry remains.
 - Merge enforcement stays cooperative where branch protection allows admin
-  bypass. The certificate, the re-observing `merge-authority.sh` and, in a later
-  goal, `audit-merges` detect a merge without a valid certificate.
+  bypass. The certificate and the re-observing `merge-authority.sh` prevent a
+  merge without a valid certificate through autobahn. `audit-merges` detects one
+  after the fact: no certificate, a non-agent signer, or a different certified
+  head. Its timing checks arrive in a later goal.
 - Any policy amendment changes `policy_sha256` and voids every approval in the
   repository. The recovery is to re-sign the same generation.
 

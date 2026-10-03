@@ -63,9 +63,15 @@ signature: <base64 of the ssh-keygen -Y sign -n ai-catapult-plan-approval output
 or, for the recorded fallback, `digest-echo: <sha256 of line one>`.
 
 The trust anchor is `~/.config/ai-catapult/allowed_signers`, resolved from the
-passwd home directory. It must sit outside every git worktree, and its sha256
-must equal the policy's `anchor_sha256`. No environment variable or flag moves
-it. Roles come from the `namespaces=` option:
+passwd home directory. No environment variable or flag moves it. To be used, it
+must:
+- be a regular file, not a symlink;
+- resolve to a location outside every git worktree;
+- have a sha256 equal to the policy's `anchor_sha256`.
+
+It is read once into a private copy. The anchor line is selected by the public
+key that signed, and every principal must appear on exactly one line. Roles come
+from that line's `namespaces=` option:
 
 - approver principals: `namespaces="ai-catapult-plan-approval"`;
 - agent principals: `namespaces="ai-catapult-review,ai-catapult-certificate"`.
@@ -77,8 +83,15 @@ it. Roles come from the `namespaces=` option:
 - `in-session`: the digest-echo record.
 
 An `in-session` record is agent-writable. Every report prints it as
-`ASSURANCE: IN-SESSION`. A repository closes that path by narrowing `accept` to
-`["ssh-tag"]`.
+`ASSURANCE: IN-SESSION`.
+
+**Narrowing `accept` to `["ssh-tag"]` does not close agent self-approval.**
+- The anchor and the agent keys live under the same user's
+  `~/.config/ai-catapult`, so an agent running as that user can reach them.
+- `key-held` proves only that some anchored key signed.
+- A human must verify each policy candidate's `anchor_sha256` against the
+  anchor they created, during the planning-input review.
+- Only `user-presence` evidences a person.
 
 ## Merge certificate and merge
 
@@ -94,11 +107,20 @@ clean head. The certificate binds:
 - the admin flag, set only under `identity_model: single`.
 
 The agent signing key is `~/.config/ai-catapult/agent_signing_key`, or a `.pub`
-with the key in the agent. Certificates, review records and the driver log live
+with the key in the agent.
+
+Local gates run PR code, so they run without credentials:
+- the environment holds only `PATH`, `LANG`, `LC_ALL` and `TMPDIR`;
+- `HOME` is a throwaway temporary directory;
+- `PYTHONDONTWRITEBYTECODE=1` is set;
+- there is no `GH_TOKEN`, `GH_CONFIG_DIR` or agent socket. Certificates, review records and the driver log live
 under `<git common dir>/ai-catapult/observer/`.
 
-`merge-authority.sh` requires `--pr` once `origin/<target>` carries a v2 registry
-or a live policy/2. For a v2 PR it refuses `--verdict`, re-runs the local gates,
+`merge-authority.sh` requires `--pr` once a v2 artifact is observable (a
+registry or a live policy/2) on `origin/<target>`, on the commit
+`git ls-remote` reports, or at HEAD. From then on it never falls back to the
+verdict path. A missing or rewound target ref, an unloadable plan, or a branch
+that matches a v2 `branch_pattern` but no goal each refuse with exit 4. For a v2 PR it refuses `--verdict`, re-runs the local gates,
 re-observes every hosted fact and the approval, and refuses on any difference.
 It also refuses on a moved head, an expired approval, a missing certificate or a
 non-production adapter. `--admin` is honored only under `single` with an

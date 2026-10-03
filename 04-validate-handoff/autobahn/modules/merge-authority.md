@@ -87,11 +87,18 @@ consumes the verdict verbatim and never recomputes the regex or admin rule.
 
 ## readiness-contract/2 PRs
 
-Once `origin/<target>` of the repository it runs in carries a v2 registry
-(`.ai/workflows/northstar-readiness-v2.json`) or a live `readiness-policy/2`,
-`--pr` is mandatory on every call, `--verdict` included. A verdict-only call is
-refused there and never exits 0. `--pr` selects the path by observing the PR's
-head branch against that registry:
+Once a v2 registry (`.ai/workflows/northstar-readiness-v2.json`) or a live
+`readiness-policy/2` is observable, `--pr` is mandatory on every call,
+`--verdict` included. Observable means on `origin/<target>`, on the commit
+`git ls-remote` reports for it, or at HEAD of the repository it runs in. A
+verdict-only call is then refused with exit 4 and never exits 0.
+
+These also refuse with exit 4 and never fall back to the verdict path:
+- a missing or rewound target ref;
+- a plan that fails to load;
+- a branch that matches a v2 `branch_pattern` but no goal.
+
+`--pr` selects the path by observing the PR's head branch against that registry:
 
 | PR head branch | Path |
 | --- | --- |
