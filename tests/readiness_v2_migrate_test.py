@@ -493,7 +493,7 @@ class PlanningGapTests(unittest.TestCase):
             git(work, 'push', '-q', 'origin', 'HEAD:refs/heads/main')
             git(work, 'fetch', '-q', 'origin')
             entry = self.p5_entry()[0][0]
-            prefix = '.ai/handoff/readiness-v2/xskp-p5-skill-producers/' + entry['generation']
+            repo_prefix = '.ai/handoff/readiness-v2/xskp-p5-skill-producers/' + entry['generation']
             patches = [mock.patch.object(observer, 'anchor_locator', lambda: Path(keys.anchor)),
                        mock.patch.object(observer, 'signing_key_locator', lambda: keys.paths['certifier'])]
             path_extra = []
@@ -510,8 +510,8 @@ class PlanningGapTests(unittest.TestCase):
                 patch.start()
             try:
                 exit_code, result = observer.run(['publish-v2', '--root', str(work), '--bundle',
-                                                  str(REPO / prefix / 'goals.json'), '--sidecar',
-                                                  str(REPO / prefix / 'sidecar.json'), '--admit-planning'], now=NOW)
+                                                  str(REPO / repo_prefix / 'goals.json'), '--sidecar',
+                                                  str(REPO / repo_prefix / 'sidecar.json'), '--admit-planning'], now=NOW)
             finally:
                 for patch in reversed(patches):
                     patch.stop()
@@ -529,14 +529,15 @@ class PlanningGapTests(unittest.TestCase):
             for gate in result['gates']:
                 if gate['id'] in deferred_gates:
                     self.assertEqual(gate['status'], 'deferred', gate)
-            self.assertEqual((work / prefix / 'goals.json').read_bytes(),
-                             (REPO / prefix / 'goals.json').read_bytes())
-            # P5's approval is its own: a foreign plan's record under P5's tag refuses.
             generation = result['generation']
+            prefix = '.ai/handoff/readiness-v2/xskp-p5-skill-producers/' + generation
+            self.assertEqual((work / prefix / 'goals.json').read_bytes(),
+                             (REPO / repo_prefix / 'goals.json').read_bytes())
+            # P5's approval is its own: a foreign plan's record under P5's tag refuses.
             record = v2.approval_record(plan_id='ach-skills-contract-v2', generation=generation,
-                                        bundle_sha256=v2.bundle_sha256(json.loads((REPO / prefix / 'goals.json').read_text())),
+                                        bundle_sha256=v2.bundle_sha256(json.loads((REPO / repo_prefix / 'goals.json').read_text())),
                                         spec_sha256=sha(work / P5_SPEC), policy_sha256=sha(work / POLICY),
-                                        sidecar_sha256=v2.canonical(json.loads((REPO / prefix / 'sidecar.json').read_text())),
+                                        sidecar_sha256=v2.canonical(json.loads((REPO / repo_prefix / 'sidecar.json').read_text())),
                                         goals=list(GOAL_IDS), owner='Fixture Owner',
                                         reviewer_lane='independent review lane',
                                         issued_at=stamp(NOW - timedelta(hours=1)),
