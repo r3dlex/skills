@@ -9,7 +9,8 @@ fresh re-observation.
 
 The only writers are publish-v2 (immutable generation files, registry last) and
 the observer state under the repository's git common directory (certificates,
-review records and the driver log). Approvals are never signed or written here.
+review records and the driver log). Approvals are never written here; only an
+agent-mode approval (K3) is signed here, with the agent key under its own namespace.
 """
 import argparse
 import atexit
@@ -25,6 +26,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from datetime import datetime, timedelta, timezone
 
 import readiness_contract_v2 as v2
@@ -36,9 +38,11 @@ PASS_THROUGH = ('PATH', 'LANG', 'LC_ALL', 'TMPDIR', 'SSH_AUTH_SOCK', 'GH_TOKEN')
 GIT_SETTINGS = {'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_NO_REPLACE_OBJECTS': '1',
                 'GIT_OPTIONAL_LOCKS': '0'}
 OPERATIONS = ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2')
-RESERVED = ('context-build', 'inventory-v1', 'export-evidence')
-LOGGED = ('admit-v2', 'certify-v2', 'merge-v2', 'audit-merges')
+RESERVED = ('context-build', 'export-evidence')
+LOGGED = ('admit-v2', 'certify-v2', 'merge-v2', 'audit-merges', 'approval-request', 'inventory-v1')
 AUDIT_LIMIT = 200
+ROUTE_LIMIT = 1000  # hosted PR lists for routing and the v1 inventory; reaching it fails closed
+FILES_LIMIT = 3000  # GitHub's cap on a pull request's changed-files list; reaching it fails closed
 EXIT_V1 = 10
 EXIT_FAIL_CLOSED = 4
 THREADS_QUERY = ('query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo)'
@@ -115,6 +119,19 @@ def is_ancestor(root, commit, ref):
             and git(root, 'merge-base', '--is-ancestor', commit, ref, check=False).returncode == 0)
 
 
+def ancestry(root, commit, ref):
+    """True or False when commit is or is not an ancestor of ref; None when unobservable."""
+    if not (isinstance(commit, str) and re.fullmatch('[0-9a-f]{40}', commit)) or \
+            git(root, 'cat-file', '-e', commit + '^{commit}', check=False).returncode:
+        return None
+    return git(root, 'merge-base', '--is-ancestor', commit, ref, check=False).returncode == 0
+
+
+def path_key(name):
+    """A path compared case-insensitively and Unicode-normalized (P4)."""
+    return unicodedata.normalize('NFC', name).casefold()
+
+
 def parse_json(data, label):
     def unique(pairs):
         keys = [key for key, _ in pairs]
@@ -180,13 +197,45 @@ class GhAdapter:
         contexts = list(data.get('contexts') or []) + [c.get('context') for c in data.get('checks') or [] if c.get('context')]
         return {'status': 'available', 'contexts': sorted(set(contexts))}
 
-    def merged_prs(self):
-        result = command(['gh', 'pr', 'list', '--state', 'merged', '--limit', str(AUDIT_LIMIT), '--json',
+    def merged_prs(self, limit=AUDIT_LIMIT):
+        result = command(['gh', 'pr', 'list', '--state', 'merged', '--limit', str(limit), '--json',
                           'number,headRefName,headRefOid,mergeCommit,mergedAt'], cwd=self.root)
         if result.returncode:
             raise Invalid('hosted_api_unavailable:pr list')
         return [{'number': p.get('number'), 'head_ref': p.get('headRefName'), 'head': p.get('headRefOid'),
                  'merge_commit': (p.get('mergeCommit') or {}).get('oid')} for p in parse_json(result.stdout, 'hosted_api')]
+
+    def open_prs(self, limit=ROUTE_LIMIT):
+        result = command(['gh', 'pr', 'list', '--state', 'open', '--limit', str(limit), '--json',
+                          'number,headRefName,headRefOid'], cwd=self.root)
+        if result.returncode:
+            raise Invalid('hosted_api_unavailable:pr list open')
+        return [{'number': p.get('number'), 'head_ref': p.get('headRefName'), 'head': p.get('headRefOid')}
+                for p in parse_json(result.stdout, 'hosted_api')]
+
+    def branches(self):
+        result = git(self.root, 'ls-remote', '--heads', 'origin', check=False)
+        if result.returncode:
+            raise Invalid('hosted_api_unavailable:ls-remote origin')
+        return [dict(zip(('sha', 'ref'), line.split('\t', 1))) for line in result.stdout.decode().splitlines() if '\t' in line]
+
+    def pr_files(self, number):
+        """The hosted changed-files list; a rename carries previous_filename. Reaching GitHub's
+        3000-file cap, or a count that differs from the pull's changed_files, fails closed."""
+        expected = self._api('repos/{owner}/{repo}/pulls/%d' % number).get('changed_files')
+        files, page = [], 1
+        while True:
+            batch = self._api('repos/{owner}/{repo}/pulls/%d/files?per_page=100&page=%d' % (number, page))
+            v2.check(isinstance(batch, list), 'hosted_api_incomplete', 'pull files')
+            files += [{'filename': f.get('filename'), 'previous_filename': f.get('previous_filename'),
+                       'status': f.get('status')} for f in batch]
+            if len(batch) < 100 or len(files) >= FILES_LIMIT:
+                break
+            page += 1
+        v2.check(len(files) < FILES_LIMIT, 'pr_files_truncated', 'the hosted list reached %d files' % FILES_LIMIT)
+        v2.check(not isinstance(expected, int) or expected == len(files), 'pr_files_truncated',
+                 '%d of %s changed files listed' % (len(files), expected))
+        return files
 
     def merge(self, number, head, admin):
         argv = ['gh', 'pr', 'merge', str(number), '--squash', '--match-head-commit', head] + (['--admin'] if admin else [])
@@ -216,9 +265,20 @@ class FixtureAdapter:
         value = self.state.get('protection')
         return {'status': 'available', 'contexts': value.get('contexts', [])} if isinstance(value, dict) else {'status': 'unavailable'}
 
-    def merged_prs(self):
+    def merged_prs(self, limit=AUDIT_LIMIT):
         return [{'number': p.get('number'), 'head_ref': p.get('headRefName'), 'head': p.get('headRefOid'),
                  'merge_commit': (p.get('mergeCommit') or {}).get('oid')} for p in self.state.get('merged_prs', [])]
+
+    def open_prs(self, limit=ROUTE_LIMIT):
+        return [{'number': p.get('number'), 'head_ref': p.get('headRefName'), 'head': p.get('headRefOid')}
+                for p in self.state.get('open_prs', [])]
+
+    def branches(self):
+        return [{'ref': b.get('ref'), 'sha': b.get('sha')} for b in self.state.get('branches', [])]
+
+    def pr_files(self, number):
+        """The in-process test stub is the only place a PR without recorded files lists none."""
+        return list(self.state.get('files', {}).get(str(number), []))
 
     def merge(self, number, head, admin):
         return False, 'the fixture adapter never merges'
@@ -371,7 +431,24 @@ def verify_signature(anchor, signature_text, data, namespace):
 
 def signing_identity(anchor):
     """The anchor principal of the agent signing key (it must hold the certificate role)."""
-    v2.check(anchor is not None, 'anchor_missing', 'no usable trust anchor for the certifier key')
+    key, entry = key_line(anchor)
+    v2.check(v2.NS_CERTIFICATE in entry['namespaces'] and v2.NS_APPROVAL not in entry['namespaces'],
+             'certifier_key_not_agent', entry['principals'][0])
+    return key, entry['principals'][0]
+
+
+def agent_approval_identity(anchor):
+    """K3: the agent signing key may issue an approval only when its anchor line holds
+    ai-catapult-agent-approval and never the human ai-catapult-plan-approval."""
+    key, entry = key_line(anchor)
+    v2.check(v2.NS_AGENT_APPROVAL in entry['namespaces'] and v2.NS_APPROVAL not in entry['namespaces'],
+             'agent_approval_signer_not_agent', entry['principals'][0])
+    return key, entry['principals'][0]
+
+
+def key_line(anchor):
+    """The one anchor line of the local agent signing key."""
+    v2.check(anchor is not None, 'anchor_missing', 'no usable trust anchor for the agent key')
     key = Path(signing_key_locator())
     if key.suffix == '.pub':
         public = key.read_text().split()
@@ -386,9 +463,7 @@ def signing_identity(anchor):
     entry = matches[0]
     v2.check(len(matches) == 1 and len(entry['principals']) == 1 and entry['principals'][0] not in ambiguous_principals(lines),
              'anchor_principal_ambiguous', ','.join(entry['principals']))
-    v2.check(v2.NS_CERTIFICATE in entry['namespaces'] and v2.NS_APPROVAL not in entry['namespaces'],
-             'certifier_key_not_agent', entry['principals'][0])
-    return key, entry['principals'][0]
+    return key, entry
 
 
 def sign(key, namespace, data):
@@ -442,18 +517,24 @@ def load_generation(root, ref, handoff):
         live2 = False
     candidate = artifact('policy_candidate') if 'policy_candidate' in artifacts else None
     if candidate is not None:
-        mode, policy_bytes = 'bootstrap', candidate
+        mode = 'policy-amendment' if entry.get('mode') == 'policy-amendment' else 'bootstrap'
+        policy_bytes = candidate
     else:
         v2.check(live2, 'policy2_not_live', 'no readiness-policy/2 on ' + ref)
         mode, policy_bytes = 'live', live_bytes
     policy = v2.validate_policy(parse_json(policy_bytes, 'policy'))
+    # Rule (d): an amendment's approval form must also be in the live policy's accept list. A
+    # bootstrap generation's live list is empty by definition (a v1 or absent live policy).
+    live_accept = []
+    if mode == 'policy-amendment' and live2:
+        live_accept = list(v2.validate_policy(parse_json(live_bytes, 'policy'))['approval']['accept'])
     spec = show(root, ref, bundle['spec']['path'])
     v2.check(spec is not None, 'spec_missing', bundle['spec']['path'])
     digests = {'bundle_sha256': v2.bundle_sha256(bundle), 'spec_sha256': v2.sha256(spec),
                'policy_sha256': v2.sha256(policy_bytes), 'anchor_sha256': policy['approval']['anchor_sha256']}
     return {'entry': entry, 'bundle': bundle, 'sidecar': sidecar, 'sidecar_path': sidecar_path, 'policy': policy,
             'mode': mode, 'live_policy2': live2, 'candidate_is_live': candidate is not None and live_bytes == candidate,
-            'digests': digests, 'prefix': prefix}
+            'live_accept': live_accept, 'digests': digests, 'prefix': prefix}
 
 
 def find_sidecar_v0(root, ref, path, digest, bundle):
@@ -514,6 +595,18 @@ def observe_approval(root, ref, gen):
     elif lines[1].startswith('digest-echo: '):
         carrier['form'] = 'in-session'
         carrier['digest_echo'] = lines[1][len('digest-echo: '):]
+    elif lines[1].startswith('agent-signature: '):
+        carrier['form'] = 'agent-self'
+        try:
+            signature = base64.b64decode(lines[1][len('agent-signature: '):], validate=True).decode()
+        except ValueError:
+            signature = ''
+        carrier['signature'] = {'principal': None, 'verified': False}
+        if anchor_facts['present'] and signature:
+            carrier['signature'] = verify_signature(anchor, signature, lines[0].encode(), v2.NS_AGENT_APPROVAL)
+            if not carrier['signature']['verified'] and \
+                    verify_signature(anchor, signature, lines[0].encode(), v2.NS_APPROVAL)['verified']:
+                carrier['signature_namespace'] = 'human'
     else:
         carrier['form'] = 'invalid'
     return carrier
@@ -647,6 +740,43 @@ def observe_review(path, pull, plan_id, goals):
     return lane
 
 
+# --- v1 inventory (O10) ---------------------------------------------------------------
+
+def v1_inventory(root, ref, adapter):
+    """Every v1 registry entry on ref with its fate, decided by inventory_fate from hosted
+    merged/open PR head branches, origin branches and merge-commit ancestry only."""
+    data = show(root, ref, v2.V1_REGISTRY)
+    if data is None:
+        return []
+    registry = parse_json(data, 'v1_registry')
+    v2.check(isinstance(registry, dict) and isinstance(registry.get('plans'), list), 'v1_registry_invalid')
+    unobservable, merged, open_prs, branches = None, [], [], []
+    try:
+        merged, open_prs, branches = adapter.merged_prs(ROUTE_LIMIT), adapter.open_prs(ROUTE_LIMIT), adapter.branches()
+        if len(merged) >= ROUTE_LIMIT or len(open_prs) >= ROUTE_LIMIT:
+            unobservable = 'hosted_list_truncated'
+    except Invalid as error:
+        unobservable = v2.code(error)
+    merged = [dict(p, reached=ancestry(root, p.get('merge_commit'), ref)) for p in merged]
+    branches = [dict(b, merged=ancestry(root, b.get('sha'), ref) is True) for b in branches]
+    entries = []
+    for entry in registry['plans']:
+        try:
+            bundle = parse_json(show(root, ref, entry['artifacts']['bundle']['path']), 'v1_bundle')
+            goal_ids = [goal['id'] for goal in bundle['goals']]
+        except (Invalid, KeyError, TypeError) as error:
+            v2.refuse('v1_registry_invalid', '%s: %s' % (entry.get('id') if isinstance(entry, dict) else entry, error))
+        fate = v2.inventory_fate(goal_ids, merged, open_prs, branches, unobservable)
+        record = dict({'id': entry.get('id'), 'plan_id': entry.get('plan_id'), 'generation': entry.get('generation'),
+                       'goals': goal_ids}, **fate)
+        if fate['fate'] == 'completed':
+            record['retire_record'] = {'id': entry.get('id'), 'plan_id': entry.get('plan_id'),
+                                       'generation': entry.get('generation'), 'registry': v2.V1_REGISTRY,
+                                       'fate': 'completed', 'merged': fate['merged']}
+        entries.append(record)
+    return entries
+
+
 # --- driver provenance (P8) -----------------------------------------------------------
 
 def manifest_paths():
@@ -658,6 +788,7 @@ def manifest_paths():
 
 
 PROVENANCE = ('source-lane', 'base-copy')
+PROMINENT = ('in-session', 'agent-self')  # agent-writable assurance levels every report prints prominently (K2, K3)
 
 
 def checked_provenance(root, target):
@@ -699,11 +830,16 @@ def admission_inputs(root, ref, handoff, goals, stage, adapter, now, pr=None, re
         record = carrier.get('record')
         if isinstance(record, dict) and record.get('sidecar_sha256') != canonical(gen['sidecar']):
             sidecar_v0 = find_sidecar_v0(root, ref, gen['sidecar_path'], record.get('sidecar_sha256'), gen['bundle'])
-        inputs.update(registered={'id': gen['entry']['id'], 'generation': gen['entry']['generation'], 'mode': gen['mode']},
+        inputs.update(registered={'id': gen['entry']['id'], 'generation': gen['entry']['generation'], 'mode': gen['mode'],
+                                  'policy_sha256': gen['entry'].get('policy_sha256'),
+                                  'anchor_sha256': gen['entry'].get('anchor_sha256')},
                       policy=gen['policy'], policy_mode=gen['mode'], live_policy2=gen['live_policy2'],
-                      candidate_is_live=gen['candidate_is_live'], bundle=gen['bundle'], sidecar=gen['sidecar'],
-                      sidecar_v0=sidecar_v0, digests=gen['digests'], carrier=carrier,
+                      candidate_is_live=gen['candidate_is_live'], live_accept=gen['live_accept'], bundle=gen['bundle'],
+                      sidecar=gen['sidecar'], sidecar_v0=sidecar_v0, digests=gen['digests'], carrier=carrier,
                       observation=observe(root, ref, gen, goals, stage, adapter, now, pr, review_record))
+        if gen['mode'] in v2.POLICY_MODES and stage in v2.APPROVED_STAGES and set(goals) & set(v2.policy_goals(gen['bundle'])):
+            # O10: the policy goal swaps the policy only while no v1 entry is in flight.
+            inputs['v1_inventory'] = [{'id': e['id'], 'fate': e['fate']} for e in v1_inventory(root, ref, adapter)]
         return inputs, gen
     except (Invalid, OSError, KeyError, TypeError, ValueError) as error:
         detail = str(error).split(':', 1)
@@ -753,10 +889,15 @@ def op_publish(args, now, adapter):
     except (ValueError, AttributeError):
         live2 = False
     if args.policy_candidate:
-        v2.check(not live2, 'bootstrap_policy_live')
+        if live2:
+            # While policy/2 is live a candidate is a policy amendment: one goal scoping the fixed path.
+            v2.check(len(bundle['goals']) == 1 and v2.policy_goals(bundle), 'bootstrap_policy_live')
+            v2.validate_amendment(bundle, live_policy2=True)
+            mode = 'policy-amendment'
+        else:
+            v2.validate_bootstrap(bundle, live_policy2=False)
+            mode = 'bootstrap'
         policy_bytes = Path(args.policy_candidate).read_bytes()
-        v2.validate_bootstrap(bundle, live_policy2=False)
-        mode = 'bootstrap'
     else:
         v2.check(live2, 'policy2_not_live')
         policy_bytes = live_bytes
@@ -788,7 +929,7 @@ def op_publish(args, now, adapter):
     dumps = lambda value: (json.dumps(value, indent=2, sort_keys=True) + '\n').encode()
     files = {'goals.json': dumps(bundle), 'sidecar.json': dumps(sidecar), 'graph.json': dumps(graph),
              'handoff.md': handoff.encode()}
-    if mode == 'bootstrap':
+    if mode in v2.POLICY_MODES:
         files['policy-candidate.json'] = policy_bytes
     final = root / prefix
     workflows = root / '.ai/workflows'
@@ -816,7 +957,7 @@ def op_publish(args, now, adapter):
         artifacts = {name: {'path': prefix + '/' + filename, 'sha256': v2.sha256((final / filename).read_bytes())}
                      for name, filename in (('bundle', 'goals.json'), ('graph', 'graph.json'), ('handoff', 'handoff.md'))}
         artifacts['sidecar'] = {'path': prefix + '/sidecar.json'}
-        if mode == 'bootstrap':
+        if mode in v2.POLICY_MODES:
             artifacts['policy_candidate'] = {'path': prefix + '/policy-candidate.json', 'sha256': digests['policy_sha256']}
         entry = {'schema': v2.VERSION, 'id': 'northstar-plan-' + bundle['id'], 'plan_id': bundle['id'],
                  'generation': generation, 'mode': mode, 'status': 'active', 'handoff_path': prefix + '/handoff.md',
@@ -847,6 +988,8 @@ def op_approval_request(args, now, adapter):
                   goals=[g['id'] for g in gen['bundle']['goals']], sidecar_sha256=canonical(gen['sidecar']),
                   owner=args.owner, reviewer_lane=args.reviewer_lane, issued_at=v2.stamp(now),
                   expires_at=v2.stamp(now + timedelta(days=args.days)), **gen['digests'])
+    if args.assurance == 'agent-self':
+        return issue_agent_approval(root, gen, fields, publication, origin)
     record = v2.approval_record(assurance=args.assurance, **fields)
     fallback = v2.approval_record(assurance='in-session', **fields)
     tag = 'approval/%s/%s' % (gen['bundle']['id'], gen['entry']['generation'][:12])
@@ -867,6 +1010,32 @@ def op_approval_request(args, now, adapter):
             "printf '%%s\\ndigest-echo: %%s\\n' %s %s > approval.msg" % (shlex.quote(fallback_line), canonical(fallback)),
             *tag_commands]},
         'signs': False, 'provenance': origin}
+
+
+def issue_agent_approval(root, gen, fields, publication, origin):
+    """K3 agent mode: Autobahn issues the plan-approval/1 itself, signed with the agent key under
+    ai-catapult-agent-approval, for the single approval tag. It never writes or pushes the tag."""
+    v2.check_form('agent-self', gen['policy'], gen['mode'], gen['live_accept'])
+    anchor, facts = observe_anchor()
+    v2.check(anchor is not None and not facts['inside_worktree'], 'anchor_missing', 'no usable trust anchor')
+    v2.check(facts['sha256'] == gen['digests']['anchor_sha256'], 'anchor_digest_mismatch')
+    v2.check(not facts['ambiguous'], 'anchor_principal_ambiguous', ','.join(facts['ambiguous']))
+    key, principal = agent_approval_identity(anchor)
+    record = v2.approval_record(assurance='agent-self', **fields)
+    line = v2.canonical_bytes(record)
+    signature = sign(key, v2.NS_AGENT_APPROVAL, line)
+    verified = verify_signature(anchor, signature, line, v2.NS_AGENT_APPROVAL)
+    v2.check(verified['verified'] and verified['principal'] == principal, 'approval_signing_failed', 'self-verification')
+    tag = 'approval/%s/%s' % (gen['bundle']['id'], gen['entry']['generation'][:12])
+    message = line.decode() + '\nagent-signature: ' + base64.b64encode(signature.encode()).decode() + '\n'
+    return 0, {'schema': 'plan-approval-request/1', 'plan_id': gen['bundle']['id'], 'record': record,
+               'digest': canonical(record), 'tag': tag, 'anchor_sha256': gen['digests']['anchor_sha256'],
+               'publication_commit': publication, 'assurance': 'agent-self', 'principal': principal,
+               'message': message, 'notice': v2.render_assurance('agent-self'),
+               'notices': v2.policy_change_notices('agent-self', gen['mode']),
+               'commands': {'agent-self': ['git tag -a --cleanup=verbatim -F approval.msg %s %s' % (tag, publication),
+                                           'git push origin refs/tags/' + tag]},
+               'signs': True, 'provenance': origin}
 
 
 def run_local_gates(root, goal):
@@ -914,7 +1083,7 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
     goal = next(g for g in gen['bundle']['goals'] if g['id'] == goal_id)
     gates = run_local_gates(root, goal) if not refusals and clean_before and pull['head'] == head_before else []
     head_after, clean_after = tree_state(root)
-    policy_goal = v2.policy_goals(gen['bundle'])[0] if gen['mode'] == 'bootstrap' and v2.policy_goals(gen['bundle']) else None
+    policy_goal = v2.policy_goals(gen['bundle'])[0] if gen['mode'] in v2.POLICY_MODES and v2.policy_goals(gen['bundle']) else None
     head_policy = show(root, 'HEAD', v2.POLICY)
     refusals += v2.certificate_refusals({
         'clean_before': clean_before, 'clean_after': clean_after, 'head_before': head_before, 'head_after': head_after,
@@ -961,6 +1130,7 @@ def op_certify(args, now, adapter):
             refusals.append('execution_record_mismatch')
     result = {'schema': 'merge-certificate-result/1', 'issued': False, 'pr': args.pr, 'plan_id': context.get('plan_id'),
               'goal_id': args.goal_id, 'assurance': context.get('assurance'), 'context_gaps': context['gaps'],
+              'notices': v2.policy_change_notices(context.get('assurance'), (context.get('policy') or {}).get('mode')),
               'provenance': origin}
     if refusals:
         result['refusals'] = [{'code': c.split(':', 1)[0], 'detail': c} for c in refusals]
@@ -982,8 +1152,8 @@ def op_certify(args, now, adapter):
     shutil.copyfile(str(review) + '.sig', reviews / (body['review_lane']['digest'] + '.json.sig'))
     result.update(issued=True, certificate=body, path=str(path), approval_digest=body['approval_digest'],
                   assurance=body['assurance'])
-    if body['assurance'] == 'in-session':
-        result['assurance_notice'] = v2.render_assurance('in-session')
+    if body['assurance'] in PROMINENT:
+        result['assurance_notice'] = v2.render_assurance(body['assurance'])
     return 0, result
 
 
@@ -998,15 +1168,15 @@ def carries_v2(root, rev):
         return False
 
 
-def generic_pattern(pattern):
-    any_id = '[A-Za-z0-9][A-Za-z0-9._-]*'
-    return pattern.replace('<plan_id>', any_id).replace('<goal_id>', any_id)
-
-
 def route(cwd, pr, target, adapter):
     """('v1', None) only while no v2 artifact is observable anywhere: on origin/<target>
     (checked against git ls-remote), on the ls-remote commit, or at HEAD. Once one
-    exists, every ambiguity refuses; nothing falls back to the verdict path."""
+    exists, every ambiguity refuses; nothing falls back to the verdict path.
+
+    An exact registered goal branch routes to v2. A branch in an active registered plan's
+    reserved namespace (its branch_pattern with that plan id, any goal id, case-insensitive)
+    refuses. Any other PR takes the v1 lane, and once v2 is live on origin/<target> only when
+    its observed diff touches no reserved path or an exception lane covers the touch."""
     top = git(cwd, 'rev-parse', '--show-toplevel', check=False)
     if top.returncode:
         return 'v1', None
@@ -1029,11 +1199,10 @@ def route(cwd, pr, target, adapter):
     v2.check(pr is not None, 'pr_required', '%s carries readiness-contract/2 artifacts; every merge-authority call needs --pr' % ref)
     adapter = adapter or hosted_adapter_factory(root)
     pull = adapter.pull(pr)
-    registry_bytes = show(root, ref, v2.REGISTRY)
-    registry = parse_json(registry_bytes, 'registry') if registry_bytes is not None else {'plans': []}
-    v2.check(isinstance(registry, dict) and isinstance(registry.get('plans'), list), 'plan_unloadable', 'registry')
-    patterns = []
-    for entry in registry['plans']:
+    active = []
+    for entry in registry_plans(root, ref):
+        if isinstance(entry, dict) and entry.get('status') != 'active':
+            continue  # a retired or superseded plan never blocks a --pr call
         try:
             gen = load_generation(root, ref, entry['id'])
         except (Invalid, KeyError, TypeError, OSError) as error:
@@ -1041,26 +1210,284 @@ def route(cwd, pr, target, adapter):
         for goal in gen['bundle']['goals']:
             if re.fullmatch(v2.fill(gen['policy']['branch_pattern'], gen['bundle']['id'], goal['id']), pull['head_ref']):
                 return 'v2', {'root': root, 'handoff': entry['id'], 'goal_id': goal['id'], 'pull': pull, 'adapter': adapter}
-        patterns.append(gen['policy']['branch_pattern'])
-    live = show(root, ref, v2.POLICY)
-    if live is not None and carries_v2(root, ref) and parse_json(live, 'policy').get('schema') == v2.POLICY_SCHEMA:
+        active.append(gen)
+    for gen in active:
+        namespace = v2.plan_namespace(gen['policy']['branch_pattern'], gen['bundle']['id'])
+        v2.check(not re.fullmatch(namespace, pull['head_ref'], re.IGNORECASE), 'v2_branch_without_plan', pull['head_ref'])
+    lane, notices = non_goal_lane(root, ref, pull, adapter) if carries_v2(root, ref) else ('v1', [])
+    return 'v1', {'root': root, 'pull': pull, 'lane': lane, 'notices': notices}
+
+
+def registry_plans(root, rev):
+    data = show(root, rev, v2.REGISTRY)
+    registry = parse_json(data, 'registry') if data is not None else {'plans': []}
+    v2.check(isinstance(registry, dict) and isinstance(registry.get('plans'), list), 'plan_unloadable', 'registry')
+    return registry['plans']
+
+
+# --- reserved paths for non-goal PRs (O4, O1, U2) -------------------------------------
+
+def fixed_reserved(name):
+    """The policy file, the v2 registry and .ai/handoff/readiness-v2/** (P4 matching)."""
+    key, gen = path_key(name), path_key(v2.GEN)
+    return key in (path_key(v2.POLICY), path_key(v2.REGISTRY)) or key == gen or key.startswith(gen + '/')
+
+
+def free_planning_path(name):
+    """Planning inputs and the local CI contract are never reserved through goal scope."""
+    key = path_key(name)
+    return (key in (path_key('.ai/traceability/graph.json'), path_key('.ai/ci/local-ci.json'))
+            or key.startswith(path_key('docs/specifications/ACTIVE') + '/')
+            or re.fullmatch(r'\.ai/handoff/[^/]+-plan-approval(-request\.json|\.md)', key) is not None)
+
+
+def goal_prs(adapter, kind):
+    pulls = adapter.merged_prs(ROUTE_LIMIT) if kind == 'merged' else adapter.open_prs(ROUTE_LIMIT)
+    v2.check(len(pulls) < ROUTE_LIMIT, 'v2_goal_prs_unobservable', '%s PR list reached %d' % (kind, ROUTE_LIMIT))
+    return pulls
+
+
+def active_scopes(root, ref, base, adapter):
+    """Scope entries of every active goal, the union of what is active at the PR base and at
+    origin/<target>. A goal stops being active once a merged PR on its exact goal branch has
+    a merge commit that is an ancestor of origin/<target> (the dependency-ancestry facts)."""
+    v2.check(isinstance(base, str) and git(root, 'cat-file', '-e', base + '^{commit}', check=False).returncode == 0,
+             'v2_diff_unobservable', 'the PR base %s is not available; fetch first' % base)
+    merged, scopes = None, []
+    for rev in (ref, base):
+        for entry in registry_plans(root, rev):
+            if not isinstance(entry, dict) or entry.get('status') != 'active':
+                continue
+            try:
+                gen = load_generation(root, rev, entry['id'])
+            except (Invalid, KeyError, TypeError, OSError) as error:
+                v2.refuse('plan_unloadable', '%s at %s: %s' % (entry.get('id'), rev, error))
+            if merged is None:
+                merged = goal_prs(adapter, 'merged')
+            for goal in gen['bundle']['goals']:
+                branch = v2.fill(gen['policy']['branch_pattern'], gen['bundle']['id'], goal['id'])
+                if any(isinstance(p.get('head_ref'), str) and re.fullmatch(branch, p['head_ref'])
+                       and ancestry(root, p.get('merge_commit'), ref) is True for p in merged):
+                    continue
+                scopes += [(path_key(s), '%s %s' % (gen['bundle']['id'], goal['id'])) for s in goal['scope']]
+    return scopes
+
+
+def non_goal_lane(root, ref, pull, adapter):
+    """The v1 verdict lane for a non-goal PR once v2 is live on origin/<target>. Its observed
+    changed paths (renames by both names) may touch no reserved path, unless the publish-v2
+    replay or the sidecar-tighten lane covers every touch. The policy file is never covered."""
+    changed = []
+    for item in adapter.pr_files(pull['number']):
+        changed += [item.get(k) for k in ('filename', 'previous_filename') if item.get(k) is not None]
+    v2.check(all(isinstance(name, str) and name for name in changed), 'v2_diff_unobservable', 'changed file names')
+    if not changed:
+        return 'v1', []
+    touched = [name for name in changed if path_key(name) == path_key(v2.POLICY)]
+    v2.check(not touched, 'v2_scope_outside_goal', 'the policy file merges only through a policy goal certificate')
+    candidates = [name for name in changed if not fixed_reserved(name) and not free_planning_path(name)]
+    if candidates:
+        scopes = active_scopes(root, ref, pull['base'], adapter)
+        scoped = sorted({'%s (%s)' % (name, goal) for name in candidates for scope, goal in scopes
+                         if path_key(name) == scope or path_key(name).startswith(scope + '/')})
+        v2.check(not scoped, 'v2_scope_outside_goal', '; '.join(scoped))
+    reserved = sorted({name for name in changed if fixed_reserved(name)})
+    if not reserved:
+        return 'v1', []
+    if all(existing_sidecar(root, ref, pull['base'], name) for name in changed):
+        return sidecar_lane(root, ref, pull, changed)
+    return replay_lane(root, ref, pull, adapter)
+
+
+SIDECAR = re.compile(re.escape(v2.GEN) + r'/[A-Za-z0-9][A-Za-z0-9._-]*/[0-9a-f]{64}/sidecar\.json')
+
+
+def existing_sidecar(root, ref, base, name):
+    """The sidecar.json of a generation that exists at the PR base and on origin/<target>."""
+    return bool(SIDECAR.fullmatch(name)) and show(root, base, name) is not None and show(root, ref, name) is not None
+
+
+def pr_objects(root, pull):
+    """A repository holding the PR head objects: the root when it has them already, otherwise a
+    throwaway repository that borrows the root's objects and fetches only the PR head (P3)."""
+    if git(root, 'cat-file', '-e', pull['head'] + '^{commit}', check=False).returncode == 0:
+        return root
+    scratch = Path(tempfile.mkdtemp(prefix='observer-pr-'))
+    atexit.register(shutil.rmtree, scratch, True)
+    git(scratch, 'init', '-q', '--bare')
+    objects = git_text(root, 'rev-parse', '--path-format=absolute', '--git-path', 'objects')
+    (scratch / 'objects/info/alternates').write_text(objects + '\n')
+    url = git_text(root, 'remote', 'get-url', 'origin')
+    for refspec in ('refs/pull/%d/head' % pull['number'], 'refs/heads/' + pull['head_ref']):
+        fetched = git(scratch, 'fetch', '-q', '--no-tags', url, refspec, check=False)
+        if fetched.returncode == 0 and git(scratch, 'rev-parse', 'FETCH_HEAD', check=False).stdout.decode().strip() == pull['head']:
+            return scratch
+    v2.refuse('v2_diff_unobservable', 'the PR head %s cannot be fetched' % pull['head'])
+
+
+def tree_entries(repo, commit, *paths):
+    """{path: (mode, type, oid)} for every entry at or under paths, recursively."""
+    listed = git(repo, 'ls-tree', '-r', '-t', '-z', '--full-tree', commit, '--', *paths).stdout
+    entries = {}
+    for item in listed.split(b'\0'):
+        if item:
+            meta, name = item.split(b'\t', 1)
+            mode, kind, oid = meta.decode().split()
+            entries[os.fsdecode(name)] = (mode, kind, oid)
+    return entries
+
+
+def regular_reserved(repo, commit, names):
+    """P2: reserved paths and their parents are plain trees and regular files, never a
+    symlink or a submodule."""
+    entries = tree_entries(repo, commit)
+    for name in names:
+        parts = name.split('/')
+        for depth in range(1, len(parts) + 1):
+            prefix = '/'.join(parts[:depth])
+            found = entries.get(prefix)
+            if found is None:
+                break
+            expected = ('100644', 'blob') if depth == len(parts) else ('040000', 'tree')
+            v2.check(found[:2] == expected, 'v2_scope_outside_goal', '%s is not a regular %s' % (prefix, expected[1]))
+
+
+def sidecar_lane(root, ref, pull, changed):
+    """O1: every changed sidecar.json of an existing generation passes the pinned tighten-only
+    check against the PR base and, for a stale base, against the current target's bytes."""
+    objects = pr_objects(root, pull)
+    regular_reserved(objects, pull['head'], changed)
+    for name in changed:
+        bundle = v2.validate_bundle(parse_json(show(root, ref, name.rsplit('/', 1)[0] + '/goals.json'), 'bundle'))
         try:
-            patterns.append(v2.validate_policy(parse_json(live, 'policy'))['branch_pattern'])
+            head = v2.validate_sidecar(parse_json(show(objects, pull['head'], name), 'sidecar'), bundle)
+            for rev in (pull['base'], ref):
+                v2.sidecar_leq(v2.validate_sidecar(parse_json(show(root, rev, name), 'sidecar'), bundle), head)
         except Invalid as error:
-            v2.refuse('policy_unloadable', str(error))
-    for pattern in patterns:
-        v2.check(not re.fullmatch(generic_pattern(pattern), pull['head_ref']), 'v2_branch_without_plan', pull['head_ref'])
-    return 'v1', None
+            v2.refuse('v2_sidecar_not_tightening', '%s: %s' % (name, error))
+    return 'sidecar-tighten', []
+
+
+def replay_lane(root, ref, pull, adapter):
+    """O4: the reserved-path part of the diff must equal a publish-v2 replay by this pinned
+    driver, in a scratch tree built from git objects whose reserved paths are reset to the
+    up-to-date base, with the PR head's new goals.json, sidecar.json and optional
+    policy-candidate.json as inputs. Only the registry and .ai/handoff/readiness-v2/** are
+    compared. A replaced registry entry is allowed only for a plan without goal PRs."""
+    objects = pr_objects(root, pull)
+    base = git_text(root, 'rev-parse', '--verify', ref + '^{commit}')
+    v2.check(ancestry(objects, base, pull['head']) is True, 'v2_scope_outside_goal',
+             'a publish-v2 replay applies only to a PR that is up to date with ' + ref)
+    head_entries = {k: v for k, v in tree_entries(objects, pull['head'], v2.REGISTRY, v2.GEN).items() if v[1] != 'tree'}
+    base_entries = {k: v for k, v in tree_entries(root, base, v2.REGISTRY, v2.GEN).items() if v[1] != 'tree'}
+    generation_dir = lambda name: '/'.join(name.split('/')[:5])
+    added = sorted({generation_dir(n) for n in head_entries if n.startswith(v2.GEN + '/')}
+                   - {generation_dir(n) for n in base_entries if n.startswith(v2.GEN + '/')})
+    v2.check(len(added) == 1, 'v2_scope_outside_goal', 'a replay adds exactly one generation directory, not %d' % len(added))
+    regular_reserved(objects, pull['head'], sorted(head_entries))
+    with tempfile.TemporaryDirectory(prefix='observer-replay-') as tmp:
+        scratch, inputs = Path(tmp) / 'tree', Path(tmp) / 'inputs'
+        inputs.mkdir()
+        materialize(objects, pull['head'], scratch, keep=lambda name: not fixed_reserved(name))
+        materialize(root, base, scratch, keep=fixed_reserved)
+        names = {'bundle': 'goals.json', 'sidecar': 'sidecar.json', 'policy_candidate': 'policy-candidate.json'}
+        files = {}
+        for key, filename in names.items():
+            data = show(objects, pull['head'], added[0] + '/' + filename)
+            if data is not None:
+                files[key] = inputs / filename
+                files[key].write_bytes(data)
+        v2.check('bundle' in files and 'sidecar' in files, 'v2_scope_outside_goal', 'the new generation lacks its inputs')
+        replay = argparse.Namespace(root=str(scratch), bundle=str(files['bundle']), sidecar=str(files['sidecar']),
+                                    policy_candidate=str(files['policy_candidate']) if 'policy_candidate' in files else None)
+        try:
+            op_publish(replay, None, adapter)
+        except (Invalid, OSError, KeyError, TypeError, ValueError) as error:
+            v2.refuse('v2_scope_outside_goal', 'the reserved paths are not a publish-v2 replay: %s' % error)
+        replayed = scratch_entries(root, scratch)
+    v2.check(replayed == {k: v[0:3:2] for k, v in head_entries.items()}, 'v2_scope_outside_goal',
+             'the reserved paths differ from the publish-v2 replay')
+    before = {p.get('id'): p for p in registry_plans(root, base) if isinstance(p, dict)}
+    after = {p.get('id'): p for p in registry_plans(objects, pull['head']) if isinstance(p, dict)}
+    replaced = sorted(plan_id for plan_id in before if plan_id in after and after[plan_id] != before[plan_id])
+    notices = []
+    if replaced:
+        pulls = goal_prs(adapter, 'merged') + goal_prs(adapter, 'open')
+        for plan_id in replaced:
+            old = load_generation(root, base, plan_id)
+            namespace = v2.plan_namespace(old['policy']['branch_pattern'], old['bundle']['id'])
+            busy = sorted({p.get('number') for p in pulls if isinstance(p.get('head_ref'), str)
+                           and re.fullmatch(namespace, p['head_ref'], re.IGNORECASE)}, key=str)
+            v2.check(not busy, 'v2_scope_outside_goal', '%s has merged or open goal PRs %s' % (plan_id, busy))
+            notices.append({'code': 'v2_plan_entry_replaced', 'detail': plan_id})
+    return 'publish-v2-replay', notices
+
+
+def materialize(repo, commit, destination, keep):
+    """Write the regular files of commit for which keep(path) holds; links and submodules are skipped."""
+    entries = [(name, mode, oid) for name, (mode, kind, oid) in tree_entries(repo, commit).items()
+               if kind == 'blob' and mode in ('100644', '100755') and keep(name)]
+    if not entries:
+        return
+    batch = git_batch(repo, [oid for _, _, oid in entries])
+    for name, mode, oid in entries:
+        path = destination / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(batch[oid])
+        path.chmod(0o755 if mode == '100755' else 0o644)
+
+
+def git_batch(repo, oids):
+    env = clean_env()
+    env.update(GIT_SETTINGS)
+    result = subprocess.run(['git', '--no-replace-objects', '-C', str(repo), 'cat-file', '--batch'], env=env,
+                            input=''.join(oid + '\n' for oid in oids).encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    v2.check(result.returncode == 0, 'v2_diff_unobservable', 'git cat-file --batch')
+    data, blobs, offset = result.stdout, {}, 0
+    while offset < len(data):
+        header_end = data.index(b'\n', offset)
+        oid, kind, size = data[offset:header_end].decode().split()
+        start = header_end + 1
+        blobs[oid] = data[start:start + int(size)]
+        offset = start + int(size) + 1
+    return blobs
+
+
+def scratch_entries(root, scratch):
+    """{path: (mode, oid)} of the registry and .ai/handoff/readiness-v2/** in the scratch tree."""
+    found = sorted(p for p in [scratch / v2.REGISTRY, *(scratch / v2.GEN).rglob('*')] if p.is_file() or p.is_symlink())
+    if not found:
+        return {}
+    env = clean_env()
+    env.update(GIT_SETTINGS)
+    hashed = subprocess.run(['git', '-C', str(root), 'hash-object', '--no-filters', '--stdin-paths'], env=env,
+                            input='\n'.join(str(p) for p in found).encode() + b'\n', stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    v2.check(hashed.returncode == 0, 'v2_diff_unobservable', 'git hash-object')
+    return {p.relative_to(scratch).as_posix(): ('120000' if p.is_symlink() else '100755' if os.stat(p).st_mode & 0o100
+                                                else '100644', oid)
+            for p, oid in zip(found, hashed.stdout.decode().split())}
 
 
 def op_merge(args, now, adapter):
-    kind, found = route(Path(os.getcwd()), args.pr, args.target, adapter)
+    cwd = Path(os.getcwd())
+    top = git(cwd, 'rev-parse', '--show-toplevel', check=False)
+    # P1: provenance first, so a v1-lane decision comes only from a base-copy or source-lane driver.
+    origin = checked_provenance(Path(top.stdout.decode().strip()).resolve(), args.target) if top.returncode == 0 else None
+    kind, found = route(cwd, args.pr, args.target, adapter)
     if kind == 'v1':
-        return EXIT_V1, {'schema': v2.VERSION, 'decision': 'v1', 'detail': 'no readiness-contract/2 PR here; v1 path'}
+        if not found:
+            return EXIT_V1, {'schema': v2.VERSION, 'decision': 'v1', 'detail': 'no readiness-contract/2 PR here; v1 path'}
+        head = found['pull']['head']
+        return EXIT_V1, {'schema': 'merge-decision/1', 'decision': 'v1', 'pr': args.pr, 'head': head,
+                         'head_ref': found['pull']['head_ref'], 'lane': found['lane'], 'notices': found['notices'],
+                         'merge_with': ['--match-head-commit', head], 'provenance': origin,
+                         'detail': 'not a readiness-contract/2 goal PR: the v1 adapter decides, and the merge must use '
+                                   'gh pr merge --match-head-commit at this head'}
     root, adapter = found['root'], found['adapter']
     ref = target_ref(args.target)
     result = {'schema': 'merge-decision/1', 'decision': 'refused', 'pr': args.pr, 'goal_id': found['goal_id'],
-              'handoff': found['handoff'], 'assurance': None}
+              'handoff': found['handoff'], 'assurance': None, 'notices': []}
 
     def refused(code_text, detail=''):
         result['refusals'] = [{'code': code_text, 'detail': detail}]
@@ -1069,7 +1496,7 @@ def op_merge(args, now, adapter):
         return refused('verdict_refused_for_v2', 'a v2 PR merges only on a re-observed merge certificate')
     if type(adapter) is not GhAdapter:
         return refused('adapter_not_production', adapter.name)
-    result['provenance'] = checked_provenance(root, args.target)
+    result['provenance'] = origin
     pull = adapter.pull(args.pr)
     gen = load_generation(root, ref, found['handoff'])
     path = certificate_path(root, gen['bundle']['id'], found['goal_id'], args.pr, pull['head'])
@@ -1085,6 +1512,7 @@ def op_merge(args, now, adapter):
             and v2.NS_APPROVAL not in signed['namespaces']):
         return refused('certificate_signature_invalid', str(signed['principal']))
     result['assurance'] = stored.get('assurance')
+    result['notices'] = v2.policy_change_notices(stored.get('assurance'), gen['mode'])
     inputs, _ = admission_inputs(root, ref, found['handoff'], [found['goal_id']], 'merge', adapter, now)
     approval_codes = [g['code'] for g in v2.admission(inputs)['gaps'] if g['source'] == 'plan-approval/1']
     if approval_codes:
@@ -1108,8 +1536,8 @@ def op_merge(args, now, adapter):
     if not merged:
         return refused('head_moved_at_merge', detail)
     result.update(decision='merge', head=stored['head'], certificate=str(path), merged_with=['--match-head-commit', stored['head']])
-    if stored['assurance'] == 'in-session':
-        result['assurance_notice'] = v2.render_assurance('in-session')
+    if stored['assurance'] in PROMINENT:
+        result['assurance_notice'] = v2.render_assurance(stored['assurance'])
     return 0, result
 
 
@@ -1120,7 +1548,8 @@ def op_audit(args, now, adapter):
     ref = target_ref(args.target)
     origin = checked_provenance(root, args.target)
     adapter = adapter or hosted_adapter_factory(root)
-    report = {'schema': 'merge-audit/1', 'provenance': origin, 'adapter': adapter.name, 'prs': [], 'findings': []}
+    report = {'schema': 'merge-audit/1', 'provenance': origin, 'adapter': adapter.name, 'prs': [], 'findings': [],
+              'notices': []}
     if type(adapter) is not GhAdapter:
         report['refusals'] = [{'code': 'adapter_not_production', 'detail': adapter.name}]
         return EXIT_FAIL_CLOSED, report
@@ -1157,9 +1586,29 @@ def op_audit(args, now, adapter):
                 entry['flags'].append('certified_head_mismatch')
             entry.update(certificate=str(path), approval_digest=certificate.get('approval_digest'),
                          assurance=certificate.get('assurance'), lane_independence=certificate.get('lane_independence'))
+            if entry['assurance'] in PROMINENT:
+                entry['assurance_notice'] = v2.render_assurance(entry['assurance'])
+            entry['notices'] = v2.policy_change_notices(entry['assurance'], gen['mode'])
+            report['notices'] += [dict(n, detail='PR %s: %s' % (pull['number'], n['detail'])) for n in entry['notices']]
         report['prs'].append(entry)
         report['findings'] += [{'code': flag, 'detail': 'PR %s' % pull['number']} for flag in entry['flags']]
     return (1 if report['findings'] else 0), report
+
+
+def op_inventory(args, now, adapter):
+    """O10: decide every v1 registry entry's fate on origin/<target>; exit 1 while any is in flight."""
+    root = Path(args.root).resolve(strict=True)
+    ref = target_ref(args.target)
+    origin = checked_provenance(root, args.target)
+    adapter = adapter or hosted_adapter_factory(root)
+    report = {'schema': 'v1-inventory/1', 'registry': v2.V1_REGISTRY, 'target': ref,
+              'target_revision': git_text(root, 'rev-parse', '--verify', ref + '^{commit}'), 'adapter': adapter.name,
+              'provenance': origin, 'entries': v1_inventory(root, ref, adapter)}
+    busy = [entry['id'] for entry in report['entries'] if entry['fate'] == 'in-flight']
+    if busy:
+        report['refusals'] = [{'code': 'v1_inventory_in_flight', 'detail': ', '.join(busy)}]
+        return 1, report
+    return 0, report
 
 
 def op_reserved(args, now, adapter):
@@ -1167,7 +1616,7 @@ def op_reserved(args, now, adapter):
 
 
 HANDLERS = {'admit-v2': op_admit, 'publish-v2': op_publish, 'approval-request': op_approval_request,
-            'certify-v2': op_certify, 'merge-v2': op_merge, 'audit-merges': op_audit}
+            'certify-v2': op_certify, 'merge-v2': op_merge, 'audit-merges': op_audit, 'inventory-v1': op_inventory}
 
 
 def parser():
@@ -1201,7 +1650,7 @@ def parser():
     request.add_argument('--reviewer-lane', required=True)
     request.add_argument('--target', default='main')
     request.add_argument('--days', type=int, default=v2.MAX_AGE_DAYS)
-    request.add_argument('--assurance', choices=('key-held', 'user-presence'), default='key-held')
+    request.add_argument('--assurance', choices=('key-held', 'user-presence', 'agent-self'), default='key-held')
     certify = operation('certify-v2')
     certify.add_argument('--root', required=True)
     certify.add_argument('--handoff', required=True)
@@ -1219,6 +1668,9 @@ def parser():
     audit.add_argument('--root', required=True)
     audit.add_argument('--handoff', required=True)
     audit.add_argument('--target', default='main')
+    inventory = operation('inventory-v1')
+    inventory.add_argument('--root', required=True)
+    inventory.add_argument('--target', default='main')
     for name in RESERVED:
         operation(name)
     return main_parser
@@ -1281,6 +1733,9 @@ def run(argv, now=None, adapter=None):
 def main(argv):
     code, result = run(argv)
     if code == EXIT_V1:
+        if result.get('head'):
+            # U2: a v1-lane decision prints the observed head before the v1 adapter runs.
+            print(json.dumps(result, indent=2, sort_keys=True))
         return code
     print(json.dumps(result, indent=2, sort_keys=True))
     notice = result.get('assurance_notice') or result.get('notice')
