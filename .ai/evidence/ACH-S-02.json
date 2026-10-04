@@ -1,0 +1,458 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[O9, O3, O5, P1] skills .ai/policies/readiness-policy.json becomes readiness-policy/2 with repository.id skills, an explicit identity_model single opt-in, requi...",
+      "green": {
+        "at": "2026-10-04T09:53:52Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "8644bd2adbd3bab8130d1ebd8324ae0e1fd6785fb4a19fbf9df441193429407a"
+      },
+      "red": {
+        "at": "2026-10-04T09:53:49Z",
+        "exit_code": 1,
+        "output_sha256": "debed630f0462ab297206fd5bf20e5b7ea6442fff9d9f1fd29144544f42de6f4"
+      },
+      "test_command": "bash tests/readiness_policy_v2_test.sh"
+    },
+    {
+      "ac": 2,
+      "criterion": "[O10, v1 inventory] contract-run.sh inventory-v1 (the single implementation all four policy goals use) decides each v1 registry entry's fate: a goal counts as m...",
+      "green": {
+        "at": "2026-10-04T09:53:54Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "182ff4426960856995f3916192f1e2b795fa4ec85294b7c1ce610f36bf6ab7ae"
+      },
+      "red": {
+        "at": "2026-10-04T09:53:51Z",
+        "exit_code": 1,
+        "output_sha256": "88a6c43f3955c8fa97a31738b366d067374f0a5771d8ac37976e28a8bd13b0eb"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_inventory_test.py AncestryInventoryTests SkillsInventoryTests InventoryAdmissionTests"
+    },
+    {
+      "ac": 3,
+      "criterion": "[P1] tests/readiness_policy_v2_test.sh (discovered by tests/test-scripts.sh) asserts the conformance and that no plan or goal id from either registry appears in...",
+      "green": {
+        "at": "2026-10-04T09:53:54Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "86bb6ca3241c1644c711aaefbefcde799f6f619e32e1d48cb988dd9a953e3940"
+      },
+      "red": {
+        "at": "2026-10-04T09:53:51Z",
+        "exit_code": 1,
+        "output_sha256": "debed630f0462ab297206fd5bf20e5b7ea6442fff9d9f1fd29144544f42de6f4"
+      },
+      "test_command": "bash tests/readiness_policy_v2_test.sh && bash tests/ach_s01_readiness_policy_test.sh && bash tests/xskp_p5_readiness_policy_test.sh"
+    },
+    {
+      "ac": 4,
+      "criterion": "[P1, retained v1] .ai/handoff/ach-skills-contract-v2/s01-readiness-policy-v1.retained.json is a new file byte-equal to the ACH-S-01 v1 rollover policy at skills...",
+      "green": {
+        "at": "2026-10-04T09:53:55Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "3bbc00b892bd1648ffc4e2c35cb0496676851ff4def6f1f8fb9f535af588af83"
+      },
+      "red": {
+        "at": "2026-10-04T09:53:51Z",
+        "exit_code": 1,
+        "output_sha256": "da514282895140f4288632c2542661ca30ec732e30a6cc749d680b2727a1085b"
+      },
+      "test_command": "bash tests/ach_s01_readiness_policy_test.sh"
+    },
+    {
+      "ac": 5,
+      "criterion": "[Merged definition test] tests/readiness_v2_inventory_test.py (discovered by tests/test-scripts.sh via its .sh wrapper) replays recorded hosted-API PR and origi...",
+      "green": {
+        "at": "2026-10-04T09:53:59Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "8371089d88dd9a55d8c3e50731cfd48bdf9e7497e1ee65903caabca0a59e32e9"
+      },
+      "red": {
+        "at": "2026-10-04T09:53:54Z",
+        "exit_code": 1,
+        "output_sha256": "bffe7b5bc77aa6ea1edfbb20234d195f0afada236427a988d04336ebc57f3640"
+      },
+      "test_command": "bash tests/readiness_v2_inventory_test.sh"
+    },
+    {
+      "ac": 6,
+      "criterion": "[Policy amendment] A policy-amendment generation kind (one goal scoping the fixed path while policy/2 is live, carrying a candidate bound by one new approval ve...",
+      "green": {
+        "at": "2026-10-04T09:54:14Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "2bda0f3d2ed9d75732aa7f00d1685c84e8d4831bba9c2c8f6c85f0505e272171"
+      },
+      "red": {
+        "at": "2026-10-04T09:53:54Z",
+        "exit_code": 1,
+        "output_sha256": "d6b9a8ef301980fa4e82125f0a5634aea0bc60079a934cc5565f27a943975cf1"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py AmendmentKindTests"
+    },
+    {
+      "ac": 7,
+      "criterion": "[O2, O5, K3, Spec Delivery: Init] templates/dot-ai/policies/readiness-policy.json is the plan-agnostic baseline (identity_model multi, accept [\"agent-self\", \"ss...",
+      "green": {
+        "at": "2026-10-04T09:54:14Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "62ef2afabb5ff44a086ced0d63e8d5f9f6135652ad195f77b24726f2aa625e12"
+      },
+      "red": {
+        "at": "2026-10-04T09:53:54Z",
+        "exit_code": 1,
+        "output_sha256": "eb31e74efb93c17e1d6343d2d881ed45dc8d93a9966f2b0532c44790834c953c"
+      },
+      "test_command": "bash tests/ai-catapult-templates_test.sh"
+    },
+    {
+      "ac": 8,
+      "criterion": "[U2, U3, route guard] merge-authority's route() builds the v2_branch_without_plan refusal per registered active plan: the policy branch_pattern with <plan_id> f...",
+      "green": {
+        "at": "2026-10-04T09:54:24Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "6535a86040b1ccf877c5663c359e6be512f9101d0c8b01174832c25118aea12d"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:00Z",
+        "exit_code": 1,
+        "output_sha256": "13a5d4e63ca8d2a84e26460c1855a93b8736fab9326bee368fefde684b9592eb"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_route_guard_is_per_registered_plan_and_case_insensitive NonGoalRoutingTests.test_audit_and_unrelated_branches_take_v1_with_only_a_v2_registry MergeAuthorityEntryTests.test_routing_never_falls_back_to_the_verdict_path_once_v2_exists && python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_merge_authority_states_the_per_plan_route_guard_and_reserved_paths"
+    },
+    {
+      "ac": 9,
+      "criterion": "[O10, route] A completed v1 entry's retire record is a top-level retired_v1[] key of .ai/workflows/northstar-readiness-v2.json, never an entry of plans[]. route...",
+      "green": {
+        "at": "2026-10-04T09:54:30Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "f3d95299fd3d6c2c2e5b3a86bf4aa602b5f28f6d646480e0c3410df27669a224"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:03Z",
+        "exit_code": 1,
+        "output_sha256": "6174d0a30f461103f36cebab8053bf724a18cdad46b7da04044c08b1f070ac21"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_retired_v1_record_and_non_active_entries_never_block MergeAuthorityEntryTests.test_routing_never_falls_back_to_the_verdict_path_once_v2_exists && python3 -I -B tests/readiness_v2_inventory_test.py SkillsInventoryTests.test_live_v2_registry_retires_s01_and_v1_bytes_are_unchanged"
+    },
+    {
+      "ac": 10,
+      "criterion": "[O4, reserved namespace] modules/merge-authority.md and modules/readiness-v2.md document the reserved branch namespace: for each registered active plan, its pol...",
+      "green": {
+        "at": "2026-10-04T09:54:37Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "ea3e52573fbd12c2a971a74c628385282cd051d5c2fb7d1e61f73aafe4154605"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:07Z",
+        "exit_code": 1,
+        "output_sha256": "46a0d5210bb03079c1ba6cede322b7f47cc6ed1f2676f629b22e116ad3653215"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_policy_file_is_never_covered NonGoalRoutingTests.test_active_goal_scope_is_reserved_until_its_merge_reaches_the_target NonGoalRoutingTests.test_path_matching_is_case_insensitive_and_unicode_normalized && python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_readiness_v2_documents_the_reserved_namespace_modes_and_inventory DocumentationTests.test_merge_authority_states_the_per_plan_route_guard_and_reserved_paths"
+    },
+    {
+      "ac": 11,
+      "criterion": "[O4, replay exception] A non-goal PR whose reserved-path changes are exactly a publish-v2 replay takes the v1 lane. The observer replays the publication with th...",
+      "green": {
+        "at": "2026-10-04T09:54:47Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "2547b6faf381d34c6c6de0af90905a03128574599fa934ab7ffae71155c17552"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:12Z",
+        "exit_code": 1,
+        "output_sha256": "5e98728f58b7578de64073abaf783a81682f86bf18131a36a3664d9465908f71"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_planning_pr_adding_a_generation_takes_v1 NonGoalRoutingTests.test_replay_may_replace_a_plan_only_without_goal_prs NonGoalRoutingTests.test_replay_byte_mismatch_stale_base_two_generations_and_symlinks_are_refused"
+    },
+    {
+      "ac": 12,
+      "criterion": "[O1, sidecar tighten lane] A non-goal PR whose diff is limited to the sidecar.json of existing generations takes the v1 lane when each changed sidecar's base-to...",
+      "green": {
+        "at": "2026-10-04T09:54:53Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "b7b602777eba62fe1f2b0137dad5c430d4842d29c8a0371988a0797cf54b36cc"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:15Z",
+        "exit_code": 1,
+        "output_sha256": "caf9358f14eb84db7ba54715d522e44e4e04942a794ab0ddd93d7e5e8135a35c"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_sidecar_hold_takes_v1_and_loosening_is_refused NonGoalRoutingTests.test_stale_base_sidecar_is_rechecked_against_the_current_target"
+    },
+    {
+      "ac": 13,
+      "criterion": "[U2, diff observation and head binding] The changed paths are observed as the merge-base (three-dot) diff between the PR's observed base and head, or as the hos...",
+      "green": {
+        "at": "2026-10-04T09:55:01Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "4d4bf7ae49a058670293d69eab17d1aa9bd0dd969f9575e7c280aa790552575f"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:21Z",
+        "exit_code": 1,
+        "output_sha256": "c378c61a0486288258fd80cfe794c1a01ac69ecaffd3ee11f242813765abbded"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_renamed_paths_touch_both_names NonGoalRoutingTests.test_truncated_or_unobservable_file_lists_fail_closed NonGoalRoutingTests.test_v1_lane_prints_the_observed_head_before_the_v1_adapter NonGoalRoutingTests.test_v1_lane_decisions_come_only_from_a_verified_driver"
+    },
+    {
+      "ac": 14,
+      "criterion": "[Routing tests] tests/readiness_v2_certificate_test.py appends cases: a planning PR adding a generation, with a spec copy and request documents, takes v1; a mai...",
+      "green": {
+        "at": "2026-10-04T09:55:40Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "4da76a478c44ad11ef30367556e9682336fdffc50eebdf3729f9d6a0c50c8052"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:45Z",
+        "exit_code": 1,
+        "output_sha256": "e00bdc2eb6b1786753c00dbd1e05e7a1bb731aa75b6a8b9d0c4d55f40b267e25"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests"
+    },
+    {
+      "ac": 15,
+      "criterion": "[K3, O2, O5] readiness-policy/2 approval gains the agent-self form and an optional approval.default_mode of agent, prompt or ssh-tag (lib/readiness_contract_v2....",
+      "green": {
+        "at": "2026-10-04T09:55:40Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "199ba496f288116d36c62f29346d4fbf0bd75745a1c893abfcbdaa4c6d5b1033"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:45Z",
+        "exit_code": 1,
+        "output_sha256": "d75c273273828d0a971d8887363ebaf0fbaf6bc4c1f529aa0f4baa8717a7e6ac"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py PolicyModeValidationTests"
+    },
+    {
+      "ac": 16,
+      "criterion": "[K3, U1 as amended by K3] In agent mode Autobahn issues the plan-approval/1 itself: the canonical record carries assurance agent-self, is signed with the agent ...",
+      "green": {
+        "at": "2026-10-04T09:55:46Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "0f8909c2146f2e5aff953daa92c6dc4458b24658361b8afb3f7ed62e4f16b706"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:46Z",
+        "exit_code": 1,
+        "output_sha256": "8d8862ed23f474c8b1477019d47c1591e6597b7116d912e5870993bc726dcdc6"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py AgentSelfFormTests"
+    },
+    {
+      "ac": 17,
+      "criterion": "[K3, K1, K2] agent-self is a distinct assurance level, computed and never upgraded. Every approval, admission report, merge certificate, merge-authority decisio...",
+      "green": {
+        "at": "2026-10-04T09:55:54Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "50aee7014728d43ce7c89330cdc5ea1545af812a37d8252ceb7b395cff364dbe"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:49Z",
+        "exit_code": 1,
+        "output_sha256": "e2e2d811602bbbcb56d1b9885e1d9f203ed3c5433e4776f2f7ff5f90ff3a0146"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py AssuranceRenderingTests AgentSelfReportTests"
+    },
+    {
+      "ac": 18,
+      "criterion": "[K3] prompt mode admits only an explicit in-session human confirmation (the digest-echo record) and never an agent-self record; ssh-tag remains optional (no def...",
+      "green": {
+        "at": "2026-10-04T09:56:02Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "2c5d061281d80a08c36505bd74824497b8a836b6a25e4efff34fb677eb86f93c"
+      },
+      "red": {
+        "at": "2026-10-04T09:54:50Z",
+        "exit_code": 1,
+        "output_sha256": "4bd7786c074e1d206f00d9d06b030031627b155badf0c6ea131abd5ab1415654"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py ModeTests"
+    },
+    {
+      "ac": 19,
+      "criterion": "[K3, U2, U3] The merge bar is unchanged in every mode: merge-certificate/1 at one exact head, every required check SUCCESS, zero unresolved threads, an agent-si...",
+      "green": {
+        "at": "2026-10-04T09:58:34Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "c62d09d364ce7346a31bfd23c9ea1d79f1a7771671dde061f2b1336926a4e172"
+      },
+      "red": {
+        "at": "2026-10-04T09:57:08Z",
+        "exit_code": 1,
+        "output_sha256": "c340628ad7631545349802aecb1a08c6d585b86faf453c80d8daa2f1b6e3aae6"
+      },
+      "test_command": "bash tests/readiness_v2_core_test.sh && bash tests/readiness_v2_approval_test.sh && bash tests/readiness_v2_certificate_test.sh"
+    },
+    {
+      "ac": 20,
+      "criterion": "[K3, policy amendment] A policy-amendment or bootstrap generation's approval form must be in both the live policy's approval.accept and the candidate's (rule d)...",
+      "green": {
+        "at": "2026-10-04T09:58:41Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "a736c2159c2d2faf832fe8df0aeb4d534b1a4fb5e15570fc84a1afa6a03148ba"
+      },
+      "red": {
+        "at": "2026-10-04T09:57:08Z",
+        "exit_code": 1,
+        "output_sha256": "ecfe7e46d1212fe9925653767f02f36cf83c45cb521818286de4ca7c701825ab"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py RuleDTests"
+    },
+    {
+      "ac": 21,
+      "criterion": "K3b (user decision 2026-10-04, accepted risk): agent-self approval may also approve bootstrap and policy-amendment generations, including changes to anchor_sha2...",
+      "green": {
+        "at": "2026-10-04T09:58:46Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "5a2ab793011637a290d431aaa723bdaf0776e26677827406b221d101a6cfe25f"
+      },
+      "red": {
+        "at": "2026-10-04T09:57:08Z",
+        "exit_code": 1,
+        "output_sha256": "f218934199988c2b5261eb32d0ad6712632d073f58f1245496db3e45de7b919c"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py AgentSelfPolicyChangeTests"
+    },
+    {
+      "ac": 22,
+      "criterion": "[K3, G1] docs/architecture/adr/0016-git-native-plan-approval.md records K3: the agent-approval namespace and role, the agent-self assurance level, prompt and ss...",
+      "green": {
+        "at": "2026-10-04T09:58:46Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "d10ffbd9f0faa72cd6837063279524e199b59fbc3d035051302a1e8dbc4b36ad"
+      },
+      "red": {
+        "at": "2026-10-04T09:57:08Z",
+        "exit_code": 1,
+        "output_sha256": "a81a743a33bca1ad909e55b4919aff2d2b007ee20233996c265d6b7b5a14e707"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_adr_0016_records_k3_and_k3b"
+    },
+    {
+      "ac": 23,
+      "criterion": "[K3 follow-ups, recorded only] Only the user, or an agent on the user's explicit instruction (the 2026-10-04 edits, recorded in ADR-0016 as a user-instructed ex...",
+      "green": {
+        "at": "2026-10-04T09:58:47Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5"
+      },
+      "red": {
+        "at": "2026-10-04T09:57:08Z",
+        "exit_code": 1,
+        "output_sha256": "b94e86897eeb776cf4a1edebded20a9ecea44d622a77586f1b6e38f8311eccb9"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_adr_0016_records_the_k3_follow_ups"
+    },
+    {
+      "ac": 24,
+      "criterion": "[AC-3, Hygiene] tests/readiness_v1_freeze_test.sh stays green; manifests and .ai/ci/local-ci.json are re-pinned; work happens in a worktree from origin/main.",
+      "green": {
+        "at": "2026-10-04T09:58:48Z",
+        "commit": "1f356bc512bb549d18c8102a4a2ebb14f0648035",
+        "exit_code": 0,
+        "output_sha256": "87b5262c19074ffe20f2d841bfdb4fe2c283e7dfb3fd1e64041df8d24bc2f001"
+      },
+      "red": {
+        "at": "2026-10-04T09:57:10Z",
+        "exit_code": 1,
+        "output_sha256": "9605f3dfb80080260fc6c334cc499aa0de1debb5416a02e1ddd4079a0efb220f"
+      },
+      "test_command": "bash tests/readiness_v1_freeze_test.sh && python3 -B tests/readiness_v2_core_test.py EntryPointTests.test_dependency_manifest_v2_pins_every_executable && python3 -B -c 'import pathlib, sys; sys.path.insert(0, \"04-validate-handoff/autobahn/lib\"); import local_ci_contract; local_ci_contract.read_contract(pathlib.Path(\".\").resolve())'"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "08f355259b58f0838dc0429270de96d9c55fb8b3b7067b3ab76d08931dab7d7d",
+    "assurance": "in-session",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-ach-skills-contract-v2 --goal-id ACH-S-02 --stage implementation",
+    "gaps": [],
+    "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+    "provenance": "base-copy",
+    "stage": "implementation"
+  },
+  "goal_id": "ACH-S-02",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head",
+    "red_ac24_before_repin": {
+      "exit_code": 1,
+      "note": "AC24 also failed on the implemented code before the manifests were re-pinned",
+      "output_sha256": "da8fc0b68c79504e036ea262a7baae4da84b0f617bcb4db223c4a2d0b200df70"
+    },
+    "red_first_commit": "053eced (tests committed before any production change)",
+    "red_method": "detached worktree at base da0de5bc3a588e87fb4b976fffd7c96dbbc49c23 with only the final tests/ checked out from the goal branch; each AC command run against the pre-implementation code"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  },
+  "v1_inventory": {
+    "adapter": "production-gh",
+    "command": "contract-run.sh inventory-v1 --root <worktree> (source-lane copy of the goal driver)",
+    "entries": [
+      {
+        "action": "migrate",
+        "ambiguous": [],
+        "fate": "unstarted",
+        "generation": "4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c",
+        "id": "northstar-plan-xskp-p5-skill-producers",
+        "in_flight": [],
+        "merged": [],
+        "plan_id": "xskp-p5-skill-producers",
+        "unmerged": [
+          "XSKP-P5-01",
+          "XSKP-P5-02",
+          "XSKP-P5-03",
+          "XSKP-P5-04"
+        ]
+      },
+      {
+        "action": "retire",
+        "ambiguous": [],
+        "fate": "completed",
+        "generation": "ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+        "id": "northstar-plan-ach-skills-contract-v2",
+        "in_flight": [],
+        "merged": [
+          {
+            "goal": "ACH-S-01",
+            "merge_commit": "f6be8346c1254fa2fc12ad853b2bacd0e6c1056e",
+            "pr": 97
+          }
+        ],
+        "plan_id": "ach-skills-contract-v2",
+        "unmerged": []
+      }
+    ],
+    "provenance": "source-lane",
+    "target_revision": "da0de5bc3a588e87fb4b976fffd7c96dbbc49c23"
+  }
+}
