@@ -150,7 +150,18 @@ class AgentSelfFormTests(unittest.TestCase):
 
     def test_distinct_codes(self):
         self.assertEqual(len({'agent_approval_signer_not_agent', 'agent_self_claim_without_agent_signature',
-                              'agent_self_not_accepted', 'agent_self_bootstrap_refused', 'agent_self_refused_by_mode'}), 5)
+                              'agent_self_not_accepted', 'agent_self_bootstrap_refused', 'agent_self_refused_by_mode',
+                              'approval_form_refused_by_mode'}), 6)
+
+    def test_a_line_holding_the_agent_approval_role_is_never_a_human_approver(self):
+        base = self.base / 'mixed'
+        base.mkdir()
+        human = mode_fixture(base, None, ('ssh-tag', 'in-session'))
+        human.approve('ssh-tag', key='mixed')
+        context = self.refused('approval_signer_not_approver', fixture=human)
+        self.assertIsNone(context['assurance'])
+        human.approve('ssh-tag')
+        self.assertEqual(human.admit()[1]['assurance'], 'key-held')
 
 
 class ModeTests(unittest.TestCase):
@@ -186,12 +197,25 @@ class ModeTests(unittest.TestCase):
         self.admitted(agent, 'in-session')
 
     def test_prompt_mode_admits_only_an_explicit_in_session_confirmation(self):
-        prompt = self.fixture('prompt', 'prompt', ('in-session', 'agent-self'))
+        prompt = self.fixture('prompt', 'prompt', ('in-session', 'ssh-tag'))
         prompt.approve('in-session')
         self.admitted(prompt, 'in-session')
+        prompt.approve('ssh-tag')
+        self.refused(prompt, 'approval_form_refused_by_mode')
         prompt.approve('agent-self', message=agent_message(prompt, 'agentself'))
-        self.refused(prompt, 'agent_self_refused_by_mode')
-        self.assertIn('agent_self_refused_by_mode', codes(issue(prompt)[1]))
+        self.refused(prompt, 'agent_self_not_accepted')
+        self.assertIn('agent_self_not_accepted', codes(issue(prompt)[1]))
+        # A prompt-mode policy can never list agent-self: that configuration is refused outright.
+        with self.assertRaises(v2.Invalid) as raised:
+            v2.validate_policy(dict(sample_policy('a' * 64, accept=ALL_FORMS), approval={
+                'anchor_sha256': 'a' * 64, 'max_age_days': 14, 'accept': list(ALL_FORMS), 'default_mode': 'prompt'}))
+        self.assertEqual(v2.code(raised.exception), 'policy_default_mode_inconsistent')
+        # Defense in depth: even an unvalidated prompt-mode policy refuses agent-self and ssh-tag.
+        unchecked = {'approval': {'accept': list(ALL_FORMS), 'default_mode': 'prompt'}}
+        for form, expected in (('agent-self', 'agent_self_refused_by_mode'), ('ssh-tag', 'approval_form_refused_by_mode')):
+            with self.assertRaises(v2.Invalid) as raised:
+                v2.check_form(form, unchecked)
+            self.assertEqual(v2.code(raised.exception), expected)
 
     def test_ssh_tag_mode_is_an_opt_in(self):
         signed = self.fixture('ssh', 'ssh-tag', ('ssh-tag',))
@@ -201,9 +225,10 @@ class ModeTests(unittest.TestCase):
         self.refused(signed, 'approval_form_not_accepted')
         signed.approve('agent-self', message=agent_message(signed, 'agentself'))
         self.refused(signed, 'agent_self_not_accepted')
-        wide = self.fixture('ssh-wide', 'ssh-tag', ('ssh-tag', 'agent-self'))
-        wide.approve('agent-self', message=agent_message(wide, 'agentself'))
-        self.refused(wide, 'agent_self_refused_by_mode')
+        with self.assertRaises(v2.Invalid) as raised:
+            v2.validate_policy(dict(sample_policy('a' * 64), approval={
+                'anchor_sha256': 'a' * 64, 'max_age_days': 14, 'accept': ['ssh-tag', 'agent-self'], 'default_mode': 'ssh-tag'}))
+        self.assertEqual(v2.code(raised.exception), 'policy_default_mode_inconsistent')
 
     def test_policy_without_default_mode_keeps_its_semantics(self):
         plain = self.fixture('plain', None, ('ssh-tag', 'in-session'))
@@ -226,11 +251,16 @@ class PolicyModeValidationTests(unittest.TestCase):
 
     def test_default_mode_must_name_an_accepted_form(self):
         for mode, form in (('agent', 'agent-self'), ('prompt', 'in-session'), ('ssh-tag', 'ssh-tag')):
-            policy = sample_policy('a' * 64, accept=ALL_FORMS)
+            accept = ALL_FORMS if mode == 'agent' else ('ssh-tag', 'in-session')
+            policy = sample_policy('a' * 64, accept=accept)
             policy['approval']['default_mode'] = mode
             self.assertEqual(v2.validate_policy(copy.deepcopy(policy)), policy)
-            policy['approval']['accept'] = [f for f in ALL_FORMS if f != form]
+            policy['approval']['accept'] = [f for f in accept if f != form]
             self.refused(policy, 'policy_default_mode_not_accepted')
+        for mode in ('prompt', 'ssh-tag'):
+            inconsistent = sample_policy('a' * 64, accept=ALL_FORMS)
+            inconsistent['approval']['default_mode'] = mode
+            self.refused(inconsistent, 'policy_default_mode_inconsistent')
         bad = sample_policy('a' * 64, accept=ALL_FORMS)
         bad['approval']['default_mode'] = 'auto'
         self.refused(bad, 'policy_approval_invalid')
@@ -405,6 +435,16 @@ class DocumentationTests(unittest.TestCase):
                             'ai-catapult-agent-approval', 'policy-amendment', '`agent_self_bootstrap_refused`')
         reserved = self.text('04-validate-handoff/autobahn/modules/readiness-v2.md')
         self.assertNotIn('`context-build`, `inventory-v1` and `export-evidence` are reserved names', reserved)
+
+    def test_bootstrap_siblings_after_an_amendment_and_the_round_one_codes_are_documented(self):
+        for relative in ('04-validate-handoff/autobahn/modules/readiness-v2.md',
+                         'docs/architecture/adr/0016-git-native-plan-approval.md'):
+            self.assertMentions(relative, 'A bootstrap generation cannot recover by re-signing',
+                                'republish its unmerged goals', 'finish its bootstrap plans before any amendment')
+        self.assertMentions('04-validate-handoff/autobahn/modules/readiness-v2.md',
+                            '`goal_reserved_path`', '`amendment_base_moved`', '`amends_policy_sha256`',
+                            '`branch_pattern_change_refused`', '`assurance_mismatch`', '`pr_base_not_target`',
+                            '`v2_diff_unobservable`', 'only in-session')
 
 
 if __name__ == '__main__':

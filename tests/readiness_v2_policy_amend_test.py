@@ -395,5 +395,94 @@ class AgentSelfPolicyChangeTests(unittest.TestCase):
             self.assertNotIn('in-session', json.dumps(audit))
 
 
+class ReviewRoundOneAmendmentTests(unittest.TestCase):
+    """PR #102 review round 1: rule (d) against the live policy's whole form rule, concurrent
+    amendments, and amendments that would move the branch namespace."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.base = Path(self.tmp.name).resolve()
+
+    def repository(self, name, **kwargs):
+        base = self.base / name
+        base.mkdir()
+        return Repository(base, **kwargs)
+
+    def amendment(self, repo, change, plan_id=AMEND, goal='PA'):
+        candidate = repo.live()
+        change(candidate)
+        bundle = amendment_bundle(goal)
+        bundle['id'] = plan_id
+        exit_code, result = repo.publish(bundle, candidate=candidate)
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        return result['published']
+
+    def test_prompt_mode_live_policy_refuses_an_agent_self_amendment_to_agent_mode(self):
+        # The reviewers' configuration (prompt mode listing agent-self) is no longer a valid policy.
+        with self.assertRaises(v2.Invalid) as raised:
+            v2.validate_policy(dict(core.sample_policy('a' * 64), approval={
+                'anchor_sha256': 'a' * 64, 'max_age_days': 14, 'accept': list(ALL_FORMS), 'default_mode': 'prompt'}))
+        self.assertEqual(v2.code(raised.exception), 'policy_default_mode_inconsistent')
+        repo = self.repository('prompt', accept=('in-session', 'ssh-tag'), default_mode='prompt')
+
+        def to_agent(candidate):
+            candidate['approval'].update(accept=list(ALL_FORMS), default_mode='agent')
+            candidate['required_checks'] = ['Optional Smoke']
+        self.amendment(repo, to_agent)
+        exit_code, request = repo.approve(AMEND, 'agent-self')
+        self.assertNotEqual(exit_code, 0)
+        self.assertIn('approval_form_not_in_live_policy', codes(request))
+        message = agent_line(repo, AMEND)
+        repo.tag(AMEND, None, message, 'approval/%s/%s' % (AMEND, repo.entry(AMEND)['generation'][:12]))
+        exit_code, context = repo.admit(AMEND, 'PA')
+        self.assertNotEqual(exit_code, 0)
+        self.assertIn('approval_form_not_in_live_policy', codes(context))
+        # ssh-tag is in both accept lists but the live prompt mode admits only in-session.
+        repo.approve(AMEND, 'ssh-tag')
+        self.assertIn('approval_form_refused_by_mode', codes(repo.admit(AMEND, 'PA')[1]))
+        repo.approve(AMEND, 'in-session')
+        self.assertEqual(repo.admit(AMEND, 'PA')[0], 0)
+        # Defense in depth: the live policy's mode rule applies even to an unvalidated live policy.
+        with self.assertRaises(v2.Invalid) as raised:
+            v2.check_form('agent-self', {'approval': {'accept': list(ALL_FORMS), 'default_mode': 'agent'}}, 'policy-amendment',
+                          {'approval': {'accept': list(ALL_FORMS), 'default_mode': 'prompt'}})
+        self.assertEqual(v2.code(raised.exception), 'agent_self_refused_by_mode')
+
+    def test_a_concurrent_amendment_is_refused_once_another_lands(self):
+        repo = self.repository('concurrent')
+        live_sha = sha(repo.work / POLICY)
+        loose = self.amendment(repo, lambda c: c.update(required_checks=['Optional Smoke']), plan_id='amend-loose', goal='PL')
+        self.assertEqual(loose['amends_policy_sha256'], live_sha)
+        tight = self.amendment(repo, lambda c: c.update(required_checks=['Test Suite', 'Security Scan']), plan_id='amend-tight',
+                               goal='PT')
+        for plan_id, goal in (('amend-loose', 'PL'), ('amend-tight', 'PT')):
+            self.assertEqual(repo.approve(plan_id, 'ssh-tag')[0], 0)
+            self.assertEqual(repo.admit(plan_id, goal)[0], 0)
+        repo.land((repo.inputs / 'amend-tight-candidate.json').read_bytes(), 'merge the tightening amendment')
+        exit_code, context = repo.admit('amend-loose', 'PL')
+        self.assertNotEqual(exit_code, 0)
+        self.assertIn('amendment_base_moved', codes(context))
+        self.assertNotIn('amendment_base_moved', codes(repo.admit('amend-tight', 'PT')[1]))
+        # The amends digest is part of the generation identity, so the approval binds it.
+        entry = repo.entry('amend-loose')
+        bundle = json.loads((repo.work / entry['artifacts']['bundle']['path']).read_text())
+        digests = dict(bundle_sha256=v2.bundle_sha256(bundle), spec_sha256=entry['spec']['sha256'],
+                       policy_sha256=entry['policy_sha256'], anchor_sha256=entry['anchor_sha256'])
+        self.assertNotEqual(v2.generation_v2(**digests), entry['generation'])
+        self.assertEqual(v2.generation_v2(amends_policy_sha256=live_sha, **digests), entry['generation'])
+
+    def test_an_amendment_may_not_move_the_branch_namespace(self):
+        repo = self.repository('pattern')
+        candidate = repo.live()
+        candidate['branch_pattern'] = '^goal/<plan_id>/<goal_id>$'
+        exit_code, result = repo.publish(amendment_bundle(), candidate=candidate)
+        self.assertNotEqual(exit_code, 0)
+        self.assertIn('branch_pattern_change_refused', codes(result))
+        with self.assertRaises(v2.Invalid) as raised:
+            v2.validate_amendment(amendment_bundle(), True, candidate, repo.live())
+        self.assertEqual(v2.code(raised.exception), 'branch_pattern_change_refused')
+
+
 if __name__ == '__main__':
     unittest.main()
