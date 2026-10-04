@@ -580,6 +580,32 @@ class PlanningGapTests(unittest.TestCase):
         return entries, registry
 
 
+class OwnershipP5Tests(unittest.TestCase):
+    """AC5 ownership: ACH-S-05 is this plan's only v2 path for XSKP P5, the published
+    generation touches only its own directory, and no P5 approval is requested before the
+    post-S-06 default_mode amendment. #100 is hosted and untouched; that stays procedural."""
+
+    def p5_entry(self):
+        registry = json.loads((REPO / REGISTRY).read_text())
+        entries = [entry for entry in registry['plans'] if entry.get('plan_id') == 'xskp-p5-skill-producers']
+        return entries, registry
+
+    def test_p5_is_the_only_v2_path_and_confined_to_its_directory(self):
+        entries, _ = self.p5_entry()
+        self.assertEqual(len(entries), 1)
+        entry = entries[0]
+        self.assertEqual(entry['plan_id'], 'xskp-p5-skill-producers')  # P7: never a -v2 variant
+        prefix = '.ai/handoff/readiness-v2/xskp-p5-skill-producers/' + entry['generation']
+        for artifact in entry['artifacts'].values():
+            self.assertTrue(str(artifact['path']).startswith(prefix + '/'), artifact)
+        self.assertEqual(entry['handoff_path'], prefix + '/handoff.md')
+
+    def test_no_p5_approval_request_before_the_amendment(self):
+        for name in ('xskp-p5-skill-producers-plan-approval-request.json',
+                     'xskp-p5-skill-producers-plan-approval.md'):
+            self.assertFalse((REPO / '.ai/handoff' / name).exists(), name)
+
+
 class ReleaseSurfaceTests(unittest.TestCase):
     """AC6 hygiene: re-pinned manifests and local CI contract, the documented migration surface,
     and no SKILL.md growth."""
