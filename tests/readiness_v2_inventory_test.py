@@ -256,7 +256,8 @@ class RecordedRootInventoryTests(unittest.TestCase):
 
     def test_titles_and_commit_text_are_never_signals(self):
         renamed = [(n, 'chore/renamed-%d' % n if n in (81, 78) else ref, commit) for n, ref, commit in MERGED]
-        state = host(merged=renamed)
+        # Without the P1-01 head branches (and their leftover origin branch) only text names P1-01.
+        state = host(merged=renamed, open_prs=[], branches=[])
         for pull in state['merged_prs']:
             pull['title'] = 'XSKP-P1-01 ' + pull['title']
         entries = self.entries(self.inventory(state)[1])

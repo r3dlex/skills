@@ -108,7 +108,8 @@ class AgentSelfFormTests(unittest.TestCase):
         self.assertEqual(verify(v2.NS_AGENT_APPROVAL), 0)
         self.assertNotEqual(verify(v2.NS_APPROVAL), 0)
         self.assertIn('AGENT-SELF', request['notice'])
-        tags = git(self.fixture.work, 'ls-remote', '--tags', 'origin', 'refs/tags/approval/*').splitlines()
+        tags = [line for line in git(self.fixture.work, 'ls-remote', '--tags', 'origin', 'refs/tags/approval/*').splitlines()
+                if not line.endswith('^{}')]
         self.assertEqual(len(tags), 1)
         exit_code, context = self.fixture.admit()
         self.assertEqual(exit_code, 0, json.dumps(context['gaps'], indent=1))
@@ -334,7 +335,11 @@ class AgentSelfReportTests(unittest.TestCase):
             self.assertEqual(audit['prs'][0]['assurance'], 'agent-self')
             self.assertIn('ASSURANCE: AGENT-SELF', audit['prs'][0]['assurance_notice'])
             log = [json.loads(line) for line in (c.fixture.state_dir() / 'driver-log.jsonl').read_text().splitlines()]
-            self.assertEqual({entry['assurance'] for entry in log if entry['exit'] == 0}, {'agent-self'})
+            # audit-merges spans many PRs: its per-PR assurance is asserted on the report above.
+            self.assertEqual({entry['assurance'] for entry in log if entry['exit'] == 0 and entry['op'] != 'audit-merges'},
+                             {'agent-self'})
+            self.assertEqual({entry['op'] for entry in log if entry['exit'] == 0},
+                             {'approval-request', 'admit-v2', 'certify-v2', 'merge-v2', 'audit-merges'})
             for report in (context, issued, merged, audit, log):
                 text = json.dumps(report)
                 for other in ('"in-session"', '"key-held"', '"user-presence"', 'IN-SESSION'):
