@@ -66,6 +66,8 @@ TOOL = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._+-]*$')
 BRANCH_PATTERN = re.compile(r'\^(?:[A-Za-z0-9/_-]|<plan_id>|<goal_id>|\([A-Za-z0-9_-]+(?:\|[A-Za-z0-9_-]+)*\))*\$')
 STAMP = re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$')
 NO_AUTHORITY = 'none: no verified plan approval; this report carries no authority'
+# Proceed semantics: a blocked admission grants nothing, even when its approval verified.
+BLOCKED_AUTHORITY = 'none: admission blocked; this report carries no authority'
 NOTICES = {
     'user-presence': 'assurance: user-presence (hardware security key with touch)',
     'key-held': 'assurance: key-held (an approver key signed; no hardware touch is proven)',
@@ -78,7 +80,29 @@ RECOVERY = {
     'sidecar': 'Tighten only; loosening a sidecar value needs a new plan approval binding the new sidecar',
     'hosted': 'Wait for or fix the hosted check, thread or review at this exact head, then rerun',
     'policy': 'Fix readiness-policy/2 through a reviewed policy goal; a bundle can never relax it',
+    'tooling': 'Install the missing tool on the PATH the observer uses, then rerun',
+    'planning': 'Merge the planning publication into origin/<target>, base this branch on it, fetch, then rerun',
+    'ancestry': 'Merge the bound commit into origin/<target> (B5), fetch, then rerun',
+    'harness': 'Land the pinned harness commit on origin/<target>, or change the binding through a reviewed policy goal',
+    'fixture': 'Provide the bound fixture as an executable file at that path, or change its binding through a policy goal',
+    'file': 'Restore the bound file bytes at HEAD, or change the binding through a reviewed policy goal',
+    'branch': 'Run on the exact goal branch the policy branch_pattern names, with a PR into the policy target',
+    'dependency': 'Merge the dependency goal first; its PR merge commit must reach the target',
+    'observer': 'Fetch origin/<target> and rerun; the registered generation and its inputs must load from the target',
 }
+# Planning-stage classes, by kind (AC-7): the approval family is the one approval gap; deferred kinds are
+# listed and never counted as passed; every other code, unknown codes included, blocks.
+APPROVAL_GAPS = ('plan_approval_missing', 'ownership_unresolved')
+DEFERRED_GAPS = ('branch_target_mismatch', 'pr_required', 'protection_check_unsatisfied', 'review_lane_missing',
+                 'threads_unobserved', 'dependency_incomplete')
+GAP_FACTS = {'tool_missing': 'tool:', 'git_ancestor_missing': 'ancestor:', 'harness_untrusted': 'ancestor:',
+             'file_digest_mismatch': 'file:', 'fixture_unavailable': 'fixture:', 'dependency_incomplete': 'dependency:',
+             'policy_source_missing': 'source:'}
+GAP_RECOVERY = {'tool_missing': 'tooling', 'planning_input_not_on_target': 'planning',
+                'planning_input_not_in_head': 'planning', 'git_ancestor_missing': 'ancestry',
+                'harness_untrusted': 'harness', 'fixture_unavailable': 'fixture', 'file_digest_mismatch': 'file',
+                'branch_target_mismatch': 'branch', 'dependency_incomplete': 'dependency',
+                'ownership_unresolved': 'approval', 'plan_approval_missing': 'approval', 'generation_mismatch': 'observer'}
 
 
 def refuse(code_text, detail=''):
@@ -344,6 +368,32 @@ def validate_sidecar(sidecar, bundle):
     return sidecar
 
 
+def sidecar_defaults(bundle, partial):
+    """Generation defaults: per goal, readiness unknown at every stage, coverage unknown and
+    legacy_safe_tdd true; a goal without a non-empty legacy_risk_reason is refused. A complete
+    sidecar comes back unchanged, so a replay of a published generation writes the same bytes."""
+    check(isinstance(partial, dict) and isinstance(partial.get('goals', {}), dict), 'sidecar_invalid', 'fields')
+    entries = partial.get('goals', {})
+    goal_ids = [g['id'] for g in bundle['goals']]
+    check(set(entries) <= set(goal_ids), 'sidecar_goals_mismatch', ','.join(sorted(set(entries) - set(goal_ids))))
+    goals = {}
+    for gid in goal_ids:
+        entry = entries.get(gid, {})
+        check(isinstance(entry, dict), 'sidecar_invalid', gid)
+        check(string(entry.get('legacy_risk_reason')), 'legacy_risk_reason_missing', gid)
+        goals[gid] = dict({'readiness': {stage: 'unknown' for stage in STAGES}, 'coverage_status': 'unknown',
+                           'legacy_safe_tdd': True}, **entry)
+    return validate_sidecar(dict(partial, schema=partial.get('schema', SIDECAR_SCHEMA),
+                                 plan_id=partial.get('plan_id', bundle['id']), goals=goals), bundle)
+
+
+def literal_path(name):
+    """Publish-time scope check: a safe relative path that is also a plain literal, with no control
+    character, no surrounding whitespace and no .git component in any letter case."""
+    return (safe_path(name) and name == name.strip() and not re.search(r'[\x00-\x1f\x7f]', name)
+            and all(part.casefold() != '.git' for part in name.split('/')))
+
+
 def sidecar_leq(v0, current):
     """Product order: readiness unknown<blocked, legacy_safe_tdd false<true,
     legacy_risk_reason by prefix extension, coverage unknown<measured(p) with p final."""
@@ -542,6 +592,43 @@ def check_form(form, policy, mode='live', live_policy=None):
         form_rule(form, live_policy['approval'], live=True)
 
 
+def admitted_forms(policy, mode='live', live_policy=None):
+    """The approval forms check_form admits for a generation: accept, default_mode and rule (d)."""
+    forms = []
+    for form in FORMS:
+        try:
+            check_form(form, policy, mode, live_policy)
+        except Invalid:
+            continue
+        forms.append(form)
+    return forms
+
+
+def anchor_capability_gaps(policy, mode, live_policy, lines):
+    """AC-7, U3, O7: (code, detail) for each capability the bound anchor lacks. lines are the anchor's
+    single-principal lines [{principal, namespaces}]. Approval capability derives from the admitted
+    forms: in-session needs no principal, ssh-tag an approver, agent-self an agent-approval principal.
+    The review lane needs a certifier and a reviewer that are distinct agent principals."""
+    def role(needed, refused):
+        return {line['principal'] for line in lines if needed in line['namespaces'] and not refused & set(line['namespaces'])}
+    # The same role rules as verification: decide_approval for approvers and agent approvers,
+    # signing_identity for certifiers and observe_review for reviewers.
+    approvers = role(NS_APPROVAL, {NS_REVIEW, NS_CERTIFICATE, NS_AGENT_APPROVAL})
+    agents = role(NS_AGENT_APPROVAL, {NS_APPROVAL})
+    certifiers = role(NS_CERTIFICATE, {NS_APPROVAL})
+    reviewers = role(NS_REVIEW, {NS_APPROVAL})
+    forms = admitted_forms(policy, mode, live_policy)
+    gaps = []
+    if not ('in-session' in forms or ('ssh-tag' in forms and approvers) or ('agent-self' in forms and agents)):
+        gaps.append(('anchor_role_capability_missing', 'approval: no anchor principal can satisfy a form this generation '
+                     'admits (%s); ssh-tag needs a %s principal and agent-self a %s principal'
+                     % (', '.join(forms) or 'none', NS_APPROVAL, NS_AGENT_APPROVAL)))
+    if not any(certifier != reviewer for certifier in certifiers for reviewer in reviewers):
+        gaps.append(('anchor_role_capability_missing', 'review_lane_not_independent: the anchor needs a certifier (%s) and '
+                     'a reviewer (%s) that are distinct agent principals' % (NS_CERTIFICATE, NS_REVIEW)))
+    return gaps
+
+
 def carrier_assurance(carrier):
     """The assurance an approval tag itself evidences, recomputed from the observed carrier
     without any time check; None when the carrier evidences none (M5)."""
@@ -663,9 +750,59 @@ def required_check_summary(policy, runs):
 
 # --- admission (readiness-context/2) -------------------------------------------
 
-def gap_entry(code_text, detail='', goal=None, gate=None, source='observer', recovery=None):
+def gap_fact(code_text, detail='', source='observer'):
+    """The observed fact (or input) a gap names, so every report line says what is missing."""
+    if code_text in GAP_FACTS:
+        return GAP_FACTS[code_text] + str(detail)
+    if source in ('policy', 'sidecar'):
+        return source
+    for prefix, name in (('planning_input_', 'planning_inputs'), ('check_', 'checks'), ('protection_', 'protection'),
+                         ('review_lane_', 'review_lane'), ('anchor_', 'anchor')):
+        if code_text.startswith(prefix):
+            return name
+    named = {'pr_required': 'pr', 'branch_target_mismatch': 'repository', 'threads_unobserved': 'threads',
+             'unresolved_threads': 'threads', 'generation_mismatch': 'registry', 'v1_inventory_in_flight': 'v1_inventory'}
+    if code_text in named:
+        return named[code_text]
+    if source == 'plan-approval/1' or code_text in APPROVAL_GAPS:
+        return 'sidecar' if 'sidecar' in code_text else 'approval'
+    return 'observation'
+
+
+def gap_entry(code_text, detail='', goal=None, gate=None, source='observer', recovery=None, fact=None):
     return {'code': code_text, 'detail': str(detail), 'goal': goal, 'gate': gate, 'source': source,
-            'recovery': recovery or RECOVERY['policy']}
+            'fact': fact or gap_fact(code_text, detail, source),
+            'recovery': recovery or RECOVERY[GAP_RECOVERY.get(code_text, 'policy')]}
+
+
+def gap_order(gap):
+    """The total report order: code, goal, gate, fact, detail, source."""
+    return (gap['code'], str(gap['goal']), str(gap['gate']), str(gap['fact']), gap['detail'], gap['source'])
+
+
+def render_gaps(gaps):
+    """One deterministic line per gap: number, code, gate, fact, source, detail and recovery."""
+    return ['%d. %s [gate %s | fact %s | source %s] %s -> %s' % (number, gap['code'], gap['gate'] or '-', gap['fact'],
+                                                                  gap['source'], gap['detail'] or '-', gap['recovery'])
+            for number, gap in enumerate(gaps, 1)]
+
+
+def gap_class(code_text):
+    """AC-7: classified by kind, never by gate stage; unknown codes block (fail closed)."""
+    if code_text.startswith('approval_') or code_text in APPROVAL_GAPS:
+        return 'approval'
+    if code_text in DEFERRED_GAPS or code_text.startswith('check_'):
+        return 'deferred'
+    return 'blocking'
+
+
+def planning_classes(gaps):
+    """The approval gap, the deferred gaps and the blocking gaps of a planning-stage admission.
+    Planning is complete only when nothing blocks; deferred gaps are listed, never passed."""
+    classes = {'approval': [], 'deferred': [], 'blocking': []}
+    for gap in gaps:
+        classes[gap_class(gap['code'])].append(gap)
+    return dict(classes, planning_complete=not classes['blocking'])
 
 
 def evaluate_gate(gate, policy, bundle, goals, facts, approval):
@@ -734,7 +871,8 @@ def evaluate_gate(gate, policy, bundle, goals, facts, approval):
 def admission(inputs):
     """Rebuild the readiness context from observation plus the verified approval."""
     stage, goals, now = inputs['stage'], list(inputs['goals']), inputs['now']
-    gaps = [gap_entry(e['code'], e.get('detail', ''), source='observer') for e in inputs.get('errors', [])]
+    gaps = [gap_entry(e['code'], e.get('detail', ''), source='observer', recovery=RECOVERY['observer'])
+            for e in inputs.get('errors', [])]
     observation = inputs.get('observation') or {'schema': OBSERVATION_SCHEMA, 'adapter': 'none', 'facts': {}}
     facts = observation.get('facts', {})
     registered = inputs.get('registered') or {}
@@ -782,6 +920,13 @@ def admission(inputs):
         except Invalid as error:
             family = 'anchor' if code(error).startswith('anchor') else ('sidecar' if 'sidecar' in code(error) else 'approval')
             gaps.append(gap_entry(code(error), str(error), source='plan-approval/1', recovery=RECOVERY[family]))
+        # AC-7, U3, O7: at planning, name an anchor that cannot approve or cannot staff two lanes. A
+        # different anchor is already refused above (anchor_digest_mismatch).
+        roles = (facts.get('anchor_roles') or {}).get('value')
+        if stage == 'planning' and roles and roles.get('sha256') == policy['approval']['anchor_sha256']:
+            for name, detail in anchor_capability_gaps(policy, inputs.get('policy_mode') or 'live', inputs.get('live_policy'),
+                                                       roles['lines']):
+                gaps.append(gap_entry(name, detail, source='anchor', recovery=RECOVERY['anchor'], fact='anchor_roles'))
         for gid in goals:
             revisions[gid] = goal_revision_v2(bundle, gid)
             holds = inputs['sidecar']['goals'][gid]['readiness']
@@ -797,12 +942,21 @@ def admission(inputs):
             if stage != 'planning' and gate['stage'] != stage:
                 continue
             status, codes = evaluate_gate(gate, policy, bundle, goals, facts, approval)
+            if stage == 'planning' and codes:
+                # A gate whose gaps are all deferred (or all the approval gap) is reported as such, never as pass.
+                kinds = {gap_class(item.split(':', 1)[0]) for item in codes}
+                status = 'blocked' if 'blocking' in kinds else ('deferred' if 'deferred' in kinds else 'approval')
             gates.append({'id': gate['id'], 'kind': gate['kind'], 'stage': gate['stage'], 'status': status})
             for item in codes:
-                family = 'hosted' if gate['kind'] in ('hosted_checks', 'review') else 'policy'
-                gaps.append(gap_entry(item.split(':', 1)[0], item.split(':', 1)[1] if ':' in item else '',
-                                      gate=gate['id'], source='observation/1', recovery=RECOVERY[family]))
-    gaps.sort(key=lambda g: (g['code'], str(g['goal']), str(g['gate']), g['detail']))
+                name, _, detail = item.partition(':')
+                family = GAP_RECOVERY.get(name, 'hosted' if gate['kind'] in ('hosted_checks', 'review') else 'policy')
+                fact = ('pr' if (facts.get('pr') or {}).get('value') else 'repository') \
+                    if name == 'branch_target_mismatch' else None
+                gaps.append(gap_entry(name, detail, gate=gate['id'], source='observation/1', recovery=RECOVERY[family],
+                                      fact=fact))
+    # One consolidated report: a total, deterministic order and no duplicate entries.
+    ordered = sorted(gaps, key=gap_order)
+    gaps = [gap for index, gap in enumerate(ordered) if gap not in ordered[:index]]
     admitted = stage in STAGES and not gaps and approval is not None
     context = {'schema': CONTEXT_SCHEMA, 'stage': stage, 'goals': goals, 'plan_id': bundle['id'] if bundle else None,
                'generation': registered.get('generation'), 'registration': registered.get('id'),
@@ -810,8 +964,11 @@ def admission(inputs):
                'policy': {'sha256': digests.get('policy_sha256'), 'mode': inputs.get('policy_mode')},
                'repository': (facts.get('repository') or {}).get('value'),
                'approval': approval, 'assurance': approval['assurance'] if approval else None,
-               'authority': 'plan-approval/1' if approval else NO_AUTHORITY,
+               # Only admitted contexts state authority; a blocked one carries none, even with a verified approval.
+               'authority': 'plan-approval/1' if admitted else (BLOCKED_AUTHORITY if approval else NO_AUTHORITY),
                'observation': observation, 'gates': gates, 'gaps': gaps, 'admitted': admitted}
+    if stage == 'planning':
+        context['planning'] = planning_classes(gaps)
     if approval:
         context['assurance_notice'] = render_assurance(approval['assurance'])
     notices = policy_change_notices(approval and approval['assurance'], inputs.get('policy_mode'))

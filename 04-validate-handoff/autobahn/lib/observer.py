@@ -9,12 +9,14 @@ fresh re-observation.
 
 The only writers are publish-v2 (immutable generation files, registry last) and
 the observer state under the repository's git common directory (certificates,
-review records and the driver log). Approvals are never written here; only an
-agent-mode approval (K3) is signed here, with the agent key under its own namespace.
+review records, prompt-mode approval requests and the driver log). Approvals are
+never written here; only an agent-mode approval (K3) is signed here, with the agent
+key under its own namespace.
 """
 import argparse
 import atexit
 import base64
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -41,8 +43,8 @@ IDENTITY_ENV = ('GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 
 GIT_SETTINGS = {'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_NO_REPLACE_OBJECTS': '1',
                 'GIT_OPTIONAL_LOCKS': '0'}
 OPERATIONS = ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2')
-RESERVED = ('context-build', 'export-evidence')
-LOGGED = ('admit-v2', 'certify-v2', 'merge-v2', 'audit-merges', 'approval-request', 'inventory-v1')
+RESERVED = ('export-evidence',)
+LOGGED = ('admit-v2', 'context-build', 'certify-v2', 'merge-v2', 'audit-merges', 'approval-request', 'inventory-v1')
 AUDIT_LIMIT = 200
 ROUTE_LIMIT = 1000  # the v1 inventory's hosted PR lists (token search needs them whole); reaching it fails closed
 GOAL_PR_LIMIT = 100  # PRs on one exact goal branch; reaching it fails closed
@@ -98,9 +100,10 @@ def command(argv, cwd=None, data=None, env=None):
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-def git(root, *args, check=True):
-    env = clean_env()
+def git(root, *args, check=True, env=None):
+    extra, env = env or {}, clean_env()
     env.update(GIT_SETTINGS)
+    env.update(extra)
     result = subprocess.run(['git', '--no-replace-objects', '-c', 'core.fsmonitor=false', '-c',
                              'core.hooksPath=' + os.devnull, '-C', str(root), *args], env=env,
                             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -328,6 +331,18 @@ class FixtureAdapter:
 
     def merge(self, number, head, admin):
         return False, 'the fixture adapter never merges'
+
+
+class PlanningAdapter:
+    """The publish-time planning simulation (AC-7). No merged PR can descend from a publication commit
+    that does not exist yet (M3), so every goal branch lists none; any other hosted fact refuses."""
+    name = 'planning-simulation'
+
+    def goal_branch_prs(self, branch, target, state):
+        return []
+
+    def __getattr__(self, name):
+        v2.refuse('hosted_api_unavailable', 'the planning simulation observes no hosted ' + name)
 
 
 def pull_record(p):
@@ -818,6 +833,14 @@ def observe(root, ref, gen, goals, stage, adapter, now, pr=None, review_record=N
     facts['planning_inputs'] = fact({'publication_commit': publication, 'on_target': bool(publication),
                                      'in_head': bool(publication) and is_ancestor(root, publication, 'HEAD')},
                                     'git:' + ref, target, now)
+    if stage == 'planning':
+        # AC-7, U3, O7: the anchor's public role lines, for the planning-stage capability gap.
+        anchor, anchor_facts = observe_anchor()
+        lines = [{'principal': line['principals'][0], 'namespaces': sorted(line['namespaces'])}
+                 for line in (anchor_lines(anchor) if anchor is not None else [])
+                 if len(line['principals']) == 1 and line['principals'][0] not in anchor_facts['ambiguous']]
+        facts['anchor_roles'] = fact({'sha256': anchor_facts['sha256'],
+                                      'lines': sorted(lines, key=lambda entry: entry['principal'])}, 'anchor', head, now)
     for gate in policy['gates']:
         binding = gate.get('binding', {})
         if gate['kind'] == 'file_digest':
@@ -832,9 +855,10 @@ def observe(root, ref, gen, goals, stage, adapter, now, pr=None, review_record=N
     needed = sorted(set().union(*(v2.ancestors(bundle, gid) for gid in goals))) if goals else []
     for dependency in needed:
         matches = goal_merges(root, ref, gen, dependency, adapter)
-        reached = [p for p in matches if p['reached']]
+        reached = sorted((p for p in matches if p['reached']), key=lambda p: p['number'] or 0)
         facts['dependency:' + dependency] = fact(
-            {'prs': [p['number'] for p in matches], 'merge_commit': reached[0]['merge_commit'] if reached else None,
+            {'prs': sorted((p['number'] for p in matches), key=lambda n: n or 0),
+             'merge_commit': reached[0]['merge_commit'] if reached else None,
              'ancestor': bool(reached)}, 'hosted:%s+git' % adapter.name, target, now)
     if pr is not None:
         pull = adapter.pull(pr)
@@ -1000,22 +1024,30 @@ def op_admit(args, now, adapter):
     context['provenance'] = origin
     context['observation'] = dict(context['observation'], adapter=adapter.name)
     refusals = []
-    for kind, path, rebuilt in (('context', args.context, context), ('observation', args.observation, context['observation']),
-                                ('verdict', args.verdict, v2.verdict_of(context))):
+    for kind, path, rebuilt in (('context', args.context, context),
+                                ('observation', getattr(args, 'observation', None), context['observation']),
+                                ('verdict', getattr(args, 'verdict', None), v2.verdict_of(context))):
         if path:
             try:
                 v2.compare_supplied(kind, read_json(path), rebuilt)
             except (Invalid, OSError, ValueError) as error:
                 refusals.append({'code': 'supplied_%s_mismatch' % kind, 'detail': str(error)})
     if refusals:
-        context = dict(context, admitted=False, refusals=refusals)
+        authority = v2.BLOCKED_AUTHORITY if context['approval'] else v2.NO_AUTHORITY
+        context = dict(context, admitted=False, authority=authority, refusals=refusals)
     return (0 if context['admitted'] else 1), context
 
 
-def op_publish(args, now, adapter):
-    root = Path(args.root).resolve(strict=True)
+def publication_bytes(value):
+    return (json.dumps(value, indent=2, sort_keys=True) + '\n').encode()
+
+
+def prepare_publication(root, args):
+    """Everything publish-v2 writes, computed without writing: validation, the generation defaults,
+    the generation files and the registry entry. The real write, the replay lane and the planning
+    simulation all use this one computation."""
     bundle = v2.validate_bundle(read_json(args.bundle))
-    sidecar = v2.validate_sidecar(read_json(args.sidecar), bundle)
+    sidecar = v2.sidecar_defaults(bundle, read_json(args.sidecar))
     held = [gid for gid, entry in sorted(sidecar['goals'].items()) if 'blocked' in entry['readiness'].values()]
     v2.check(not held, 'publication_hold_refused', ','.join(held))
     for goal in bundle['goals']:
@@ -1050,7 +1082,8 @@ def op_publish(args, now, adapter):
     v2.check(policy['approval']['anchor_sha256'] is not None, 'anchor_unset')
     spec = root / bundle['spec']['path']
     v2.check(spec.is_file() and not spec.is_symlink(), 'spec_missing', bundle['spec']['path'])
-    digests = {'bundle_sha256': v2.bundle_sha256(bundle), 'spec_sha256': v2.sha256(spec.read_bytes()),
+    spec_bytes = spec.read_bytes()
+    digests = {'bundle_sha256': v2.bundle_sha256(bundle), 'spec_sha256': v2.sha256(spec_bytes),
                'policy_sha256': v2.sha256(policy_bytes), 'anchor_sha256': policy['approval']['anchor_sha256']}
     amends = v2.sha256(live_bytes) if mode == 'policy-amendment' else None
     generation = v2.generation_v2(amends_policy_sha256=amends, **digests)
@@ -1069,12 +1102,35 @@ def op_publish(args, now, adapter):
     handoff = ('# Northstar handoff (%s): %s\n\nGeneration: %s\n\nGoals: %s\n\nPublication grants no authority. '
                'Admission requires one verified plan approval carried by tag approval/%s/%s.\n'
                % (v2.VERSION, bundle['id'], generation, ', '.join(g['id'] for g in bundle['goals']), bundle['id'], generation[:12]))
-    dumps = lambda value: (json.dumps(value, indent=2, sort_keys=True) + '\n').encode()
-    files = {'goals.json': dumps(bundle), 'sidecar.json': dumps(sidecar), 'graph.json': dumps(graph),
-             'handoff.md': handoff.encode()}
+    files = {'goals.json': publication_bytes(bundle), 'sidecar.json': publication_bytes(sidecar),
+             'graph.json': publication_bytes(graph), 'handoff.md': handoff.encode()}
     if mode in v2.POLICY_MODES:
         files['policy-candidate.json'] = policy_bytes
-    final = root / prefix
+    artifacts = {name: {'path': prefix + '/' + filename, 'sha256': v2.sha256(files[filename])}
+                 for name, filename in (('bundle', 'goals.json'), ('graph', 'graph.json'), ('handoff', 'handoff.md'))}
+    artifacts['sidecar'] = {'path': prefix + '/sidecar.json'}
+    if mode in v2.POLICY_MODES:
+        artifacts['policy_candidate'] = {'path': prefix + '/policy-candidate.json', 'sha256': digests['policy_sha256']}
+    entry = {'schema': v2.VERSION, 'id': 'northstar-plan-' + bundle['id'], 'plan_id': bundle['id'],
+             'generation': generation, 'mode': mode, 'status': 'active', 'handoff_path': prefix + '/handoff.md',
+             'artifacts': artifacts, 'spec': {'path': bundle['spec']['path'], 'sha256': digests['spec_sha256']},
+             'policy_sha256': digests['policy_sha256'], 'anchor_sha256': digests['anchor_sha256']}
+    if amends is not None:
+        entry['amends_policy_sha256'] = amends  # M1: the live policy this amendment amends
+    return {'bundle': bundle, 'policy': policy, 'generation': generation, 'prefix': prefix, 'files': files,
+            'entry': entry, 'spec': spec_bytes}
+
+
+def registry_after(registry, entry):
+    """The registry with this entry appended last (replacing an entry of the same id)."""
+    registry = registry if registry is not None else {'schema': v2.VERSION, 'plans': []}
+    v2.check(isinstance(registry, dict) and registry.get('schema') == v2.VERSION and isinstance(registry.get('plans'), list),
+             'registry_invalid')
+    return dict(registry, plans=[p for p in registry['plans'] if p.get('id') != entry['id']] + [entry])
+
+
+@contextlib.contextmanager
+def publication_lock(root):
     workflows = root / '.ai/workflows'
     workflows.mkdir(parents=True, exist_ok=True)
     lock = workflows / '.northstar-readiness-v2.lock'
@@ -1083,78 +1139,332 @@ def op_publish(args, now, adapter):
     except FileExistsError:
         v2.refuse('publication_locked', 'inspect the existing publisher; never steal a lock')
     try:
-        if final.exists():
-            v2.check(sorted(p.name for p in final.iterdir()) == sorted(files) and
-                     all((final / name).read_bytes() == data for name, data in files.items() if name != 'sidecar.json'),
-                     'generation_collision', prefix)
-        else:
-            final.parent.mkdir(parents=True, exist_ok=True)
-            staging = Path(tempfile.mkdtemp(prefix='.staging-', dir=final.parent))
-            try:
-                for name, data in files.items():
-                    (staging / name).write_bytes(data)
-                staging.rename(final)
-            finally:
-                if staging.exists():
-                    shutil.rmtree(staging)
-        artifacts = {name: {'path': prefix + '/' + filename, 'sha256': v2.sha256((final / filename).read_bytes())}
-                     for name, filename in (('bundle', 'goals.json'), ('graph', 'graph.json'), ('handoff', 'handoff.md'))}
-        artifacts['sidecar'] = {'path': prefix + '/sidecar.json'}
-        if mode in v2.POLICY_MODES:
-            artifacts['policy_candidate'] = {'path': prefix + '/policy-candidate.json', 'sha256': digests['policy_sha256']}
-        entry = {'schema': v2.VERSION, 'id': 'northstar-plan-' + bundle['id'], 'plan_id': bundle['id'],
-                 'generation': generation, 'mode': mode, 'status': 'active', 'handoff_path': prefix + '/handoff.md',
-                 'artifacts': artifacts, 'spec': {'path': bundle['spec']['path'], 'sha256': digests['spec_sha256']},
-                 'policy_sha256': digests['policy_sha256'], 'anchor_sha256': digests['anchor_sha256']}
-        if amends is not None:
-            entry['amends_policy_sha256'] = amends  # M1: the live policy this amendment amends
-        registry_path = root / v2.REGISTRY
-        registry = read_json(registry_path) if registry_path.exists() else {'schema': v2.VERSION, 'plans': []}
-        v2.check(registry.get('schema') == v2.VERSION and isinstance(registry.get('plans'), list), 'registry_invalid')
-        registry['plans'] = [p for p in registry['plans'] if p.get('id') != entry['id']] + [entry]
-        temporary = registry_path.with_name('.' + registry_path.name + '.tmp')
-        temporary.write_bytes(dumps(registry))
-        os.replace(temporary, registry_path)  # registry last: the sole visibility pointer
+        yield
     finally:
         lock.rmdir()
-    return 0, {'schema': v2.VERSION, 'published': entry, 'generation': generation,
+
+
+def write_publication(root, prepared):
+    """Immutable generation files, then the registry last: the sole visibility pointer. The caller
+    holds the publication lock."""
+    files, prefix = prepared['files'], prepared['prefix']
+    final = root / prefix
+    if final.exists():
+        v2.check(sorted(p.name for p in final.iterdir()) == sorted(files) and
+                 all((final / name).read_bytes() == data for name, data in files.items() if name != 'sidecar.json'),
+                 'generation_collision', prefix)
+    else:
+        final.parent.mkdir(parents=True, exist_ok=True)
+        staging = Path(tempfile.mkdtemp(prefix='.staging-', dir=final.parent))
+        try:
+            for name, data in files.items():
+                (staging / name).write_bytes(data)
+            staging.rename(final)
+        finally:
+            if staging.exists():
+                shutil.rmtree(staging)
+    registry_path = root / v2.REGISTRY
+    registry = registry_after(read_json(registry_path) if registry_path.exists() else None, prepared['entry'])
+    temporary = registry_path.with_name('.' + registry_path.name + '.tmp')
+    temporary.write_bytes(publication_bytes(registry))
+    os.replace(temporary, registry_path)  # registry last: the sole visibility pointer
+
+
+def op_publish(args, now, adapter):
+    if getattr(args, 'admit_planning', False):
+        # handoff-write.sh with a v2 bundle. The replay lane passes bare arguments and never gets here.
+        return op_publish_planning(args, now)
+    root = Path(args.root).resolve(strict=True)
+    prepared = prepare_publication(root, args)
+    with publication_lock(root):
+        write_publication(root, prepared)
+    entry = prepared['entry']
+    return 0, {'schema': v2.VERSION, 'published': entry, 'generation': prepared['generation'],
                'next': 'merge this publication, then: contract-run.sh approval-request --handoff ' + entry['id']}
 
 
+def fresh_target(root, target):
+    """origin/<target> as git ls-remote reports it now; a missing or stale local ref refuses."""
+    ref = target_ref(target)
+    local = git(root, 'rev-parse', '--verify', '--quiet', ref + '^{commit}', check=False)
+    v2.check(local.returncode == 0, 'target_ref_unobservable', ref + ' is missing; fetch first')
+    listed = git(root, 'ls-remote', 'origin', 'refs/heads/' + target, check=False)
+    remote = listed.stdout.decode().split()
+    v2.check(listed.returncode == 0 and remote, 'target_ref_unobservable', 'git ls-remote origin %s returned nothing' % target)
+    local_sha = local.stdout.decode().strip()
+    v2.check(local_sha == remote[0], 'target_ref_rewound', '%s is %s but origin has %s; fetch first' % (ref, local_sha, remote[0]))
+    return local_sha
+
+
+def publish_checks(root, base, prepared):
+    """Publish-time checks, for handoff-write.sh only (registered generations never meet them): scope
+    entries are plain literal paths, and every bash tests/... verification script exists at the base."""
+    for goal in prepared['bundle']['goals']:
+        unsafe = [name for name in goal['scope'] if not v2.literal_path(name)]
+        v2.check(not unsafe, 'bundle_scope_unsafe', '%s: %s' % (goal['id'], json.dumps(unsafe)))
+        for entry in goal['verification']:
+            cwd, text = ('.', entry) if isinstance(entry, str) else (entry['cwd'], entry['command'])
+            argv = shlex.split(text)
+            script = posixpath.normpath(posixpath.join(cwd, argv[1])) if len(argv) > 1 and argv[0] == 'bash' else ''
+            v2.check(not script.startswith('tests/') or git(root, 'cat-file', '-e', '%s:%s' % (base, script),
+                                                             check=False).returncode == 0,
+                     'verification_not_at_base', '%s: %s is not in %s' % (goal['id'], script, base))
+
+
+def goal_branch_collisions(root, ref, prepared):
+    """AC-5: a goal branch of this publication may not equal (in any letter case) a goal branch of
+    another active plan. A merged PR on it would complete both goals, and routing could pick either."""
+    bundle = prepared['bundle']
+    mine = {name.casefold() for goal in bundle['goals']
+            for name in v2.branch_names(prepared['policy']['branch_pattern'], bundle['id'], goal['id'])}
+    for gen in active_generations(root, ref):
+        if gen['bundle']['id'] == bundle['id']:
+            continue
+        pattern = routing_pattern(root, ref, gen)
+        shared = sorted(name for goal in gen['bundle']['goals']
+                        for name in v2.branch_names(pattern, gen['bundle']['id'], goal['id']) if name.casefold() in mine)
+        v2.check(not shared, 'goal_branch_collision', '%s shares %s with plan %s' % (bundle['id'], ', '.join(shared),
+                                                                                      gen['bundle']['id']))
+
+
+def simulate_post_merge(root, base, target, overlay, scratch, policy):
+    """AC-7: a throwaway repository whose origin/<target> and detached HEAD are one synthetic commit,
+    the target plus exactly the overlay (registry, generation files, spec copy). It borrows the root's
+    objects read-only; the root's object store and refs are never written. The commit is deterministic:
+    a fixed identity and the base commit's date. Only the policy's fixture paths are checked out."""
+    git(scratch, 'init', '-q')
+    objects = git_text(root, 'rev-parse', '--path-format=absolute', '--git-path', 'objects')
+    (scratch / '.git/objects/info/alternates').write_text(objects + '\n')
+    names = sorted(overlay)
+    staged = scratch / '.git/overlay'
+    staged.mkdir()
+    for index, name in enumerate(names):
+        (staged / str(index)).write_bytes(overlay[name])
+    oids = git_text(scratch, 'hash-object', '-w', '--no-filters', '--',
+                    *(str(staged / str(index)) for index in range(len(names)))).split()
+    git(scratch, 'read-tree', base)
+    git(scratch, 'update-index', '--add', *(item for name, oid in zip(names, oids)
+                                            for item in ('--cacheinfo', '100644,%s,%s' % (oid, name))))
+    moment = '@%s +0000' % git_text(root, 'show', '-s', '--format=%ct', base)
+    identity = {'GIT_AUTHOR_NAME': 'northstar planning simulation', 'GIT_AUTHOR_EMAIL': 'planning-simulation@invalid',
+                'GIT_COMMITTER_NAME': 'northstar planning simulation', 'GIT_COMMITTER_EMAIL': 'planning-simulation@invalid',
+                'GIT_AUTHOR_DATE': moment, 'GIT_COMMITTER_DATE': moment}
+    synthetic = git(scratch, 'commit-tree', git_text(scratch, 'write-tree'), '-p', base, '-m',
+                    'planning simulation: origin/%s plus this publication' % target, env=identity).stdout.decode().strip()
+    git(scratch, 'update-ref', target_ref(target), synthetic)
+    git(scratch, 'update-ref', '--no-deref', 'HEAD', synthetic)
+    fixtures = [gate['binding']['path'] for gate in policy['gates']
+                if gate['kind'] == 'fixture' and 'path' in gate.get('binding', {})]
+    if fixtures:
+        materialize(scratch, synthetic, scratch, fixtures)
+    return synthetic
+
+
+def op_publish_planning(args, now):
+    """AC-7, P5: v2 publication is planning-stage admission against the simulated post-merge target,
+    origin/<target> plus exactly this publication. Planning is complete only when every remaining gap
+    is the approval gap or a deferred kind; otherwise nothing is written."""
+    root = observed_root(args.root)
+    origin = checked_provenance(root, args.target)
+    ref = target_ref(args.target)
+    base = fresh_target(root, args.target)
+    with publication_lock(root):
+        prepared = prepare_publication(root, args)
+        publish_checks(root, base, prepared)
+        goal_branch_collisions(root, ref, prepared)
+        # One generation per planning PR, on the target's registry: never on an unmerged local one.
+        target_registry = show(root, base, v2.REGISTRY)
+        after = publication_bytes(registry_after(parse_json(target_registry, 'registry') if target_registry is not None
+                                                 else None, prepared['entry']))
+        local = root / v2.REGISTRY
+        v2.check((local.read_bytes() if local.is_file() else None) in (target_registry, after), 'publication_base_mismatch',
+                 'the working-tree registry is neither origin/%s\'s nor this publication on it; rebase first' % args.target)
+        overlay = {v2.REGISTRY: after, prepared['bundle']['spec']['path']: prepared['spec']}
+        overlay.update({prepared['prefix'] + '/' + name: data for name, data in prepared['files'].items()})
+        existing = root / prepared['prefix']
+        v2.check(not existing.exists() or {p.name: p.read_bytes() for p in existing.iterdir()} == prepared['files'],
+                 'generation_collision', prepared['prefix'])
+        with tempfile.TemporaryDirectory(prefix='observer-planning-') as tmp:
+            scratch = Path(tmp).resolve()
+            simulate_post_merge(root, base, args.target, overlay, scratch, prepared['policy'])
+            inputs, _ = admission_inputs(scratch, ref, prepared['entry']['id'], [g['id'] for g in prepared['bundle']['goals']],
+                                         'planning', PlanningAdapter(), now)
+            context = v2.admission(inputs)
+            report = json.loads(json.dumps({'planning': context['planning'], 'gates': context['gates']})
+                                .replace(str(scratch), '<planning-simulation>'))
+        result = {'schema': 'northstar-publication/2', 'planning_complete': report['planning']['planning_complete'],
+                  'published': None, 'generation': prepared['generation'], 'planning': report['planning'],
+                  'gates': report['gates'], 'authority': v2.NO_AUTHORITY, 'target': ref, 'target_revision': base,
+                  'provenance': origin}
+        if not result['planning_complete']:
+            result['refusals'] = [{'code': 'planning_incomplete', 'detail': '%d blocking gaps; nothing was written'
+                                   % len(report['planning']['blocking'])}]
+            return 1, result
+        write_publication(root, prepared)
+        v2.check(all((root / name).read_bytes() == data for name, data in overlay.items()), 'publication_simulation_mismatch')
+    entry = prepared['entry']
+    result.update(published=entry, next='merge this planning PR, then: northstar/approve.sh --root <repository> --handoff '
+                  '%s --owner <owner> --reviewer-lane <lane>' % entry['id'])
+    return 0, result
+
+
+RULE_D = ("Bootstrap generations (every repository's first readiness-policy/2) need an in-session or ssh-tag approval "
+          "(rule d): a v1 or absent live policy accepts no agent-self.")
+ANCHOR_SETUP = [
+    'A human creates the anchor outside every git worktree; agents never write it.',
+    'ssh-keygen -t ed25519-sk -f ~/.ssh/ai-catapult-approver  # a human-only approver key (-t ed25519 is key-held)',
+    'mkdir -p ~/.config/ai-catapult && touch ~/.config/ai-catapult/allowed_signers  # one line per principal:',
+    'approver@human namespaces="%s" <approver public key>' % v2.NS_APPROVAL,
+    'agent@autobahn namespaces="%s,%s" <agent public key>  # add ,%s only for agent mode'
+    % (v2.NS_REVIEW, v2.NS_CERTIFICATE, v2.NS_AGENT_APPROVAL),
+    'reviewer@autobahn namespaces="%s" <reviewer public key>  # a reviewer distinct from the certifier' % v2.NS_REVIEW,
+    'shasum -a 256 ~/.config/ai-catapult/allowed_signers  # record it as approval.anchor_sha256 through a reviewed policy goal',
+]
+
+
+def request_usage(args):
+    """approval-request argument rules argparse cannot state; a violation is a usage refusal (exit 2)."""
+    if args.confirm is not None:
+        return '--confirm takes no --mode or --assurance' if args.mode or args.assurance else None
+    if args.owner is None or args.reviewer_lane is None:
+        return 'approval-request needs --owner and --reviewer-lane (or --confirm <digest>)'
+    if args.mode is not None and args.assurance is not None and not (
+            args.mode == 'ssh-tag' and args.assurance in ('key-held', 'user-presence')):
+        return '--mode and --assurance are exclusive; ssh-tag mode alone takes --assurance key-held or user-presence'
+    return None
+
+
+def ssh_tag_commands(line, tag_commands):
+    return ["printf '%%s' %s > approval.json" % shlex.quote(line),
+            'ssh-keygen -Y sign -f <your approver key> -n %s approval.json' % v2.NS_APPROVAL,
+            "printf '%s\\nsignature: %s\\n' \"$(cat approval.json)\" \"$(base64 < approval.json.sig | tr -d '\\n')\" > approval.msg",
+            *tag_commands]
+
+
+def approval_requests(root, gen):
+    return state_dir(root) / 'approval-requests' / gen['bundle']['id'] / gen['entry']['generation']
+
+
 def op_approval_request(args, now, adapter):
+    refused = request_usage(args)
+    if refused:
+        return 2, {'schema': v2.VERSION, 'refusals': [{'code': 'usage', 'detail': refused}]}
     root = Path(args.root).resolve(strict=True)
     ref = target_ref(args.target)
     origin = checked_provenance(root, args.target)
     gen = load_generation(root, ref, args.handoff)
-    v2.check(1 <= args.days <= gen['policy']['approval']['max_age_days'], 'approval_request_invalid', 'days')
+    if args.confirm is None:
+        v2.check(1 <= args.days <= gen['policy']['approval']['max_age_days'], 'approval_request_invalid', 'days')
     publication = git_text(root, 'log', '-1', '--format=%H', ref, '--', gen['prefix'])
     v2.check(publication, 'planning_input_not_on_target', gen['prefix'])
+    tag = 'approval/%s/%s' % (gen['bundle']['id'], gen['entry']['generation'][:12])
+    tag_commands = ['git tag -a --cleanup=verbatim -F approval.msg %s %s' % (tag, publication),
+                    'git push origin refs/tags/' + tag]
+    if args.confirm is not None:
+        return confirm_approval(root, gen, args.confirm, now, tag, publication, tag_commands, origin)
     fields = dict(plan_id=gen['bundle']['id'], generation=gen['entry']['generation'],
                   goals=[g['id'] for g in gen['bundle']['goals']], sidecar_sha256=canonical(gen['sidecar']),
                   owner=args.owner, reviewer_lane=args.reviewer_lane, issued_at=v2.stamp(now),
                   expires_at=v2.stamp(now + timedelta(days=args.days)), **gen['digests'])
-    if args.assurance == 'agent-self':
+    if args.mode is not None:
+        return mode_request(root, gen, fields, publication, tag, tag_commands, origin, args)
+    assurance = args.assurance or 'key-held'
+    if assurance == 'agent-self':
         return issue_agent_approval(root, gen, fields, publication, origin)
-    record = v2.approval_record(assurance=args.assurance, **fields)
+    record = v2.approval_record(assurance=assurance, **fields)
     fallback = v2.approval_record(assurance='in-session', **fields)
-    tag = 'approval/%s/%s' % (gen['bundle']['id'], gen['entry']['generation'][:12])
     line, fallback_line = v2.canonical_bytes(record).decode(), v2.canonical_bytes(fallback).decode()
-    tag_commands = ['git tag -a --cleanup=verbatim -F approval.msg %s %s' % (tag, publication),
-                    'git push origin refs/tags/' + tag]
     notice = v2.render_assurance('in-session') + ' (fallback only; prefer the ssh-tag form)'
     return 0, {
         'schema': 'plan-approval-request/1', 'record': record, 'digest': canonical(record), 'tag': tag,
         'anchor_sha256': gen['digests']['anchor_sha256'], 'publication_commit': publication,
-        'assurance': args.assurance, 'notice': notice,
-        'commands': {'ssh-tag': [
-            "printf '%%s' %s > approval.json" % shlex.quote(line),
-            'ssh-keygen -Y sign -f <your approver key> -n %s approval.json' % v2.NS_APPROVAL,
-            "printf '%s\\nsignature: %s\\n' \"$(cat approval.json)\" \"$(base64 < approval.json.sig | tr -d '\\n')\" > approval.msg",
-            *tag_commands]},
+        'assurance': assurance, 'notice': notice,
+        'commands': {'ssh-tag': ssh_tag_commands(line, tag_commands)},
         'fallback': {'assurance': 'in-session', 'record': fallback, 'digest': canonical(fallback), 'commands': [
             "printf '%%s\\ndigest-echo: %%s\\n' %s %s > approval.msg" % (shlex.quote(fallback_line), canonical(fallback)),
             *tag_commands]},
         'signs': False, 'provenance': origin}
+
+
+def governing_default_mode(gen):
+    """K3: agent unless the governing policy names another mode. An amendment is governed by the live
+    policy and a bootstrap by none (rule d); a candidate's own default_mode never governs."""
+    if gen['mode'] == 'bootstrap':
+        return 'agent'
+    policy = gen['live_policy'] if gen['mode'] == 'policy-amendment' else gen['policy']
+    return (policy or {}).get('approval', {}).get('default_mode') or 'agent'
+
+
+def mode_request(root, gen, fields, publication, tag, tag_commands, origin, args):
+    """approve.sh (K3): one plan approval request in the governing mode. agent issues the agent-self
+    approval through the agent key only; prompt prints the in-session record for the user's explicit
+    confirmation; ssh-tag prints the signing commands for a human approver key. No mode writes the
+    anchor or a tag, signs with an approver key, or reads a terminal."""
+    mode = governing_default_mode(gen) if args.mode == 'default' else args.mode
+    notes = []
+    if args.mode == 'default':
+        notes.append('agent is the default mode. prompt (in-session) is only for an explicit user request: --mode prompt. '
+                     'ssh-tag is optional: --mode ssh-tag.')
+    if gen['mode'] in v2.POLICY_MODES:
+        notes.append(RULE_D)
+    result = {'schema': 'plan-approval-request/1', 'plan_id': gen['bundle']['id'], 'requested_mode': args.mode,
+              'mode': mode, 'notes': notes, 'provenance': origin}
+    anchor, facts = observe_anchor()
+    try:
+        v2.check(not facts['symlink'], 'anchor_symlink')
+        v2.check(facts['present'], 'anchor_missing', 'no trust anchor at the passwd home')
+        v2.check(not facts['inside_worktree'], 'anchor_inside_worktree')
+        v2.check(facts['sha256'] == gen['digests']['anchor_sha256'], 'anchor_digest_mismatch')
+        v2.check(not facts['ambiguous'], 'anchor_principal_ambiguous', ','.join(facts['ambiguous']))
+        v2.check_form(v2.DEFAULT_MODES[mode], gen['policy'], gen['mode'], gen['live_policy'])
+    except Invalid as error:
+        refusal = dict(result, refusals=[{'code': v2.code(error), 'detail': str(error)}])
+        if v2.code(error).startswith('anchor'):
+            refusal.update(recovery=v2.RECOVERY['anchor'], setup=ANCHOR_SETUP)
+        return 1, refusal
+    if mode == 'agent':
+        exit_code, issued = issue_agent_approval(root, gen, fields, publication, origin)
+        return exit_code, dict(issued, requested_mode=args.mode, mode=mode, notes=notes, human_action=None)
+    common = dict(result, tag=tag, anchor_sha256=gen['digests']['anchor_sha256'], publication_commit=publication, signs=False)
+    if mode == 'ssh-tag':
+        record = v2.approval_record(assurance=args.assurance or 'key-held', **fields)
+        return 0, dict(common, record=record, digest=canonical(record), assurance=record['assurance'],
+                       notice=v2.render_assurance(record['assurance']), human_action='sign',
+                       commands={'ssh-tag': ssh_tag_commands(v2.canonical_bytes(record).decode(), tag_commands)})
+    record = v2.approval_record(assurance='in-session', **fields)
+    digest = canonical(record)
+    path = approval_requests(root, gen) / (digest + '.json')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(publication_bytes({'digest': digest, 'record': record}))
+    return 0, dict(common, record=record, digest=digest, assurance='in-session', notice=v2.render_assurance('in-session'),
+                   human_action='Ask the user to confirm digest %s in chat; then run: approve.sh --root %s --handoff %s '
+                                '--confirm %s' % (digest, root, gen['entry']['id'], digest))
+
+
+def confirm_approval(root, gen, digest, now, tag, publication, tag_commands, origin):
+    """Prompt mode, step two: the user's explicit in-chat confirmation of a printed digest becomes the
+    in-session digest-echo tag message. The request must still verify for the current generation."""
+    path = approval_requests(root, gen) / (digest + '.json')
+    v2.check(re.fullmatch('[0-9a-f]{64}', digest) and path.is_file(), 'approval_confirmation_unknown', digest)
+    record = parse_json(path.read_bytes(), 'approval_request').get('record')
+    try:
+        v2.check(isinstance(record, dict) and canonical(record) == digest and record.get('assurance') == 'in-session',
+                 'approval_record_invalid', 'stored request')
+        expected = dict(gen['digests'], plan_id=gen['bundle']['id'], generation=gen['entry']['generation'],
+                        goals=[g['id'] for g in gen['bundle']['goals']])
+        v2.check_approval(record, expected, gen['policy'], now)
+        v2.check_sidecar_binding(record, gen['sidecar'], None)
+        v2.check_form('in-session', gen['policy'], gen['mode'], gen['live_policy'])
+    except Invalid as error:
+        v2.refuse('approval_confirmation_stale', v2.code(error))
+    line = v2.canonical_bytes(record).decode()
+    return 0, {'schema': 'plan-approval-request/1', 'plan_id': gen['bundle']['id'], 'requested_mode': 'prompt',
+               'mode': 'prompt', 'record': record, 'digest': digest, 'tag': tag, 'anchor_sha256': record['anchor_sha256'],
+               'publication_commit': publication, 'assurance': 'in-session', 'notice': v2.render_assurance('in-session'),
+               'message': line + '\ndigest-echo: ' + digest + '\n', 'human_action': None,
+               'commands': {'in-session': ["printf '%%s\\ndigest-echo: %%s\\n' %s %s > approval.msg" % (shlex.quote(line), digest),
+                                           *tag_commands]},
+               'signs': False, 'provenance': origin}
 
 
 def issue_agent_approval(root, gen, fields, publication, origin):
@@ -1716,6 +2026,7 @@ def git_blobs(repo, oids):
     finally:
         process.stdin.close()
         process.wait()
+        process.stdout.close()
 
 
 def scratch_entries(root, scratch):
@@ -1940,8 +2251,10 @@ def op_reserved(args, now, adapter):
     return 2, {'schema': v2.VERSION, 'refusals': [{'code': 'operation_not_in_this_release', 'detail': args.operation}]}
 
 
-HANDLERS = {'admit-v2': op_admit, 'publish-v2': op_publish, 'approval-request': op_approval_request,
-            'certify-v2': op_certify, 'merge-v2': op_merge, 'audit-merges': op_audit, 'inventory-v1': op_inventory}
+# P3: context-build is the admission builder itself, never a second implementation.
+HANDLERS = {'admit-v2': op_admit, 'context-build': op_admit, 'publish-v2': op_publish,
+            'approval-request': op_approval_request, 'certify-v2': op_certify, 'merge-v2': op_merge,
+            'audit-merges': op_audit, 'inventory-v1': op_inventory}
 
 
 def parser():
@@ -1952,15 +2265,17 @@ def parser():
     def operation(name):
         return operations.add_parser(name, allow_abbrev=False, add_help=False,
                                      prog='contract-run.sh %s (readiness-contract/2)' % name)
-    admit = operation('admit-v2')
-    admit.add_argument('--root', required=True)
-    admit.add_argument('--handoff', required=True)
-    admit.add_argument('--goal-id', action='append', required=True)
-    admit.add_argument('--stage', choices=('planning', *v2.STAGES), default='implementation')
-    admit.add_argument('--target', default='main')
-    admit.add_argument('--pr', type=int)
-    admit.add_argument('--review-record')
-    admit.add_argument('--context')
+    for name in ('admit-v2', 'context-build'):
+        admit = operation(name)
+        admit.add_argument('--root', required=True)
+        admit.add_argument('--handoff', required=True)
+        admit.add_argument('--goal-id', action='append', required=True)
+        admit.add_argument('--stage', choices=('planning', *v2.STAGES), default='implementation')
+        admit.add_argument('--target', default='main')
+        admit.add_argument('--pr', type=int)
+        admit.add_argument('--review-record')
+        admit.add_argument('--context')
+    admit = operations.choices['admit-v2']
     admit.add_argument('--observation')
     admit.add_argument('--verdict')
     publish = operation('publish-v2')
@@ -1968,14 +2283,18 @@ def parser():
     publish.add_argument('--bundle', required=True)
     publish.add_argument('--sidecar', required=True)
     publish.add_argument('--policy-candidate')
+    publish.add_argument('--admit-planning', action='store_true')  # handoff-write.sh with a v2 bundle
+    publish.add_argument('--target', default='main')
     request = operation('approval-request')
     request.add_argument('--root', required=True)
     request.add_argument('--handoff', required=True)
-    request.add_argument('--owner', required=True)
-    request.add_argument('--reviewer-lane', required=True)
+    request.add_argument('--owner')  # required unless --confirm (request_usage)
+    request.add_argument('--reviewer-lane')
     request.add_argument('--target', default='main')
     request.add_argument('--days', type=int, default=v2.MAX_AGE_DAYS)
-    request.add_argument('--assurance', choices=('key-held', 'user-presence', 'agent-self'), default='key-held')
+    request.add_argument('--assurance', choices=('key-held', 'user-presence', 'agent-self'))
+    request.add_argument('--mode', choices=('default', 'agent', 'prompt', 'ssh-tag'))  # approve.sh (K3)
+    request.add_argument('--confirm')
     certify = operation('certify-v2')
     certify.add_argument('--root', required=True)
     certify.add_argument('--handoff', required=True)
@@ -2066,6 +2385,20 @@ def main(argv):
     notice = result.get('assurance_notice') or result.get('notice')
     if notice:
         print(notice, file=sys.stderr)
+    planning = result.get('planning') if result.get('schema') == 'northstar-publication/2' else None
+    if planning:
+        # One consolidated planning report: blocking, then the approval gap, then the deferred gaps.
+        print('northstar: planning %s - blocking %d, approval %d, deferred %d' % (
+            'complete' if planning['planning_complete'] else 'incomplete', len(planning['blocking']),
+            len(planning['approval']), len(planning['deferred'])), file=sys.stderr)
+        for kind in ('blocking', 'approval', 'deferred'):
+            for line in v2.render_gaps(planning[kind]):
+                print('%s %s' % (kind, line), file=sys.stderr)
+    elif result.get('gaps') and result.get('admitted') is False:
+        # Proceed semantics: one consolidated report of every missing input, and no authority.
+        print('readiness-contract/2: blocked - %d missing inputs (no authority)' % len(result['gaps']), file=sys.stderr)
+        for line in v2.render_gaps(result['gaps']):
+            print(line, file=sys.stderr)
     if result.get('refusals'):
         print('readiness-contract/2: refused (%s)' % ', '.join(r['code'] for r in result['refusals']), file=sys.stderr)
     return code

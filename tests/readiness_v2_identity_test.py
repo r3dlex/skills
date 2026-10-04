@@ -53,7 +53,7 @@ def driver_copy(base, anchor):
     copy.write_text(text.replace(needle, 'Path(%r)' % str(anchor)))
     manifest = json.loads((flat / 'autobahn/readiness-dependency-v2.json').read_text())
     for name in manifest['files']:
-        path = flat / 'northstar/handoff-write.sh' if name == 'northstar/handoff-write.sh' else flat / 'autobahn' / name
+        path = flat / 'northstar' / name[len('northstar/'):] if name.startswith('northstar/') else flat / 'autobahn' / name
         manifest['files'][name] = sha(path)
     for directory in ('autobahn', 'northstar'):
         (flat / directory / 'readiness-dependency-v2.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')

@@ -660,7 +660,7 @@ class BaseCopyTests(unittest.TestCase):
             observer_copy.write_text(observer_copy.read_text() + '\n# head edit\n')
             manifest = {'schema': 'readiness-contract/2', 'files': {}}
             for name in json.loads((AUTO / 'readiness-dependency-v2.json').read_text())['files']:
-                path = work / ('02-govern-plan/northstar/handoff-write.sh' if name == 'northstar/handoff-write.sh'
+                path = work / ('02-govern-plan/northstar/' + name[len('northstar/'):] if name.startswith('northstar/')
                                else '04-validate-handoff/autobahn/' + name)
                 manifest['files'][name] = sha(path)
             for directory in ('04-validate-handoff/autobahn', '02-govern-plan/northstar'):
@@ -997,7 +997,7 @@ class NonGoalRoutingTests(RoutingHelpers, unittest.TestCase):
         observer_copy.write_text(observer_copy.read_text() + '\n# head edit\n')
         manifest = {'schema': 'readiness-contract/2', 'files': {}}
         for name in json.loads((AUTO / 'readiness-dependency-v2.json').read_text())['files']:
-            path = work / ('02-govern-plan/northstar/handoff-write.sh' if name == 'northstar/handoff-write.sh'
+            path = work / ('02-govern-plan/northstar/' + name[len('northstar/'):] if name.startswith('northstar/')
                            else '04-validate-handoff/autobahn/' + name)
             manifest['files'][name] = sha(path)
         for directory in ('04-validate-handoff/autobahn', '02-govern-plan/northstar'):

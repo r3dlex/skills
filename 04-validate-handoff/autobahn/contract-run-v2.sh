@@ -35,7 +35,8 @@ root = pathlib.Path(sys.argv[1])
 expected = {"lib/readiness_contract_v2.py", "lib/observer.py", "lib/readiness_contract.py", "lib/verification.py",
             "schemas/readiness-contract-v2.json", "contract-run.sh", "contract-run-v2.sh", "run-gates.sh",
             "merge-authority.sh", "prereq-check.sh", "migrate-handoff.sh", "northstar/handoff-write.sh",
-            "tdd-evidence.sh", "tdd-mode.sh", "lint-gate.sh", "ci-gate.sh", "local-ci.sh", "lib/local_ci_contract.py"}
+            "tdd-evidence.sh", "tdd-mode.sh", "lint-gate.sh", "ci-gate.sh", "local-ci.sh", "lib/local_ci_contract.py",
+            "northstar/approve.sh"}
 def fail(message):
     print(json.dumps({"schema": "readiness-contract/2", "error": "dependency_failed:" + message,
                       "refusals": [{"code": "dependency_failed", "detail": message}]}))
