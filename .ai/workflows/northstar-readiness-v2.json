@@ -35,6 +35,38 @@
         "sha256": "ba7431dd22b71206ecb111fc05592941d33b24b54b080e973f28d16b341e020a"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/6a211a9c7f76c110130100d9cc8d0e4ce45e0259f24152095a60ce91c8aab063/goals.json",
+          "sha256": "d9349db2e6ef5e4f7ec06c5272caecb1a0a7bdbc860b3a00ca817e5909921a25"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/6a211a9c7f76c110130100d9cc8d0e4ce45e0259f24152095a60ce91c8aab063/graph.json",
+          "sha256": "bdd3d979094117932daa64284fb7af347f899ccb614e0a7c8cce0a2a732caa99"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/6a211a9c7f76c110130100d9cc8d0e4ce45e0259f24152095a60ce91c8aab063/handoff.md",
+          "sha256": "a9b00f26be64fa11492023634a99ace7f09959e475e1637e52b95913919576d3"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/6a211a9c7f76c110130100d9cc8d0e4ce45e0259f24152095a60ce91c8aab063/sidecar.json"
+        }
+      },
+      "generation": "6a211a9c7f76c110130100d9cc8d0e4ce45e0259f24152095a60ce91c8aab063",
+      "handoff_path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/6a211a9c7f76c110130100d9cc8d0e4ce45e0259f24152095a60ce91c8aab063/handoff.md",
+      "id": "northstar-plan-xskp-p5-skill-producers",
+      "mode": "live",
+      "plan_id": "xskp-p5-skill-producers",
+      "policy_sha256": "2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5-skill-producers.md",
+        "sha256": "f2c315e2843033cde9d4e609b2ab2b3c841ac1321f1a461f21c09c1b29120fa4"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [

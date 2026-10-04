@@ -510,6 +510,87 @@ def inventory_fate(goal_ids, merged, open_prs, branches, unobservable=None):
     return result
 
 
+# --- v1-to-v2 migration (R1, O10) ----------------------------------------------
+
+def migrate_main(legacy, legacy_sha256, registry_v1, inventory, spec_sha256):
+    """Build the reviewable readiness-contract/2 candidate of one v1 generation's unmerged
+    goals. Pure: every decision is made from the data it is handed; the DRIVER glue gathers
+    the bytes (the legacy file, the v1 registry on origin/<target>, the inventory-v1 report
+    and the spec blob) and never decides. The candidate carries no authority and is never
+    written by this function.
+
+    D4: only a registered, active v1 generation migrates - the legacy bytes' sha256 must
+    equal the artifacts.bundle.sha256 of exactly one active v1 registry entry with this plan
+    id. Its inventory-v1 record's fate must be unstarted or partly-merged; completed means
+    retire through retired_v1, in-flight means wait. Merged goals (from the inventory-v1
+    {goal, pr, merge_commit} map, never from commit text) become extensions.b5_inputs and
+    drop out of the goal list; their dependencies are listed under dropped_dependencies.
+    B5 ancestry is not checked here: that belongs to the executing repository's admission."""
+    check(isinstance(legacy, dict) and legacy.get('schema') == 'handoff-goals/1',
+          'migration_legacy_unsupported',
+          legacy.get('schema') if isinstance(legacy, dict) else type(legacy).__name__)
+    plan_id = legacy.get('id')
+    check(isinstance(registry_v1, dict) and isinstance(registry_v1.get('plans'), list), 'v1_registry_invalid')
+    matches = [entry for entry in registry_v1['plans']
+               if isinstance(entry, dict) and entry.get('status') == 'active' and entry.get('plan_id') == plan_id
+               and isinstance((entry.get('artifacts') or {}).get('bundle'), dict)
+               and (entry['artifacts']['bundle'].get('sha256') == legacy_sha256)]
+    check(len(matches) == 1, 'migration_legacy_unregistered', plan_id)
+    entry = matches[0]
+    check(isinstance(inventory, dict) and isinstance(inventory.get('entries'), list),
+          'v1_registry_invalid', 'the inventory report carries no entries list')
+    records = [record for record in inventory['entries']
+               if isinstance(record, dict) and record.get('id') == entry.get('id')]
+    check(len(records) == 1, 'migration_fate_refused', 'no inventory record for ' + str(entry.get('id')))
+    fate = records[0]
+    check(fate.get('fate') in ('unstarted', 'partly-merged'), 'migration_fate_refused', fate.get('fate'))
+    check(isinstance(legacy.get('spec'), dict) and legacy['spec'].get('sha256') == spec_sha256,
+          'migration_spec_drifted', 'the spec on the target no longer matches the v1 binding')
+    b5_inputs = []
+    for item in fate.get('merged') or []:
+        check(isinstance(item, dict) and set(item) == {'goal', 'pr', 'merge_commit'} and string(item.get('goal'))
+              and type(item.get('pr')) is int and isinstance(item.get('merge_commit'), str)
+              and REVISION.fullmatch(item['merge_commit']),
+              'migration_b5_invalid', json.dumps(item, sort_keys=True))
+        b5_inputs.append(dict(item))
+    merged = {item['goal'] for item in b5_inputs}
+    goals, dropped = [], []
+    for goal in legacy['goals']:
+        gid = goal['id']
+        if gid in merged:
+            continue
+        dependencies = [dependency for dependency in goal.get('dependencies') or [] if dependency not in merged]
+        dropped += [{'goal': gid, 'dependency': dependency} for dependency in goal.get('dependencies') or []
+                    if dependency in merged]
+        reduced = {key: goal[key] for key in GOAL_FIELDS if key in goal}
+        reduced['dependencies'] = dependencies
+        goals.append(reduced)
+    bundle = {'schema': BUNDLE_SCHEMA, 'id': legacy['id'], 'repository': {'id': legacy['repository']['id']},
+              'spec': {'path': legacy['spec']['path']}, 'goals': goals}
+    if 'issue_ref' in legacy:
+        bundle['issue_ref'] = legacy['issue_ref']
+    if 'attachments' in legacy:
+        bundle['attachments'] = legacy['attachments']  # D3: kept verbatim, it is content
+    validate_bundle(bundle)
+    carried = {}
+    for goal in legacy['goals']:
+        if goal['id'] in merged:
+            continue
+        entry_sidecar = {key: goal[key] for key in SIDECAR_GOAL_FIELDS - {'readiness'} if key in goal}
+        carried[goal['id']] = dict({'readiness': {stage: 'unknown' for stage in STAGES}}, **entry_sidecar)
+    sidecar = {'schema': SIDECAR_SCHEMA, 'plan_id': legacy['id'], 'goals': carried}
+    validate_sidecar(sidecar, bundle)
+    return {'schema': 'handoff-migration/2', 'authority': NO_AUTHORITY,
+            'from': {'contract': 'readiness-contract/1', 'registry': V1_REGISTRY, 'registration': entry.get('id'),
+                     'generation': entry.get('generation'), 'fate': fate.get('fate')},
+            'bundle': bundle, 'sidecar': sidecar,
+            'goal_revisions': {goal['id']: goal_revision_v2(bundle, goal['id']) for goal in goals},
+            'dropped_dependencies': dropped,
+            'extensions': {'legacy_original': legacy, 'legacy_sha256': legacy_sha256, 'b5_inputs': b5_inputs},
+            'next': 'Write bundle and sidecar to files; publish them with northstar/handoff-write.sh '
+                    '(planning admission); merge the planning PR; one new plan approval binds the new generation'}
+
+
 # --- plan approval (plan-approval/1) ------------------------------------------
 
 def approval_record(**fields):
