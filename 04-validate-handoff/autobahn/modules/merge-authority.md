@@ -95,15 +95,38 @@ verdict-only call is then refused with exit 4 and never exits 0.
 
 These also refuse with exit 4 and never fall back to the verdict path:
 - a missing or rewound target ref;
-- a plan that fails to load;
-- a branch that matches a v2 `branch_pattern` but no goal.
+- an active plan that fails to load (`plan_unloadable`); a registry entry whose
+  status is not `active` (retired or superseded) is skipped;
+- a branch in a registered plan's reserved namespace that is no goal of it
+  (`v2_branch_without_plan`).
 
-`--pr` selects the path by observing the PR's head branch against that registry:
+`--pr` selects the path by observing the PR's head branch against that registry.
+The reserved namespace is built per registered active plan: the policy
+`branch_pattern` with `<plan_id>` filled by `re.escape(plan_id)` and `<goal_id>`
+left generic, matched case-insensitive. No pattern, the live policy's included,
+is ever applied with a generic `<plan_id>`.
 
 | PR head branch | Path |
 | --- | --- |
-| a v2 goal branch (the policy `branch_pattern`) | v2: `--verdict` refused; merge only on a re-observed `merge-certificate/1` |
-| anything else | the unchanged v1 adapter above |
+| exactly a registered goal branch (`branch_pattern` with that plan and goal) | v2: `--verdict` refused; merge only on a re-observed `merge-certificate/1` |
+| any other branch in a registered active plan's reserved namespace (another goal id, another case) | refused: `v2_branch_without_plan` |
+| anything else | the v1 lane below |
+
+**The v1 lane once v2 is live on `origin/<target>`.** A non-goal PR reaches the
+unchanged v1 adapter only when its diff touches no reserved path: the policy
+file, the v2 registry, `.ai/handoff/readiness-v2/**`, or an active goal's other
+scope paths ([readiness-v2.md](readiness-v2.md#merge-routing-once-v2-is-live)).
+Any other touch refuses with `v2_scope_outside_goal`. Two exception lanes cover a
+touch: a publish-v2 replay (a replaced plan entry is reported as
+`v2_plan_entry_replaced`) and sidecar tightening (a loosening refuses with
+`v2_sidecar_not_tightening`). The policy file is never covered. The changed paths
+come from the hosted changed-files list, renames by both names; a truncated or
+unobservable list refuses.
+
+A v1-lane decision prints a `merge-decision/1` with `decision: v1` and the
+observed PR head before the v1 adapter runs. The merge that follows must use
+`gh pr merge --match-head-commit` at that head. For v2 merges the merge
+certificate is the host-policy audit record (O4).
 
 The v2 path does not trust the certificate. It re-runs the local gates and
 re-observes every hosted fact and the plan approval, then refuses on any
