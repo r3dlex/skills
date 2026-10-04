@@ -8,16 +8,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I drops the
 import base64
 import copy
 import json
-import os
 import subprocess
 import tempfile
 import unittest
-from datetime import timedelta
 from unittest import mock
 
 import readiness_v2_core_test as core
 from readiness_v2_core_test import (AUTO, NOW, REPO, Fixture, codes, git, sample_policy, sha, ssh_sign, stamp, v2,
-                                    observer, write_json)
+                                    write_json)
 from readiness_v2_certificate_test import BRANCH, PR, CertificateFixture
 
 ALL_FORMS = ('agent-self', 'ssh-tag', 'in-session')

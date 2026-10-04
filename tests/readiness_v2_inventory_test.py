@@ -7,13 +7,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I drops the script directory
 import hashlib
 import json
-import subprocess
 import tempfile
 import unittest
 from unittest import mock
 
-from readiness_v2_core_test import (AUTO, NORTH, POLICY, REGISTRY, Fixture, codes, git, sample_bundle, v2, observer,
-                                    write_json)
+from readiness_v2_core_test import POLICY, REGISTRY, Fixture, codes, git, sample_bundle, v2, observer, write_json
 
 REPO = Path(__file__).resolve().parents[1]
 V1_REGISTRY = '.ai/workflows/northstar-readiness-v1.json'
