@@ -36,7 +36,8 @@ the spec. Fetch first. The observer only reads and never fetches.
 
 - **Policy:** `.ai/policies/readiness-policy.json` with `schema: readiness-policy/2`.
   - Its fields are `repository{id}`, `identity_model` (`multi` or `single`), `sources[]` (paths only), `required_checks[]`, `skippable_checks[]`, `branch_pattern` (with `<plan_id>` and `<goal_id>`), `target`, `tools[]`, `reviewer_requirements{independent_lane: true}`, `approval{anchor_sha256, max_age_days: 14, accept, default_mode?}` and `gates[]`.
-  - `accept` holds the forms `ssh-tag`, `in-session` and `agent-self`. The optional `default_mode` is `agent`, `prompt` or `ssh-tag` (K3). It needs its form in `accept` (`agent-self`, `in-session` and `ssh-tag` respectively), or it is refused with `policy_default_mode_not_accepted`. A policy without `default_mode` keeps its semantics.
+  - `accept` holds the forms `ssh-tag`, `in-session` and `agent-self`. The optional `default_mode` is `agent`, `prompt` or `ssh-tag` (K3). It needs its form in `accept` (`agent-self`, `in-session` and `ssh-tag` respectively), or it is refused with `policy_default_mode_not_accepted`. `prompt` and `ssh-tag` modes may not list `agent-self` (`policy_default_mode_inconsistent`). A policy without `default_mode` keeps its semantics.
+  - `branch_pattern` is `^`, literal `[A-Za-z0-9/_.-]` characters, at most one group of literal alternatives such as `(feat|fix|chore)`, `<plan_id>` and `<goal_id>` once each, and `$`. No other regex syntax is accepted.
   - Gates are repository-scoped and use only the 10 fixed kinds.
   - `not_applicable` is allowed only for `fixture` (`no-fixture-dependency`) and `harness_trust` (`no-pinned-harness`).
   - An unset `anchor_sha256` or empty `required_checks` refuses admission, each with a named gap.
@@ -52,8 +53,11 @@ the spec. Fetch first. The observer only reads and never fetches.
   - The policy goal's certificate requires the head policy bytes to equal that digest.
 - **Policy amendment:** while policy/2 is live, a `policy-amendment` generation is exactly one goal that scopes the policy path and carries a `policy-candidate.json`.
   - One new approval binds the candidate's digest. It is verified under the candidate's anchor, so a key or anchor rotation verifies against the new anchor.
+  - The generation records the live policy digest it amends as `amends_policy_sha256`, and its generation id binds it. Once another policy lands, admission refuses with `amendment_base_moved`; publish the amendment again.
+  - It keeps the live `branch_pattern`; a candidate that changes it is refused with `branch_pattern_change_refused`. Routing always reads the live pattern.
   - Its certificate also requires the head policy bytes to equal that digest.
   - Its merge changes the live policy digest and voids every other approval in the repository. The recovery is to re-sign the same generation: a live-mode generation keeps its identity (content under the policy and anchor it was published with), and the new approval binds the new policy and anchor.
+  - A bootstrap generation cannot recover by re-signing: once an amendment replaces the policy its candidate introduced, it refuses with `bootstrap_policy_live`, so republish its unmerged goals as a live-mode generation, or finish its bootstrap plans before any amendment.
 
 ## Plan approval
 
@@ -97,7 +101,7 @@ No level is ever rendered as another.
 
 **Approval modes (K3).** `default_mode` selects the form:
 - `agent`: Autobahn issues the `agent-self` approval itself (`approval-request --assurance agent-self`).
-- `prompt`: only an explicit in-session human confirmation; an `agent-self` record is refused with `agent_self_refused_by_mode`.
+- `prompt`: only in-session, an explicit human confirmation; any other form is refused (`approval_form_refused_by_mode`, `agent_self_refused_by_mode`).
 - `ssh-tag`: an opt-in for human signatures; `agent-self` is refused here too.
 
 Verification refuses, each with its own code:
@@ -105,9 +109,10 @@ Verification refuses, each with its own code:
 - `agent_self_claim_without_agent_signature`: a human-namespace signature or a digest-echo record claims `agent-self`;
 - `agent_self_not_accepted`: `accept` omits `agent-self`.
 
-**Rule (d).** A `policy-amendment` approval form must be in both the live policy's
-and the candidate's `accept` (`approval_form_not_in_live_policy`,
-`approval_form_not_accepted`). A v1 or absent live policy counts as an empty live
+**Rule (d).** A `policy-amendment` approval form must pass both the live policy's
+and the candidate's whole form rule, `accept` and `default_mode` alike
+(`approval_form_not_in_live_policy`, `approval_form_not_accepted`,
+`approval_form_refused_by_mode`, `agent_self_refused_by_mode`). A v1 or absent live policy counts as an empty live
 list, so an agent-self approval of a bootstrap generation is refused with
 `agent_self_bootstrap_refused`. When agent-self is in both lists it may approve an
 amendment (K3b); that approval reports the notice `agent_self_policy_change` in the
@@ -194,11 +199,25 @@ fails to load refuses with `plan_unloadable`.
   takes the v1 lane when each change passes the pinned `validate_sidecar` and
   `sidecar_leq` against the PR base and the current target's bytes. Any loosening
   refuses with `v2_sidecar_not_tightening`.
-- **Diff observation.** The hosted changed-files list, renames by both names.
-  Reaching GitHub's 3000-file cap, or a count that differs from the PR's
-  `changed_files`, refuses with `pr_files_truncated`. A v1-lane decision prints a
-  `merge-decision/1` with the observed head, and the merge uses
-  `gh pr merge --match-head-commit` at that head.
+- **Diff observation.** The hosted changed-files list, renames by both names,
+  unioned with the reserved paths of the head's own three-dot diff read from git
+  objects (fetched into a throwaway repository when absent). Reaching GitHub's
+  3000-file cap, or a count that differs from the PR's integer `changed_files`,
+  refuses with `pr_files_truncated`; a missing count refuses. A PR whose head or
+  base moves while it is listed refuses with `v2_diff_unobservable`. A PR whose
+  base is not the target refuses with `pr_base_not_target`, and `--pr` outside a
+  repository refuses. A v1-lane decision prints a `merge-decision/1` with the
+  observed head, and the merge uses `gh pr merge --match-head-commit` at that head.
+- **Goal PRs.** A goal PR's own diff (merge-base to head, from git objects) may
+  touch a reserved path, or a spec copy bound by an active generation, only inside
+  the goal's scope, and then only as the policy goal's policy file, a pinned
+  publish-v2 replay, a `retired_v1`-only registry change for the policy goal, or a
+  tightening sidecar change. Anything else refuses its certificate with
+  `goal_reserved_path`.
+- **Goal-branch facts.** A goal counts as merged only through a PR on its exact
+  goal branch into the target, queried per branch, whose merge commit reaches the
+  target and descends from the generation's publication. Spec copies bound by an
+  active generation are reserved too.
 
 ## v1 inventory
 
@@ -209,6 +228,8 @@ each entry's fate from hosted facts and git ancestry only (O10):
   goal id as a token (case-insensitive, bounded by non-alphanumerics) and whose
   merge commit is an ancestor of `origin/<target>`. Every match is listed as
   `{goal, pr, merge_commit}`. Commit-message and title text are never signals.
+  (`audit-merges` separately recomputes each certificate's assurance from the
+  approval tag and flags `assurance_mismatch` or `approval_digest_unobserved`.)
 - `completed`: every goal merged. The entry is retired by a top-level
   `retired_v1[]` record in the v2 registry that carries the map, never by an entry
   of `plans[]`. The v1 bytes stay unchanged.

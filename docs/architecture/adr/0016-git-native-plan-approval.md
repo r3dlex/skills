@@ -96,7 +96,8 @@ mode. This amends U1 ("agent keys never sign approvals"):
   Only an anchor principal that holds `ai-catapult-agent-approval` and not
   `ai-catapult-plan-approval` may sign it (the agent-approval role).
 - **`prompt` mode** admits only an explicit in-session human confirmation (the
-  digest-echo record), never an agent-self record.
+  digest-echo record): never an agent-self record, and never an ssh-tag signature.
+  `prompt` and `ssh-tag` modes may not list `agent-self` at all.
 - **`ssh-tag` mode** is an optional opt-in. No default requires a signature.
 - **Assurance.** `agent-self` is a fourth level, computed from the form and never
   upgraded. Every approval, admission report, certificate, merge decision,
@@ -108,8 +109,9 @@ mode. This amends U1 ("agent keys never sign approvals"):
   agent-signed independent review lane distinct from the certifier, admin only
   under `single`, and no text, flag, variable or mode that maps to a waiver.
 
-**Rule (d).** A `policy-amendment` or bootstrap generation's approval form must be
-in both the live policy's `accept` and the candidate's. A v1 or absent live
+**Rule (d).** A `policy-amendment` or bootstrap generation's approval form must
+pass both the live policy's and the candidate's whole form rule (`accept` and
+`default_mode`). A v1 or absent live
 policy counts as an empty live list. An agent-self approval of a bootstrap
 generation is therefore refused with `agent_self_bootstrap_refused`, and every
 repository's first policy/2 needs an in-session or ssh-tag approval.
@@ -154,6 +156,13 @@ plan's approval page.
 - The P5 generation that ACH-S-05 publishes is then republished against the
   amended policy.
 - None of these is part of ACH-S-02.
+
+**Bootstrap generations and amendments.** A bootstrap generation cannot recover by
+re-signing once an amendment replaces the policy its candidate introduced: it
+refuses with `bootstrap_policy_live`, so republish its unmerged goals as a live-mode
+generation, or finish its bootstrap plans before any amendment. An amendment binds
+the live digest it amends (`amends_policy_sha256`), so a second, concurrent
+amendment refuses once the first lands.
 
 ## Consequences
 
