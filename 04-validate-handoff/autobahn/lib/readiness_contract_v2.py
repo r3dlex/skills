@@ -60,9 +60,10 @@ CERTIFICATE_FIELDS = {'schema', 'repository', 'plan_id', 'generation', 'goal_id'
                       'unresolved_threads', 'review_lane', 'lane_independence', 'admin', 'adapter', 'certifier',
                       'issued_at'}
 TOOL = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._+-]*$')
-# M4: a branch_pattern is ^, literal [A-Za-z0-9/_.-] characters, at most one group of literal
-# alternatives, <plan_id> and <goal_id> once each, and $. No other regex syntax is accepted.
-BRANCH_PATTERN = re.compile(r'\^(?:[A-Za-z0-9/_.-]|<plan_id>|<goal_id>|\([A-Za-z0-9_.-]+(?:\|[A-Za-z0-9_.-]+)*\))*\$')
+# M4: a branch_pattern is ^, literal [A-Za-z0-9/_-] characters, at most one group of literal
+# alternatives, <plan_id> and <goal_id> once each, and $. No other regex syntax is accepted, and no
+# character that means anything to a regex, so routing (fill) and goal completion (branch_names) agree.
+BRANCH_PATTERN = re.compile(r'\^(?:[A-Za-z0-9/_-]|<plan_id>|<goal_id>|\([A-Za-z0-9_-]+(?:\|[A-Za-z0-9_-]+)*\))*\$')
 STAMP = re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$')
 NO_AUTHORITY = 'none: no verified plan approval; this report carries no authority'
 NOTICES = {
@@ -515,17 +516,17 @@ def check_sidecar_binding(record, sidecar, sidecar_v0):
     sidecar_leq(sidecar_v0, sidecar)
 
 
-def form_rule(form, approval, live=False):
-    """One policy's whole form rule: accept, and the default_mode (K3). prompt mode admits only
-    in-session; prompt and ssh-tag modes never admit agent-self."""
-    mode = approval.get('default_mode')
+def form_rule(form, approval, live=False, governs=True):
+    """One policy's form rule: accept, and (when it governs) the default_mode (K3). prompt mode
+    admits only in-session and ssh-tag mode only ssh-tag; agent mode admits every accepted form."""
+    mode = approval.get('default_mode') if governs else None
     if form == 'agent-self':
         check(form in approval['accept'], 'approval_form_not_in_live_policy' if live else 'agent_self_not_accepted', form)
         check(mode in (None, 'agent'), 'agent_self_refused_by_mode', ('live policy ' if live else '') + str(mode))
     else:
         check(form in approval['accept'], 'approval_form_not_in_live_policy' if live else 'approval_form_not_accepted', form)
-        check(mode != 'prompt' or form == 'in-session', 'approval_form_refused_by_mode',
-              '%s%s in prompt mode' % ('live policy ' if live else '', form))
+        check(mode in (None, 'agent') or form == DEFAULT_MODES[mode], 'approval_form_refused_by_mode',
+              '%s%s in %s mode' % ('live policy ' if live else '', form, mode))
 
 
 def check_form(form, policy, mode='live', live_policy=None):
@@ -534,7 +535,8 @@ def check_form(form, policy, mode='live', live_policy=None):
     v1 or absent live policy counts as an empty one, so agent-self never approves a bootstrap."""
     if form == 'agent-self':
         check(mode != 'bootstrap', 'agent_self_bootstrap_refused', 'a bootstrap generation needs in-session or ssh-tag')
-    form_rule(form, policy['approval'])
+    # A candidate's own default_mode never governs the approval of that same candidate (R2 L4).
+    form_rule(form, policy['approval'], governs=mode not in POLICY_MODES)
     if mode == 'policy-amendment':
         check(isinstance(live_policy, dict), 'approval_form_not_in_live_policy', 'no live readiness-policy/2')
         form_rule(form, live_policy['approval'], live=True)
@@ -548,16 +550,18 @@ def carrier_assurance(carrier):
         return None
     form, signature = carrier.get('form'), carrier.get('signature') or {}
     namespaces = set(signature.get('namespaces') or [])
+    derived = None
     if form == 'in-session':
-        return 'in-session' if carrier.get('digest_echo') == canonical(record) else None
-    if signature.get('verified') is not True or not signature.get('principal'):
-        return None
-    if form == 'agent-self' and carrier.get('signature_namespace') != 'human' and NS_AGENT_APPROVAL in namespaces \
+        derived = 'in-session' if carrier.get('digest_echo') == canonical(record) else None
+    elif signature.get('verified') is not True or not signature.get('principal'):
+        derived = None
+    elif form == 'agent-self' and carrier.get('signature_namespace') != 'human' and NS_AGENT_APPROVAL in namespaces \
             and NS_APPROVAL not in namespaces:
-        return 'agent-self'
-    if form == 'ssh-tag' and NS_APPROVAL in namespaces and not ({NS_REVIEW, NS_CERTIFICATE, NS_AGENT_APPROVAL} & namespaces):
-        return assurance_for(form, signature.get('key_type'), signature.get('options') or [])
-    return None
+        derived = 'agent-self'
+    elif form == 'ssh-tag' and NS_APPROVAL in namespaces and not ({NS_REVIEW, NS_CERTIFICATE, NS_AGENT_APPROVAL} & namespaces):
+        derived = assurance_for(form, signature.get('key_type'), signature.get('options') or [])
+    # A carrier evidences nothing when its record claims another level (a re-echoed or relabelled tag).
+    return derived if derived is not None and record.get('assurance') == derived else None
 
 
 def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0, mode='live', live_policy=None):
