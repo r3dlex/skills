@@ -26,6 +26,7 @@ CONTEXT_SCHEMA = 'readiness-context/2'
 OBSERVATION_SCHEMA = 'observation/1'
 POLICY = '.ai/policies/readiness-policy.json'
 REGISTRY = '.ai/workflows/northstar-readiness-v2.json'
+V1_REGISTRY = '.ai/workflows/northstar-readiness-v1.json'
 GEN = '.ai/handoff/readiness-v2'
 STAGES = ('preparation', 'implementation', 'merge')
 APPROVED_STAGES = ['implementation', 'merge']
@@ -34,9 +35,13 @@ GATE_KINDS = ('ownership', 'review', 'branch_target', 'tooling', 'file_digest', 
 NOT_APPLICABLE = {'fixture': 'no-fixture-dependency', 'harness_trust': 'no-pinned-harness'}
 BINDINGS = {'ownership': {'roles'}, 'file_digest': {'path', 'sha256'}, 'git_ancestor': {'commits'},
             'fixture': {'path'}, 'harness_trust': {'commit'}}
-FORMS = ('ssh-tag', 'in-session')
-ASSURANCE = ('user-presence', 'key-held', 'in-session')
+FORMS = ('ssh-tag', 'in-session', 'agent-self')
+ASSURANCE = ('user-presence', 'key-held', 'in-session', 'agent-self')
+# K3: approval.default_mode names the form the repository's approvals take by default.
+DEFAULT_MODES = {'agent': 'agent-self', 'prompt': 'in-session', 'ssh-tag': 'ssh-tag'}
+POLICY_MODES = ('bootstrap', 'policy-amendment')
 NS_APPROVAL = 'ai-catapult-plan-approval'
+NS_AGENT_APPROVAL = 'ai-catapult-agent-approval'
 NS_REVIEW = 'ai-catapult-review'
 NS_CERTIFICATE = 'ai-catapult-certificate'
 MAX_AGE_DAYS = 14
@@ -61,6 +66,7 @@ NOTICES = {
     'user-presence': 'assurance: user-presence (hardware security key with touch)',
     'key-held': 'assurance: key-held (an approver key signed; no hardware touch is proven)',
     'in-session': 'ASSURANCE: IN-SESSION - an agent-writable digest-echo record, not a signature and no hardware touch',
+    'agent-self': 'ASSURANCE: AGENT-SELF - the agent issued and signed this approval itself; no human approved it',
 }
 RECOVERY = {
     'approval': 'Obtain one plan approval for this exact generation: contract-run.sh approval-request, then the printed ssh-keygen and git tag commands',
@@ -105,6 +111,12 @@ def safe_path(name):
 
 def fill(pattern, plan_id, goal_id):
     return pattern.replace('<plan_id>', re.escape(plan_id)).replace('<goal_id>', re.escape(goal_id))
+
+
+def plan_namespace(pattern, plan_id):
+    """The reserved branch namespace of one registered plan: its branch_pattern with that
+    plan id and any goal id (U2, U3). Callers compile it with re.IGNORECASE."""
+    return pattern.replace('<plan_id>', re.escape(plan_id)).replace('<goal_id>', '[A-Za-z0-9][A-Za-z0-9._-]*')
 
 
 def unique_strings(value, pattern=None, allow_empty=True):
@@ -184,13 +196,17 @@ def validate_policy(policy):
     check(string(target) and re.fullmatch(r'[A-Za-z0-9._/-]+', target) and not target.startswith('refs/'),
           'policy_field_invalid', 'target')
     approval = policy['approval']
-    check(isinstance(approval, dict) and set(approval) == {'anchor_sha256', 'max_age_days', 'accept'},
-          'policy_approval_invalid', 'fields')
+    check(isinstance(approval, dict) and {'anchor_sha256', 'max_age_days', 'accept'} <= set(approval)
+          <= {'anchor_sha256', 'max_age_days', 'accept', 'default_mode'}, 'policy_approval_invalid', 'fields')
     check(approval['anchor_sha256'] is None or (isinstance(approval['anchor_sha256'], str) and SHA.fullmatch(approval['anchor_sha256'])),
           'policy_approval_invalid', 'anchor_sha256')
     check(type(approval['max_age_days']) is int and approval['max_age_days'] == MAX_AGE_DAYS, 'policy_approval_invalid', 'max_age_days')
     check(unique_strings(approval['accept'], allow_empty=False) and set(approval['accept']) <= set(FORMS),
           'policy_approval_invalid', 'accept')
+    if 'default_mode' in approval:
+        check(approval['default_mode'] in DEFAULT_MODES, 'policy_approval_invalid', 'default_mode')
+        check(DEFAULT_MODES[approval['default_mode']] in approval['accept'], 'policy_default_mode_not_accepted',
+              '%s needs %s in accept' % (approval['default_mode'], DEFAULT_MODES[approval['default_mode']]))
     gates = policy['gates']
     check(isinstance(gates, list), 'policy_field_invalid', 'gates')
     seen = set()
@@ -347,15 +363,83 @@ def validate_bootstrap(bundle, live_policy2, candidate_is_live=False):
     return found[0]
 
 
+def validate_amendment(bundle, live_policy2):
+    """A policy-amendment generation: one goal scoping the fixed path while policy/2 is live."""
+    check(live_policy2, 'amendment_requires_live_policy')
+    check(len(bundle['goals']) == 1, 'amendment_not_single_goal', ','.join(g['id'] for g in bundle['goals']))
+    found = policy_goals(bundle)
+    check(found, 'amendment_policy_goal_missing', bundle['goals'][0]['id'])
+    return found[0]
+
+
 def validate_live_scope(bundle):
     found = policy_goals(bundle)
     check(not found, 'policy_goal_requires_bootstrap', ','.join(found))
 
 
 def bootstrap_certificate_gaps(policy_goal, goal_id, head_policy_sha256, policy_sha256):
+    """The policy goal of a bootstrap or amendment generation merges only the bound candidate bytes."""
     if policy_goal is not None and goal_id == policy_goal and head_policy_sha256 != policy_sha256:
         return ['bootstrap_head_policy_mismatch']
     return []
+
+
+# --- v1 inventory (O10) -----------------------------------------------------------
+
+FATE_ACTIONS = {'completed': 'retire', 'unstarted': 'migrate', 'partly-merged': 'migrate-unmerged', 'in-flight': 'wait'}
+
+
+def goal_token(goal_id):
+    """A goal id as a token: case-insensitive and bounded by non-alphanumerics."""
+    return re.compile(r'(?<![A-Za-z0-9])' + re.escape(goal_id) + r'(?![A-Za-z0-9])', re.IGNORECASE)
+
+
+def inventory_fate(goal_ids, merged, open_prs, branches, unobservable=None):
+    """One v1 registry entry's fate from observed facts only (O10).
+
+    merged: hosted merged PRs [{number, head_ref, merge_commit, reached}], where reached is
+    True or False for a merge commit that is or is not an ancestor of origin/<target> and
+    None when it cannot be observed; open_prs: [{number, head_ref}]; branches: origin
+    branches [{ref, merged}]. A goal counts as merged only through a merged PR whose head
+    branch carries its id as a token; commit-message and title text are never inputs. An
+    unobservable host or an unattributable match is ambiguous and treated as in flight."""
+    result = {'merged': [], 'unmerged': list(goal_ids), 'in_flight': [], 'ambiguous': [], 'refused': []}
+    if unobservable:
+        result.update(fate='in-flight', action=FATE_ACTIONS['in-flight'],
+                      ambiguous=[{'goal': None, 'pr': None, 'reason': unobservable}])
+        return result
+    done, unknown = set(), []
+    for gid in goal_ids:
+        token = goal_token(gid)
+        for pull in sorted(merged, key=lambda p: p.get('number') or 0):
+            if not (isinstance(pull.get('head_ref'), str) and token.search(pull['head_ref'])):
+                continue
+            item = {'goal': gid, 'pr': pull.get('number'), 'merge_commit': pull.get('merge_commit')}
+            if pull.get('reached') is True:
+                result['merged'].append(item)
+                done.add(gid)
+            elif pull.get('reached') is False:
+                result['refused'].append(dict(item, reason='merge_commit_not_on_target'))
+            else:
+                unknown.append(dict(item, reason='merge_commit_unobservable'))
+    result['unmerged'] = [gid for gid in goal_ids if gid not in done]
+    result['ambiguous'] = [item for item in unknown if item['goal'] not in done]
+    for gid in result['unmerged']:
+        token = goal_token(gid)
+        result['in_flight'] += [{'goal': gid, 'pr': p.get('number'), 'ref': p['head_ref']} for p in open_prs
+                                if isinstance(p.get('head_ref'), str) and token.search(p['head_ref'])]
+        result['in_flight'] += [{'goal': gid, 'pr': None, 'ref': b['ref']} for b in branches
+                                if not b.get('merged') and isinstance(b.get('ref'), str) and token.search(b['ref'])]
+    if result['ambiguous'] or result['in_flight']:
+        fate = 'in-flight'
+    elif not result['unmerged']:
+        fate = 'completed'
+    elif not done:
+        fate = 'unstarted'
+    else:
+        fate = 'partly-merged'
+    result.update(fate=fate, action=FATE_ACTIONS[fate])
+    return result
 
 
 # --- plan approval (plan-approval/1) ------------------------------------------
@@ -367,7 +451,10 @@ def approval_record(**fields):
 
 
 def assurance_for(form, key_type=None, options=()):
-    """K1: user-presence only for an sk- key whose anchor line lacks no-touch-required."""
+    """K1: user-presence only for an sk- key whose anchor line lacks no-touch-required.
+    K3: an agent-self approval is agent-self whatever key signed it."""
+    if form == 'agent-self':
+        return 'agent-self'
     if form == 'in-session':
         return 'in-session'
     if isinstance(key_type, str) and key_type.startswith('sk-') and 'no-touch-required' not in options:
@@ -411,7 +498,22 @@ def check_sidecar_binding(record, sidecar, sidecar_v0):
     sidecar_leq(sidecar_v0, sidecar)
 
 
-def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0):
+def check_form(form, policy, mode='live', live_accept=()):
+    """Whether policy (the candidate for bootstrap and amendment generations) admits form.
+    Rule (d): a bootstrap or amendment approval form must also be in the live policy's
+    accept list; a v1 or absent live policy counts as an empty one (K3, K3b)."""
+    approval = policy['approval']
+    if form == 'agent-self':
+        check(mode != 'bootstrap', 'agent_self_bootstrap_refused', 'a bootstrap generation needs in-session or ssh-tag')
+        check(form in approval['accept'], 'agent_self_not_accepted')
+        check(approval.get('default_mode') in (None, 'agent'), 'agent_self_refused_by_mode', approval.get('default_mode'))
+    else:
+        check(form in approval['accept'], 'approval_form_not_accepted', form)
+    if mode == 'policy-amendment':
+        check(form in live_accept, 'approval_form_not_in_live_policy', form)
+
+
+def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0, mode='live', live_accept=()):
     """Verify one approval carrier (observed tag facts) against observed digests."""
     anchor = policy['approval']['anchor_sha256']
     check(anchor is not None, 'anchor_unset')
@@ -428,11 +530,22 @@ def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0):
     check(carrier.get('target_contains_generation'), 'approval_tag_target_invalid', carrier['tag'])
     form = carrier.get('form')
     check(form in FORMS, 'approval_carrier_invalid', 'form')
-    check(form in policy['approval']['accept'], 'approval_form_not_accepted', form)
     record = carrier.get('record')
+    check(not (isinstance(record, dict) and record.get('assurance') == 'agent-self'
+               and (form != 'agent-self' or carrier.get('signature_namespace') == 'human')),
+          'agent_self_claim_without_agent_signature', form)
+    check_form(form, policy, mode, live_accept)
     check(isinstance(record, dict) and carrier.get('record_canonical') is True, 'approval_carrier_invalid', 'record')
     principal = None
-    if form == 'ssh-tag':
+    if form == 'agent-self':
+        signature = carrier.get('signature') or {}
+        principal = signature.get('principal')
+        check(principal, 'approval_signature_invalid', 'no anchor principal for this agent signature')
+        namespaces = set(signature.get('namespaces') or [])
+        check(NS_AGENT_APPROVAL in namespaces and NS_APPROVAL not in namespaces, 'agent_approval_signer_not_agent', principal)
+        check(signature.get('verified') is True, 'approval_signature_invalid', principal)
+        assurance = assurance_for(form)
+    elif form == 'ssh-tag':
         signature = carrier.get('signature') or {}
         principal = signature.get('principal')
         check(principal, 'approval_signature_invalid', 'no anchor principal for this signature')
@@ -443,7 +556,7 @@ def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0):
         assurance = assurance_for(form, signature.get('key_type'), signature.get('options') or [])
     else:
         check(carrier.get('digest_echo') == canonical(record), 'approval_digest_echo_mismatch')
-        assurance = 'in-session'
+        assurance = assurance_for(form)
     check_approval(record, expected, policy, now)
     check(record['assurance'] == assurance, 'approval_assurance_mismatch', '%s claimed, %s observed' % (record['assurance'], assurance))
     check_sidecar_binding(record, sidecar, sidecar_v0)
@@ -583,19 +696,32 @@ def admission(inputs):
         for source in policy['sources']:
             if 'source:' + source in facts and facts['source:' + source]['value'] is None:
                 gaps.append(gap_entry('policy_source_missing', source, source='observation/1'))
-        if generation_v2(**digests) != registered.get('generation'):
+        # A live-mode generation's identity is its content under the policy and anchor it was
+        # published with; the approval binds the current ones, so an amendment voids it and
+        # re-signing the same generation recovers (R2b).
+        identity = dict(digests)
+        if inputs.get('policy_mode') == 'live':
+            identity.update({k: registered[k] for k in ('policy_sha256', 'anchor_sha256') if registered.get(k)})
+        if generation_v2(**identity) != registered.get('generation'):
             gaps.append(gap_entry('generation_mismatch', 'observed inputs no longer match the registered generation'))
         try:
             if inputs.get('policy_mode') == 'bootstrap':
                 validate_bootstrap(bundle, inputs.get('live_policy2', False), inputs.get('candidate_is_live', False))
+            elif inputs.get('policy_mode') == 'policy-amendment':
+                validate_amendment(bundle, inputs.get('live_policy2', False))
             else:
                 validate_live_scope(bundle)
         except Invalid as error:
             gaps.append(gap_entry(code(error), str(error), source='policy'))
+        for entry in inputs.get('v1_inventory') or []:
+            if entry.get('fate') == 'in-flight':
+                gaps.append(gap_entry('v1_inventory_in_flight', entry.get('id'), source='hosted+git',
+                                      recovery='Let the in-flight v1 goal PRs or branches merge or close, then rerun inventory-v1'))
         expected = dict(digests, plan_id=bundle['id'], generation=registered.get('generation'),
                         goals=[g['id'] for g in bundle['goals']])
         try:
-            approval = decide_approval(inputs.get('carrier'), policy, expected, now, inputs['sidecar'], inputs.get('sidecar_v0'))
+            approval = decide_approval(inputs.get('carrier'), policy, expected, now, inputs['sidecar'], inputs.get('sidecar_v0'),
+                                       inputs.get('policy_mode') or 'live', inputs.get('live_accept') or ())
         except Invalid as error:
             family = 'anchor' if code(error).startswith('anchor') else ('sidecar' if 'sidecar' in code(error) else 'approval')
             gaps.append(gap_entry(code(error), str(error), source='plan-approval/1', recovery=RECOVERY[family]))
@@ -631,7 +757,18 @@ def admission(inputs):
                'observation': observation, 'gates': gates, 'gaps': gaps, 'admitted': admitted}
     if approval:
         context['assurance_notice'] = render_assurance(approval['assurance'])
+    notices = policy_change_notices(approval and approval['assurance'], inputs.get('policy_mode'))
+    if notices:
+        context['notices'] = notices
     return context
+
+
+def policy_change_notices(assurance, mode):
+    """K3b: an agent-self approval of a bootstrap or policy-amendment generation is reported."""
+    if assurance == 'agent-self' and mode in POLICY_MODES:
+        return [{'code': 'agent_self_policy_change',
+                 'detail': 'an agent-self approval authorizes this %s generation; no human approved the policy change' % mode}]
+    return []
 
 
 def projection(value, volatile=('observed_at', 'root')):
