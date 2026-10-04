@@ -559,14 +559,17 @@ def load_generation(root, ref, handoff):
 
 
 def routing_pattern(root, rev, gen):
-    """M4: the live policy's branch_pattern routes; a candidate's only while no policy/2 is live."""
+    """M4: the live policy's branch_pattern routes; a candidate's only while no policy/2 is live.
+    A live policy/2 that does not validate, or a policy file that does not parse, refuses."""
     data = show(root, rev, v2.POLICY)
+    if data is None:
+        return gen['policy']['branch_pattern']
     try:
-        live = json.loads(data) if data is not None else None
+        live = json.loads(data)
         if isinstance(live, dict) and live.get('schema') == v2.POLICY_SCHEMA:
             return v2.validate_policy(live)['branch_pattern']
-    except ValueError:
-        pass
+    except (ValueError, Invalid) as error:
+        v2.refuse('policy_unloadable', 'the live policy at %s: %s' % (rev[:12], error))
     return gen['policy']['branch_pattern']
 
 
@@ -1273,8 +1276,8 @@ def route(cwd, pr, target, adapter):
         active.append(v2.plan_namespace(pattern, gen['bundle']['id']))
     for namespace in active:
         v2.check(not re.fullmatch(namespace, pull['head_ref'], re.IGNORECASE), 'v2_branch_without_plan', pull['head_ref'])
-    lane, notices = non_goal_lane(root, ref, pull, adapter) if carries_v2(root, ref) else ('v1', [])
-    return 'v1', {'root': root, 'pull': pull, 'lane': lane, 'notices': notices}
+    lane, notices, diff_head = non_goal_lane(root, ref, pull, adapter) if carries_v2(root, ref) else ('v1', [], None)
+    return 'v1', {'root': root, 'pull': pull, 'lane': lane, 'notices': notices, 'diff_head': diff_head}
 
 
 def registry_plans(root, rev):
@@ -1314,8 +1317,12 @@ def active_generations(root, rev):
 
 
 def bound_specs(root, revs):
-    """L5: the spec copies bound by active generations stay reserved."""
-    return {path_key(gen['bundle']['spec']['path']) for rev in revs for gen in active_generations(root, rev)}
+    """L5: the spec copies bound by active generations stay reserved, {spec key: registry entry ids}."""
+    owners = {}
+    for rev in revs:
+        for gen in active_generations(root, rev):
+            owners.setdefault(path_key(gen['bundle']['spec']['path']), set()).add(gen['entry']['id'])
+    return owners
 
 
 def active_scopes(root, ref, base, adapter):
@@ -1335,17 +1342,29 @@ def active_scopes(root, ref, base, adapter):
 
 
 def local_changes(root, ref, pull):
-    """M2: the PR head's three-dot diff read from git objects (renames off), or None when the
-    head objects cannot be obtained."""
+    """M2: (objects repository, the PR head's three-dot diff from git objects, renames off and
+    submodules included), or None only when every fetch of the PR head fails outright. A fetch
+    that lands on another commit than the observed head refuses (pr_head_moved)."""
     try:
         objects = pr_objects(root, pull)
-    except Invalid:
+    except Invalid as error:
+        if v2.code(error) == 'pr_head_moved':
+            v2.refuse('v2_diff_unobservable', str(error))
         return None
     target = git_text(root, 'rev-parse', '--verify', ref + '^{commit}')
     base = git(objects, 'merge-base', target, pull['head'], check=False)
     v2.check(base.returncode == 0, 'v2_diff_unobservable', 'the PR head shares no history with ' + ref)
-    listed = git(objects, 'diff', '--name-only', '--no-renames', '-z', base.stdout.decode().strip(), pull['head']).stdout
-    return [os.fsdecode(name) for name in listed.split(b'\0') if name]
+    return objects, changed_names(objects, base.stdout.decode().strip(), pull['head'])
+
+
+def changed_names(repo, base, head):
+    """Every path a commit range changes, renames off and gitlinks included, plus every reserved
+    tree entry that differs (L7: .gitmodules ignore= cannot hide one)."""
+    listed = git(repo, 'diff', '--name-only', '--no-renames', '--ignore-submodules=none', '-z', base, head).stdout
+    names = {os.fsdecode(name) for name in listed.split(b'\0') if name}
+    before, after = reserved_entries(repo, base), reserved_entries(repo, head)
+    names.update(name for name in set(before) | set(after) if before.get(name) != after.get(name))
+    return sorted(names)
 
 
 def non_goal_lane(root, ref, pull, adapter):
@@ -1362,17 +1381,24 @@ def non_goal_lane(root, ref, pull, adapter):
     again = adapter.pull(pull['number'])
     v2.check((again['head'], again['base']) == (pull['head'], pull['base']), 'v2_diff_unobservable',
              'the PR moved while its files were listed')
+    diff_head = pull['head'] if local is not None else None
+    replaced = set()
     if local is not None:
+        objects, names = local
         specs = bound_specs(root, [ref])
-        changed.update(name for name in local if fixed_reserved(name) or path_key(name) in specs)
+        changed.update(name for name in names if fixed_reserved(name) or path_key(name) in specs)
+        before = {p.get('id'): p for p in registry_plans(root, ref) if isinstance(p, dict)}
+        after = {p.get('id'): p for p in registry_plans(objects, pull['head']) if isinstance(p, dict)}
+        replaced = {plan_id for plan_id in before if plan_id in after and after[plan_id] != before[plan_id]}
     if not changed:
-        return 'v1', []
+        return 'v1', [], diff_head
     touched = [name for name in changed if path_key(name) == path_key(v2.POLICY)]
     v2.check(not touched, 'v2_scope_outside_goal', 'the policy file merges only through a policy goal certificate')
     v2.check(isinstance(pull['base'], str) and git(root, 'cat-file', '-e', pull['base'] + '^{commit}', check=False).returncode == 0,
              'v2_diff_unobservable', 'the PR base %s is not available; fetch first' % pull['base'])
     specs = bound_specs(root, [ref, pull['base']])
-    bound = sorted(name for name in changed if path_key(name) in specs)
+    # R2 L1: the spec of a plan whose entry this PR replaces may change; the replay lane then decides.
+    bound = sorted(name for name in changed if path_key(name) in specs and not specs[path_key(name)] <= replaced)
     v2.check(not bound, 'v2_scope_outside_goal', 'spec copies bound by an active generation: ' + ', '.join(bound))
     candidates = [name for name in changed if not fixed_reserved(name) and not free_planning_path(name)]
     if candidates:
@@ -1382,10 +1408,10 @@ def non_goal_lane(root, ref, pull, adapter):
         v2.check(not scoped, 'v2_scope_outside_goal', '; '.join(scoped))
     reserved = sorted(name for name in changed if fixed_reserved(name))
     if not reserved:
-        return 'v1', []
+        return 'v1', [], diff_head
     if all(existing_sidecar(root, ref, pull['base'], name) for name in changed):
-        return sidecar_lane(root, ref, pull, sorted(changed))
-    return replay_lane(root, ref, pull, adapter)
+        return sidecar_lane(root, ref, pull, sorted(changed)) + (diff_head,)
+    return replay_lane(root, ref, pull, adapter) + (diff_head,)
 
 
 SIDECAR = re.compile(re.escape(v2.GEN) + r'/[A-Za-z0-9][A-Za-z0-9._-]*/[0-9a-f]{64}/sidecar\.json')
@@ -1411,8 +1437,12 @@ def pr_objects(root, pull):
         (['refs/heads/' + pull['head_ref']] if pull.get('head_ref') else [])
     for refspec in refspecs:
         fetched = git(scratch, 'fetch', '-q', '--no-tags', url, refspec, check=False)
-        if fetched.returncode == 0 and git(scratch, 'rev-parse', 'FETCH_HEAD', check=False).stdout.decode().strip() == pull['head']:
-            return scratch
+        if fetched.returncode:
+            continue
+        got = git(scratch, 'rev-parse', 'FETCH_HEAD', check=False).stdout.decode().strip()
+        # The fetched object must be the head being routed on; anything else is a moved head (A-B-A).
+        v2.check(got == pull['head'], 'pr_head_moved', '%s is %s, not the observed head %s' % (refspec, got, pull['head']))
+        return scratch
     v2.refuse('v2_diff_unobservable', 'the PR head %s cannot be fetched' % pull['head'])
 
 
@@ -1623,8 +1653,7 @@ def goal_reserved_refusals(root, ref, gen, goal_id, adapter):
     head = git_text(root, 'rev-parse', '--verify', 'HEAD^{commit}')
     target = git_text(root, 'rev-parse', '--verify', ref + '^{commit}')
     base = git_text(root, 'merge-base', target, head)
-    listed = git(root, 'diff', '--name-only', '--no-renames', '-z', base, head).stdout
-    changed = [os.fsdecode(name) for name in listed.split(b'\0') if name]
+    changed = changed_names(root, base, head)
     specs = bound_specs(root, [ref])
     reserved = [name for name in changed if fixed_reserved(name) or path_key(name) in specs]
     if not reserved:
@@ -1668,7 +1697,9 @@ def op_merge(args, now, adapter):
         if not found:
             return EXIT_V1, {'schema': v2.VERSION, 'decision': 'v1', 'detail': 'no readiness-contract/2 PR here; v1 path'}
         head = found['pull']['head']
+        v2.check(found.get('diff_head') in (None, head), 'v2_diff_unobservable', 'the decision head is not the diff head')
         return EXIT_V1, {'schema': 'merge-decision/1', 'decision': 'v1', 'pr': args.pr, 'head': head,
+                         'diff_head': found.get('diff_head'),
                          'head_ref': found['pull']['head_ref'], 'lane': found['lane'], 'notices': found['notices'],
                          'merge_with': ['--match-head-commit', head], 'provenance': origin,
                          'detail': 'not a readiness-contract/2 goal PR: the v1 adapter decides, and the merge must use '
