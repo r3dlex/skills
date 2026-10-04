@@ -25,6 +25,7 @@ other name stays on the v1 path.
 | `certify-v2` (through `run-gates.sh --phase pre-merge --pr N --review-record F`) | Issues an agent-signed `merge-certificate/1` and stores it in observer state. |
 | `merge-v2` (through `merge-authority.sh --pr N [--admin]`) | Re-observes every certificate claim, then merges with `gh pr merge --match-head-commit`. |
 | `inventory-v1 --root R` | Decides the fate of every v1 registry entry on `origin/<target>` (O10), the one implementation every policy goal uses. See [v1 inventory](#v1-inventory). Exits 1 while any entry is in flight. |
+| `migrate-v2` (through `migrate-handoff.sh --to readiness-contract/2`) | Emits a reviewable `handoff-migration/2` candidate of one v1 generation's unmerged goals to stdout, never writes, and carries no authority. See [Migration (R1, O10)](#migration-r1-o10). |
 | `audit-merges --root R --handoff H` | Lists merged PRs through the production adapter (fails closed at 200). It flags each goal-branch PR whose merged head has no certificate (`merged_without_certificate`), has a certificate not signed by an agent principal with the certificate role (`certificate_signature_invalid`), or was certified at another head (`certified_head_mismatch`). For each PR it reports the approval digest, assurance and `lane_independence`. Exits 1 when anything is flagged, 4 when unobservable. |
 
 `export-evidence` is a reserved name; it exits 2 until ACH-S-06 lands. Timing checks in
@@ -304,6 +305,52 @@ each entry's fate from hosted facts and git ancestry only (O10):
 - `in-flight`: an unmerged goal has such a PR or branch. An unreachable hosted
   API, a truncated list or an unattributable match is ambiguous and also in
   flight. Admission of a policy goal then refuses with `v1_inventory_in_flight`.
+
+## Migration (R1, O10)
+
+`migrate-handoff.sh --to readiness-contract/2 --legacy <v1 goals.json> --inventory
+<report.json> [--root R] [--target T]` emits a reviewable `handoff-migration/2`
+candidate of one v1 generation's unmerged goals to stdout and never writes:
+
+- Without a `--to` token the unchanged v1 `migrate` path runs (AC-3); with
+  `--to readiness-contract/2` the pinned driver's `migrate-v2` branch runs. Any
+  other `--to` value, a missing `--legacy` or `--inventory`, `-h`, `--help` and
+  `proceed` exit 2. Refusals exit 1 and carry no authority.
+- The candidate's `authority` is `none: no verified plan approval; this report
+  carries no authority`: a migration grants nothing, and admission refuses the
+  migrated generation until one new plan approval binds it.
+- The pure `v2.migrate_main` decides everything from the data it is handed. The
+  legacy bytes must be `handoff-goals/1` (`migration_legacy_unsupported`); their
+  sha256 must equal the `artifacts.bundle.sha256` of exactly one active v1
+  registry entry with that plan id on `origin/<target>` (`migration_legacy_unregistered`;
+  older v1 generations are refused); the inventory-v1 report must hold that entry
+  with fate `unstarted` or `partly-merged` (`migration_fate_refused`; `completed`
+  retires through `retired_v1[]`, `in-flight` means wait); and the spec on
+  `origin/<target>` must still equal the v1 binding (`migration_spec_drifted`).
+- The bundle keeps the plan id unchanged (P7), the spec path, `issue_ref` and the
+  v1 `attachments` verbatim, and reduces each unmerged goal to its content fields
+  (`id`, `scope`, `acceptance_criteria`, `dependencies`, `verification`,
+  `issue_ref`). Merged goals, decided by the inventory-v1 `{goal, pr,
+  merge_commit}` map (never by commit text), become `extensions.b5_inputs`
+  (shape-validated; a malformed item refuses with `migration_b5_invalid`) and
+  disappear from the goal list; their dependencies are listed under
+  `dropped_dependencies`. B5 ancestry is not checked here — that is the
+  executing repository's admission. `bundle_*` and `sidecar_*` refusals pass
+  through from the pinned validators.
+- The sidecar resets readiness to unknown at every stage and carries each v1
+  goal's `coverage_status`, `coverage_percent` (when measured), `legacy_safe_tdd`
+  and `legacy_risk_reason`.
+- The legacy bundle and its sha256 are retained under
+  `extensions.legacy_original` and `extensions.legacy_sha256`.
+- Publish the candidate's `bundle` and `sidecar` with
+  `02-govern-plan/northstar/handoff-write.sh --root "$(pwd -P)" --bundle <bundle>
+  --sidecar <sidecar>` (the admission-complete publisher; a planning PR), merge
+  it, then obtain one plan approval for the new generation through
+  `contract-run.sh approval-request --handoff northstar-plan-<plan_id>`. The
+  migrated generation admits only after that approval binds it.
+- Run migrate from a clone or the base copy, and pass `--root "$(pwd -P)"`: a
+  symlinked root refuses with `identity_root_symlinked`. A driver whose pinned
+  files differ from `origin/<target>` refuses with `driver_not_base_copy`.
 
 ## Environment and provenance
 
