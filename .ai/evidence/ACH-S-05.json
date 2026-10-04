@@ -1,0 +1,128 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[R1, O10] migrate-handoff.sh --to readiness-contract/2 --legacy <v1 goals.json> emits a reviewable v2 candidate of the unmerged goals only (merged goals, determ...",
+      "green": {
+        "at": "2026-10-04T21:26:22Z",
+        "commit": "afd4bfc36690b1e7d6c8f12a51684d13cac0cbb8",
+        "exit_code": 0,
+        "output_sha256": "7d84dc2c753ba59ab48de15a6c70c7e2c0e10ab6e2816562d29211171a398b44"
+      },
+      "red": {
+        "at": "2026-10-04T21:13:22Z",
+        "exit_code": 1,
+        "output_sha256": "e4af895867c9963e5e8c17622271926c0f0a09f3207606e9b2572c97b4a5164f"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py MigrateCandidateTests MigrateEntryTests MigrationAdmissionTests"
+    },
+    {
+      "ac": 2,
+      "criterion": "[AC-3] migrate-handoff.sh without --to keeps the current v1 legacy-migration output byte-identical; existing migration tests pass unmodified and tests/readiness...",
+      "green": {
+        "at": "2026-10-04T21:26:27Z",
+        "commit": "afd4bfc36690b1e7d6c8f12a51684d13cac0cbb8",
+        "exit_code": 0,
+        "output_sha256": "0ea3575e1c4b57c29f9e75e0dbf01b1445e4a2abc62b3c91873059ccba6b41e0"
+      },
+      "note": "characterization: the v1 path is byte-identical by construction (the dispatch is byte-neutral); green on the base",
+      "red": {
+        "at": "2026-10-04T21:13:24Z",
+        "exit_code": 0,
+        "output_sha256": "7d6f3f2b0c75a7272e3e136f4ef3512eefcb357922e433d272431e599c2b9d6e"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py MigrateV1PathTests"
+    },
+    {
+      "ac": 3,
+      "criterion": "[O6] The xskp-p5-skill-producers v1 generation (unstarted per ACH-S-02's inventory) is migrated and published through the admission-complete v2 publisher into ....",
+      "green": {
+        "at": "2026-10-04T21:26:27Z",
+        "commit": "afd4bfc36690b1e7d6c8f12a51684d13cac0cbb8",
+        "exit_code": 0,
+        "output_sha256": "fd3429f6a39b0337f73fcc2e93bc92cfa556334244053e19baf5f74b054988a4"
+      },
+      "red": {
+        "at": "2026-10-04T21:13:25Z",
+        "exit_code": 1,
+        "output_sha256": "892900ee66a06eaf1283f114528f2acf5c3f116a2a1f15c0bf88974f9d7a7854"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py PublishedP5Tests"
+    },
+    {
+      "ac": 4,
+      "criterion": "[AC-7] The migrated P5 generation's planning-stage admission reports only the approval gap as ACH-S-04 defines it (deferred implementation- and merge-stage gate...",
+      "green": {
+        "at": "2026-10-04T21:26:28Z",
+        "commit": "afd4bfc36690b1e7d6c8f12a51684d13cac0cbb8",
+        "exit_code": 0,
+        "output_sha256": "d7b71426e84367c8df9e0b0a3e3018a998faf4c83ec481d187d41c2db1887a6d"
+      },
+      "note": "characterization of S-04 planning classes on P5 bytes; red only because the published P5 input does not exist at base (built by AC1)",
+      "red": {
+        "at": "2026-10-04T21:13:25Z",
+        "exit_code": 1,
+        "output_sha256": "f96c0cc65b4931c03ff0783fb1cba8aba1dd13011bb50f627c028dfa7b8e807e"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py PlanningGapTests"
+    },
+    {
+      "ac": 5,
+      "criterion": "[O6, ownership] ACH-S-05 is this plan's only v2 path for XSKP P5. Draft r3dlex/skills#100 (prep/xskp-p5-readiness-v2-20261004) belongs to another owner and is n...",
+      "green": {
+        "at": "2026-10-04T21:26:30Z",
+        "commit": "afd4bfc36690b1e7d6c8f12a51684d13cac0cbb8",
+        "exit_code": 0,
+        "output_sha256": "3fbcb33b4662dd5aeb7bc7f534f34571d3f8ad03dc17a88a9e4334abb9f8c410"
+      },
+      "note": "partly characterization: the no-approval-request assertion already held at base; red from the missing P5 entry",
+      "red": {
+        "at": "2026-10-04T21:13:25Z",
+        "exit_code": 1,
+        "output_sha256": "264e1ac747b4b88278b9828209f5013006db89da324a9cfacab38477066157e6"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py OwnershipP5Tests && bash tests/xskp_p5_readiness_policy_test.sh"
+    },
+    {
+      "ac": 6,
+      "criterion": "[Hygiene] Manifests and .ai/ci/local-ci.json are re-pinned; no SKILL.md growth; work happens in a worktree from origin/main.",
+      "green": {
+        "at": "2026-10-04T21:26:30Z",
+        "commit": "afd4bfc36690b1e7d6c8f12a51684d13cac0cbb8",
+        "exit_code": 0,
+        "output_sha256": "e7781a409d87363e17af240262da59def93ecb729344b2705d34e1d7090cd3e0"
+      },
+      "red": {
+        "at": "2026-10-04T21:13:25Z",
+        "exit_code": 1,
+        "output_sha256": "0fb50ae10c3b64e0d58f3ca185af6b387525ae29b555c46dd89b0a39604a2bb8"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py ReleaseSurfaceTests && bash tests/readiness_v1_freeze_test.sh && python3 -B tests/readiness_v2_core_test.py EntryPointTests.test_dependency_manifest_v2_pins_every_executable && bash tests/autobahn_local_ci_test.sh && git diff --exit-code 977ed13b6f091a279828e1ddb4665df0a17b52ea -- '*/SKILL.md'"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "08f355259b58f0838dc0429270de96d9c55fb8b3b7067b3ab76d08931dab7d7d",
+    "assurance": "in-session",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-ach-skills-contract-v2 --goal-id ACH-S-05 --stage implementation",
+    "gaps": [],
+    "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+    "provenance": "base-copy",
+    "stage": "implementation"
+  },
+  "goal_id": "ACH-S-05",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head",
+    "red_first_commit": "5b4ef87 (tests committed before any production change)",
+    "red_method": "detached worktree at base 977ed13b6f091a279828e1ddb4665df0a17b52ea with only the final tests/ checked out from the goal branch; each AC command run against the pre-implementation code",
+    "run_tests_legs": "observed by tdd-evidence.sh: red at the red-first commit, green at the implementation head"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  }
+}
