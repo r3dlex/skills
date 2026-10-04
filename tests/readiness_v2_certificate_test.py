@@ -19,6 +19,48 @@ from readiness_v2_core_test import (AUTO, NORTH, NOW, POLICY, REGISTRY, Fixture,
 PR = '7'
 BRANCH = 'feat/plan-a-G1'
 
+from readiness_v2_core_test import sample_bundle, sample_sidecar  # noqa: E402 - used by the appended routing cases
+
+_core_gh_shim = gh_shim
+
+
+def gh_shim(directory, state_path, log_path):
+    """The core recording stub, wrapped locally to also expose a PR's changed files
+    (paged like the hosted API, with changed_files on the pull), open PRs and nothing else.
+    A PR with no recorded files lists none; that default exists only in this stub."""
+    directory = Path(directory)
+    core = _core_gh_shim(directory / 'core', state_path, log_path)
+    script = directory / 'gh'
+    script.write_text('''#!/usr/bin/env python3
+import json, os, re, subprocess, sys
+CORE, STATE, LOG = %r, %r, %r
+args = sys.argv[1:]
+state = json.load(open(STATE))
+def out(value):
+    with open(LOG, 'a') as handle:
+        handle.write(json.dumps({'args': args, 'env': dict(os.environ)}) + '\\n')
+    print(json.dumps(value)); sys.exit(0)
+if args[:1] == ['api'] and len(args) > 1:
+    match = re.fullmatch(r'repos/\\{owner\\}/\\{repo\\}/pulls/(\\d+)/files\\?per_page=100&page=(\\d+)', args[1])
+    if match:
+        files = state.get('files', {}).get(match.group(1), [])
+        page = int(match.group(2))
+        out(files[(page - 1) * 100:page * 100])
+if args[:2] == ['pr', 'list'] and args[args.index('--state') + 1] == 'open':
+    out(state.get('open_prs', []))
+result = subprocess.run([CORE, *args], capture_output=True, text=True)
+pull = re.fullmatch(r'repos/\\{owner\\}/\\{repo\\}/pulls/(\\d+)', args[1]) if args[:1] == ['api'] and len(args) > 1 else None
+if result.returncode == 0 and pull and pull.group(1) in state.get('changed_files', {}):
+    value = json.loads(result.stdout)
+    value['changed_files'] = state['changed_files'][pull.group(1)]
+    out(value)
+sys.stdout.write(result.stdout)
+sys.stderr.write(result.stderr)
+sys.exit(result.returncode)
+''' % (str(core), str(state_path), str(log_path)))
+    script.chmod(0o755)
+    return script
+
 
 class CertificateFixture:
     """A published, approved generation with goal G1 implemented on its branch and a host state."""
@@ -493,8 +535,8 @@ class MergeAuthorityEntryTests(unittest.TestCase):
         self.fail_closed(broken, '--pr', '9', '--verdict', str(self.verdict), env=self.shimmed('broken', 'docs/x'),
                          code='plan_unloadable')
         live = self.repository('live', {POLICY: sample_policy('4' * 64), REGISTRY: {'schema': 'readiness-contract/2', 'plans': []}})
-        self.fail_closed(live, '--pr', '9', '--verdict', str(self.verdict), env=self.shimmed('live', 'feat/other-plan-G9'),
-                         code='v2_branch_without_plan')
+        self.assertEqual(self.authority(live, '--pr', '9', '--verdict', str(self.verdict),
+                                        env=self.shimmed('live', 'feat/other-plan-G9')).returncode, 0)
         self.assertEqual(self.authority(live, '--pr', '9', '--verdict', str(self.verdict),
                                         env=self.shimmed('live-docs', 'docs/readme')).returncode, 0)
         rewound = self.repository('rewound', {})
@@ -625,6 +667,339 @@ class BaseCopyTests(unittest.TestCase):
             self.assertNotIn('driver_not_base_copy', base_run.stdout + base_run.stderr)
             self.assertNotIn('dependency_failed', base_run.stdout)
             self.assertEqual(json.loads(base_run.stdout)['schema'], 'readiness-context/2')
+
+
+class NonGoalRoutingTests(unittest.TestCase):
+    """ACH-S-02 routing once v2 is live: the per-plan reserved branch namespace, non-active
+    registry entries, reserved paths, the publish-v2 replay exception, the sidecar-tighten
+    lane and the observed changed-file list. Appended cases; the ones above are unchanged."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.base = Path(self.tmp.name).resolve()
+        self.c = CertificateFixture(self.base)
+        self.work = self.c.fixture.work
+        git(self.work, 'checkout', '-q', 'main')
+        self.number = 20
+
+    def state(self):
+        return json.loads(self.c.state.read_text())
+
+    def save(self, state):
+        write_json(self.c.state, state)
+
+    def pull(self, branch, head, base_sha=None, files=None, number=None):
+        number = number or self.number + 1
+        self.number = max(self.number, number)
+        state = self.state()
+        state['pulls'][str(number)] = {'head': {'sha': head, 'ref': branch},
+                                       'base': {'sha': base_sha or git(self.work, 'rev-parse', 'origin/main'), 'ref': 'main'}}
+        state.setdefault('files', {})[str(number)] = files or []
+        self.save(state)
+        return number
+
+    def open_pr(self, branch, change, base='origin/main', files=None):
+        """Commit change(work) on branch from base, push it and record the PR with its changed files."""
+        git(self.work, 'checkout', '-q', '-B', branch, base)
+        change(self.work)
+        head = self.c.fixture.commit_push('pr: ' + branch, branch=branch)
+        base_sha = git(self.work, 'rev-parse', base)
+        merge_base = git(self.work, 'merge-base', base_sha, head)
+        if files is None:
+            files = [{'filename': name} for name in git(self.work, 'diff', '--name-only', merge_base, head).splitlines()]
+        git(self.work, 'checkout', '-q', 'main')
+        return self.pull(branch, head, base_sha, files), head
+
+    def route(self, number, *extra):
+        cwd = os.getcwd()
+        os.chdir(self.work)
+        try:
+            return self.c.fixture.run(['merge-v2', '--pr', str(number), *extra], env=self.c.env())
+        finally:
+            os.chdir(cwd)
+
+    def v1(self, number, lane=None):
+        exit_code, result = self.route(number)
+        self.assertEqual(exit_code, observer.EXIT_V1, json.dumps(result, indent=1))
+        self.assertEqual((result['schema'], result['decision']), ('merge-decision/1', 'v1'))
+        self.assertEqual(result['head'], self.state()['pulls'][str(number)]['head']['sha'])
+        if lane:
+            self.assertEqual(result['lane'], lane)
+        return result
+
+    def refused(self, number, code):
+        exit_code, result = self.route(number)
+        self.assertEqual(exit_code, 4, json.dumps(result, indent=1))
+        self.assertIn(code, codes(result), json.dumps(result, indent=1))
+        return result
+
+    def sidecar_path(self):
+        return '.ai/handoff/readiness-v2/plan-a/%s/sidecar.json' % self.c.fixture.generation
+
+    def edit_sidecar(self, change):
+        def apply(work):
+            path = work / self.sidecar_path()
+            sidecar = json.loads(path.read_text())
+            change(sidecar['goals']['G1'])
+            write_json(path, sidecar)
+        return apply
+
+    def publish(self, plan_id, scope='src/b.txt', criteria=('works',)):
+        def apply(work):
+            spec = 'docs/specifications/ACTIVE/%s.md' % plan_id
+            (work / spec).parent.mkdir(parents=True, exist_ok=True)
+            (work / spec).write_text('Plan %s specification\n' % plan_id)
+            bundle = sample_bundle([{'id': 'G1', 'scope': [scope], 'acceptance_criteria': list(criteria),
+                                     'dependencies': [], 'verification': ['bash tests/check.sh']}])
+            bundle['id'], bundle['spec'] = plan_id, {'path': spec}
+            if plan_id == 'plan-a':
+                bundle['spec'] = {'path': 'spec.md'}
+            inputs = Path(tempfile.mkdtemp(dir=self.base))
+            exit_code, result = observer.run(['publish-v2', '--root', str(work), '--bundle', str(write_json(inputs / 'b.json', bundle)),
+                                              '--sidecar', str(write_json(inputs / 's.json', sample_sidecar(bundle)))], now=NOW)
+            self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+            write_json(work / ('.ai/handoff/%s-plan-approval-request.json' % plan_id), {'plan_id': plan_id})
+            (work / ('.ai/handoff/%s-plan-approval.md' % plan_id)).write_text('# Approval request\n')
+            write_json(work / '.ai/traceability/graph.json', {'schema_version': '1.1', 'nodes': [plan_id]})
+        return apply
+
+    def complete_g1(self):
+        """Squash-merge G1 onto main and record its merged goal PR."""
+        (self.work / 'src/app.txt').write_text('v1\n')
+        merge_commit = self.c.fixture.commit_push('feat: implement G1 (#7)')
+        state = self.state()
+        state['merged_prs'] = [{'number': 7, 'headRefName': BRANCH, 'headRefOid': self.c.head,
+                                'mergeCommit': {'oid': merge_commit}, 'mergedAt': stamp(NOW)}]
+        self.save(state)
+
+    # --- the per-plan route guard (U2, U3) ---------------------------------------
+
+    def test_route_guard_is_per_registered_plan_and_case_insensitive(self):
+        unknown = self.pull('feat/plan-a-G9', self.c.head)
+        self.refused(unknown, 'v2_branch_without_plan')
+        variant = self.pull('FEAT/Plan-A-g1', self.c.head)
+        self.refused(variant, 'v2_branch_without_plan')
+        exit_code, result = self.route(int(PR), '--verdict', str(REPO_VERDICT))
+        self.assertEqual((exit_code, result['refusals'][0]['code']), (4, 'verdict_refused_for_v2'))
+        for branch in ('chore/host-policy-audit-skills-101', 'feat/catalog-edit-article-opencode'):
+            number = self.pull(branch, self.c.head, files=[{'filename': '.ai/host-policy/github/audit.jsonl'}])
+            self.v1(number)
+
+    def test_audit_and_unrelated_branches_take_v1_with_only_a_v2_registry(self):
+        base = self.base / 'registry-only'
+        base.mkdir()
+        policy_goal = {'id': 'P', 'scope': [POLICY], 'acceptance_criteria': ['policy lands'], 'dependencies': [],
+                       'verification': ['bash tests/check.sh']}
+        fixture = Fixture(base, bundle=sample_bundle([policy_goal]), candidate=True, live_policy=False)
+        self.assertFalse((fixture.work / POLICY).exists())
+        state, log = base / 'gh.json', base / 'gh.jsonl'
+        shim = gh_shim(base / 'bin', state, log)
+        main = git(fixture.work, 'rev-parse', 'origin/main')
+        pulls = {str(n): {'head': {'sha': main, 'ref': ref}, 'base': {'sha': main, 'ref': 'main'}}
+                 for n, ref in ((1, 'chore/host-policy-audit-skills-101'), (2, 'feat/catalog-edit-article-opencode'),
+                                (3, 'fix/plan-a-Q1'))}
+        write_json(state, {'pulls': pulls, 'files': {'1': [{'filename': '.ai/host-policy/github/audit.jsonl'}]},
+                           'merged_prs': []})
+        cwd = os.getcwd()
+        os.chdir(fixture.work)
+        try:
+            run = lambda n: fixture.run(['merge-v2', '--pr', str(n)], env={'PATH': str(shim.parent) + os.pathsep + os.environ['PATH']})
+            for number in (1, 2):
+                exit_code, result = run(number)
+                self.assertEqual((exit_code, result['decision']), (observer.EXIT_V1, 'v1'), json.dumps(result, indent=1))
+            exit_code, result = run(3)
+            self.assertEqual(exit_code, 4)
+            self.assertIn('v2_branch_without_plan', codes(result))
+        finally:
+            os.chdir(cwd)
+
+    # --- non-active entries and the retired_v1 record (O10) ---------------------
+
+    def test_retired_v1_record_and_non_active_entries_never_block(self):
+        registry = json.loads((self.work / REGISTRY).read_text())
+        registry['retired_v1'] = [{'id': 'northstar-plan-old', 'plan_id': 'old', 'generation': 'b' * 64,
+                                   'registry': '.ai/workflows/northstar-readiness-v1.json', 'fate': 'completed',
+                                   'merged': [{'goal': 'OLD-01', 'pr': 1, 'merge_commit': 'c' * 40}]}]
+        registry['plans'].append({'id': 'northstar-plan-gone', 'plan_id': 'gone', 'generation': 'a' * 64,
+                                  'status': 'superseded', 'artifacts': {}})
+        write_json(self.work / REGISTRY, registry)
+        self.c.fixture.commit_push('retire a completed v1 entry and supersede a plan')
+        exit_code, result = self.route(int(PR), '--verdict', str(REPO_VERDICT))
+        self.assertEqual((exit_code, result['refusals'][0]['code']), (4, 'verdict_refused_for_v2'))
+        docs = self.pull('docs/readme', self.c.head, files=[{'filename': 'README.md'}])
+        self.v1(docs)
+        self.assertEqual([p['id'] for p in json.loads((self.work / REGISTRY).read_text())['plans'] if p.get('status') == 'active'],
+                         ['northstar-plan-plan-a'])
+
+    # --- reserved paths (O4) -------------------------------------------------------
+
+    def test_planning_pr_adding_a_generation_takes_v1(self):
+        number, head = self.open_pr('docs/plan-b-publication', self.publish('plan-b'))
+        names = {f['filename'] for f in self.state()['files'][str(number)]}
+        self.assertIn(REGISTRY, names)
+        self.assertIn('docs/specifications/ACTIVE/plan-b.md', names)
+        self.assertIn('.ai/handoff/plan-b-plan-approval.md', names)
+        result = self.v1(number, lane='publish-v2-replay')
+        self.assertEqual(result['notices'], [])
+
+    def test_policy_file_is_never_covered(self):
+        number, _ = self.open_pr('docs/x', lambda work: write_json(work / POLICY, dict(
+            json.loads((work / POLICY).read_text()), required_checks=['Test Suite', 'Late'])))
+        self.refused(number, 'v2_scope_outside_goal')
+        upper = self.pull('docs/case', self.c.head, files=[{'filename': '.AI/Policies/Readiness-Policy.json'}])
+        self.refused(upper, 'v2_scope_outside_goal')
+
+    def test_active_goal_scope_is_reserved_until_its_merge_reaches_the_target(self):
+        number, _ = self.open_pr('fix/app-typo', lambda work: (work / 'src/app.txt').write_text('typo fixed\n'))
+        self.refused(number, 'v2_scope_outside_goal')
+        free = self.pull('chore/ci-pins', self.c.head, files=[{'filename': '.ai/ci/local-ci.json'},
+                                                            {'filename': '.ai/traceability/graph.json'}])
+        self.v1(free)
+        self.complete_g1()
+        number, _ = self.open_pr('fix/app-typo-later', lambda work: (work / 'src/app.txt').write_text('typo fixed\n'))
+        self.v1(number)
+
+    def test_renamed_paths_touch_both_names(self):
+        into = self.pull('docs/into', self.c.head, files=[{'filename': 'src/app.txt', 'previous_filename': 'src/old.txt',
+                                                          'status': 'renamed'}])
+        self.refused(into, 'v2_scope_outside_goal')
+        out = self.pull('docs/out', self.c.head, files=[{'filename': 'docs/policy-copy.json', 'previous_filename': POLICY,
+                                                        'status': 'renamed'}])
+        self.refused(out, 'v2_scope_outside_goal')
+
+    def test_truncated_or_unobservable_file_lists_fail_closed(self):
+        truncated = self.pull('docs/big', self.c.head, files=[{'filename': 'README.md'}, {'filename': 'docs/a.md'}])
+        state = self.state()
+        state['changed_files'] = {str(truncated): 5000}
+        self.save(state)
+        self.refused(truncated, 'pr_files_truncated')
+
+        class Paged(observer.GhAdapter):
+            def __init__(self, root, total):
+                super().__init__(root)
+                self.total = total
+
+            def _api(self, path, *extra, allow_missing=False):
+                if '/files?' in path:
+                    page = int(path.rsplit('=', 1)[1])
+                    return [{'filename': 'f%d' % i} for i in range((page - 1) * 100, min(page * 100, self.total))]
+                return {'changed_files': self.total}
+        with self.assertRaises(v2.Invalid) as raised:
+            Paged(self.work, 3000).pr_files(1)
+        self.assertEqual(v2.code(raised.exception), 'pr_files_truncated')
+        self.assertEqual(len(Paged(self.work, 250).pr_files(1)), 250)
+        self.assertEqual(observer.FixtureAdapter({}).pr_files(1), [])
+
+    def test_path_matching_is_case_insensitive_and_unicode_normalized(self):
+        self.assertEqual(observer.path_key('docs/café.md'), observer.path_key('DOCS/CAFÉ.md'))
+        self.assertEqual(observer.path_key('.ai/policies/Key.json'), observer.path_key('.AI/Policies/key.json'))
+
+    # --- the publish-v2 replay exception -------------------------------------------
+
+    def test_replay_may_replace_a_plan_only_without_goal_prs(self):
+        number, _ = self.open_pr('docs/plan-a-republish', self.publish('plan-a', scope='src/app.txt',
+                                                                         criteria=('The app file exists', 'and more')))
+        result = self.v1(number, lane='publish-v2-replay')
+        self.assertEqual([n['code'] for n in result['notices']], ['v2_plan_entry_replaced'])
+        state = self.state()
+        state['open_prs'] = [{'number': int(PR), 'headRefName': BRANCH, 'headRefOid': self.c.head}]
+        self.save(state)
+        self.refused(number, 'v2_scope_outside_goal')
+        state['open_prs'] = []
+        self.save(state)
+        self.complete_g1()
+        number, _ = self.open_pr('docs/plan-a-republish-2', self.publish('plan-a', scope='src/app.txt',
+                                                                           criteria=('The app file exists', 'again')))
+        self.refused(number, 'v2_scope_outside_goal')
+
+    def test_replay_byte_mismatch_stale_base_two_generations_and_symlinks_are_refused(self):
+        def tampered(work):
+            self.publish('plan-b')(work)
+            registry = json.loads((work / REGISTRY).read_text())
+            registry['plans'][-1]['status'] = 'approved'
+            write_json(work / REGISTRY, registry)
+        self.refused(self.open_pr('docs/tampered', tampered)[0], 'v2_scope_outside_goal')
+        def two(work):
+            self.publish('plan-b')(work)
+            self.publish('plan-c', scope='src/c.txt')(work)
+        self.refused(self.open_pr('docs/two', two)[0], 'v2_scope_outside_goal')
+        def linked(work):
+            self.publish('plan-b')(work)
+            generation = json.loads((work / REGISTRY).read_text())['plans'][-1]['generation']
+            sidecar = work / ('.ai/handoff/readiness-v2/plan-b/%s/sidecar.json' % generation)
+            sidecar.unlink()
+            sidecar.symlink_to('goals.json')
+        self.refused(self.open_pr('docs/linked', linked)[0], 'v2_scope_outside_goal')
+        old = git(self.work, 'rev-parse', 'origin/main')
+        stale, _ = self.open_pr('docs/stale-plan-b', self.publish('plan-b'))
+        (self.work / 'README.md').write_text('main moved\n')
+        self.c.fixture.commit_push('main moves on')
+        self.assertNotEqual(git(self.work, 'rev-parse', 'origin/main'), old)
+        self.refused(stale, 'v2_scope_outside_goal')
+
+    # --- the sidecar-tighten lane (O1) ---------------------------------------------
+
+    def test_sidecar_hold_takes_v1_and_loosening_is_refused(self):
+        hold = self.edit_sidecar(lambda goal: goal['readiness'].update(merge='blocked'))
+        number, _ = self.open_pr('chore/hold-merge', hold)
+        self.v1(number, lane='sidecar-tighten')
+        loose = self.edit_sidecar(lambda goal: goal.update(legacy_safe_tdd=False))
+        number, _ = self.open_pr('chore/loosen', loose)
+        self.refused(number, 'v2_sidecar_not_tightening')
+
+    def test_stale_base_sidecar_is_rechecked_against_the_current_target(self):
+        old = git(self.work, 'rev-parse', 'origin/main')
+        self.edit_sidecar(lambda goal: goal['readiness'].update(merge='blocked'))(self.work)
+        self.c.fixture.commit_push('hold merge on main')
+        extend = self.edit_sidecar(lambda goal: goal.update(legacy_risk_reason=goal['legacy_risk_reason'] + '; more'))
+        number, _ = self.open_pr('chore/extend-reason', extend, base=old)
+        self.refused(number, 'v2_sidecar_not_tightening')
+
+    # --- head binding and driver provenance (U2, P1) -------------------------------
+
+    def test_v1_lane_prints_the_observed_head_before_the_v1_adapter(self):
+        number = self.pull('docs/readme', self.c.head, files=[{'filename': 'README.md'}])
+        result = subprocess.run(['bash', str(AUTO / 'merge-authority.sh'), '--pr', str(number), '--verdict', str(REPO_VERDICT)],
+                                cwd=str(self.work), capture_output=True, text=True, env=dict(os.environ, **self.c.env()),
+                                stdin=subprocess.DEVNULL)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        decision = json.loads(result.stdout[:result.stdout.index('\n}') + 2])
+        self.assertEqual((decision['schema'], decision['decision'], decision['head']), ('merge-decision/1', 'v1', self.c.head))
+        self.assertEqual(decision['merge_with'], ['--match-head-commit', self.c.head])
+        self.assertLess(result.stdout.index('"decision"'), result.stdout.index('host-policy authorized'))
+        text = (AUTO / 'modules/merge-authority.md').read_text()
+        self.assertIn('gh pr merge --match-head-commit', text)
+
+    def test_v1_lane_decisions_come_only_from_a_verified_driver(self):
+        work = self.work
+        shutil.copytree(AUTO, work / '04-validate-handoff/autobahn', ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(NORTH, work / '02-govern-plan/northstar', ignore=shutil.ignore_patterns('__pycache__'))
+        self.c.fixture.commit_push('vendor the v2 driver on main')
+        git(work, 'checkout', '-q', '-b', 'docs/driver-edit')
+        observer_copy = work / '04-validate-handoff/autobahn/lib/observer.py'
+        observer_copy.write_text(observer_copy.read_text() + '\n# head edit\n')
+        manifest = {'schema': 'readiness-contract/2', 'files': {}}
+        for name in json.loads((AUTO / 'readiness-dependency-v2.json').read_text())['files']:
+            path = work / ('02-govern-plan/northstar/handoff-write.sh' if name == 'northstar/handoff-write.sh'
+                           else '04-validate-handoff/autobahn/' + name)
+            manifest['files'][name] = sha(path)
+        for directory in ('04-validate-handoff/autobahn', '02-govern-plan/northstar'):
+            (work / directory / 'readiness-dependency-v2.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+        head = self.c.fixture.commit_push('docs: edit the driver', branch='docs/driver-edit')
+        number = self.pull('docs/driver-edit', head, files=[{'filename': 'README.md'}])
+        env = dict(os.environ, **self.c.env())
+        authority = lambda driver: subprocess.run(
+            ['bash', str(driver / '04-validate-handoff/autobahn/merge-authority.sh'), '--pr', str(number), '--verdict',
+             str(REPO_VERDICT)], cwd=str(work), capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
+        head_run = authority(work)
+        self.assertEqual(head_run.returncode, 4, head_run.stdout + head_run.stderr)
+        self.assertIn('driver_not_base_copy', head_run.stdout)
+        detached = self.base / 'base-copy'
+        git(work, 'worktree', 'add', '-q', '--detach', str(detached), 'origin/main')
+        base_run = authority(detached)
+        self.assertEqual(base_run.returncode, 0, base_run.stdout + base_run.stderr)
+        self.assertIn('"decision": "v1"', base_run.stdout)
 
 
 REPO_VERDICT = Path(__file__).resolve().parents[1] / 'reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json'

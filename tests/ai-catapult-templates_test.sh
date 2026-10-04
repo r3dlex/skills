@@ -257,6 +257,78 @@ for f in "AGENTS.md" "CLAUDE.md" "GEMINI.md"; do
     fi
 done
 
+# ─── (g) readiness-policy/2 baseline (O2, O5, K3) ─────────────────────────────
+echo ""
+echo "--- (g) readiness-policy/2 baseline template ---"
+
+set +e
+BASELINE_OUTPUT=$(python3 -I -B - "$REPO_ROOT" <<'PYEOF'
+import copy, json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+sys.path.insert(0, str(root / "tests"))
+sys.path.insert(0, str(root / "04-validate-handoff/autobahn/lib"))
+import readiness_contract_v2 as v2
+from readiness_v2_core_test import admission_inputs, sample_bundle, sample_sidecar
+templates = root / "03-configure-generate/ai-catapult-init/templates"
+manifest = json.loads((templates / "boundary-manifest.json").read_text())
+results = []
+def check(name, condition):
+    results.append((name, bool(condition)))
+template_path = templates / "dot-ai/policies/readiness-policy.json"
+entry = [e for e in manifest["paths"] if e.get("path") == ".ai/policies/readiness-policy.json"]
+check("manifest lists .ai/policies/readiness-policy.json as mechanical",
+      len(entry) == 1 and entry[0].get("classification") == "mechanical"
+      and entry[0].get("template") == "dot-ai/policies/readiness-policy.json")
+text = template_path.read_text() if template_path.is_file() else "{}"
+check("baseline names the repository only through {{REPO_ID}}", '"id": "{{REPO_ID}}"' in text)
+rendered = json.loads(text.replace("{{REPO_ID}}", "fixture"))
+try:
+    policy = v2.validate_policy(copy.deepcopy(rendered))
+except Exception as error:
+    print("  note: " + str(error))
+    policy = None
+check("rendered baseline is a valid readiness-policy/2", policy is not None)
+approval = rendered.get("approval", {})
+check("baseline identity_model is multi", rendered.get("identity_model") == "multi")
+check("baseline accept is agent-self, ssh-tag, in-session", approval.get("accept") == ["agent-self", "ssh-tag", "in-session"])
+check("baseline default_mode is agent (K3)", approval.get("default_mode") == "agent")
+check("baseline anchor_sha256 is an unset placeholder", "anchor_sha256" in approval and approval["anchor_sha256"] is None)
+check("baseline required_checks is an empty placeholder", rendered.get("required_checks") == [])
+check("baseline is plan-agnostic (no extensions, every gate repository-scoped)",
+      "extensions" not in rendered and rendered.get("gates")
+      and all(g.get("scope") == {"repository": True} for g in rendered["gates"]))
+if policy is not None:
+    check("placeholders are named policy gaps", v2.policy_gaps(policy) == ["anchor_unset", "required_checks_unset"])
+    bundle = sample_bundle()
+    context = v2.admission(admission_inputs(policy, bundle, sample_sidecar(bundle)))
+    names = {g["code"] for g in context["gaps"]}
+    check("each placeholder refuses admission with a named gap",
+          not context["admitted"] and {"anchor_unset", "required_checks_unset"} <= names)
+    for name, value in (("anchor", dict(rendered, approval=dict(approval, anchor_sha256="a" * 64))),
+                        ("checks", dict(rendered, required_checks=["Test Suite"]))):
+        check("one filled placeholder still leaves the other gap (%s)" % name, len(v2.policy_gaps(v2.validate_policy(value))) == 1)
+for variant, repo_id in (("standalone", "standalone-root"), ("umbrella", "umbrella-root")):
+    fixture = root / "reference/fixtures/v3" / variant / ".ai/policies/readiness-policy.json"
+    check("reference fixture %s carries the rendered baseline" % variant,
+          fixture.is_file() and fixture.read_text() == text.replace("{{REPO_ID}}", repo_id))
+for name, ok in results:
+    print("  %s: %s" % ("PASS" if ok else "FAIL", name))
+sys.exit(0 if all(ok for _, ok in results) else 1)
+PYEOF
+)
+set -e
+echo "$BASELINE_OUTPUT"
+while IFS= read -r line; do
+    case "$line" in
+        "  PASS:"*) PASS=$((PASS + 1)) ;;
+        "  FAIL:"*) FAIL=$((FAIL + 1)) ;;
+    esac
+done <<< "$BASELINE_OUTPUT"
+if ! printf '%s\n' "$BASELINE_OUTPUT" | grep -q '  PASS: '; then
+    fail "readiness-policy/2 baseline checks did not run"
+fi
+
 # ─── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "=========================================="

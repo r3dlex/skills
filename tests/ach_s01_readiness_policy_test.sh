@@ -7,15 +7,20 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
-PYTHONPATH="$REPO_ROOT/04-validate-handoff/autobahn/lib${PYTHONPATH:+:$PYTHONPATH}" python3 -B - <<'PYTEST'
+python3 -I -B - "$REPO_ROOT/04-validate-handoff/autobahn/lib" <<'PYTEST'
 import copy
 from pathlib import Path
-import readiness_contract as rc
+import sys
+sys.path.insert(0, sys.argv[1])
+import readiness_contract as rc  # noqa: E402
 
 ROOT = Path.cwd()
 POLICY_SHA256 = '4b022b867bef6700fa53727c7c4aeba893a28d8127fbce17c063751198d3d91f'
 SUPERSEDES = '1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444'
 RETAINED = '.ai/handoff/xskp-p5-readiness-policy.retained.json'
+# ACH-S-02 replaced the live policy with readiness-policy/2; the S-01 v1 rollover bytes are
+# retained byte-for-byte here and every assertion below runs against them unchanged.
+S01_RETAINED = '.ai/handoff/ach-skills-contract-v2/s01-readiness-policy-v1.retained.json'
 REGISTRATION = 'northstar-plan-ach-skills-contract-v2'
 GENERATION = 'ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0'
 BUNDLE_SHA256 = '1c7b4837af54742374b140ed06fda2561ec62a1cc86ed847afe1029bce9a8dcd'
@@ -55,10 +60,12 @@ def raised(call):
     return None
 
 
-policy_path = ROOT / rc.POLICY
+policy_path = ROOT / S01_RETAINED
 policy = rc.read(policy_path)
 gates = {g.get('id'): g for g in policy.get('gates', [])}
 check('policy digest is the pinned approval subject', rc.digest(policy_path) == POLICY_SHA256)
+check('the live policy is readiness-policy/2, so the v1 rollover is retained rather than live',
+      rc.read(ROOT / rc.POLICY).get('schema') == 'readiness-policy/2' and rc.digest(ROOT / rc.POLICY) != POLICY_SHA256)
 check('policy is readiness-policy/1 with only supported worktree-mode fields',
       policy.get('schema') == 'readiness-policy/1'
       and set(policy) == {'schema', 'repository', 'sources', 'worktree', 'gates', 'not_applicable', 'extensions'})
@@ -152,14 +159,16 @@ text = request.read_text() if request.is_file() else ''
 check('unsigned approval request names this policy digest and goal revision',
       POLICY_SHA256 in text and GOAL_REVISION in text and 'unsigned' in text.lower())
 
-# Contract acceptance in this checkout against a simulated worktree observation.
+# Contract acceptance of the retained bytes in this checkout against a simulated
+# worktree observation; the fixed policy path is pointed at the retained bytes.
 # The frozen bundle pins the canonical checkout root, so only repository() root
 # equality is relaxed here; every other check runs unchanged. The observation and
 # context are simulated, ephemeral and carry no results, so every gate must stay
 # unproven.
 observed = dict(WORKTREE, common_dir='simulated', head='simulated', branch=BRANCH['branch'],
                 target_revision='simulated', state_sha256='simulated')
-original = rc.repository
+original, original_policy = rc.repository, rc.POLICY
+rc.POLICY = S01_RETAINED
 rc.repository = lambda value, root: rc.require(isinstance(value, dict) and rc.ID.fullmatch(value.get('id', '')), 'repository_id_required')
 try:
     sim = {'schema': 'readiness-context/1', 'repository': bundle['repository'],
@@ -182,7 +191,7 @@ try:
     check('a short-name binding is refused as worktree_branch_target_mismatch',
           raised(lambda: rc.typed_gate(ROOT, bundle, short, sim, worktree=observed)) == 'worktree_branch_target_mismatch')
 finally:
-    rc.repository = original
+    rc.repository, rc.POLICY = original, original_policy
 
 print('Results: PASS=%d FAIL=%d' % (passes, len(failures)))
 raise SystemExit(1 if failures else 0)
