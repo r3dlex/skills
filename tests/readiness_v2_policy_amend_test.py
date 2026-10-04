@@ -472,6 +472,19 @@ class ReviewRoundOneAmendmentTests(unittest.TestCase):
         self.assertNotEqual(v2.generation_v2(**digests), entry['generation'])
         self.assertEqual(v2.generation_v2(amends_policy_sha256=live_sha, **digests), entry['generation'])
 
+    def test_the_candidates_own_mode_never_governs_its_approval(self):
+        repo = self.repository('ssh-to-prompt', accept=('ssh-tag', 'in-session'), default_mode='ssh-tag')
+
+        def to_prompt(candidate):
+            candidate['approval'].update(accept=['in-session', 'ssh-tag'], default_mode='prompt')
+        self.amendment(repo, to_prompt)
+        repo.approve(AMEND, 'ssh-tag')
+        exit_code, context = repo.admit(AMEND, 'PA')
+        self.assertEqual(exit_code, 0, json.dumps(context['gaps'], indent=1))
+        self.assertEqual(context['assurance'], 'key-held')
+        repo.approve(AMEND, 'in-session')  # in both accept lists, but the live ssh-tag mode admits only ssh-tag
+        self.assertIn('approval_form_refused_by_mode', codes(repo.admit(AMEND, 'PA')[1]))
+
     def test_an_amendment_may_not_move_the_branch_namespace(self):
         repo = self.repository('pattern')
         candidate = repo.live()

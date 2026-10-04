@@ -228,6 +228,13 @@ class ModeTests(unittest.TestCase):
                 'anchor_sha256': 'a' * 64, 'max_age_days': 14, 'accept': ['ssh-tag', 'agent-self'], 'default_mode': 'ssh-tag'}))
         self.assertEqual(v2.code(raised.exception), 'policy_default_mode_inconsistent')
 
+    def test_ssh_tag_mode_admits_only_ssh_tag(self):
+        signed = self.fixture('ssh-only', 'ssh-tag', ('ssh-tag', 'in-session'))
+        signed.approve('ssh-tag')
+        self.admitted(signed, 'key-held')
+        signed.approve('in-session')
+        self.refused(signed, 'approval_form_refused_by_mode')
+
     def test_policy_without_default_mode_keeps_its_semantics(self):
         plain = self.fixture('plain', None, ('ssh-tag', 'in-session'))
         self.assertNotIn('default_mode', json.loads((plain.work / core.POLICY).read_text())['approval'])
@@ -440,6 +447,11 @@ class DocumentationTests(unittest.TestCase):
             self.assertMentions(relative, 'A bootstrap generation cannot recover by re-signing',
                                 'republish its unmerged goals', 'finish its bootstrap plans before any amendment')
         self.assertMentions('04-validate-handoff/autobahn/modules/readiness-v2.md',
+                            '`pr_head_moved`', 'only when every fetch of the PR head fails outright',
+                            'can hide an edit to an active goal\'s scope', 'no detective control until ACH-S-06',
+                            'must be an exact single-generation publish-v2 replay, up to date with',
+                            'Re-signing an approval tag flags certificates issued under the earlier tag',
+                            '`ssh-tag`: only ssh-tag', 'never governs the approval of that same candidate',
                             '`goal_reserved_path`', '`amendment_base_moved`', '`amends_policy_sha256`',
                             '`branch_pattern_change_refused`', '`assurance_mismatch`', '`pr_base_not_target`',
                             '`v2_diff_unobservable`', 'only in-session')
