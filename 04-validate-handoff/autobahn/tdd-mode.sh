@@ -28,7 +28,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-python3 - "$GOAL" "$COVERAGE" "$LEGACY_RISK" "$LEGACY_RISK_REASON" <<'PY'
+python3 -I -B - "$GOAL" "$COVERAGE" "$LEGACY_RISK" "$LEGACY_RISK_REASON" <<'PY'
 import json, sys
 
 goal_path, coverage_arg, risk_arg, risk_reason_arg = sys.argv[1:]

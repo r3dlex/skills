@@ -1,0 +1,127 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[AC-6, P6] v2 admission from a registered linked worktree of the same git common-dir succeeds with no policy edit; tests/readiness_v2_identity_test.py (discover...",
+      "green": {
+        "at": "2026-10-04T15:35:21Z",
+        "commit": "6727bf0210a23de001b1e2388c97ab161c3514b2",
+        "exit_code": 0,
+        "output_sha256": "b079915dd0a1c50e918fcbdc5411ce421151f9359929bfc5b895d8b8a12b7932"
+      },
+      "note": "characterization: linked-worktree admission already held on the base; the test pins it",
+      "red": {
+        "at": "2026-10-04T15:37:52Z",
+        "exit_code": 0,
+        "output_sha256": "877b2bf40d9a8a2ecfa16a60a83a1b60902ccf8480b7dd0847fa05d3c181abb1"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_identity_test.py LinkedWorktreeAdmissionTests CertificateIdentityTests.test_a_linked_worktree_certificate_merges_from_the_primary_checkout"
+    },
+    {
+      "ac": 2,
+      "criterion": "[P6, G3, AC-2] The certificate binds the observed common-dir and merge-authority.sh refuses when the merge-time common-dir differs; an unregistered worktree, a ...",
+      "green": {
+        "at": "2026-10-04T15:35:31Z",
+        "commit": "6727bf0210a23de001b1e2388c97ab161c3514b2",
+        "exit_code": 0,
+        "output_sha256": "df7f86ec0450c076aaa41e94e1d315617fe75b043d177288a4f5ed7b965f853d"
+      },
+      "red": {
+        "at": "2026-10-04T15:37:58Z",
+        "exit_code": 1,
+        "output_sha256": "02454b06ccf8000e2d5bd0b4b9e8b8dc93343534dafbc888fdefaa89a98f7eab"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_identity_test.py IdentityRefusalTests CertificateIdentityTests.test_merge_refuses_when_the_merge_time_common_dir_differs CertificateIdentityTests.test_merge_refuses_git_environment_injection"
+    },
+    {
+      "ac": 3,
+      "criterion": "[G3] The observer snapshots worktree state (reusing #92's worktree_observation read-only) before and after gate commands; any change refuses with worktree_chang...",
+      "green": {
+        "at": "2026-10-04T15:35:43Z",
+        "commit": "6727bf0210a23de001b1e2388c97ab161c3514b2",
+        "exit_code": 0,
+        "output_sha256": "4be3cdaa413ac1f3723b27f0abf065e94379b6e5a1d99db7e44b184f2c8659f7"
+      },
+      "red": {
+        "at": "2026-10-04T15:38:13Z",
+        "exit_code": 1,
+        "output_sha256": "9bc863ed499c97eae83b543a15931e971adcfb72f519d2ce8c59befea61b9b0b"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_identity_test.py WorktreeSnapshotTests"
+    },
+    {
+      "ac": 4,
+      "criterion": "[G5] v2 never reads policy.worktree: a policy/2 carrying a worktree field is refused as unknown; #92's v1 worktree mode and its three tests pass unmodified, and...",
+      "green": {
+        "at": "2026-10-04T15:35:58Z",
+        "commit": "6727bf0210a23de001b1e2388c97ab161c3514b2",
+        "exit_code": 0,
+        "output_sha256": "d75375c14c56e537393ff39552e2728db3bec440cd95faf2fec0098a73d0b67d"
+      },
+      "note": "characterization: G5 already held on the base (policy_unknown_field, v1 bytes); the test pins it",
+      "red": {
+        "at": "2026-10-04T15:38:23Z",
+        "exit_code": 0,
+        "output_sha256": "f3e630cddc7a7507c3e472d094a220a2a582cbf10967bb9791c5c855b74de2e1"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_identity_test.py SupersedesV1WorktreeTests && bash tests/readiness_worktree_test.sh && bash tests/autobahn_worktree_run_gates_test.sh && bash tests/autobahn_worktree_driver_integration_test.sh"
+    },
+    {
+      "ac": 5,
+      "criterion": "[G3, AC-2, P8] The embedded Python of the five local gate scripts starts isolated: tdd-evidence.sh:82 and :116, tdd-mode.sh:31, lint-gate.sh:77, ci-gate.sh:47 a...",
+      "green": {
+        "at": "2026-10-04T15:37:18Z",
+        "commit": "6727bf0210a23de001b1e2388c97ab161c3514b2",
+        "exit_code": 0,
+        "output_sha256": "95707b65137aad9d13e1a454d11c395101ab26827013cba86dd4badb43aa07e2"
+      },
+      "red": {
+        "at": "2026-10-04T15:39:45Z",
+        "exit_code": 1,
+        "output_sha256": "5e15eddc0d4106604c5e6ae42dbc6a460e2e3771389c4d469c42d3f5d4561902"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_shadowing_test.py && python3 -B tests/readiness_v2_core_test.py EntryPointTests.test_dependency_manifest_v2_pins_every_executable"
+    },
+    {
+      "ac": 6,
+      "criterion": "[AC-3] tests/readiness_v1_freeze_test.sh stays green; both readiness-dependency-v2.json copies and .ai/ci/local-ci.json are re-pinned; modules/worktree-executio...",
+      "green": {
+        "at": "2026-10-04T15:37:21Z",
+        "commit": "6727bf0210a23de001b1e2388c97ab161c3514b2",
+        "exit_code": 0,
+        "output_sha256": "fa9803fe928113cb8c54aa747f6b50788e9f6e4d98addc7e9aa3603aaf6d7bdc"
+      },
+      "red": {
+        "at": "2026-10-04T15:39:46Z",
+        "exit_code": 1,
+        "output_sha256": "2af2fe66c2dcedde7eef3573b745f797dc4e225bb0ccc5b145cb0fdb92228b1f"
+      },
+      "test_command": "bash tests/readiness_v1_freeze_test.sh && python3 -I -B tests/readiness_v2_identity_test.py ReleaseSurfaceTests"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "08f355259b58f0838dc0429270de96d9c55fb8b3b7067b3ab76d08931dab7d7d",
+    "assurance": "in-session",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-ach-skills-contract-v2 --goal-id ACH-S-03 --stage implementation",
+    "gaps": [],
+    "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+    "provenance": "base-copy",
+    "stage": "implementation"
+  },
+  "goal_id": "ACH-S-03",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head",
+    "red_first_commit": "e46667b (tests committed before any production change)",
+    "red_method": "detached worktree at base d72d7cbcd8c7248514acf95a34a957b92a6c87c1 with only the final tests/ checked out from the goal branch; each AC command run against the pre-implementation code",
+    "run_tests_legs": "observed by tdd-evidence.sh: red at the red-first commit, green at the implementation head"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  }
+}

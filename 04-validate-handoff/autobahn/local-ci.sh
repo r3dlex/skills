@@ -22,7 +22,14 @@ done
 CONTRACT_MODE=0
 if [[ -e "$ROOT/.ai/ci/local-ci.json" || -L "$ROOT/.ai/ci/local-ci.json" ]]; then
   CONTRACT_MODE=1
-  commands="$(python3 -B "$HERE/lib/local_ci_contract.py" "$ROOT")" \
+  # Isolated (-I -B): the PR checkout's working directory, PYTHONPATH and user
+  # site-packages never supply a module. -I also drops the script directory, so the
+  # pinned lib directory goes on sys.path explicitly and the unedited module runs
+  # through runpy.
+  commands="$(python3 -I -B -c 'import runpy, sys
+sys.path.insert(0, sys.argv[1])
+sys.argv = [sys.argv[1] + "/local_ci_contract.py", sys.argv[2]]
+runpy.run_path(sys.argv[0], run_name="__main__")' "$HERE/lib" "$ROOT")" \
     || block "explicit local CI contract failed; no workflow fallback"
 else
   commands="$(bash "$HERE/ci-gate.sh" --derive-json --root "$ROOT")" \
@@ -36,7 +43,7 @@ trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 chmod 600 "$record" || block "could not protect the temporary verification record"
 
-CONTRACT_MODE="$CONTRACT_MODE" COMMANDS="$commands" RECORD="$record" python3 -B - <<'PY' \
+CONTRACT_MODE="$CONTRACT_MODE" COMMANDS="$commands" RECORD="$record" python3 -I -B - <<'PY' \
   || block "structured local commands were malformed"
 import json
 import os

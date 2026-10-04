@@ -78,3 +78,47 @@ hashes and supporting local validation grant neither operation nor merge
 authority. Independently verify exact policy/subject/goal/stage authority before
 dispatch; require independent reviews, exact-head hosted and local CI, fresh
 merge admission and the host's fail-closed merge boundary before merging.
+
+## readiness-contract/2: observed identity
+
+The sections above are v1 (#92) and stay byte-identical; v2 supersedes the
+approach without overriding it. For a handoff registered in
+`.ai/workflows/northstar-readiness-v2.json`:
+
+- **No policy binding.** v2 never reads `policy.worktree`. A
+  `readiness-policy/2` carrying a `worktree` field is refused as
+  `policy_unknown_field`, and `run-gates.sh` refuses `--worktree-root`,
+  `--base-commit` and `--context` with a v2 selection.
+- **Observed identity.** A repository is the policy's `repository.id` plus the
+  observed `git rev-parse --git-common-dir`. Pass the checkout you work in as
+  `--root`: the primary checkout and every registered linked worktree of one
+  common directory admit against one unchanged policy. The path is
+  informational. The observer refuses each alias with its own code:
+  - `identity_git_env_injected`: `GIT_DIR`, `GIT_COMMON_DIR`, `GIT_WORK_TREE`,
+    `GIT_INDEX_FILE` or `GIT_OBJECT_DIRECTORY` is set. `contract-run-v2.sh` passes
+    them through only so that the observer refuses them; no command the observer
+    starts receives them.
+  - `identity_root_symlinked`: `--root` is reached through a symlink.
+  - `identity_bare_repository`: `--root` is a bare repository.
+  - `identity_root_not_toplevel`: `--root` is below the top level.
+  - `identity_worktree_unregistered`: the common directory does not list
+    `--root`, as with a copied worktree.
+- **Certificate.** `merge-certificate/1` binds the observed common directory. A
+  certificate issued in one worktree merges from any worktree of the same
+  common directory at the same head; `merge-authority.sh` refuses
+  `certificate_common_dir_mismatch` when the merge-time common directory differs.
+- **Worktree snapshot.** Every v2 admission records `facts.worktree_state`: HEAD,
+  the raw index digest and the state of every path under `--root`, ignored and
+  untracked included. For a registered linked worktree on a branch it is the
+  `state_sha256` of #92's `worktree_observation`, imported read-only. Every other
+  root is walked with the same rows. The certificate re-snapshots after the local
+  gates, and `run-gates.sh` admits again after its gates. Any change refuses with
+  `worktree_changed_during_gates`. Merge also requires the index and the
+  working tree to equal the HEAD tree (`tree_not_clean`).
+- **Isolated gates.** The embedded Python of `tdd-evidence.sh`, `tdd-mode.sh`,
+  `lint-gate.sh`, `ci-gate.sh` and `local-ci.sh` runs as `python3 -I -B`, so a PR
+  checkout's working directory, `PYTHONPATH` and user site-packages never supply
+  a module. `local-ci.sh` runs the unedited `lib/local_ci_contract.py` with
+  `python3 -I -B -c`, which puts the pinned `lib` directory on `sys.path` and
+  runs the module through `runpy`. The five scripts and the module are pinned in
+  `readiness-dependency-v2.json`.

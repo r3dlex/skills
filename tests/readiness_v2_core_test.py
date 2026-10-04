@@ -760,7 +760,9 @@ class EntryPointTests(unittest.TestCase):
         self.assertEqual(set(autobahn['files']), {
             'lib/readiness_contract_v2.py', 'lib/observer.py', 'lib/readiness_contract.py', 'lib/verification.py',
             'schemas/readiness-contract-v2.json', 'contract-run.sh', 'contract-run-v2.sh', 'run-gates.sh',
-            'merge-authority.sh', 'prereq-check.sh', 'migrate-handoff.sh', 'northstar/handoff-write.sh'})
+            'merge-authority.sh', 'prereq-check.sh', 'migrate-handoff.sh', 'northstar/handoff-write.sh',
+            # ACH-S-03: the five local gate scripts and the local CI contract module they run.
+            'tdd-evidence.sh', 'tdd-mode.sh', 'lint-gate.sh', 'ci-gate.sh', 'local-ci.sh', 'lib/local_ci_contract.py'})
         for name, expected in autobahn['files'].items():
             path = NORTH / 'handoff-write.sh' if name == 'northstar/handoff-write.sh' else AUTO / name
             self.assertEqual(sha(path), expected, name)

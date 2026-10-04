@@ -79,7 +79,7 @@ record() {
   mkdir -p "$EVIDENCE_DIR" || die "cannot create $EVIDENCE_DIR"
 
   EVIDENCE="$EVIDENCE" GOAL="$GOAL" LEG="$leg" COMMAND="$COMMAND" EXIT_CODE="$actual" \
-  python3 - <<'PY' || die "could not write evidence"
+  python3 -I -B - <<'PY' || die "could not write evidence"
 import json, os
 from pathlib import Path
 
@@ -113,7 +113,7 @@ esac
 # --- verify -----------------------------------------------------------------
 [[ -f "$EVIDENCE" ]] || die "no TDD evidence for goal '$GOAL' at $EVIDENCE"
 
-EVIDENCE="$EVIDENCE" python3 - <<'PY'
+EVIDENCE="$EVIDENCE" python3 -I -B - <<'PY'
 import json, os, sys
 from pathlib import Path
 
