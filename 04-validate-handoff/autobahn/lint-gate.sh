@@ -74,7 +74,7 @@ fi
 if [[ -f "$ROOT/package.json" ]]; then
   # Three outcomes: has a lint script, has none, or is unreadable. Only the
   # first two are answers; the third must not be read as "no policy".
-  PKG="$ROOT/package.json" python3 - <<'PY'
+  PKG="$ROOT/package.json" python3 -I -B - <<'PY'
 import json, os, sys
 from pathlib import Path
 try:

@@ -44,7 +44,7 @@ done
 # that guesses at a construct it does not understand produces a command list
 # that looks authoritative and is wrong.
 derive_commands() {
-  ROOT="$ROOT" DERIVE_FORMAT="$1" python3 - <<'PY'
+  ROOT="$ROOT" DERIVE_FORMAT="$1" python3 -I -B - <<'PY'
 import json, os, re, sys
 from pathlib import Path
 
@@ -372,7 +372,7 @@ fi
 
 # The array is goal-record data, not shell source. Validate the complete plan,
 # including every cwd, script, and executable, before starting any subprocess.
-AUTOBAHN_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib" ROOT="$ROOT" RECORD="$RECORD" python3 -B - <<'PY'
+AUTOBAHN_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib" ROOT="$ROOT" RECORD="$RECORD" python3 -I -B - <<'PY'
 import json, os, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, os.environ['AUTOBAHN_LIB'])
