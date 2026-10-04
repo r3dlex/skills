@@ -315,9 +315,28 @@ if [[ -z "$WORKTREE_ROOT" && "$MAPPED_RUN" == "no" && ( "$PHASE" == "pre-merge" 
     --context "$CONTEXT" --stage merge --execution-record "$RECORD" || exit 1
 fi
 
+# G3: every v2 admission carries the observer's worktree snapshot (facts.worktree_state).
+# The run admits again after its gates, and any change refuses with
+# worktree_changed_during_gates.
+V2_SNAPSHOT=""
+v2_admission() {
+  local report status snapshot
+  report="$(bash "$HERE/contract-run.sh" admit-v2 --root "$ROOT" --handoff "$HANDOFF" --goal-id "$GOAL_ID" \
+    --stage implementation --target "$TARGET")"
+  status=$?
+  printf '%s\n' "$report"
+  [[ "$status" -eq 0 ]] || return 1
+  snapshot="$(printf '%s' "$report" | python3 -I -B -c 'import json, sys
+print(json.dumps(json.load(sys.stdin)["observation"]["facts"]["worktree_state"]["value"], sort_keys=True))')" \
+    || return 1
+  if [[ -n "$V2_SNAPSHOT" && "$snapshot" != "$V2_SNAPSHOT" ]]; then
+    echo "run-gates: BLOCKED - worktree_changed_during_gates: the worktree changed while the gates ran" >&2
+    return 1
+  fi
+  V2_SNAPSHOT="$snapshot"
+}
 if [[ "$V2_RUN" == "yes" ]]; then
-  gate "v2 implementation admission" bash "$HERE/contract-run.sh" admit-v2 --root "$ROOT" \
-    --handoff "$HANDOFF" --goal-id "$GOAL_ID" --stage implementation --target "$TARGET" || exit 1
+  gate "v2 implementation admission" v2_admission || exit 1
 fi
 
 if [[ "$PHASE" == "pre-commit" || "$PHASE" == "all" || "$PHASE" == "local-validation" ]]; then
@@ -334,6 +353,9 @@ fi
 # instruction changes invalidate the run, even if the individual gates passed.
 if [[ -n "$WORKTREE_ROOT" ]]; then
   gate "worktree readiness recheck" worktree_admission
+fi
+if [[ "$V2_RUN" == "yes" ]]; then
+  gate "v2 worktree recheck" v2_admission
 fi
 
 echo ""

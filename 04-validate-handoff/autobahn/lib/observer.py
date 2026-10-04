@@ -31,11 +31,13 @@ import unicodedata
 from datetime import datetime, timedelta, timezone
 
 import readiness_contract_v2 as v2
-from readiness_contract import Invalid, canonical, read as read_json
+from readiness_contract import Invalid, canonical, read as read_json, worktree_observation
 from verification import validate as validate_commands, VerificationError
 
 HERE = Path(__file__).resolve().parents[1]
 PASS_THROUGH = ('PATH', 'LANG', 'LC_ALL', 'TMPDIR', 'SSH_AUTH_SOCK', 'GH_TOKEN')
+# Git repository selection that would redirect what git observes; set in the caller it refuses (P6).
+IDENTITY_ENV = ('GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY')
 GIT_SETTINGS = {'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_NO_REPLACE_OBJECTS': '1',
                 'GIT_OPTIONAL_LOCKS': '0'}
 OPERATIONS = ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2')
@@ -149,6 +151,34 @@ def parse_json(data, label):
 def state_dir(root):
     common = Path(git_text(root, 'rev-parse', '--path-format=absolute', '--git-common-dir'))
     return common / 'ai-catapult' / 'observer'
+
+
+def common_dir(root):
+    return str(Path(git_text(root, 'rev-parse', '--path-format=absolute', '--git-common-dir')).resolve())
+
+
+def registered_worktrees(root):
+    """Every worktree the common directory lists, the primary checkout first."""
+    listed = git(root, 'worktree', 'list', '--porcelain', '-z').stdout.split(b'\0')
+    return [Path(os.fsdecode(entry[len(b'worktree '):])) for entry in listed if entry.startswith(b'worktree ')]
+
+
+def observed_root(value):
+    """P6: the root whose identity is observed. Identity is the policy's repository.id plus the
+    observed git common directory, so the primary checkout and every registered linked worktree
+    of one common directory match; the path itself is informational. Refused, each with its own
+    code: git repository selection in the environment (identity_git_env_injected), a path through
+    a symlink (identity_root_symlinked), a bare repository (identity_bare_repository), a directory
+    below the top level (identity_root_not_toplevel) and a worktree the common directory does not
+    list (identity_worktree_unregistered)."""
+    injected = sorted(name for name in IDENTITY_ENV if name in os.environ)
+    v2.check(not injected, 'identity_git_env_injected', ', '.join(injected) + ' would redirect what git observes')
+    root = Path(os.path.abspath(value))
+    v2.check(root == root.resolve(strict=True), 'identity_root_symlinked', str(root))
+    v2.check(git_text(root, 'rev-parse', '--is-bare-repository') == 'false', 'identity_bare_repository', str(root))
+    v2.check(Path(git_text(root, 'rev-parse', '--show-toplevel')) == root, 'identity_root_not_toplevel', str(root))
+    v2.check(root in {path.resolve() for path in registered_worktrees(root)}, 'identity_worktree_unregistered', str(root))
+    return root
 
 
 def fact(value, source, commit, now):
@@ -713,14 +743,71 @@ def tree_state(root):
     return head, True
 
 
+def worktree_rows(root):
+    """The canonical digest of #92's worktree_observation rows for every tracked or present path
+    under root, ignored and untracked included: [path, mode, sha256], [path, 'directory', mode], or
+    [path, 'deleted'] for a tracked path that is gone. Where v1 refuses, a symlink is recorded as
+    [path, 'symlink', target] (never followed) and any other file as [path, 'nonregular', type]."""
+    def unreadable(error):
+        raise Invalid('worktree_unobservable:' + str(error))
+    paths = {os.fsdecode(p) for p in git(root, 'ls-files', '--cached', '-z').stdout.split(b'\0') if p}
+    for directory, directories, names in os.walk(root, onerror=unreadable):
+        if Path(directory) == Path(root):
+            directories[:] = [d for d in directories if d != '.git']
+            names = [n for n in names if n != '.git']
+        paths.update(Path(directory, n).relative_to(root).as_posix() for n in names)
+        paths.update(Path(directory, d).relative_to(root).as_posix() for d in directories if Path(directory, d).is_symlink())
+    rows = []
+    for name in sorted(paths):
+        path = Path(root, name)
+        try:
+            mode = os.lstat(path).st_mode
+        except (FileNotFoundError, NotADirectoryError):
+            rows.append([name, 'deleted'])
+            continue
+        if stat.S_ISLNK(mode):
+            rows.append([name, 'symlink', os.readlink(path)])
+        elif stat.S_ISDIR(mode):
+            rows.append([name, 'directory', stat.S_IMODE(mode)])
+        elif stat.S_ISREG(mode):
+            rows.append([name, stat.S_IMODE(mode), v2.sha256(path.read_bytes())])
+        else:
+            rows.append([name, 'nonregular', stat.S_IFMT(mode)])
+    return canonical(rows)
+
+
+def v1_worktree_state(root, head):
+    """#92's worktree_observation (v1, read-only) of a registered linked worktree on a branch, or
+    None where it does not apply: the primary checkout, a detached HEAD, no origin/main, or a tree
+    v1 refuses."""
+    linked = Path(git_text(root, 'rev-parse', '--absolute-git-dir')).resolve() != Path(common_dir(root))
+    base = git(root, 'merge-base', head, 'refs/remotes/origin/main', check=False)
+    if not linked or git(root, 'symbolic-ref', '--quiet', 'HEAD', check=False).returncode or base.returncode:
+        return None
+    try:
+        return worktree_observation(registered_worktrees(root)[0], Path(root), base.stdout.decode().strip())['state_sha256']
+    except (Invalid, OSError):
+        return None
+
+
+def worktree_snapshot(root):
+    """G3: the worktree state compared before and after gate commands: HEAD, the raw index and the
+    state of every path under root. A registered linked worktree on a branch is observed by #92's
+    worktree_observation itself; every other root is walked with the same rows (worktree_rows), so
+    one tree has one digest whichever worktree of the common directory holds it."""
+    head = git_text(root, 'rev-parse', '--verify', 'HEAD^{commit}')
+    return {'head': head, 'index_sha256': v2.sha256(git(root, 'ls-files', '--stage', '-z').stdout),
+            'state_sha256': v1_worktree_state(root, head) or worktree_rows(root)}
+
+
 def observe(root, ref, gen, goals, stage, adapter, now, pr=None, review_record=None):
     policy, bundle = gen['policy'], gen['bundle']
     head = git_text(root, 'rev-parse', '--verify', 'HEAD^{commit}')
     target = git_text(root, 'rev-parse', '--verify', ref + '^{commit}')
     branch = git(root, 'symbolic-ref', '--quiet', 'HEAD', check=False).stdout.decode().strip() or None
-    common = git_text(root, 'rev-parse', '--path-format=absolute', '--git-common-dir')
-    facts = {'repository': fact({'id': policy['repository']['id'], 'common_dir': str(Path(common).resolve()),
-                                 'root': str(root), 'head': head, 'branch': branch}, 'git', head, now)}
+    facts = {'repository': fact({'id': policy['repository']['id'], 'common_dir': common_dir(root),
+                                 'root': str(root), 'head': head, 'branch': branch}, 'git', head, now),
+             'worktree_state': fact(worktree_snapshot(root), 'git+filesystem', head, now)}
     for source in policy['sources']:
         data = show(root, 'HEAD', source)
         facts['source:' + source] = fact(v2.sha256(data) if data is not None else None, 'git:HEAD', head, now)
@@ -903,7 +990,7 @@ def admission_inputs(root, ref, handoff, goals, stage, adapter, now, pr=None, re
 
 
 def op_admit(args, now, adapter):
-    root = Path(args.root).resolve(strict=True)
+    root = observed_root(args.root)
     ref = target_ref(args.target)
     origin = checked_provenance(root, args.target)
     adapter = adapter or hosted_adapter_factory(root)
@@ -1097,9 +1184,9 @@ def issue_agent_approval(root, gen, fields, publication, origin):
 
 
 def run_local_gates(root, goal):
-    # Gate scripts start `python3 -` from their cwd, so sys.path[0] is the cwd. They
-    # therefore run from a fresh empty directory and receive the PR checkout only
-    # through --root: a PR-root json.py can never stand in for a gate's own code.
+    # Gate scripts start their embedded Python isolated (python3 -I -B), and they also run
+    # from a fresh empty directory and receive the PR checkout only through --root: a
+    # PR-root json.py can never stand in for a gate's own code.
     with tempfile.TemporaryDirectory(prefix='observer-') as tmp:
         home = Path(tmp) / 'home'
         home.mkdir()
@@ -1141,6 +1228,9 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
     goal = next(g for g in gen['bundle']['goals'] if g['id'] == goal_id)
     gates = run_local_gates(root, goal) if not refusals and clean_before and pull['head'] == head_before else []
     head_after, clean_after = tree_state(root)
+    # G3: the snapshot admission took before the gates must still hold after them.
+    if worktree_snapshot(root) != facts['worktree_state']['value']:
+        refusals.append('worktree_changed_during_gates')
     policy_goal = v2.policy_goals(gen['bundle'])[0] if gen['mode'] in v2.POLICY_MODES and v2.policy_goals(gen['bundle']) else None
     head_policy = show(root, 'HEAD', v2.POLICY)
     refusals += v2.certificate_refusals({
@@ -1177,7 +1267,7 @@ def certificate_path(root, plan_id, goal_id, pr, head):
 
 
 def op_certify(args, now, adapter):
-    root = Path(args.root).resolve(strict=True)
+    root = observed_root(args.root)
     ref = target_ref(args.target)
     origin = checked_provenance(root, args.target)
     adapter = adapter or hosted_adapter_factory(root)
@@ -1717,6 +1807,7 @@ def op_merge(args, now, adapter):
     if type(adapter) is not GhAdapter:
         return refused('adapter_not_production', adapter.name)
     result['provenance'] = origin
+    root = observed_root(root)
     pull = adapter.pull(args.pr)
     gen = load_generation(root, ref, found['handoff'])
     path = certificate_path(root, gen['bundle']['id'], found['goal_id'], args.pr, pull['head'])
@@ -1731,6 +1822,10 @@ def op_merge(args, now, adapter):
     if not (signed['principal'] and signed['verified'] and v2.NS_CERTIFICATE in signed['namespaces']
             and v2.NS_APPROVAL not in signed['namespaces']):
         return refused('certificate_signature_invalid', str(signed['principal']))
+    certified, observed = stored.get('repository') if isinstance(stored.get('repository'), dict) else {}, common_dir(root)
+    if certified.get('common_dir') != observed:
+        return refused('certificate_common_dir_mismatch',
+                       'certified in %s, merging from %s' % (certified.get('common_dir'), observed))
     result['assurance'] = stored.get('assurance')
     result['notices'] = v2.policy_change_notices(stored.get('assurance'), gen['mode'])
     inputs, _ = admission_inputs(root, ref, found['handoff'], [found['goal_id']], 'merge', adapter, now)

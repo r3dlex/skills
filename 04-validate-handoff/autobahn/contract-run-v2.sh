@@ -12,6 +12,10 @@
 # are set from the passwd home directory, never inherited, so keyring-authenticated
 # gh keeps working; everything else (GH_HOST, GH_REPO, GIT_*, SKIP_*, waivers) is
 # dropped. Unknown arguments exit 2. No text, flag or variable maps to a waiver.
+# The git repository selection variables (GIT_DIR, GIT_COMMON_DIR, GIT_WORK_TREE,
+# GIT_INDEX_FILE, GIT_OBJECT_DIRECTORY) pass through only so the observer refuses an
+# identity observation they would redirect (identity_git_env_injected); no command
+# the observer starts ever receives them.
 #
 # No heredoc, here-string or temporary file is used here, so merge-authority.sh
 # still reaches a decision without a writable TMPDIR.
@@ -20,7 +24,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PASSWD_HOME="$(python3 -I -B -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)')"
 ALLOWED=("PATH=${PATH:-/usr/bin:/bin}" "HOME=$PASSWD_HOME" "GH_CONFIG_DIR=$PASSWD_HOME/.config/gh")
-for name in LANG LC_ALL TMPDIR SSH_AUTH_SOCK GH_TOKEN; do
+for name in LANG LC_ALL TMPDIR SSH_AUTH_SOCK GH_TOKEN GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY; do
   if [[ -n "${!name+set}" ]]; then
     ALLOWED+=("$name=${!name}")
   fi
@@ -30,7 +34,8 @@ import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 expected = {"lib/readiness_contract_v2.py", "lib/observer.py", "lib/readiness_contract.py", "lib/verification.py",
             "schemas/readiness-contract-v2.json", "contract-run.sh", "contract-run-v2.sh", "run-gates.sh",
-            "merge-authority.sh", "prereq-check.sh", "migrate-handoff.sh", "northstar/handoff-write.sh"}
+            "merge-authority.sh", "prereq-check.sh", "migrate-handoff.sh", "northstar/handoff-write.sh",
+            "tdd-evidence.sh", "tdd-mode.sh", "lint-gate.sh", "ci-gate.sh", "local-ci.sh", "lib/local_ci_contract.py"}
 def fail(message):
     print(json.dumps({"schema": "readiness-contract/2", "error": "dependency_failed:" + message,
                       "refusals": [{"code": "dependency_failed", "detail": message}]}))
