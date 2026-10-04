@@ -16,17 +16,62 @@ other name stays on the v1 path.
 
 | Operation | Does |
 | --- | --- |
-| `publish-v2 --root R --bundle B --sidecar S [--policy-candidate C]` | Writes `goals.json`, `graph.json`, `handoff.md`, `sidecar.json` and an optional `policy-candidate.json` under `.ai/handoff/readiness-v2/<plan>/<generation>/`. The registry is written last. Never touches readiness-v1 paths, and refuses holds. |
+| `publish-v2 --root R --bundle B --sidecar S [--policy-candidate C]` | Writes `goals.json`, `graph.json`, `handoff.md`, `sidecar.json` and an optional `policy-candidate.json` under `.ai/handoff/readiness-v2/<plan>/<generation>/`. The registry is written last. Never touches readiness-v1 paths, and refuses holds. A sidecar may hold only each goal's `legacy_risk_reason`: readiness and coverage default to `unknown` and `legacy_safe_tdd` to true, and a goal without a non-empty reason is refused (`legacy_risk_reason_missing`). |
+| `publish-v2 ... --admit-planning [--target T]` | What `northstar/handoff-write.sh` runs for a `handoff-goals/2` bundle. Planning-stage admission against the simulated post-merge target, then the same write. See [Planning publication](#planning-publication). |
 | `approval-request --root R --handoff H --owner O --reviewer-lane L [--assurance agent-self]` | Prints the `plan-approval/1` record, its digest, the anchor sha256, the `ssh-keygen -Y sign` and `git tag` commands, and the in-session fallback labelled `assurance: in-session`. It never signs and never writes. With `--assurance agent-self` (agent mode) it issues the record itself: signed with the agent key under `ai-catapult-agent-approval`, with the tag message and `git tag` commands printed. It still never writes or pushes the tag. |
+| `approval-request ... --mode default\|agent\|prompt\|ssh-tag`, `approval-request --root R --handoff H --confirm D` | What `northstar/approve.sh` runs: one request in the governing mode, after an anchor preflight that prints the human setup steps when the anchor is missing. See [approval](../../../02-govern-plan/northstar/modules/approval.md). |
 | `admit-v2 --root R --handoff H --goal-id G --stage S` | Rebuilds `readiness-context/2` from fresh observation plus the verified approval, and exits 0 only when admitted. A supplied `--context`, `--observation` or `--verdict` is only compared with the rebuilt one; any difference refuses. |
+| `context-build --root R --handoff H --goal-id G --stage S [--context C]` | The same builder as `admit-v2` (one handler): prints `readiness-context/2` and exits 0 only when admitted. Without a verified approval, or when blocked, `authority` states that the context carries none. A supplied `--context` that differs from the rebuilt one refuses. |
 | `certify-v2` (through `run-gates.sh --phase pre-merge --pr N --review-record F`) | Issues an agent-signed `merge-certificate/1` and stores it in observer state. |
 | `merge-v2` (through `merge-authority.sh --pr N [--admin]`) | Re-observes every certificate claim, then merges with `gh pr merge --match-head-commit`. |
 | `inventory-v1 --root R` | Decides the fate of every v1 registry entry on `origin/<target>` (O10), the one implementation every policy goal uses. See [v1 inventory](#v1-inventory). Exits 1 while any entry is in flight. |
 | `audit-merges --root R --handoff H` | Lists merged PRs through the production adapter (fails closed at 200). It flags each goal-branch PR whose merged head has no certificate (`merged_without_certificate`), has a certificate not signed by an agent principal with the certificate role (`certificate_signature_invalid`), or was certified at another head (`certified_head_mismatch`). For each PR it reports the approval digest, assurance and `lane_independence`. Exits 1 when anything is flagged, 4 when unobservable. |
 
-`context-build` and `export-evidence` are reserved names. They exit 2 until the
-goals that deliver them land. Timing checks in `audit-merges`
-(check completion and approval expiry against `mergedAt`) also arrive later.
+`export-evidence` is a reserved name; it exits 2 until ACH-S-06 lands. Timing checks in
+`audit-merges` (check completion and approval expiry against `mergedAt`) also arrive later.
+
+**Blocked admissions (proceed semantics).** A context that is not admitted carries no
+authority: `authority` is `plan-approval/1` only when admitted, even when the approval
+itself verified. Every gap names its `code`, `detail`, `goal`, `gate`, `fact` (the observed
+fact, such as `tool:git`, `ancestor:<commit>` or `dependency:<goal>`), `source` and
+`recovery`. The gaps are ordered by code, goal, gate, fact, detail and source, without
+duplicates, and stderr prints them once as one consolidated report. A dependency is
+complete only when its goal-branch PR merge commit reaches `origin/<target>`, for every
+ancestor in the dependency chain; no receipt or flag stands in for it.
+
+## Planning publication
+
+`publish-v2 --admit-planning` (from `handoff-write.sh`) refuses unless `origin/<target>`
+equals `git ls-remote` (`target_ref_rewound`). Under the publication lock it then:
+
+1. computes the publication exactly as `publish-v2` does, plus publish-time checks that
+   registered generations never meet: literal scope paths (`bundle_scope_unsafe`), `bash
+   tests/...` verification scripts present at the base (`verification_not_at_base`), no
+   goal branch shared with another active plan (`goal_branch_collision`), and a working-tree
+   registry equal to the target's (`publication_base_mismatch`);
+2. builds the simulated post-merge target: a throwaway repository that borrows the root's
+   objects read-only, whose `origin/<target>` and detached HEAD are one deterministic commit
+   of the target plus exactly the registry, the generation files and the spec copy;
+3. runs planning-stage admission of every goal there, with a hosted adapter that sees no
+   goal-branch PR (`planning-simulation`), since none can descend from a commit that does not
+   exist yet;
+4. writes, registry last, only when no gap blocks.
+
+Gaps are classified by kind, never by gate stage, in `context.planning` and in the
+`northstar-publication/2` result:
+
+- **approval**: `approval_*`, `plan_approval_missing` and `ownership_unresolved`;
+- **deferred**: `branch_target_mismatch`, `pr_required`, `check_*`,
+  `protection_check_unsatisfied`, `review_lane_missing`, `threads_unobserved` and
+  `dependency_incomplete`. They are listed, and their gates report `deferred`, never `pass`;
+- **blocking**: every other code, unknown codes and `agent_self_*` included.
+
+At planning only, an anchor whose sha256 equals the policy's must satisfy an approval form
+the policy admits (through `check_form`: in-session needs no principal, ssh-tag an
+approver principal, agent-self an agent-approval principal) and hold a certifier and a
+reviewer that are distinct agent principals. Otherwise planning reports
+`anchor_role_capability_missing`, which blocks. Publishing therefore needs the real anchor
+on the publisher host.
 
 ## Inputs on the target
 
