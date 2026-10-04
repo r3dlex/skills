@@ -454,8 +454,7 @@ class ReviewRoundOneAmendmentTests(unittest.TestCase):
         live_sha = sha(repo.work / POLICY)
         loose = self.amendment(repo, lambda c: c.update(required_checks=['Optional Smoke']), plan_id='amend-loose', goal='PL')
         self.assertEqual(loose['amends_policy_sha256'], live_sha)
-        tight = self.amendment(repo, lambda c: c.update(required_checks=['Test Suite', 'Security Scan']), plan_id='amend-tight',
-                               goal='PT')
+        self.amendment(repo, lambda c: c.update(required_checks=['Test Suite', 'Security Scan']), plan_id='amend-tight', goal='PT')
         for plan_id, goal in (('amend-loose', 'PL'), ('amend-tight', 'PT')):
             self.assertEqual(repo.approve(plan_id, 'ssh-tag')[0], 0)
             self.assertEqual(repo.admit(plan_id, goal)[0], 0)
