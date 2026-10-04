@@ -1,0 +1,82 @@
+{
+  "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+  "assurance": "key-held",
+  "commands": {
+    "ssh-tag": [
+      "printf '%s' '{\"anchor_sha256\":\"8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1\",\"assurance\":\"key-held\",\"bundle_sha256\":\"5b6baa59ff13e603dbef4e04c820758854ef99090bcae601135c618323a17a1c\",\"expires_at\":\"2026-10-18T07:57:44Z\",\"generation\":\"9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527\",\"goals\":[\"ACH-S-02\",\"ACH-S-03\",\"ACH-S-04\",\"ACH-S-05\",\"ACH-S-06\"],\"issued_at\":\"2026-10-04T07:57:44Z\",\"owner\":\"Andres Silva Burgstahler\",\"plan_id\":\"ach-skills-contract-v2\",\"policy_sha256\":\"2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176\",\"reviewer_lane\":\"independent agent review lane\",\"schema\":\"plan-approval/1\",\"sidecar_sha256\":\"13da19aac9d1a99beb250e2157f27bc2046bbe6fd583d7cdedcf2833b629c3f4\",\"spec_sha256\":\"ba7431dd22b71206ecb111fc05592941d33b24b54b080e973f28d16b341e020a\",\"stages\":[\"implementation\",\"merge\"]}' > approval.json",
+      "ssh-keygen -Y sign -f <your approver key> -n ai-catapult-plan-approval approval.json",
+      "printf '%s\\nsignature: %s\\n' \"$(cat approval.json)\" \"$(base64 < approval.json.sig | tr -d '\\n')\" > approval.msg",
+      "git tag -a --cleanup=verbatim -F approval.msg approval/ach-skills-contract-v2/9b96709c9b06 \"$MERGE\"",
+      "git push origin refs/tags/approval/ach-skills-contract-v2/9b96709c9b06"
+    ]
+  },
+  "digest": "a7b15e0839ddbb9ef4158ca31ad595d5b34da7fc4380e80a50cb90d1c2cd4075",
+  "fallback": {
+    "assurance": "in-session",
+    "commands": [
+      "printf '%s\\ndigest-echo: %s\\n' '{\"anchor_sha256\":\"8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1\",\"assurance\":\"in-session\",\"bundle_sha256\":\"5b6baa59ff13e603dbef4e04c820758854ef99090bcae601135c618323a17a1c\",\"expires_at\":\"2026-10-18T07:57:44Z\",\"generation\":\"9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527\",\"goals\":[\"ACH-S-02\",\"ACH-S-03\",\"ACH-S-04\",\"ACH-S-05\",\"ACH-S-06\"],\"issued_at\":\"2026-10-04T07:57:44Z\",\"owner\":\"Andres Silva Burgstahler\",\"plan_id\":\"ach-skills-contract-v2\",\"policy_sha256\":\"2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176\",\"reviewer_lane\":\"independent agent review lane\",\"schema\":\"plan-approval/1\",\"sidecar_sha256\":\"13da19aac9d1a99beb250e2157f27bc2046bbe6fd583d7cdedcf2833b629c3f4\",\"spec_sha256\":\"ba7431dd22b71206ecb111fc05592941d33b24b54b080e973f28d16b341e020a\",\"stages\":[\"implementation\",\"merge\"]}' 08f355259b58f0838dc0429270de96d9c55fb8b3b7067b3ab76d08931dab7d7d > approval.msg",
+      "git tag -a --cleanup=verbatim -F approval.msg approval/ach-skills-contract-v2/9b96709c9b06 \"$MERGE\"",
+      "git push origin refs/tags/approval/ach-skills-contract-v2/9b96709c9b06"
+    ],
+    "digest": "08f355259b58f0838dc0429270de96d9c55fb8b3b7067b3ab76d08931dab7d7d",
+    "record": {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "assurance": "in-session",
+      "bundle_sha256": "5b6baa59ff13e603dbef4e04c820758854ef99090bcae601135c618323a17a1c",
+      "expires_at": "2026-10-18T07:57:44Z",
+      "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+      "goals": [
+        "ACH-S-02",
+        "ACH-S-03",
+        "ACH-S-04",
+        "ACH-S-05",
+        "ACH-S-06"
+      ],
+      "issued_at": "2026-10-04T07:57:44Z",
+      "owner": "Andres Silva Burgstahler",
+      "plan_id": "ach-skills-contract-v2",
+      "policy_sha256": "2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176",
+      "reviewer_lane": "independent agent review lane",
+      "schema": "plan-approval/1",
+      "sidecar_sha256": "13da19aac9d1a99beb250e2157f27bc2046bbe6fd583d7cdedcf2833b629c3f4",
+      "spec_sha256": "ba7431dd22b71206ecb111fc05592941d33b24b54b080e973f28d16b341e020a",
+      "stages": [
+        "implementation",
+        "merge"
+      ]
+    }
+  },
+  "merge_commit_derivation": "MERGE=\"$(git fetch -q origin && git log -1 --format=%H origin/main -- .ai/handoff/readiness-v2/ach-skills-contract-v2/9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527)\"",
+  "notice": "ASSURANCE: IN-SESSION - an agent-writable digest-echo record, not a signature and no hardware touch (fallback only; prefer the ssh-tag form)",
+  "provenance": "source-lane",
+  "publication_commit": "$MERGE",
+  "record": {
+    "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+    "assurance": "key-held",
+    "bundle_sha256": "5b6baa59ff13e603dbef4e04c820758854ef99090bcae601135c618323a17a1c",
+    "expires_at": "2026-10-18T07:57:44Z",
+    "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+    "goals": [
+      "ACH-S-02",
+      "ACH-S-03",
+      "ACH-S-04",
+      "ACH-S-05",
+      "ACH-S-06"
+    ],
+    "issued_at": "2026-10-04T07:57:44Z",
+    "owner": "Andres Silva Burgstahler",
+    "plan_id": "ach-skills-contract-v2",
+    "policy_sha256": "2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176",
+    "reviewer_lane": "independent agent review lane",
+    "schema": "plan-approval/1",
+    "sidecar_sha256": "13da19aac9d1a99beb250e2157f27bc2046bbe6fd583d7cdedcf2833b629c3f4",
+    "spec_sha256": "ba7431dd22b71206ecb111fc05592941d33b24b54b080e973f28d16b341e020a",
+    "stages": [
+      "implementation",
+      "merge"
+    ]
+  },
+  "schema": "plan-approval-request/1",
+  "signs": false,
+  "tag": "approval/ach-skills-contract-v2/9b96709c9b06"
+}
