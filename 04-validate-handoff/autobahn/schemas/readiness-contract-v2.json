@@ -162,6 +162,59 @@
         "verdict": {"const": "approve"},
         "issued_at": {"$ref": "#/$defs/timestamp"}
       }
+    },
+    "gap": {
+      "description": "One missing input of a consolidated report: what is missing (code, detail), where (gate, goal), which observed fact names it, its source, and the recovery. Ordered by code, goal, gate, fact, detail and source, without duplicates.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "detail", "goal", "gate", "fact", "source", "recovery"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "detail": {"type": "string"},
+        "goal": {"type": ["string", "null"]},
+        "gate": {"type": ["string", "null"]},
+        "fact": {"type": "string", "minLength": 1},
+        "source": {"type": "string", "minLength": 1},
+        "recovery": {"type": "string", "minLength": 1}
+      }
+    },
+    "planning": {
+      "description": "Planning-stage gaps by kind: the approval gap, deferred gaps (never counted as passed) and blocking gaps (unknown codes included).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["planning_complete", "approval", "deferred", "blocking"],
+      "properties": {
+        "planning_complete": {"type": "boolean"},
+        "approval": {"type": "array", "items": {"$ref": "#/$defs/gap"}},
+        "deferred": {"type": "array", "items": {"$ref": "#/$defs/gap"}},
+        "blocking": {"type": "array", "items": {"$ref": "#/$defs/gap"}}
+      }
+    },
+    "context": {
+      "description": "readiness-context/2, rebuilt by admit-v2 and context-build alike. Only authority states authority: plan-approval/1 when admitted, otherwise a none: statement, even when the approval verified.",
+      "type": "object",
+      "required": ["schema", "stage", "goals", "plan_id", "generation", "approval", "assurance", "authority", "observation", "gates", "gaps", "admitted"],
+      "properties": {
+        "schema": {"const": "readiness-context/2"},
+        "stage": {"enum": ["planning", "preparation", "implementation", "merge"]},
+        "authority": {"type": "string", "pattern": "^(plan-approval/1|none: .+)$"},
+        "gaps": {"type": "array", "items": {"$ref": "#/$defs/gap"}},
+        "planning": {"$ref": "#/$defs/planning"},
+        "admitted": {"type": "boolean"}
+      }
+    },
+    "publication": {
+      "description": "northstar-publication/2, printed by handoff-write.sh for a handoff-goals/2 bundle. It never carries authority.",
+      "type": "object",
+      "required": ["schema", "planning_complete", "published", "generation", "planning", "authority"],
+      "properties": {
+        "schema": {"const": "northstar-publication/2"},
+        "planning_complete": {"type": "boolean"},
+        "published": {"type": ["object", "null"]},
+        "generation": {"$ref": "#/$defs/sha256"},
+        "planning": {"$ref": "#/$defs/planning"},
+        "authority": {"type": "string", "pattern": "^none: "}
+      }
     }
   }
 }
