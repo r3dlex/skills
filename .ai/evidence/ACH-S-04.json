@@ -1,5 +1,173 @@
 {
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[P3, Context builder] contract-run.sh context-build exposes the same builder admission uses, producing readiness-context/2 from fresh observation plus a verifie...",
+      "green": {
+        "at": "2026-10-04T18:22:18Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "5ee217e25207125deaa175050af2ababf4f7af6462ffde1c9eb99f7b4f003b57"
+      },
+      "red": {
+        "at": "2026-10-04T17:45:30Z",
+        "exit_code": 1,
+        "output_sha256": "b51ba04f90ead9878634695d99387beb715d23500158df29181cbd25d6db7fb4"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_context_test.py ContextBuildTests && python3 -B tests/readiness_v2_core_test.py EntryPointTests.test_route_prelude_dispatches_only_v2_names EntryPointTests.test_unknown_arguments_and_proceed_text_exit_2"
+    },
+    {
+      "ac": 2,
+      "criterion": "[P4] Dependency completion is transitive: a goal is refused until every ancestor goal's PR merge commit is an ancestor of origin/<target> and admitted after, fo...",
+      "green": {
+        "at": "2026-10-04T18:22:26Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "d8ef59d97330dbf0c42bd261fd50dc0007fcf4026873fae63a0bc69f54632978"
+      },
+      "note": "partly characterization: transitive completion already held on the base; red only for the gap fact shape",
+      "red": {
+        "at": "2026-10-04T17:45:32Z",
+        "exit_code": 1,
+        "output_sha256": "58676d8a36bebc82a07320f54f9d787d19eac6fb4c4f7bb0aeb4a9e75a63ec90"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_context_test.py ContextDependencyTests"
+    },
+    {
+      "ac": 3,
+      "criterion": "[AC-5] Two v2 plans in one fixture repository are admitted concurrently, with interleaved admissions, against one policy/2 whose digest does not change.",
+      "green": {
+        "at": "2026-10-04T18:22:32Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "fdfb564c15200777daeed6ffd9bea4f9372a233858ddb69bce7bedae72c89027"
+      },
+      "note": "partly characterization: interleaved and concurrent admissions already held on the base; red from goal_branch_collision",
+      "red": {
+        "at": "2026-10-04T17:45:37Z",
+        "exit_code": 1,
+        "output_sha256": "7b013baf51b111ae5ddf390f9c218f9c91c3043b9d1013bcc071a71cc8cad40b"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_context_test.py ConcurrentPlansTests"
+    },
+    {
+      "ac": 4,
+      "criterion": "[Proceed semantics] A blocked admission emits one consolidated, deterministically ordered report listing every missing input (gate, fact, source, recovery) and ...",
+      "green": {
+        "at": "2026-10-04T18:22:38Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "b555f5bff09c255f12b3c8f5270d7a2538f3f34258580790a5842774612f16b2"
+      },
+      "red": {
+        "at": "2026-10-04T17:45:43Z",
+        "exit_code": 1,
+        "output_sha256": "0c3db583bdf4b39d15bbd22721a1d960e3a3af03b6328413d2e1675cc39ab09e"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_context_test.py ConsolidatedReportTests"
+    },
+    {
+      "ac": 5,
+      "criterion": "[AC-7, P5] handoff-write.sh given a v2 bundle runs planning-stage admission, evaluated against the simulated post-merge target (origin/<target> plus this public...",
+      "green": {
+        "at": "2026-10-04T18:22:42Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "e2e3af7c5016971c619d99ab5a93cc53ab55a0d317adf96363832b816fd2d2f2"
+      },
+      "red": {
+        "at": "2026-10-04T17:45:47Z",
+        "exit_code": 1,
+        "output_sha256": "dee46b813ca47ce820477c856fa0c3dd84497cd39a25595a60e14a37f57d2894"
+      },
+      "test_command": "python3 -I -B tests/northstar_v2_publish_test.py PlanningPublicationTests"
+    },
+    {
+      "ac": 6,
+      "criterion": "[AC-7, U3, O7] Planning-stage admission reports a named anchor role-capability gap unless the bound anchor can satisfy an approval form the policy accepts and h...",
+      "green": {
+        "at": "2026-10-04T18:22:54Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "68f1463e53372ba4a3b268049c128a0e4841d91b2b4cde8c89d5b9180b686afe"
+      },
+      "red": {
+        "at": "2026-10-04T17:45:52Z",
+        "exit_code": 1,
+        "output_sha256": "5dd4dfa9b3087ca2f2fdaacd63805b4382843efcda6972cc972536d141a995d5"
+      },
+      "test_command": "python3 -I -B tests/northstar_v2_publish_test.py AnchorCapabilityTests"
+    },
+    {
+      "ac": 7,
+      "criterion": "[Generation defaults, publish-time verification] v2 publication defaults coverage_status unknown with legacy_safe_tdd true and refuses a goal without a non-empt...",
+      "green": {
+        "at": "2026-10-04T18:22:59Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "7a294903b6230e650cfaee1bdf412b2509bad24d36c95048b81e2a2cc5268228"
+      },
+      "red": {
+        "at": "2026-10-04T17:45:56Z",
+        "exit_code": 1,
+        "output_sha256": "6c6580c9bd0a47f7ffda714fa146b6b315cd90f476d941723b6ffd16e4ff52ad"
+      },
+      "test_command": "python3 -I -B tests/northstar_v2_publish_test.py GenerationDefaultsTests"
+    },
+    {
+      "ac": 8,
+      "criterion": "[U1, O2, K2, K3, G4] approve.sh (northstar approve) records owner and reviewer lane once and is mode-aware: agent mode (agent-self, the default) issues the appr...",
+      "green": {
+        "at": "2026-10-04T18:23:05Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "dc8b2dc3da42bed26562a8891dc6a71e1c13ca3949a5d18e454cdd10fe98a31a"
+      },
+      "red": {
+        "at": "2026-10-04T17:45:58Z",
+        "exit_code": 1,
+        "output_sha256": "e9fa70350557503009b1fa7093a4802288b230bdcb1cc2eb3b3a895205197d16"
+      },
+      "test_command": "python3 -I -B tests/northstar_v2_publish_test.py ApproveTests && python3 -B tests/readiness_v2_core_test.py EntryPointTests.test_dependency_manifest_v2_pins_every_executable"
+    },
+    {
+      "ac": 9,
+      "criterion": "[Catalog, Codex parity] northstar and autobahn SKILL.md are unchanged or net-zero lines with descriptions unchanged; manifests and .ai/ci/local-ci.json are re-p...",
+      "green": {
+        "at": "2026-10-04T18:23:16Z",
+        "commit": "e87b30cbd2e55dd1e1199ebb889c52228f7a7f2b",
+        "exit_code": 0,
+        "output_sha256": "fa8762b537962a4bb95b60d741191a61c0a3d52ae7a25329362115e81e843812"
+      },
+      "red": {
+        "at": "2026-10-04T17:46:02Z",
+        "exit_code": 1,
+        "output_sha256": "911c27a4f852ca691a2087acee3ce64bf9f96448d54ea34be7fc204620509380"
+      },
+      "test_command": "bash tests/readiness_v1_freeze_test.sh && bash tests/northstar_docs_test.sh && python3 -I -B tests/northstar_v2_publish_test.py ReleaseSurfaceTests && git diff --exit-code 75e6b751e891cb2f9637a36532a59ca933964460 -- 02-govern-plan/northstar/SKILL.md 04-validate-handoff/autobahn/SKILL.md"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "08f355259b58f0838dc0429270de96d9c55fb8b3b7067b3ab76d08931dab7d7d",
+    "assurance": "in-session",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-ach-skills-contract-v2 --goal-id ACH-S-04 --stage implementation",
+    "gaps": [],
+    "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+    "provenance": "base-copy",
+    "stage": "implementation"
+  },
   "goal_id": "ACH-S-04",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head",
+    "red_first_commit": "82c5dad (tests committed before any production change)",
+    "red_method": "detached worktree at base 75e6b751e891cb2f9637a36532a59ca933964460 with only the final tests/ checked out from the goal branch; each AC command run against the pre-implementation code",
+    "run_tests_legs": "observed by tdd-evidence.sh: red at the red-first commit, green at the implementation head"
+  },
   "red": {
     "command": "bash tests/run-tests.sh",
     "exit_code": 1
