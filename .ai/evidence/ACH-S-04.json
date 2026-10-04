@@ -1,0 +1,7 @@
+{
+  "goal_id": "ACH-S-04",
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  }
+}
