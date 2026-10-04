@@ -1,0 +1,41 @@
+{
+  "plans": [
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527/goals.json",
+          "sha256": "9e9e9531b54080ec5b898bdb20b8586cf27249f1f0f60d7867a19fab9764bc14"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527/graph.json",
+          "sha256": "6838d694a9c1367e57368179c32bd2d3d41ad5e9796db7a37fa47f40f9c8fa98"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527/handoff.md",
+          "sha256": "7c79a9323949241969b269c86e52af31df42373e216a363e8cca61cb70c86b2d"
+        },
+        "policy_candidate": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527/policy-candidate.json",
+          "sha256": "2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527/sidecar.json"
+        }
+      },
+      "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+      "handoff_path": ".ai/handoff/readiness-v2/ach-skills-contract-v2/9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527/handoff.md",
+      "id": "northstar-plan-ach-skills-contract-v2",
+      "mode": "bootstrap",
+      "plan_id": "ach-skills-contract-v2",
+      "policy_sha256": "2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-contract-v2-gen2.md",
+        "sha256": "ba7431dd22b71206ecb111fc05592941d33b24b54b080e973f28d16b341e020a"
+      },
+      "status": "active"
+    }
+  ],
+  "schema": "readiness-contract/2"
+}
