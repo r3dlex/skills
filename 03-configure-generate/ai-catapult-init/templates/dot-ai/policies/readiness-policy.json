@@ -1,10 +1,12 @@
 {
   "approval": {
     "accept": [
+      "agent-self",
       "ssh-tag",
       "in-session"
     ],
-    "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+    "anchor_sha256": null,
+    "default_mode": "agent",
     "max_age_days": 14
   },
   "branch_pattern": "^(feat|fix|chore)/<plan_id>-<goal_id>$",
@@ -17,7 +19,6 @@
       },
       "id": "own-execution",
       "kind": "ownership",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
@@ -31,7 +32,6 @@
       },
       "id": "own-review",
       "kind": "ownership",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
@@ -40,7 +40,6 @@
     {
       "id": "branch-target",
       "kind": "branch_target",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
@@ -49,7 +48,6 @@
     {
       "id": "branch-target-merge",
       "kind": "branch_target",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
@@ -58,7 +56,6 @@
     {
       "id": "plan-approval",
       "kind": "plan_approval",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
@@ -67,7 +64,6 @@
     {
       "id": "plan-approval-merge",
       "kind": "plan_approval",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
@@ -76,19 +72,6 @@
     {
       "id": "tooling",
       "kind": "tooling",
-      "responsible": "Andres Silva Burgstahler",
-      "scope": {
-        "repository": true
-      },
-      "stage": "implementation"
-    },
-    {
-      "binding": {
-        "path": "scripts/validate-skill-catalog.py"
-      },
-      "id": "catalog-validator",
-      "kind": "fixture",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
@@ -97,19 +80,28 @@
     {
       "id": "planning-inputs-on-main",
       "kind": "git_ancestor",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
       "stage": "implementation"
     },
     {
-      "binding": {
-        "commit": "f6be8346c1254fa2fc12ad853b2bacd0e6c1056e"
+      "id": "fixtures",
+      "kind": "fixture",
+      "not_applicable": {
+        "reason": "no-fixture-dependency"
       },
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
       "id": "harness-trust",
       "kind": "harness_trust",
-      "responsible": "Andres Silva Burgstahler",
+      "not_applicable": {
+        "reason": "no-pinned-harness"
+      },
       "scope": {
         "repository": true
       },
@@ -118,7 +110,6 @@
     {
       "id": "hosted-checks",
       "kind": "hosted_checks",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
@@ -127,41 +118,30 @@
     {
       "id": "review-lane",
       "kind": "review",
-      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
       "stage": "merge"
     }
   ],
-  "identity_model": "single",
+  "identity_model": "multi",
   "repository": {
-    "id": "skills"
+    "id": "{{REPO_ID}}"
   },
-  "required_checks": [
-    "Pre-commit Hooks",
-    "Test Suite",
-    "Repository Secret Scan"
-  ],
+  "required_checks": [],
   "reviewer_requirements": {
     "independent_lane": true
   },
   "schema": "readiness-policy/2",
   "skippable_checks": [],
   "sources": [
-    "AGENTS.md",
-    ".rules.ts",
-    ".ai/rules/security.md",
-    ".ai/rules/technical-bounds.md",
-    "CLAUDE.md",
-    "GEMINI.md"
+    "AGENTS.md"
   ],
   "target": "main",
   "tools": [
     "bash",
     "python3",
     "git",
-    "prek",
     "ssh-keygen",
     "gh"
   ]

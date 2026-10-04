@@ -1,0 +1,901 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[O9, O3, O5, P1] skills .ai/policies/readiness-policy.json becomes readiness-policy/2 with repository.id skills, an explicit identity_model single opt-in, requi...",
+      "green": {
+        "at": "2026-10-04T12:55:29Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "8644bd2adbd3bab8130d1ebd8324ae0e1fd6785fb4a19fbf9df441193429407a"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:29Z",
+        "exit_code": 1,
+        "output_sha256": "debed630f0462ab297206fd5bf20e5b7ea6442fff9d9f1fd29144544f42de6f4"
+      },
+      "test_command": "bash tests/readiness_policy_v2_test.sh"
+    },
+    {
+      "ac": 2,
+      "criterion": "[O10, v1 inventory] contract-run.sh inventory-v1 (the single implementation all four policy goals use) decides each v1 registry entry's fate: a goal counts as m...",
+      "green": {
+        "at": "2026-10-04T12:55:32Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "ba0ab8001c416b571ee039e5471c01620bd73e11740977635c24d9f864fc5c72"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:31Z",
+        "exit_code": 1,
+        "output_sha256": "180a5a96cb191237b01ea42173140fba08db193d9cd93128ed8c295fcc4ea3bd"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_inventory_test.py AncestryInventoryTests SkillsInventoryTests InventoryAdmissionTests"
+    },
+    {
+      "ac": 3,
+      "criterion": "[P1] tests/readiness_policy_v2_test.sh (discovered by tests/test-scripts.sh) asserts the conformance and that no plan or goal id from either registry appears in...",
+      "green": {
+        "at": "2026-10-04T12:55:32Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "86bb6ca3241c1644c711aaefbefcde799f6f619e32e1d48cb988dd9a953e3940"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:31Z",
+        "exit_code": 1,
+        "output_sha256": "debed630f0462ab297206fd5bf20e5b7ea6442fff9d9f1fd29144544f42de6f4"
+      },
+      "test_command": "bash tests/readiness_policy_v2_test.sh && bash tests/ach_s01_readiness_policy_test.sh && bash tests/xskp_p5_readiness_policy_test.sh"
+    },
+    {
+      "ac": 4,
+      "criterion": "[P1, retained v1] .ai/handoff/ach-skills-contract-v2/s01-readiness-policy-v1.retained.json is a new file byte-equal to the ACH-S-01 v1 rollover policy at skills...",
+      "green": {
+        "at": "2026-10-04T12:55:32Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "3bbc00b892bd1648ffc4e2c35cb0496676851ff4def6f1f8fb9f535af588af83"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:31Z",
+        "exit_code": 1,
+        "output_sha256": "ed0b475375427fe8ba02d3139097d84573086923bf1944b1ea5272a37d10a63b"
+      },
+      "test_command": "bash tests/ach_s01_readiness_policy_test.sh"
+    },
+    {
+      "ac": 5,
+      "criterion": "[Merged definition test] tests/readiness_v2_inventory_test.py (discovered by tests/test-scripts.sh via its .sh wrapper) replays recorded hosted-API PR and origi...",
+      "green": {
+        "at": "2026-10-04T12:55:36Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "8e128dbe043db1ec42cf948864b7de0442f7a6415a4f8b7e80581ce83cf7bcd4"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:34Z",
+        "exit_code": 1,
+        "output_sha256": "bb943b1896c2b04120645644f4431b623886acc81797cd38823c61a3f6924eff"
+      },
+      "test_command": "bash tests/readiness_v2_inventory_test.sh"
+    },
+    {
+      "ac": 6,
+      "criterion": "[Policy amendment] A policy-amendment generation kind (one goal scoping the fixed path while policy/2 is live, carrying a candidate bound by one new approval ve...",
+      "green": {
+        "at": "2026-10-04T12:55:52Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "05eb881e596a86057dcdd2e5999a2788f46e05e5f9f49ce92acf38e087b5e781"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:34Z",
+        "exit_code": 1,
+        "output_sha256": "b3acff39aab95fea3c10cfe8d8b60678168816d07ab72b6c5f31429acea72330"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py AmendmentKindTests"
+    },
+    {
+      "ac": 7,
+      "criterion": "[O2, O5, K3, Spec Delivery: Init] templates/dot-ai/policies/readiness-policy.json is the plan-agnostic baseline (identity_model multi, accept [\"agent-self\", \"ss...",
+      "green": {
+        "at": "2026-10-04T12:55:52Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "62ef2afabb5ff44a086ced0d63e8d5f9f6135652ad195f77b24726f2aa625e12"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:34Z",
+        "exit_code": 1,
+        "output_sha256": "eb31e74efb93c17e1d6343d2d881ed45dc8d93a9966f2b0532c44790834c953c"
+      },
+      "test_command": "bash tests/ai-catapult-templates_test.sh"
+    },
+    {
+      "ac": 8,
+      "criterion": "[U2, U3, route guard] merge-authority's route() builds the v2_branch_without_plan refusal per registered active plan: the policy branch_pattern with <plan_id> f...",
+      "green": {
+        "at": "2026-10-04T12:56:07Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "9fdb6fb3904e4166ca0e9d039fd34ef5c2b4d7afba52278906441176fa97d3b4"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:39Z",
+        "exit_code": 1,
+        "output_sha256": "0e00aa2d80a1abf91c3a751af56e6764ef0f92f1c551f6e7147ff243725d0623"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_route_guard_is_per_registered_plan_and_case_insensitive NonGoalRoutingTests.test_audit_and_unrelated_branches_take_v1_with_only_a_v2_registry MergeAuthorityEntryTests.test_routing_never_falls_back_to_the_verdict_path_once_v2_exists && python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_merge_authority_states_the_per_plan_route_guard_and_reserved_paths"
+    },
+    {
+      "ac": 9,
+      "criterion": "[O10, route] A completed v1 entry's retire record is a top-level retired_v1[] key of .ai/workflows/northstar-readiness-v2.json, never an entry of plans[]. route...",
+      "green": {
+        "at": "2026-10-04T12:56:16Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "7991413b03860f17122876bc1a8bbc8ff8e37b7d1d4cc48aa72c7af33b23cb17"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:43Z",
+        "exit_code": 1,
+        "output_sha256": "4f90e71a9911b784f0434106da2d7d9ef8268fd7673de5f0dfac7ce38d777419"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_retired_v1_record_and_non_active_entries_never_block MergeAuthorityEntryTests.test_routing_never_falls_back_to_the_verdict_path_once_v2_exists && python3 -I -B tests/readiness_v2_inventory_test.py SkillsInventoryTests.test_live_v2_registry_retires_s01_and_v1_bytes_are_unchanged"
+    },
+    {
+      "ac": 10,
+      "criterion": "[O4, reserved namespace] modules/merge-authority.md and modules/readiness-v2.md document the reserved branch namespace: for each registered active plan, its pol...",
+      "green": {
+        "at": "2026-10-04T12:56:25Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "8ac2ba28662ffb79c8a15ef345347ec3492f0ab8677708e52665c13ad9b4e705"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:47Z",
+        "exit_code": 1,
+        "output_sha256": "f50badd089de73f8685d1f3e9ebba2495c734d3d1abe10153da04da732d0c4e6"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_policy_file_is_never_covered NonGoalRoutingTests.test_active_goal_scope_is_reserved_until_its_merge_reaches_the_target NonGoalRoutingTests.test_path_matching_is_case_insensitive_and_unicode_normalized && python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_readiness_v2_documents_the_reserved_namespace_modes_and_inventory DocumentationTests.test_merge_authority_states_the_per_plan_route_guard_and_reserved_paths"
+    },
+    {
+      "ac": 11,
+      "criterion": "[O4, replay exception] A non-goal PR whose reserved-path changes are exactly a publish-v2 replay takes the v1 lane. The observer replays the publication with th...",
+      "green": {
+        "at": "2026-10-04T12:56:39Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "2125d56648082630949808d3d24a2f251dc7f1da40829e2bcf9d23502c74031f"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:52Z",
+        "exit_code": 1,
+        "output_sha256": "8b06325a50bf47b0ad90e533cc75a332ac52bcf68c496e5fa876f8ebb81688d2"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_planning_pr_adding_a_generation_takes_v1 NonGoalRoutingTests.test_replay_may_replace_a_plan_only_without_goal_prs NonGoalRoutingTests.test_replay_byte_mismatch_stale_base_two_generations_and_symlinks_are_refused"
+    },
+    {
+      "ac": 12,
+      "criterion": "[O1, sidecar tighten lane] A non-goal PR whose diff is limited to the sidecar.json of existing generations takes the v1 lane when each changed sidecar's base-to...",
+      "green": {
+        "at": "2026-10-04T12:56:45Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "399d258717aad182051cf68697a670bd6a5a7c13c2f03d078d22c33e7d51fba5"
+      },
+      "red": {
+        "at": "2026-10-04T12:55:55Z",
+        "exit_code": 1,
+        "output_sha256": "934960d5937e1a8a1d8e67fad3bf4f050713260100dbc20d78bf0ef9d912601c"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_sidecar_hold_takes_v1_and_loosening_is_refused NonGoalRoutingTests.test_stale_base_sidecar_is_rechecked_against_the_current_target"
+    },
+    {
+      "ac": 13,
+      "criterion": "[U2, diff observation and head binding] The changed paths are observed as the merge-base (three-dot) diff between the PR's observed base and head, or as the hos...",
+      "green": {
+        "at": "2026-10-04T12:56:56Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "4ef2907c5461e7315d1ac4a804475c5b255a28cfb028fff74a7dd9262858ea4f"
+      },
+      "red": {
+        "at": "2026-10-04T12:56:03Z",
+        "exit_code": 1,
+        "output_sha256": "a5264631a53d8a5d290fbfd3312295f02a4ddf9010c0f6aecdec88be2b9e999b"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests.test_renamed_paths_touch_both_names NonGoalRoutingTests.test_truncated_or_unobservable_file_lists_fail_closed NonGoalRoutingTests.test_v1_lane_prints_the_observed_head_before_the_v1_adapter NonGoalRoutingTests.test_v1_lane_decisions_come_only_from_a_verified_driver"
+    },
+    {
+      "ac": 14,
+      "criterion": "[Routing tests] tests/readiness_v2_certificate_test.py appends cases: a planning PR adding a generation, with a spec copy and request documents, takes v1; a mai...",
+      "green": {
+        "at": "2026-10-04T12:57:46Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "957752ddd338b028a16288e0229b960cd3046d1d7a998a32066326581e90eb90"
+      },
+      "red": {
+        "at": "2026-10-04T12:56:30Z",
+        "exit_code": 1,
+        "output_sha256": "108475406418fe0d3d7442fbe5ff122e84e856cb8ba44673b1c4843e78487ad3"
+      },
+      "test_command": "python3 -B tests/readiness_v2_certificate_test.py NonGoalRoutingTests"
+    },
+    {
+      "ac": 15,
+      "criterion": "[K3, O2, O5] readiness-policy/2 approval gains the agent-self form and an optional approval.default_mode of agent, prompt or ssh-tag (lib/readiness_contract_v2....",
+      "green": {
+        "at": "2026-10-04T12:57:46Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "921b60a7fd52e978fbb551cacd29df2d6708879400278e1fcc70fceeb0c6f8e0"
+      },
+      "red": {
+        "at": "2026-10-04T12:56:30Z",
+        "exit_code": 1,
+        "output_sha256": "ae6cb7f266bce0a2dd7f9cf8915fe990dd978318bcadbc5884d28b9d451275de"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py PolicyModeValidationTests"
+    },
+    {
+      "ac": 16,
+      "criterion": "[K3, U1 as amended by K3] In agent mode Autobahn issues the plan-approval/1 itself: the canonical record carries assurance agent-self, is signed with the agent ...",
+      "green": {
+        "at": "2026-10-04T12:57:54Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "2f1c7b1cc0864ae5ace0f5e04774745cec4c7aa3ecafe6817dccd7d18e38bf78"
+      },
+      "red": {
+        "at": "2026-10-04T12:56:30Z",
+        "exit_code": 1,
+        "output_sha256": "ba13e2007e475ece2d91578d903dff2555b0d46f0da9bed4cd7b353f5859e34c"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py AgentSelfFormTests"
+    },
+    {
+      "ac": 17,
+      "criterion": "[K3, K1, K2] agent-self is a distinct assurance level, computed and never upgraded. Every approval, admission report, merge certificate, merge-authority decisio...",
+      "green": {
+        "at": "2026-10-04T12:58:03Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "4acfea2423e716cccca7062a685c138c7f00769649c8774309a28f5a1f5d2810"
+      },
+      "red": {
+        "at": "2026-10-04T12:56:34Z",
+        "exit_code": 1,
+        "output_sha256": "e02b2442f462cfb8d1eff3d8b593bced9977485670edfbd7caca73c2f72b1da6"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py AssuranceRenderingTests AgentSelfReportTests"
+    },
+    {
+      "ac": 18,
+      "criterion": "[K3] prompt mode admits only an explicit in-session human confirmation (the digest-echo record) and never an agent-self record; ssh-tag remains optional (no def...",
+      "green": {
+        "at": "2026-10-04T12:58:11Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "b0a7c8c242b19dd23d1de2d3a3fdd4810c2cfdec5279bfa7bb6084254ab4e0f7"
+      },
+      "red": {
+        "at": "2026-10-04T12:56:34Z",
+        "exit_code": 1,
+        "output_sha256": "7adbbf654a94604cca7fc2d651df6ccc3fb77854179b3ba01976e03ff12602a4"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py ModeTests"
+    },
+    {
+      "ac": 19,
+      "criterion": "[K3, U2, U3] The merge bar is unchanged in every mode: merge-certificate/1 at one exact head, every required check SUCCESS, zero unresolved threads, an agent-si...",
+      "green": {
+        "at": "2026-10-04T13:02:00Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "ddabb5e08f9bbdcf28a225411ce781a7d3fd0eb2b694d479c0a6c77e7d95487d"
+      },
+      "red": {
+        "at": "2026-10-04T12:59:23Z",
+        "exit_code": 1,
+        "output_sha256": "1f26574aec47149518fab22fab35086de79406697a9db126dad80b0a4a439356"
+      },
+      "test_command": "bash tests/readiness_v2_core_test.sh && bash tests/readiness_v2_approval_test.sh && bash tests/readiness_v2_certificate_test.sh"
+    },
+    {
+      "ac": 20,
+      "criterion": "[K3, policy amendment] A policy-amendment or bootstrap generation's approval form must be in both the live policy's approval.accept and the candidate's (rule d)...",
+      "green": {
+        "at": "2026-10-04T13:02:07Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "366f09856c0d5514edf9ec71ba603c06226c88e9ebfed7205f9e757de57b162c"
+      },
+      "red": {
+        "at": "2026-10-04T12:59:24Z",
+        "exit_code": 1,
+        "output_sha256": "100a7b57b0a37e2857d616dff3e1e1db167a6becd1a4de7016a1ec901e23a16c"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py RuleDTests"
+    },
+    {
+      "ac": 21,
+      "criterion": "K3b (user decision 2026-10-04, accepted risk): agent-self approval may also approve bootstrap and policy-amendment generations, including changes to anchor_sha2...",
+      "green": {
+        "at": "2026-10-04T13:02:13Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "39e4647d3311bfd7368ef0ecff228586aa2d8d4234d729d4c09e3e7b34cb7d0d"
+      },
+      "red": {
+        "at": "2026-10-04T12:59:24Z",
+        "exit_code": 1,
+        "output_sha256": "f72ee3e2f9c231a90b8e712e80da5708b28279a01ec28f3bb636a64a9aad3253"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py AgentSelfPolicyChangeTests"
+    },
+    {
+      "ac": 22,
+      "criterion": "[K3, G1] docs/architecture/adr/0016-git-native-plan-approval.md records K3: the agent-approval namespace and role, the agent-self assurance level, prompt and ss...",
+      "green": {
+        "at": "2026-10-04T13:02:13Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "d10ffbd9f0faa72cd6837063279524e199b59fbc3d035051302a1e8dbc4b36ad"
+      },
+      "red": {
+        "at": "2026-10-04T12:59:24Z",
+        "exit_code": 1,
+        "output_sha256": "6a0fa67931a525d1e6a2b4380349a4559627d62373b68400051be415c6000dea"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_adr_0016_records_k3_and_k3b"
+    },
+    {
+      "ac": 23,
+      "criterion": "[K3 follow-ups, recorded only] Only the user, or an agent on the user's explicit instruction (the 2026-10-04 edits, recorded in ADR-0016 as a user-instructed ex...",
+      "green": {
+        "at": "2026-10-04T13:02:13Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5"
+      },
+      "red": {
+        "at": "2026-10-04T12:59:24Z",
+        "exit_code": 1,
+        "output_sha256": "befbab97a8e5c8be2a591cf1003b5936f1f3faea47e6507f264b4973a8908ec8"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_adr_0016_records_the_k3_follow_ups"
+    },
+    {
+      "ac": 24,
+      "criterion": "[AC-3, Hygiene] tests/readiness_v1_freeze_test.sh stays green; manifests and .ai/ci/local-ci.json are re-pinned; work happens in a worktree from origin/main.",
+      "green": {
+        "at": "2026-10-04T13:02:15Z",
+        "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+        "exit_code": 0,
+        "output_sha256": "0ef94e0ffc9feb66627e43f5ceeb62682a96b703ac18a2e9871cddba6328cb98"
+      },
+      "red": {
+        "at": "2026-10-04T12:59:25Z",
+        "exit_code": 1,
+        "output_sha256": "6372845f324f872815d45408d3c57b6a0e56d28cc8181d83647652b06e40d949"
+      },
+      "test_command": "bash tests/readiness_v1_freeze_test.sh && python3 -B tests/readiness_v2_core_test.py EntryPointTests.test_dependency_manifest_v2_pins_every_executable && python3 -B -c 'import pathlib, sys; sys.path.insert(0, \"04-validate-handoff/autobahn/lib\"); import local_ci_contract; local_ci_contract.read_contract(pathlib.Path(\".\").resolve())'"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "08f355259b58f0838dc0429270de96d9c55fb8b3b7067b3ab76d08931dab7d7d",
+    "assurance": "in-session",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-ach-skills-contract-v2 --goal-id ACH-S-02 --stage implementation",
+    "gaps": [],
+    "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+    "provenance": "base-copy",
+    "stage": "implementation"
+  },
+  "goal_id": "ACH-S-02",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head",
+    "red_ac24_before_repin": {
+      "exit_code": 1,
+      "note": "AC24 also failed on the implemented code before the manifests were re-pinned",
+      "output_sha256": "da8fc0b68c79504e036ea262a7baae4da84b0f617bcb4db223c4a2d0b200df70"
+    },
+    "red_first_commit": "053eced (tests committed before any production change)",
+    "red_method": "detached worktree at base da0de5bc3a588e87fb4b976fffd7c96dbbc49c23 with only the final tests/ checked out from the goal branch (round 1); each AC command run against the pre-implementation code"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  },
+  "review_round_1": {
+    "items": [
+      {
+        "green": {
+          "at": "2026-10-04T12:56:03Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "c9ec44fc2ee6746a882a6981b06074b48094861bc346d96a6da450d3d19b4dd2"
+        },
+        "item": "H1",
+        "red": {
+          "at": "2026-10-04T11:18:39Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "3240819ee5fb6d395a39bda1990427ab2e43fa669780f9eb856db8e5b58ff2d5"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py GoalReservedPathTests"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:07Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "2cc72c6d4043796db8ad11606bca8ba452d3045c26c01292ad624c0c9c89117d"
+        },
+        "item": "H2",
+        "red": {
+          "at": "2026-10-04T11:18:39Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "a3db78dfcfb2279bd7bc8355aa3a6bc1474bf8c51517ccd10581a249ed1309b7"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py ReviewRoundOneAmendmentTests.test_prompt_mode_live_policy_refuses_an_agent_self_amendment_to_agent_mode && python3 -I -B tests/readiness_v2_approval_modes_test.py PolicyModeValidationTests.test_default_mode_must_name_an_accepted_form ModeTests.test_ssh_tag_mode_is_an_opt_in"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:40Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "43ca72c1527281064df1c1c474688e64dd675b9d72d478ce468f16313d92e458"
+        },
+        "item": "L1",
+        "red": {
+          "at": "2026-10-04T11:18:54Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "5fb47e234f221aeac26497c0b36b9ef67ce5dff4d1aa278edc33b9638fe17a94"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py AgentSelfFormTests.test_a_line_holding_the_agent_approval_role_is_never_a_human_approver"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:55Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+        },
+        "item": "L10",
+        "red": {
+          "at": "2026-10-04T11:19:04Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "587d8319d2cf33fa1bf510a9f2b108af518ba7d8db09ac1dd8dd4243c40698b5"
+        },
+        "test_command": "python3 -I -B /private/tmp/claude-502/-Users-andresilvaburgstahler-Ws-Personal-AiTool/94f42008-9018-42b5-b61e-b0edc80d9a34/scratchpad/s02-notes/round1/unused_imports.py tests/readiness_v2_inventory_test.py tests/readiness_v2_approval_modes_test.py tests/readiness_v2_policy_amend_test.py"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:42Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "42b60f9371f7dc7af2b61ed88259d70b68be70b316eedb1ff1c8d9c72222b9c6"
+        },
+        "item": "L3",
+        "red": {
+          "at": "2026-10-04T11:18:56Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "9e3bc6198138f04dd975be37829c7a252eced921effbad84255743a2288f80d9"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_pr_base_must_be_the_target_and_pr_outside_a_repository_refuses"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:45Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "15b6697d9aba02cdc0f68854f506136471bc39a9f9e54394b2a37f00d0b03671"
+        },
+        "item": "L4",
+        "red": {
+          "at": "2026-10-04T11:18:58Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "adebb6d49388684dd5d879b540a9dd1c12726a194738cc40ac4469f4f7304988"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_goal_prs_are_queried_per_goal_branch_and_truncation_fails_closed"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:48Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "892a8bb3448948580ca0247dab7a65ca7bd59ea172c16232651d41b64560a533"
+        },
+        "item": "L5",
+        "red": {
+          "at": "2026-10-04T11:19:00Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "cb397a4679069088dd457dbc3f864fc80fb0f7020ca8ecc4d672d027545ff0c1"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_an_active_plans_bound_spec_is_reserved"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:50Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "500c91291dca9f547e75cf76d964ceb3f7b23bd93dee868a180c30ca351eb00f"
+        },
+        "item": "L6",
+        "red": {
+          "at": "2026-10-04T11:19:01Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "c4d7cab60da1af5bdb7bb3b4ad8e8a3252bec3907d5de6cf775b54e0f0cd597d"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_replay_trees_are_built_only_from_safe_needed_entries"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:52Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "9b748e83a63f725983be7059dc8ba93cd878c4a4dd1cca1cd4a31805af7c5fe0"
+        },
+        "item": "L7",
+        "red": {
+          "at": "2026-10-04T11:19:02Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "03c1c165e9263c0777ca1782a0a2ca1dcf51a0ae583c22cdbbfc210d01c10ece"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py ModeTests.test_prompt_mode_admits_only_an_explicit_in_session_confirmation"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:52Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "d10ffbd9f0faa72cd6837063279524e199b59fbc3d035051302a1e8dbc4b36ad"
+        },
+        "item": "L8",
+        "red": {
+          "at": "2026-10-04T11:19:02Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "04e44699eb668591434c602438cb506977c6cd780e0a377b277c81a5dd523752"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_bootstrap_siblings_after_an_amendment_and_the_round_one_codes_are_documented"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:55Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "51afdc5c7e3751ec16ac66899ab80e6e884c89a265044ba8db6cdb501849d3ad"
+        },
+        "item": "L9",
+        "note": "test-only item; passed against the pre-fix code",
+        "red": {
+          "at": "2026-10-04T11:19:04Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 0,
+          "output_sha256": "2bdf1453513452d79e235674ea34a3ff90fb46fb75e7c2711556314fe02e9534"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_pr_head_present_only_on_origin_is_fetched_into_a_throwaway_repository"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:10Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "75f7cf421b18bc481959f2fa964c3cd4f338e592cd5ef6e54692653cdbbc48f1"
+        },
+        "item": "M1",
+        "red": {
+          "at": "2026-10-04T11:18:40Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "e52d601321d53005e1a3b372ace6d73118615bec80d60b3b23f2561fa81a0b8e"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py ReviewRoundOneAmendmentTests.test_a_concurrent_amendment_is_refused_once_another_lands"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:17Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "820942fb89ac12c51194bb9d82926be702e1a47919cf41af88f402fe8b56d7c4"
+        },
+        "item": "M2",
+        "red": {
+          "at": "2026-10-04T11:18:44Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "7e1902cb486aa50482f1e27002d685403bf2626017785690527def0f14cf7da2"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_hosted_list_is_unioned_with_the_reserved_paths_of_the_observed_head RoutingHardeningTests.test_head_or_base_moving_while_listing_and_a_missing_count_fail_closed"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:24Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "ac307f7de32aac8cdca25957cb1c58a0df4e464d8f32cd333f0a21a2f1f8ea35"
+        },
+        "item": "M3",
+        "red": {
+          "at": "2026-10-04T11:18:47Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "4d4324fcea7e29909c60bdcc0b9726c1d5ebbed5503a025f9e25206e611b34bc"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_a_lookalike_or_off_target_merged_pr_never_releases_a_goal"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:25Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "905adf5a78e39e82643208ee19a705deb036935ca867dbacf80429255a64f416"
+        },
+        "item": "M4",
+        "red": {
+          "at": "2026-10-04T11:18:48Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "a1093f1e5158d58d7761927a7a6348ef3a069d71ae627954ded9788bc8475f64"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_routing_uses_the_live_branch_pattern && python3 -I -B tests/readiness_v2_policy_amend_test.py ReviewRoundOneAmendmentTests.test_an_amendment_may_not_move_the_branch_namespace"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:31Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "bb23ee28414827e9f30d0a42aabb74faacfd15132d9757ca0b4acb174a8054c4"
+        },
+        "item": "M5",
+        "red": {
+          "at": "2026-10-04T11:18:50Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "8f281b51679e12c055f37d5abe9c29d33197e027e6f5a37fb8f75c7acc3308cc"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py AuditReobservationTests"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:56:38Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "1fed88165c273f93938c87317635697fb22915dcabc0e7168370e19e29de6c36"
+        },
+        "item": "M6",
+        "red": {
+          "at": "2026-10-04T11:18:53Z",
+          "commit": "c15d8150c55256b207a7214d213d94497254913e",
+          "exit_code": 1,
+          "output_sha256": "81b50d3d2b945b397cac93322690576987acb8c8cccfad191bd4f0f7ea715791"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoutingHardeningTests.test_case_variant_reserved_entries_cannot_ride_a_replay_or_a_sidecar_change"
+      }
+    ],
+    "red_method": "red on c15d815 with the round-1 red tests; green re-run at the round-2 head"
+  },
+  "review_round_2": {
+    "items": [
+      {
+        "green": {
+          "at": "2026-10-04T12:55:49Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "4cddc85cd7d7412d329958a69cd585024716c8e310f811b3355eaa4d8db74bbf"
+        },
+        "item": "R2-L1",
+        "red": {
+          "at": "2026-10-04T12:44:53Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "21a0155b500d5d3fccaee54974704abe5ae30a2129d7346f8791f4cc5f304f4e"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoundTwoRoutingTests.test_a_permitted_republish_may_edit_the_replaced_plans_bound_spec"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:49Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "d10ffbd9f0faa72cd6837063279524e199b59fbc3d035051302a1e8dbc4b36ad"
+        },
+        "item": "R2-L2",
+        "red": {
+          "at": "2026-10-04T12:44:53Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "8a0a173fd9c97548d7da90dd5ef916665ff40108cdec6c4274f86ad8cec420fe"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py DocumentationTests.test_bootstrap_siblings_after_an_amendment_and_the_round_one_codes_are_documented"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:49Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "item": "R2-L3",
+        "red": {
+          "at": "2026-10-04T12:44:54Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "6f6292556f7977637798665d0214a13d41d7017d85019f08f54c7b01478aa2c4"
+        },
+        "test_command": "python3 -I -B /private/tmp/claude-502/-Users-andresilvaburgstahler-Ws-Personal-AiTool/94f42008-9018-42b5-b61e-b0edc80d9a34/scratchpad/s02-notes/round2/no_tight.py tests/readiness_v2_policy_amend_test.py"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:51Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "0ee8822787a64ba8c2ff206fbfea8486a5dde0534c4892c9fb7bee4589def750"
+        },
+        "item": "R2-L4",
+        "red": {
+          "at": "2026-10-04T12:44:56Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "e8c0d2ea26860f9451b363e607270bfdb5787d5dd4a9037486c1931100a0af45"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoundTwoRoutingTests.test_an_invalid_live_policy_never_falls_back_to_a_candidate_pattern"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:35Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "45478a223e78940bfa41931dfece138cade79019f5938d36af193047c6f4c757"
+        },
+        "item": "R2-M1",
+        "red": {
+          "at": "2026-10-04T12:44:43Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "4bf80577d9ff7db3716f78ba7d94c52b1cf8c0a16d3e64ae68edf38fce41a8bf"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoundTwoRoutingTests.test_a_fetched_head_that_differs_from_the_observed_head_refuses RoundTwoRoutingTests.test_the_decision_head_is_the_head_the_diff_was_computed_from"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:38Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "1b0d8d6562b6d3a789ffb1efc5cacfa1e3476be36f632fb356355fb48986ff22"
+        },
+        "item": "R2-M2",
+        "red": {
+          "at": "2026-10-04T12:44:45Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "ff83ca53f5a87582143ade5dd3aec537a2662854ada58565a744d3fbd6ec8292"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py AuditReobservationTests.test_a_reechoed_tag_and_a_relabelled_certificate_stay_flagged"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:39Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "b1bedd63fedfc6675ac0a7123ae10398fbe985c5cabcbe215463653ebf113ea5"
+        },
+        "item": "R2-SL3",
+        "red": {
+          "at": "2026-10-04T12:44:47Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "7fbe044776f17a02de4b0aac4c1996bb494f945d020e06f19fcaaab2312f6ee8"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_approval_modes_test.py ModeTests.test_ssh_tag_mode_admits_only_ssh_tag"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:41Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "b54de909a972efec5a4aa20c1dc0e74611f3df1feb3ed0659fbbdcd4ef08edb3"
+        },
+        "item": "R2-SL4",
+        "red": {
+          "at": "2026-10-04T12:44:48Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "522ede67753610125113b9d21f61da2e0d682ad38ec226e9ce800d1f20c9f3c9"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py ReviewRoundOneAmendmentTests.test_the_candidates_own_mode_never_governs_its_approval"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:42Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "33505cfabcca4c1637f3467a7d459771f56f656e3d6e0db9e0316e3ccde4a8d6"
+        },
+        "item": "R2-SL5",
+        "red": {
+          "at": "2026-10-04T12:44:49Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "2c36f31bdb3f032603e1982c194381b9e035590160f865db8856f857e0befe61"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py RoundTwoRoutingTests.test_branch_pattern_literals_route_and_complete_alike"
+      },
+      {
+        "green": {
+          "at": "2026-10-04T12:55:44Z",
+          "commit": "8481dc474587c7f916737fc46b8375addc7a4d4b",
+          "exit_code": 0,
+          "output_sha256": "d24005b769dac34dcc53d026d21a49aea5596ac94935c35f92fb93db4b4f584c"
+        },
+        "item": "R2-SL7",
+        "red": {
+          "at": "2026-10-04T12:44:51Z",
+          "commit": "da3b9b73f72def670e8d2a0f0f7ea5eb85c663f5",
+          "exit_code": 1,
+          "output_sha256": "9b9f8b11812b1d56a1c221c1c0772341099df3d6bdad68c1621692199b0439fe"
+        },
+        "test_command": "python3 -B tests/readiness_v2_certificate_test.py GoalReservedPathTests.test_a_gitlink_hidden_from_git_diff_under_a_reserved_path_is_refused"
+      }
+    ],
+    "red_method": "red on da3b9b7 with the round-2 red tests (f38ab6c) before any production change"
+  },
+  "v1_inventory": {
+    "adapter": "production-gh",
+    "command": "contract-run.sh inventory-v1 --root <worktree> (source-lane copy of the goal driver)",
+    "entries": [
+      {
+        "action": "migrate",
+        "ambiguous": [],
+        "fate": "unstarted",
+        "generation": "4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c",
+        "id": "northstar-plan-xskp-p5-skill-producers",
+        "in_flight": [],
+        "merged": [],
+        "plan_id": "xskp-p5-skill-producers",
+        "unmerged": [
+          "XSKP-P5-01",
+          "XSKP-P5-02",
+          "XSKP-P5-03",
+          "XSKP-P5-04"
+        ]
+      },
+      {
+        "action": "retire",
+        "ambiguous": [],
+        "fate": "completed",
+        "generation": "ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+        "id": "northstar-plan-ach-skills-contract-v2",
+        "in_flight": [],
+        "merged": [
+          {
+            "goal": "ACH-S-01",
+            "merge_commit": "f6be8346c1254fa2fc12ad853b2bacd0e6c1056e",
+            "pr": 97
+          }
+        ],
+        "plan_id": "ach-skills-contract-v2",
+        "unmerged": []
+      }
+    ],
+    "provenance": "source-lane",
+    "target_revision": "da0de5bc3a588e87fb4b976fffd7c96dbbc49c23"
+  }
+}

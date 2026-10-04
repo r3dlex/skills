@@ -7,15 +7,21 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
-PYTHONPATH="$REPO_ROOT/04-validate-handoff/autobahn/lib${PYTHONPATH:+:$PYTHONPATH}" python3 - <<'PYTEST'
+python3 -I -B - "$REPO_ROOT/04-validate-handoff/autobahn/lib" <<'PYTEST'
 import copy
 from pathlib import Path
-import readiness_contract as rc
+import sys
+sys.path.insert(0, sys.argv[1])
+import readiness_contract as rc  # noqa: E402
 
 ROOT = Path.cwd()
 POLICY_SHA256 = '1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444'
 SUPERSEDES = 'bdca65ade44ed6ab2c6d2e9bd7c54773c884998eb9a21a56a7edbcf38643f5e5'
 RETAINED = '.ai/handoff/xskp-p5-readiness-policy.retained.json'
+# The ACH-S-01 v1 rollover that displaced P5, retained byte-for-byte after ACH-S-02 made the
+# live policy readiness-policy/2.
+S01_RETAINED = '.ai/handoff/ach-skills-contract-v2/s01-readiness-policy-v1.retained.json'
+S01_SHA256 = '4b022b867bef6700fa53727c7c4aeba893a28d8127fbce17c063751198d3d91f'
 REGISTRATION = 'northstar-plan-xskp-p5-skill-producers'
 GENERATION = '4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c'
 BUNDLE_SHA256 = '8089c7c77e5aadb62c1a003fb7b30c78465ceb65541fc5b7927b3e2a0bd58cff'
@@ -45,11 +51,14 @@ policy_path = ROOT / RETAINED
 policy = rc.read(policy_path)
 gates = {g['id']: g for g in policy['gates']}
 check('retained policy bytes keep the pinned approval subject digest', rc.digest(policy_path) == POLICY_SHA256)
-live = rc.read(ROOT / rc.POLICY)
-check('live policy displaces P5 and names the retained bytes',
-      rc.digest(ROOT / rc.POLICY) != POLICY_SHA256
-      and live.get('extensions', {}).get('supersedes_policy_sha256') == POLICY_SHA256
-      and live.get('extensions', {}).get('superseded_policy_retained_at') == RETAINED)
+displacing = rc.read(ROOT / S01_RETAINED)
+check('the retained S-01 rollover displaces P5 and names the retained bytes',
+      rc.digest(ROOT / S01_RETAINED) == S01_SHA256 != POLICY_SHA256
+      and displacing.get('extensions', {}).get('supersedes_policy_sha256') == POLICY_SHA256
+      and displacing.get('extensions', {}).get('superseded_policy_retained_at') == RETAINED)
+check('the live policy is neither P5 bytes nor a v1 policy',
+      rc.digest(ROOT / rc.POLICY) not in (POLICY_SHA256, S01_SHA256)
+      and rc.read(ROOT / rc.POLICY).get('schema') == 'readiness-policy/2')
 
 manifest = rc.read(ROOT / '.ai/workflows/northstar-readiness-v1.json')
 entry = next((p for p in manifest['plans'] if p['id'] == REGISTRATION), None)

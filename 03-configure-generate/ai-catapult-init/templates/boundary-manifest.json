@@ -85,6 +85,12 @@
       "rationale": "Provider-neutral tier table (ADR-0003) is fixed. host_aliases are illustrative examples included as an optional deployment convenience; teams may replace or extend them \u2014 replacing host aliases requires no architecture judgment about the repo itself."
     },
     {
+      "path": ".ai/policies/readiness-policy.json",
+      "classification": "mechanical",
+      "template": "dot-ai/policies/readiness-policy.json",
+      "rationale": "Plan-agnostic readiness-policy/2 baseline (O2, O5, K3): identity_model multi, approval.default_mode agent with accept [agent-self, ssh-tag, in-session], repository-scoped gates only. Its fail-closed placeholders (anchor_sha256 null, required_checks empty) each refuse admission with a named gap until the repository fills them; only {{REPO_ID}} is substituted."
+    },
+    {
       "path": ".ai/mcp/registry.json",
       "classification": "mechanical",
       "template": "dot-ai/mcp/registry.json",
@@ -309,7 +315,7 @@
       "rationale": "Provider-neutral DPUA execution profile with self-hosted-first defaults and bounded retry/fallback policy."
     }
   ],
-  "mechanical_count": 40,
+  "mechanical_count": 41,
   "judgment_laden_count": 10,
   "notes": [
     "Dirs without a named file get a .gitkeep in the template tree so the directory is tracked by git.",

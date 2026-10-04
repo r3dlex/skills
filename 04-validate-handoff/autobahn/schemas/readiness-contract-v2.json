@@ -17,7 +17,7 @@
     "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
     "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
     "path": {"type": "string", "minLength": 1, "not": {"pattern": "(^/|\\\\|(^|/)\\.\\.?(/|$)|[*?\\[\\]])"}},
-    "assurance": {"enum": ["user-presence", "key-held", "in-session"]},
+    "assurance": {"enum": ["user-presence", "key-held", "in-session", "agent-self"]},
     "names": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "policy": {
       "type": "object",
@@ -41,7 +41,8 @@
           "properties": {
             "anchor_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
             "max_age_days": {"const": 14},
-            "accept": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["ssh-tag", "in-session"]}}
+            "accept": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["ssh-tag", "in-session", "agent-self"]}},
+            "default_mode": {"enum": ["agent", "prompt", "ssh-tag"]}
           }
         },
         "gates": {"type": "array", "items": {"$ref": "#/$defs/gate"}}

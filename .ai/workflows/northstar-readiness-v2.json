@@ -37,5 +37,21 @@
       "status": "active"
     }
   ],
+  "retired_v1": [
+    {
+      "fate": "completed",
+      "generation": "ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
+      "id": "northstar-plan-ach-skills-contract-v2",
+      "merged": [
+        {
+          "goal": "ACH-S-01",
+          "merge_commit": "f6be8346c1254fa2fc12ad853b2bacd0e6c1056e",
+          "pr": 97
+        }
+      ],
+      "plan_id": "ach-skills-contract-v2",
+      "registry": ".ai/workflows/northstar-readiness-v1.json"
+    }
+  ],
   "schema": "readiness-contract/2"
 }

@@ -2,16 +2,16 @@
   "files": {
     "contract-run-v2.sh": "c80437fdb8cfb1ac32d94fe52b39b1d58ed729b07d109f85d8d08056d4a67e2b",
     "contract-run.sh": "ba2f1ca5b3bcdda0944da878b2ffdf1809c1e54fc22c5d8506371d72c68e4757",
-    "lib/observer.py": "47ffc51a8cc92806bce616f74a5b9bf443ecd8ca400144388f3df4df87418945",
+    "lib/observer.py": "af512c3759975e5f37ceaa28b860d2a54a2c0e0160d73aaf5811843c69206cdc",
     "lib/readiness_contract.py": "30cfb9bf7436ff1f6b14c0b16542a62a6893321f5eface820c827ae4ec600166",
-    "lib/readiness_contract_v2.py": "c650235b42185434fd573102ae02bb196f35ac417b2b181b4d7aacb22d2bc798",
+    "lib/readiness_contract_v2.py": "4acdf79cf9eacdcf627fd7fc01ea3c883b3e29f1155299437c7784def504261f",
     "lib/verification.py": "572819a9c8a1039173c5483d0f7f9a33362588d197e27731bb97b5dd78d33524",
     "merge-authority.sh": "bd495cd7e4b1736cca212fc65718f5cfc652ec8986315cfa3fbea52bd6956f81",
     "migrate-handoff.sh": "08e12c7d4385a7e03cd26fb13a2006f8747fbbe4418cac95d7fb83a9c2a74145",
     "northstar/handoff-write.sh": "49465bce958b43f2921ac3c613e06fa9f8dd6cceb5e713ce63b410f012b3b6a3",
     "prereq-check.sh": "fbffee1880ce0291662b5ff48eb7221c4cfab189924c87a775c4f0a172d62b24",
     "run-gates.sh": "3483f9c6c300ebb7c40f77276ca94f41a5171438c6e15510374bb74f0a055e26",
-    "schemas/readiness-contract-v2.json": "f59355272cd8a01355c593a34aa809e7145a349c17e58d900bea3de8991c0f41"
+    "schemas/readiness-contract-v2.json": "dc41b78ee917a5dae4e89c63f3347b06b84cb04fa5d9f0af9c20dcc07ba8510b"
   },
   "schema": "readiness-contract/2"
 }

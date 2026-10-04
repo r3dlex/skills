@@ -19,6 +19,60 @@ from readiness_v2_core_test import (AUTO, NORTH, NOW, POLICY, REGISTRY, Fixture,
 PR = '7'
 BRANCH = 'feat/plan-a-G1'
 
+import re  # noqa: E402 - used by the appended routing cases
+from unittest import mock  # noqa: E402 - used by the appended routing cases
+from readiness_v2_core_test import sample_bundle, sample_sidecar  # noqa: E402 - used by the appended routing cases
+
+_core_gh_shim = gh_shim
+
+
+def gh_shim(directory, state_path, log_path):
+    """The core recording stub, wrapped locally to also expose a PR's changed files (paged
+    like the hosted API, with an integer changed_files on the pull) and `pr list` filtered
+    like the hosted CLI (--state, --head, --base, --limit; baseRefName defaults to main).
+    A PR with no recorded files lists none; that default exists only in this stub. A
+    recorded changed_files of null drops the field."""
+    directory = Path(directory)
+    core = _core_gh_shim(directory / 'core', state_path, log_path)
+    script = directory / 'gh'
+    script.write_text('''#!/usr/bin/env python3
+import json, os, re, subprocess, sys
+CORE, STATE, LOG = %r, %r, %r
+args = sys.argv[1:]
+state = json.load(open(STATE))
+def out(value):
+    with open(LOG, 'a') as handle:
+        handle.write(json.dumps({'args': args, 'env': dict(os.environ)}) + '\\n')
+    print(json.dumps(value)); sys.exit(0)
+if args[:1] == ['api'] and len(args) > 1:
+    match = re.fullmatch(r'repos/\\{owner\\}/\\{repo\\}/pulls/(\\d+)/files\\?per_page=100&page=(\\d+)', args[1])
+    if match:
+        files = state.get('files', {}).get(match.group(1), [])
+        page = int(match.group(2))
+        out(files[(page - 1) * 100:page * 100])
+if args[:2] == ['pr', 'list']:
+    option = lambda name, default=None: args[args.index(name) + 1] if name in args else default
+    pulls = state.get('open_prs' if option('--state') == 'open' else 'merged_prs', [])
+    pulls = [dict({'baseRefName': 'main'}, **p) for p in pulls]
+    pulls = [p for p in pulls if option('--head') in (None, p.get('headRefName'))
+             and option('--base') in (None, p.get('baseRefName'))]
+    out(pulls[:int(option('--limit', '30'))])
+result = subprocess.run([CORE, *args], capture_output=True, text=True)
+pull = re.fullmatch(r'repos/\\{owner\\}/\\{repo\\}/pulls/(\\d+)', args[1]) if args[:1] == ['api'] and len(args) > 1 else None
+if result.returncode == 0 and pull:
+    value = json.loads(result.stdout)
+    number = pull.group(1)
+    value['changed_files'] = state.get('changed_files', {}).get(number, len(state.get('files', {}).get(number, [])))
+    if value['changed_files'] is None:
+        del value['changed_files']
+    out(value)
+sys.stdout.write(result.stdout)
+sys.stderr.write(result.stderr)
+sys.exit(result.returncode)
+''' % (str(core), str(state_path), str(log_path)))
+    script.chmod(0o755)
+    return script
+
 
 class CertificateFixture:
     """A published, approved generation with goal G1 implemented on its branch and a host state."""
@@ -493,8 +547,8 @@ class MergeAuthorityEntryTests(unittest.TestCase):
         self.fail_closed(broken, '--pr', '9', '--verdict', str(self.verdict), env=self.shimmed('broken', 'docs/x'),
                          code='plan_unloadable')
         live = self.repository('live', {POLICY: sample_policy('4' * 64), REGISTRY: {'schema': 'readiness-contract/2', 'plans': []}})
-        self.fail_closed(live, '--pr', '9', '--verdict', str(self.verdict), env=self.shimmed('live', 'feat/other-plan-G9'),
-                         code='v2_branch_without_plan')
+        self.assertEqual(self.authority(live, '--pr', '9', '--verdict', str(self.verdict),
+                                        env=self.shimmed('live', 'feat/other-plan-G9')).returncode, 0)
         self.assertEqual(self.authority(live, '--pr', '9', '--verdict', str(self.verdict),
                                         env=self.shimmed('live-docs', 'docs/readme')).returncode, 0)
         rewound = self.repository('rewound', {})
@@ -625,6 +679,755 @@ class BaseCopyTests(unittest.TestCase):
             self.assertNotIn('driver_not_base_copy', base_run.stdout + base_run.stderr)
             self.assertNotIn('dependency_failed', base_run.stdout)
             self.assertEqual(json.loads(base_run.stdout)['schema'], 'readiness-context/2')
+
+
+class RoutingHelpers:
+    """A CertificateFixture on main plus helpers that record non-goal PRs on the host."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.base = Path(self.tmp.name).resolve()
+        self.c = CertificateFixture(self.base)
+        self.work = self.c.fixture.work
+        git(self.work, 'checkout', '-q', 'main')
+        self.number = 20
+
+    def state(self):
+        return json.loads(self.c.state.read_text())
+
+    def save(self, state):
+        write_json(self.c.state, state)
+
+    def pull(self, branch, head, base_sha=None, files=None, number=None):
+        number = number or self.number + 1
+        self.number = max(self.number, number)
+        state = self.state()
+        state['pulls'][str(number)] = {'head': {'sha': head, 'ref': branch},
+                                       'base': {'sha': base_sha or git(self.work, 'rev-parse', 'origin/main'), 'ref': 'main'}}
+        state.setdefault('files', {})[str(number)] = files or []
+        self.save(state)
+        return number
+
+    def open_pr(self, branch, change, base='origin/main', files=None):
+        """Commit change(work) on branch from base, push it and record the PR with its changed files."""
+        git(self.work, 'checkout', '-q', '-B', branch, base)
+        change(self.work)
+        head = self.c.fixture.commit_push('pr: ' + branch, branch=branch)
+        base_sha = git(self.work, 'rev-parse', base)
+        merge_base = git(self.work, 'merge-base', base_sha, head)
+        if files is None:
+            files = [{'filename': name} for name in git(self.work, 'diff', '--name-only', merge_base, head).splitlines()]
+        git(self.work, 'checkout', '-q', 'main')
+        return self.pull(branch, head, base_sha, files), head
+
+    def route(self, number, *extra):
+        cwd = os.getcwd()
+        os.chdir(self.work)
+        try:
+            return self.c.fixture.run(['merge-v2', '--pr', str(number), *extra], env=self.c.env())
+        finally:
+            os.chdir(cwd)
+
+    def v1(self, number, lane=None):
+        exit_code, result = self.route(number)
+        self.assertEqual(exit_code, observer.EXIT_V1, json.dumps(result, indent=1))
+        self.assertEqual((result['schema'], result['decision']), ('merge-decision/1', 'v1'))
+        self.assertEqual(result['head'], self.state()['pulls'][str(number)]['head']['sha'])
+        if lane:
+            self.assertEqual(result['lane'], lane)
+        return result
+
+    def refused(self, number, code):
+        exit_code, result = self.route(number)
+        self.assertEqual(exit_code, 4, json.dumps(result, indent=1))
+        self.assertIn(code, codes(result), json.dumps(result, indent=1))
+        return result
+
+    def sidecar_path(self):
+        return '.ai/handoff/readiness-v2/plan-a/%s/sidecar.json' % self.c.fixture.generation
+
+    def edit_sidecar(self, change):
+        def apply(work):
+            path = work / self.sidecar_path()
+            sidecar = json.loads(path.read_text())
+            change(sidecar['goals']['G1'])
+            write_json(path, sidecar)
+        return apply
+
+    def publish(self, plan_id, scope='src/b.txt', criteria=('works',)):
+        def apply(work):
+            spec = 'docs/specifications/ACTIVE/%s.md' % plan_id
+            (work / spec).parent.mkdir(parents=True, exist_ok=True)
+            (work / spec).write_text('Plan %s specification\n' % plan_id)
+            bundle = sample_bundle([{'id': 'G1', 'scope': [scope], 'acceptance_criteria': list(criteria),
+                                     'dependencies': [], 'verification': ['bash tests/check.sh']}])
+            bundle['id'], bundle['spec'] = plan_id, {'path': spec}
+            if plan_id == 'plan-a':
+                bundle['spec'] = {'path': 'spec.md'}
+            inputs = Path(tempfile.mkdtemp(dir=self.base))
+            exit_code, result = observer.run(['publish-v2', '--root', str(work), '--bundle', str(write_json(inputs / 'b.json', bundle)),
+                                              '--sidecar', str(write_json(inputs / 's.json', sample_sidecar(bundle)))], now=NOW)
+            self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+            write_json(work / ('.ai/handoff/%s-plan-approval-request.json' % plan_id), {'plan_id': plan_id})
+            (work / ('.ai/handoff/%s-plan-approval.md' % plan_id)).write_text('# Approval request\n')
+            write_json(work / '.ai/traceability/graph.json', {'schema_version': '1.1', 'nodes': [plan_id]})
+        return apply
+
+    def complete_g1(self):
+        """Squash-merge G1 onto main and record its merged goal PR."""
+        (self.work / 'src/app.txt').write_text('v1\n')
+        merge_commit = self.c.fixture.commit_push('feat: implement G1 (#7)')
+        state = self.state()
+        state['merged_prs'] = [{'number': 7, 'headRefName': BRANCH, 'headRefOid': self.c.head, 'baseRefName': 'main',
+                                'mergeCommit': {'oid': merge_commit}, 'mergedAt': stamp(NOW)}]
+        self.save(state)
+
+
+class NonGoalRoutingTests(RoutingHelpers, unittest.TestCase):
+    """ACH-S-02 routing once v2 is live: the per-plan reserved branch namespace, non-active
+    registry entries, reserved paths, the publish-v2 replay exception, the sidecar-tighten
+    lane and the observed changed-file list. Appended cases; the ones above are unchanged."""
+
+    # --- the per-plan route guard (U2, U3) ---------------------------------------
+
+    def test_route_guard_is_per_registered_plan_and_case_insensitive(self):
+        unknown = self.pull('feat/plan-a-G9', self.c.head)
+        self.refused(unknown, 'v2_branch_without_plan')
+        variant = self.pull('FEAT/Plan-A-g1', self.c.head)
+        self.refused(variant, 'v2_branch_without_plan')
+        exit_code, result = self.route(int(PR), '--verdict', str(REPO_VERDICT))
+        self.assertEqual((exit_code, result['refusals'][0]['code']), (4, 'verdict_refused_for_v2'))
+        for branch in ('chore/host-policy-audit-skills-101', 'feat/catalog-edit-article-opencode'):
+            number = self.pull(branch, self.c.head, files=[{'filename': '.ai/host-policy/github/audit.jsonl'}])
+            self.v1(number)
+
+    def test_audit_and_unrelated_branches_take_v1_with_only_a_v2_registry(self):
+        base = self.base / 'registry-only'
+        base.mkdir()
+        policy_goal = {'id': 'P', 'scope': [POLICY], 'acceptance_criteria': ['policy lands'], 'dependencies': [],
+                       'verification': ['bash tests/check.sh']}
+        fixture = Fixture(base, bundle=sample_bundle([policy_goal]), candidate=True, live_policy=False)
+        self.assertFalse((fixture.work / POLICY).exists())
+        state, log = base / 'gh.json', base / 'gh.jsonl'
+        shim = gh_shim(base / 'bin', state, log)
+        main = git(fixture.work, 'rev-parse', 'origin/main')
+        pulls = {str(n): {'head': {'sha': main, 'ref': ref}, 'base': {'sha': main, 'ref': 'main'}}
+                 for n, ref in ((1, 'chore/host-policy-audit-skills-101'), (2, 'feat/catalog-edit-article-opencode'),
+                                (3, 'fix/plan-a-Q1'))}
+        write_json(state, {'pulls': pulls, 'files': {'1': [{'filename': '.ai/host-policy/github/audit.jsonl'}]},
+                           'merged_prs': []})
+        cwd = os.getcwd()
+        os.chdir(fixture.work)
+        try:
+            run = lambda n: fixture.run(['merge-v2', '--pr', str(n)], env={'PATH': str(shim.parent) + os.pathsep + os.environ['PATH']})
+            for number in (1, 2):
+                exit_code, result = run(number)
+                self.assertEqual((exit_code, result['decision']), (observer.EXIT_V1, 'v1'), json.dumps(result, indent=1))
+            exit_code, result = run(3)
+            self.assertEqual(exit_code, 4)
+            self.assertIn('v2_branch_without_plan', codes(result))
+        finally:
+            os.chdir(cwd)
+
+    # --- non-active entries and the retired_v1 record (O10) ---------------------
+
+    def test_retired_v1_record_and_non_active_entries_never_block(self):
+        registry = json.loads((self.work / REGISTRY).read_text())
+        registry['retired_v1'] = [{'id': 'northstar-plan-old', 'plan_id': 'old', 'generation': 'b' * 64,
+                                   'registry': '.ai/workflows/northstar-readiness-v1.json', 'fate': 'completed',
+                                   'merged': [{'goal': 'OLD-01', 'pr': 1, 'merge_commit': 'c' * 40}]}]
+        registry['plans'].append({'id': 'northstar-plan-gone', 'plan_id': 'gone', 'generation': 'a' * 64,
+                                  'status': 'superseded', 'artifacts': {}})
+        write_json(self.work / REGISTRY, registry)
+        self.c.fixture.commit_push('retire a completed v1 entry and supersede a plan')
+        exit_code, result = self.route(int(PR), '--verdict', str(REPO_VERDICT))
+        self.assertEqual((exit_code, result['refusals'][0]['code']), (4, 'verdict_refused_for_v2'))
+        docs = self.pull('docs/readme', self.c.head, files=[{'filename': 'README.md'}])
+        self.v1(docs)
+        self.assertEqual([p['id'] for p in json.loads((self.work / REGISTRY).read_text())['plans'] if p.get('status') == 'active'],
+                         ['northstar-plan-plan-a'])
+
+    # --- reserved paths (O4) -------------------------------------------------------
+
+    def test_planning_pr_adding_a_generation_takes_v1(self):
+        number, head = self.open_pr('docs/plan-b-publication', self.publish('plan-b'))
+        names = {f['filename'] for f in self.state()['files'][str(number)]}
+        self.assertIn(REGISTRY, names)
+        self.assertIn('docs/specifications/ACTIVE/plan-b.md', names)
+        self.assertIn('.ai/handoff/plan-b-plan-approval.md', names)
+        result = self.v1(number, lane='publish-v2-replay')
+        self.assertEqual(result['notices'], [])
+
+    def test_policy_file_is_never_covered(self):
+        number, _ = self.open_pr('docs/x', lambda work: write_json(work / POLICY, dict(
+            json.loads((work / POLICY).read_text()), required_checks=['Test Suite', 'Late'])))
+        self.refused(number, 'v2_scope_outside_goal')
+        upper = self.pull('docs/case', self.c.head, files=[{'filename': '.AI/Policies/Readiness-Policy.json'}])
+        self.refused(upper, 'v2_scope_outside_goal')
+
+    def test_active_goal_scope_is_reserved_until_its_merge_reaches_the_target(self):
+        number, _ = self.open_pr('fix/app-typo', lambda work: (work / 'src/app.txt').write_text('typo fixed\n'))
+        self.refused(number, 'v2_scope_outside_goal')
+        free = self.pull('chore/ci-pins', self.c.head, files=[{'filename': '.ai/ci/local-ci.json'},
+                                                            {'filename': '.ai/traceability/graph.json'}])
+        self.v1(free)
+        self.complete_g1()
+        number, _ = self.open_pr('fix/app-typo-later', lambda work: (work / 'src/app.txt').write_text('typo fixed\n'))
+        self.v1(number)
+
+    def test_renamed_paths_touch_both_names(self):
+        into = self.pull('docs/into', self.c.head, files=[{'filename': 'src/app.txt', 'previous_filename': 'src/old.txt',
+                                                          'status': 'renamed'}])
+        self.refused(into, 'v2_scope_outside_goal')
+        out = self.pull('docs/out', self.c.head, files=[{'filename': 'docs/policy-copy.json', 'previous_filename': POLICY,
+                                                        'status': 'renamed'}])
+        self.refused(out, 'v2_scope_outside_goal')
+
+    def test_truncated_or_unobservable_file_lists_fail_closed(self):
+        truncated = self.pull('docs/big', self.c.head, files=[{'filename': 'README.md'}, {'filename': 'docs/a.md'}])
+        state = self.state()
+        state['changed_files'] = {str(truncated): 5000}
+        self.save(state)
+        self.refused(truncated, 'pr_files_truncated')
+
+        class Paged(observer.GhAdapter):
+            def __init__(self, root, total):
+                super().__init__(root)
+                self.total = total
+
+            def _api(self, path, *extra, allow_missing=False):
+                if '/files?' in path:
+                    page = int(path.rsplit('=', 1)[1])
+                    return [{'filename': 'f%d' % i} for i in range((page - 1) * 100, min(page * 100, self.total))]
+                return {'changed_files': self.total}
+        with self.assertRaises(v2.Invalid) as raised:
+            Paged(self.work, 3000).pr_files(1)
+        self.assertEqual(v2.code(raised.exception), 'pr_files_truncated')
+        self.assertEqual(len(Paged(self.work, 250).pr_files(1)), 250)
+        self.assertEqual(observer.FixtureAdapter({}).pr_files(1), [])
+
+    def test_path_matching_is_case_insensitive_and_unicode_normalized(self):
+        self.assertEqual(observer.path_key('docs/café.md'), observer.path_key('DOCS/CAFÉ.md'))
+        self.assertEqual(observer.path_key('.ai/policies/Key.json'), observer.path_key('.AI/Policies/key.json'))
+
+    # --- the publish-v2 replay exception -------------------------------------------
+
+    def test_replay_may_replace_a_plan_only_without_goal_prs(self):
+        number, _ = self.open_pr('docs/plan-a-republish', self.publish('plan-a', scope='src/app.txt',
+                                                                         criteria=('The app file exists', 'and more')))
+        result = self.v1(number, lane='publish-v2-replay')
+        self.assertEqual([n['code'] for n in result['notices']], ['v2_plan_entry_replaced'])
+        state = self.state()
+        state['open_prs'] = [{'number': int(PR), 'headRefName': BRANCH, 'headRefOid': self.c.head}]
+        self.save(state)
+        self.refused(number, 'v2_scope_outside_goal')
+        state['open_prs'] = []
+        self.save(state)
+        self.complete_g1()
+        number, _ = self.open_pr('docs/plan-a-republish-2', self.publish('plan-a', scope='src/app.txt',
+                                                                           criteria=('The app file exists', 'again')))
+        self.refused(number, 'v2_scope_outside_goal')
+
+    def test_replay_byte_mismatch_stale_base_two_generations_and_symlinks_are_refused(self):
+        def tampered(work):
+            self.publish('plan-b')(work)
+            registry = json.loads((work / REGISTRY).read_text())
+            registry['plans'][-1]['status'] = 'approved'
+            write_json(work / REGISTRY, registry)
+        self.refused(self.open_pr('docs/tampered', tampered)[0], 'v2_scope_outside_goal')
+        def two(work):
+            self.publish('plan-b')(work)
+            self.publish('plan-c', scope='src/c.txt')(work)
+        self.refused(self.open_pr('docs/two', two)[0], 'v2_scope_outside_goal')
+        def linked(work):
+            self.publish('plan-b')(work)
+            generation = json.loads((work / REGISTRY).read_text())['plans'][-1]['generation']
+            sidecar = work / ('.ai/handoff/readiness-v2/plan-b/%s/sidecar.json' % generation)
+            sidecar.unlink()
+            sidecar.symlink_to('goals.json')
+        self.refused(self.open_pr('docs/linked', linked)[0], 'v2_scope_outside_goal')
+        old = git(self.work, 'rev-parse', 'origin/main')
+        stale, _ = self.open_pr('docs/stale-plan-b', self.publish('plan-b'))
+        (self.work / 'README.md').write_text('main moved\n')
+        self.c.fixture.commit_push('main moves on')
+        self.assertNotEqual(git(self.work, 'rev-parse', 'origin/main'), old)
+        self.refused(stale, 'v2_scope_outside_goal')
+
+    # --- the sidecar-tighten lane (O1) ---------------------------------------------
+
+    def test_sidecar_hold_takes_v1_and_loosening_is_refused(self):
+        hold = self.edit_sidecar(lambda goal: goal['readiness'].update(merge='blocked'))
+        number, _ = self.open_pr('chore/hold-merge', hold)
+        self.v1(number, lane='sidecar-tighten')
+        loose = self.edit_sidecar(lambda goal: goal.update(legacy_safe_tdd=False))
+        number, _ = self.open_pr('chore/loosen', loose)
+        self.refused(number, 'v2_sidecar_not_tightening')
+
+    def test_stale_base_sidecar_is_rechecked_against_the_current_target(self):
+        old = git(self.work, 'rev-parse', 'origin/main')
+        self.edit_sidecar(lambda goal: goal['readiness'].update(merge='blocked'))(self.work)
+        self.c.fixture.commit_push('hold merge on main')
+        extend = self.edit_sidecar(lambda goal: goal.update(legacy_risk_reason=goal['legacy_risk_reason'] + '; more'))
+        number, _ = self.open_pr('chore/extend-reason', extend, base=old)
+        self.refused(number, 'v2_sidecar_not_tightening')
+
+    # --- head binding and driver provenance (U2, P1) -------------------------------
+
+    def test_v1_lane_prints_the_observed_head_before_the_v1_adapter(self):
+        number = self.pull('docs/readme', self.c.head, files=[{'filename': 'README.md'}])
+        result = subprocess.run(['bash', str(AUTO / 'merge-authority.sh'), '--pr', str(number), '--verdict', str(REPO_VERDICT)],
+                                cwd=str(self.work), capture_output=True, text=True, env=dict(os.environ, **self.c.env()),
+                                stdin=subprocess.DEVNULL)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        decision = json.loads(result.stdout[:result.stdout.index('\n}') + 2])
+        self.assertEqual((decision['schema'], decision['decision'], decision['head']), ('merge-decision/1', 'v1', self.c.head))
+        self.assertEqual(decision['merge_with'], ['--match-head-commit', self.c.head])
+        self.assertLess(result.stdout.index('"decision"'), result.stdout.index('host-policy authorized'))
+        text = (AUTO / 'modules/merge-authority.md').read_text()
+        self.assertIn('gh pr merge --match-head-commit', text)
+
+    def test_v1_lane_decisions_come_only_from_a_verified_driver(self):
+        work = self.work
+        shutil.copytree(AUTO, work / '04-validate-handoff/autobahn', ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(NORTH, work / '02-govern-plan/northstar', ignore=shutil.ignore_patterns('__pycache__'))
+        self.c.fixture.commit_push('vendor the v2 driver on main')
+        git(work, 'checkout', '-q', '-b', 'docs/driver-edit')
+        observer_copy = work / '04-validate-handoff/autobahn/lib/observer.py'
+        observer_copy.write_text(observer_copy.read_text() + '\n# head edit\n')
+        manifest = {'schema': 'readiness-contract/2', 'files': {}}
+        for name in json.loads((AUTO / 'readiness-dependency-v2.json').read_text())['files']:
+            path = work / ('02-govern-plan/northstar/handoff-write.sh' if name == 'northstar/handoff-write.sh'
+                           else '04-validate-handoff/autobahn/' + name)
+            manifest['files'][name] = sha(path)
+        for directory in ('04-validate-handoff/autobahn', '02-govern-plan/northstar'):
+            (work / directory / 'readiness-dependency-v2.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+        head = self.c.fixture.commit_push('docs: edit the driver', branch='docs/driver-edit')
+        number = self.pull('docs/driver-edit', head, files=[{'filename': 'README.md'}])
+        env = dict(os.environ, **self.c.env())
+        authority = lambda driver: subprocess.run(
+            ['bash', str(driver / '04-validate-handoff/autobahn/merge-authority.sh'), '--pr', str(number), '--verdict',
+             str(REPO_VERDICT)], cwd=str(work), capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
+        head_run = authority(work)
+        self.assertEqual(head_run.returncode, 4, head_run.stdout + head_run.stderr)
+        self.assertIn('driver_not_base_copy', head_run.stdout)
+        detached = self.base / 'base-copy'
+        git(work, 'worktree', 'add', '-q', '--detach', str(detached), 'origin/main')
+        base_run = authority(detached)
+        self.assertEqual(base_run.returncode, 0, base_run.stdout + base_run.stderr)
+        self.assertIn('"decision": "v1"', base_run.stdout)
+
+
+def plumbing_commit(work, parent, entries):
+    """A commit on top of parent that adds exact tree entries {path: bytes} through a temporary
+    index, so case variants exist in the tree even on a case-insensitive filesystem."""
+    index = Path(tempfile.mkdtemp()) / 'index'
+    env = dict(os.environ, GIT_INDEX_FILE=str(index))
+    run = lambda *args, data=None: subprocess.run(['git', '-C', str(work), '-c', 'core.ignorecase=false', *args], input=data,
+                                                  capture_output=True, check=True, env=env).stdout.decode().strip()
+    run('read-tree', parent)
+    for path, data in entries.items():
+        blob = run('hash-object', '-w', '--stdin', data=data)
+        run('update-index', '--add', '--cacheinfo', '100644,%s,%s' % (blob, path))
+    return run('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit-tree', run('write-tree'),
+               '-p', parent, '-m', 'plumbing entries')
+
+
+class RoutingHardeningTests(RoutingHelpers, unittest.TestCase):
+    """PR #102 review round 1: head-bound file lists, goal-PR facts, live branch patterns,
+    case variants on the replay, base targets, per-goal-branch queries and bound specs."""
+
+    def push_head(self, branch, commit):
+        git(self.work, 'push', '-q', '-f', 'origin', commit + ':refs/heads/' + branch)
+        git(self.work, 'fetch', '-q', 'origin')
+        return commit
+
+    def test_hosted_list_is_unioned_with_the_reserved_paths_of_the_observed_head(self):
+        def bad(work):
+            write_json(work / POLICY, dict(json.loads((work / POLICY).read_text()), required_checks=['Optional Smoke']))
+        number, _ = self.open_pr('docs/innocent', bad)
+        state = self.state()
+        state['files'][str(number)] = [{'filename': 'README.md'}]  # a list served for another head
+        self.save(state)
+        self.refused(number, 'v2_scope_outside_goal')
+
+    def test_head_or_base_moving_while_listing_and_a_missing_count_fail_closed(self):
+        number, head = self.open_pr('docs/readme', lambda work: (work / 'README.md').write_text('docs\n'))
+        self.v1(number)
+        state = self.state()
+        state['pulls'][str(number)]['head_sequence'] = [head, head, self.c.head]
+        self.save(state)
+        self.refused(number, 'v2_diff_unobservable')
+        state = self.state()
+        state['pulls'][str(number)].pop('head_sequence', None)
+        state['pulls'][str(number)]['head']['sha'] = head
+        state['changed_files'] = {str(number): None}
+        self.save(state)
+        self.refused(number, 'hosted_api_incomplete')
+
+    def test_a_lookalike_or_off_target_merged_pr_never_releases_a_goal(self):
+        number, _ = self.open_pr('fix/app-typo', lambda work: (work / 'src/app.txt').write_text('typo\n'))
+        self.refused(number, 'v2_scope_outside_goal')
+        initial = git(self.work, 'rev-list', '--max-parents=0', 'origin/main')
+        state = self.state()
+        state['merged_prs'] = [{'number': 3, 'headRefName': BRANCH, 'headRefOid': '3' * 40, 'baseRefName': 'main',
+                                'mergeCommit': {'oid': initial}, 'mergedAt': stamp(NOW)}]
+        self.save(state)
+        self.refused(number, 'v2_scope_outside_goal')  # merged before the generation was published
+        (self.work / 'src/app.txt').write_text('v1\n')
+        merge_commit = self.c.fixture.commit_push('feat: implement G1 (#7)')
+        state['merged_prs'] = [{'number': 7, 'headRefName': BRANCH, 'headRefOid': self.c.head, 'baseRefName': 'release',
+                                'mergeCommit': {'oid': merge_commit}, 'mergedAt': stamp(NOW)}]
+        self.save(state)
+        later, _ = self.open_pr('fix/app-typo-later', lambda work: (work / 'src/app.txt').write_text('typo\n'))
+        self.refused(later, 'v2_scope_outside_goal')  # merged into another base
+        state = self.state()
+        state['merged_prs'][0]['baseRefName'] = 'main'
+        self.save(state)
+        self.v1(later)
+
+    def test_goal_prs_are_queried_per_goal_branch_and_truncation_fails_closed(self):
+        number, _ = self.open_pr('fix/app-typo', lambda work: (work / 'src/app.txt').write_text('typo\n'))
+        self.refused(number, 'v2_scope_outside_goal')
+        calls = [json.loads(line)['args'] for line in self.c.log.read_text().splitlines()]
+        listed = [args for args in calls if args[:2] == ['pr', 'list']]
+        self.assertTrue(listed)
+        self.assertTrue(all('--head' in args and '--base' in args for args in listed), listed)
+        self.assertIn(BRANCH, {args[args.index('--head') + 1] for args in listed})
+        state = self.state()
+        state['merged_prs'] = [{'number': n, 'headRefName': BRANCH, 'baseRefName': 'main', 'mergeCommit': {'oid': '0' * 40}}
+                               for n in range(100, 200)]
+        self.save(state)
+        self.refused(number, 'v2_goal_prs_unobservable')
+
+    def test_case_variant_reserved_entries_cannot_ride_a_replay_or_a_sidecar_change(self):
+        number, head = self.open_pr('docs/plan-b-publication', self.publish('plan-b'))
+        self.v1(number, lane='publish-v2-replay')
+        for variant in ('.ai/handoff/READINESS-V2/plan-a/smuggled.json', '.ai/workflows/Northstar-Readiness-V2.json'):
+            commit = self.push_head('docs/plan-b-publication', plumbing_commit(self.work, head, {variant: b'{"x": 1}\n'}))
+            files = [{'filename': n} for n in git(self.work, '-c', 'core.quotepath=false', 'diff', '--name-only',
+                                                     'origin/main', commit).splitlines()]
+            self.refused(self.pull('docs/plan-b-publication', commit, files=files), 'v2_scope_outside_goal')
+        hold, hold_head = self.open_pr('chore/hold-merge', self.edit_sidecar(lambda goal: goal['readiness'].update(merge='blocked')))
+        self.v1(hold, lane='sidecar-tighten')
+        commit = self.push_head('chore/hold-merge', plumbing_commit(
+            self.work, hold_head, {'.ai/handoff/readiness-v2/PLAN-A/x/sidecar.json': b'{}\n'}))
+        self.refused(self.pull('chore/hold-merge', commit, files=[{'filename': self.sidecar_path()}]), 'v2_scope_outside_goal')
+
+    def test_routing_uses_the_live_branch_pattern(self):
+        policy = json.loads((self.work / POLICY).read_text())
+        for pattern in ('^(?:.*|<plan_id>-<goal_id>)$', '^((a+)+)<plan_id>-<goal_id>$', '^(feat|fix)/<plan_id>.<goal_id>+$'):
+            with self.assertRaises(v2.Invalid) as raised:
+                v2.validate_policy(dict(policy, branch_pattern=pattern))
+            self.assertEqual(v2.code(raised.exception), 'policy_field_invalid', pattern)
+        for pattern in ('^(feat|fix|chore)/<plan_id>-<goal_id>$', '^goal/<plan_id>/<goal_id>$'):
+            v2.validate_policy(dict(policy, branch_pattern=pattern))
+
+    def test_pr_base_must_be_the_target_and_pr_outside_a_repository_refuses(self):
+        number, _ = self.open_pr('docs/readme', lambda work: (work / 'README.md').write_text('docs\n'))
+        state = self.state()
+        state['pulls'][str(number)]['base']['ref'] = 'legacy'
+        self.save(state)
+        self.refused(number, 'pr_base_not_target')
+        cwd = os.getcwd()
+        os.chdir(tempfile.mkdtemp(dir=self.base))
+        try:
+            exit_code, result = self.c.fixture.run(['merge-v2', '--pr', str(number)], env=self.c.env())
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(exit_code, 4, result)
+        self.assertIn('pr_outside_repository', codes(result))
+        with tempfile.TemporaryDirectory() as neutral:
+            subprocess.run(['git', 'init', '-q', neutral], check=True)
+            verdict = subprocess.run(['bash', str(AUTO / 'merge-authority.sh'), '--verdict', str(REPO_VERDICT)], cwd=neutral,
+                                     capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(verdict.returncode, 0, verdict.stdout + verdict.stderr)
+
+    def test_an_active_plans_bound_spec_is_reserved(self):
+        number, _ = self.open_pr('docs/spec-typo', lambda work: (work / 'spec.md').write_text('Fixture spec, edited\n'))
+        self.refused(number, 'v2_scope_outside_goal')
+
+    def test_replay_trees_are_built_only_from_safe_needed_entries(self):
+        for name in ('a/../b', '.git/config', 'x/.git/hooks/pre-commit', '/abs', '', 'a//b'):
+            self.assertFalse(observer.safe_tree_name(name), name)
+        for name in ('.ai/handoff/readiness-v2/plan-a/x/goals.json', 'tests/check.sh', 'docs/a.b/c.md'):
+            self.assertTrue(observer.safe_tree_name(name), name)
+        number, head = self.open_pr('docs/plan-b-publication', self.publish('plan-b'))
+        written = []
+        real = observer.materialize
+
+        def spy(repo, commit, destination, names):
+            written.extend(names)
+            return real(repo, commit, destination, names)
+        with mock.patch.object(observer, 'materialize', spy):
+            self.v1(number, lane='publish-v2-replay')
+        self.assertIn('tests/check.sh', written)
+        self.assertIn('docs/specifications/ACTIVE/plan-b.md', written)
+        self.assertNotIn('src/app.txt', written)
+        self.assertNotIn('AGENTS.md', written)
+
+    def test_pr_head_present_only_on_origin_is_fetched_into_a_throwaway_repository(self):
+        other = self.base / 'other-clone'
+        git(self.base, 'clone', '-q', str(self.c.fixture.origin), str(other))
+        path = other / self.sidecar_path()
+        sidecar = json.loads(path.read_text())
+        sidecar['goals']['G1']['readiness']['merge'] = 'blocked'
+        write_json(path, sidecar)
+        git(other, 'checkout', '-q', '-b', 'chore/remote-hold')
+        git(other, 'add', '-A')
+        git(other, 'commit', '-q', '-m', 'hold merge')
+        git(other, 'push', '-q', 'origin', 'HEAD:refs/heads/chore/remote-hold')
+        head = git(other, 'rev-parse', 'HEAD')
+        self.assertNotEqual(subprocess.run(['git', '-C', str(self.work), 'cat-file', '-e', head + '^{commit}']).returncode, 0)
+        number = self.pull('chore/remote-hold', head, files=[{'filename': self.sidecar_path()}])
+        self.v1(number, lane='sidecar-tighten')
+        self.assertNotEqual(subprocess.run(['git', '-C', str(self.work), 'cat-file', '-e', head + '^{commit}']).returncode, 0)
+
+
+class RoundTwoRoutingTests(RoutingHelpers, unittest.TestCase):
+    """PR #102 review round 2: fetched heads bound to the observed head, branch literals,
+    bound specs on a permitted republish, and an unloadable live policy."""
+
+    def attacker_head(self, branch, change, refs=()):
+        """A commit made in another clone and pushed only under refs (never fetched here)."""
+        other = Path(tempfile.mkdtemp(dir=self.base)) / 'attacker'
+        git(self.base, 'clone', '-q', str(self.c.fixture.origin), str(other))
+        git(other, 'checkout', '-q', '-b', branch, 'origin/main')
+        change(other)
+        git(other, 'add', '-A')
+        git(other, 'commit', '-q', '-m', 'attacker head')
+        head = git(other, 'rev-parse', 'HEAD')
+        for ref in refs:
+            git(other, 'push', '-q', 'origin', 'HEAD:' + ref)
+        self.assertNotEqual(subprocess.run(['git', '-C', str(self.work), 'cat-file', '-e', head + '^{commit}']).returncode, 0)
+        return head
+
+    def bad(self, work):
+        write_json(work / POLICY, dict(json.loads((work / POLICY).read_text()), required_checks=['Optional Smoke']))
+
+    def test_a_fetched_head_that_differs_from_the_observed_head_refuses(self):
+        # The origin branch shows another commit than the PR head the API reported (A-B-A at fetch time).
+        good, _ = self.open_pr('docs/innocent', lambda work: (work / 'README.md').write_text('docs\n'))
+        bad = self.attacker_head('docs/innocent-bad', self.bad)
+        state = self.state()
+        state['pulls'][str(good)]['head']['sha'] = bad
+        self.save(state)
+        result = self.refused(good, 'v2_diff_unobservable')
+        self.assertIn('pr_head_moved', json.dumps(result))
+        # The same through refs/pull/<n>/head.
+        number = 31
+        bad = self.attacker_head('docs/x', self.bad)
+        self.attacker_head('docs/x', lambda work: (work / 'README.md').write_text('benign\n'),
+                           refs=('refs/heads/docs/x', 'refs/pull/%d/head' % number))
+        self.pull('docs/x', bad, files=[{'filename': 'README.md'}], number=number)
+        result = self.refused(number, 'v2_diff_unobservable')
+        self.assertIn('pr_head_moved', json.dumps(result))
+
+    def test_the_decision_head_is_the_head_the_diff_was_computed_from(self):
+        number, head = self.open_pr('docs/readme', lambda work: (work / 'README.md').write_text('docs\n'))
+        result = self.v1(number)
+        self.assertEqual((result['head'], result['diff_head'], result['merge_with']), (head, head, ['--match-head-commit', head]))
+
+    def test_branch_pattern_literals_route_and_complete_alike(self):
+        policy = json.loads((self.work / POLICY).read_text())
+        for pattern in ('^feat.<plan_id>-<goal_id>$', '^(feat|fi.x)/<plan_id>-<goal_id>$'):
+            with self.assertRaises(v2.Invalid) as raised:
+                v2.validate_policy(dict(policy, branch_pattern=pattern))
+            self.assertEqual(v2.code(raised.exception), 'policy_field_invalid', pattern)
+        for pattern in ('^(feat|fix|chore)/<plan_id>-<goal_id>$', '^goal_<plan_id>/<goal_id>$'):
+            v2.validate_policy(dict(policy, branch_pattern=pattern))
+            names = v2.branch_names(pattern, 'plan-a', 'G1')
+            self.assertTrue(all(re.fullmatch(v2.fill(pattern, 'plan-a', 'G1'), name) for name in names), names)
+            for name in names:
+                twisted = name.replace('-', 'X', 1)
+                self.assertFalse(re.fullmatch(v2.fill(pattern, 'plan-a', 'G1'), twisted), twisted)
+
+    def test_a_permitted_republish_may_edit_the_replaced_plans_bound_spec(self):
+        def change(work):
+            (work / 'spec.md').write_text((work / 'spec.md').read_text() + '\nRevised requirement.\n')
+            self.publish('plan-a', scope='src/app.txt', criteria=('The app file exists', 'revised'))(work)
+        number, _ = self.open_pr('docs/plan-a-republish-spec', change)
+        result = self.v1(number, lane='publish-v2-replay')
+        self.assertEqual([n['code'] for n in result['notices']], ['v2_plan_entry_replaced'])
+        # Without a replacement of that plan, its bound spec stays reserved.
+        spec_only, _ = self.open_pr('docs/spec-only', lambda work: (work / 'spec.md').write_text('edited\n'))
+        self.refused(spec_only, 'v2_scope_outside_goal')
+
+    def test_an_invalid_live_policy_never_falls_back_to_a_candidate_pattern(self):
+        base = self.base / 'unloadable'
+        base.mkdir()
+        policy_goal = {'id': 'P', 'scope': [POLICY], 'acceptance_criteria': ['policy lands'], 'dependencies': [],
+                       'verification': ['bash tests/check.sh']}
+        fixture = Fixture(base, bundle=sample_bundle([policy_goal]), candidate=True, live_policy=False)
+        write_json(fixture.work / POLICY, {'schema': 'readiness-policy/2', 'repository': {'id': 'fixture'}})
+        main = fixture.commit_push('an invalid live policy/2 lands')
+        state, log = base / 'gh.json', base / 'gh.jsonl'
+        shim = gh_shim(base / 'bin', state, log)
+        write_json(state, {'pulls': {'1': {'head': {'sha': main, 'ref': 'docs/readme'}, 'base': {'sha': main, 'ref': 'main'}}},
+                           'merged_prs': []})
+        cwd = os.getcwd()
+        os.chdir(fixture.work)
+        try:
+            exit_code, result = fixture.run(['merge-v2', '--pr', '1'], env={'PATH': str(shim.parent) + os.pathsep + os.environ['PATH']})
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(exit_code, 4, json.dumps(result, indent=1))
+        self.assertIn('policy_unloadable', codes(result))
+
+
+class GoalReservedPathTests(unittest.TestCase):
+    """H1: a goal PR touches a reserved path only inside its bound scope, and then only as the
+    policy goal's bytes, a pinned publish-v2 replay, a retired_v1-only registry change for the
+    policy goal, or a tightening sidecar change."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.base = Path(self.tmp.name).resolve()
+
+    def fixture(self, scope=None):
+        import readiness_v2_core_test as core
+        goals = [{'id': 'G1', 'scope': scope or ['src/app.txt'], 'acceptance_criteria': ['The app file exists'],
+                  'dependencies': [], 'verification': ['bash tests/check.sh']}]
+        with mock.patch.object(core, 'sample_bundle', lambda goals_arg=None, _g=goals: dict(
+                schema='handoff-goals/2', id='plan-a', repository={'id': 'fixture'}, spec={'path': 'spec.md'}, goals=_g)):
+            return CertificateFixture(self.base)
+
+    def amend_head(self, c, change):
+        work = c.fixture.work
+        change(work)
+        c.head = c.fixture.commit_push('feat: more of G1', branch=BRANCH)
+        c.host({})
+        c.review = c.review_record()
+
+    def test_a_live_goal_editing_the_policy_or_the_registry_is_refused(self):
+        c = self.fixture()
+        self.amend_head(c, lambda work: write_json(work / POLICY, dict(json.loads((work / POLICY).read_text()),
+                                                                     required_checks=['Optional Smoke'])))
+        exit_code, result = c.certify()
+        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
+        self.assertIn('goal_reserved_path', codes(result))
+        self.assertIn('goal_reserved_path:' + POLICY, [r['detail'] for r in result['refusals']])
+
+    def test_a_sibling_editing_the_registry_is_refused(self):
+        c = self.fixture()
+
+        def retire(work):
+            registry = json.loads((work / REGISTRY).read_text())
+            registry['plans'][0]['status'] = 'retired'
+            write_json(work / REGISTRY, registry)
+        self.amend_head(c, retire)
+        exit_code, result = c.certify()
+        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
+        self.assertIn('goal_reserved_path:' + REGISTRY, [r['detail'] for r in result['refusals']])
+
+    def test_a_gitlink_hidden_from_git_diff_under_a_reserved_path_is_refused(self):
+        c = self.fixture()
+        self.amend_head(c, lambda work: (work / '.gitmodules').write_text(
+            '[submodule "e"]\n\tpath = .ai/handoff/readiness-v2/evil\n\turl = ./x\n\tignore = all\n'))
+        work = c.fixture.work
+        index = Path(tempfile.mkdtemp(dir=self.base)) / 'index'
+        env = dict(os.environ, GIT_INDEX_FILE=str(index))
+        run = lambda *args: subprocess.run(['git', '-C', str(work), *args], env=env, capture_output=True, check=True).stdout.decode().strip()
+        run('read-tree', c.head)
+        run('update-index', '--add', '--cacheinfo', '160000,%s,.ai/handoff/readiness-v2/evil' % c.head)
+        commit = run('-c', 'user.name=F', '-c', 'user.email=f@example.invalid', 'commit-tree', run('write-tree'), '-p', c.head,
+                     '-m', 'a gitlink under a reserved path')
+        git(work, 'reset', '-q', '--hard', commit)
+        git(work, 'push', '-q', '-f', 'origin', 'HEAD:refs/heads/' + BRANCH)
+        git(work, 'fetch', '-q', 'origin')
+        c.head = commit
+        c.host({})
+        c.review = c.review_record()
+        self.assertNotIn('.ai/handoff/readiness-v2/evil', git(work, 'diff', '--name-only', 'origin/main...HEAD'))
+        exit_code, result = c.certify()
+        self.assertNotEqual(exit_code, 0)
+        self.assertIn('goal_reserved_path:.ai/handoff/readiness-v2/evil', [r['detail'] for r in result['refusals']])
+
+    def test_an_in_scope_replay_equal_publication_is_certified(self):
+        c = self.fixture(['src/app.txt', REGISTRY, '.ai/handoff/readiness-v2/plan-z'])
+
+        def publish(work):
+            spec = 'docs/specifications/ACTIVE/plan-z.md'
+            (work / spec).parent.mkdir(parents=True, exist_ok=True)
+            (work / spec).write_text('Plan Z\n')
+            bundle = sample_bundle([{'id': 'Z1', 'scope': ['src/z.txt'], 'acceptance_criteria': ['z'], 'dependencies': [],
+                                     'verification': ['bash tests/check.sh']}])
+            bundle['id'], bundle['spec'] = 'plan-z', {'path': spec}
+            inputs = Path(tempfile.mkdtemp(dir=self.base))
+            exit_code, result = observer.run(['publish-v2', '--root', str(work), '--bundle', str(write_json(inputs / 'b.json', bundle)),
+                                              '--sidecar', str(write_json(inputs / 's.json', sample_sidecar(bundle)))], now=NOW)
+            self.assertEqual(exit_code, 0, result)
+        self.amend_head(c, publish)
+        exit_code, result = c.certify()
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        # The same publication with a hand edit to the new entry is not a replay.
+        def tamper(work):
+            registry = json.loads((work / REGISTRY).read_text())
+            registry['plans'][-1]['status'] = 'approved'
+            write_json(work / REGISTRY, registry)
+        self.amend_head(c, tamper)
+        exit_code, result = c.certify()
+        self.assertIn('goal_reserved_path:' + REGISTRY, [r['detail'] for r in result.get('refusals', [])])
+
+
+class AuditReobservationTests(unittest.TestCase):
+    """M5: audit-merges recomputes assurance from the approval tag, never from the certificate."""
+
+    def test_a_certificate_relabelling_its_assurance_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp).resolve()
+            c = CertificateFixture(base, form='in-session')
+            exit_code, issued = c.certify()
+            self.assertEqual(exit_code, 0, json.dumps(issued, indent=1))
+            state = json.loads(c.state.read_text())
+            state['merged_prs'] = [{'number': int(PR), 'headRefName': BRANCH, 'headRefOid': c.head,
+                                    'mergeCommit': {'oid': 'c' * 40}, 'mergedAt': stamp(NOW)}]
+            write_json(c.state, state)
+            audit = lambda: c.fixture.run(['audit-merges', '--root', str(c.fixture.work), '--handoff', 'northstar-plan-plan-a'],
+                                          env=c.env())
+            exit_code, report = audit()
+            self.assertEqual(exit_code, 0, json.dumps(report, indent=1))
+            self.assertEqual(report['prs'][0]['assurance'], 'in-session')
+            stored = Path(issued['path'])
+            certificate = dict(json.loads(stored.read_text()), assurance='user-presence')
+            stored.write_text(json.dumps(certificate, indent=2, sort_keys=True) + '\n')
+            Path(str(stored) + '.sig').write_text(ssh_sign(c.fixture.keys.paths['certifier'], v2.NS_CERTIFICATE, json.dumps(
+                certificate, sort_keys=True, separators=(',', ':')).encode(), base))
+            exit_code, report = audit()
+            self.assertEqual(exit_code, 1, json.dumps(report, indent=1))
+            self.assertIn('assurance_mismatch', codes(report))
+            self.assertEqual(report['prs'][0]['assurance'], 'in-session')
+            self.assertEqual(report['prs'][0]['certified_assurance'], 'user-presence')
+
+    def test_a_reechoed_tag_and_a_relabelled_certificate_stay_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp).resolve()
+            c = CertificateFixture(base)  # ssh-tag approval: key-held
+            exit_code, issued = c.certify()
+            self.assertEqual((exit_code, issued['certificate']['assurance']), (0, 'key-held'), json.dumps(issued, indent=1))
+            state = json.loads(c.state.read_text())
+            state['merged_prs'] = [{'number': int(PR), 'headRefName': BRANCH, 'headRefOid': c.head,
+                                    'mergeCommit': {'oid': 'c' * 40}, 'mergedAt': stamp(NOW)}]
+            write_json(c.state, state)
+            # Launder: keep the key-held record, swap the carrier to a digest echo, re-sign the certificate in-session.
+            work = c.fixture.work
+            tag = 'approval/plan-a/' + c.fixture.generation[:12]
+            line = git(work, 'cat-file', 'tag', tag).split('\n\n', 1)[1].split('\n')[0]
+            message = c.fixture.inputs / 'launder.msg'
+            message.write_text(line + '\ndigest-echo: ' + sha(line.encode()) + '\n')
+            git(work, 'tag', '-f', '-a', '--cleanup=verbatim', '-F', str(message), tag, c.fixture.publication_commit)
+            git(work, 'push', '-q', '-f', 'origin', 'refs/tags/' + tag)
+            stored = Path(issued['path'])
+            certificate = dict(json.loads(stored.read_text()), assurance='in-session')
+            stored.write_text(json.dumps(certificate, indent=2, sort_keys=True) + '\n')
+            Path(str(stored) + '.sig').write_text(ssh_sign(c.fixture.keys.paths['certifier'], v2.NS_CERTIFICATE, json.dumps(
+                certificate, sort_keys=True, separators=(',', ':')).encode(), base))
+            exit_code, report = c.fixture.run(['audit-merges', '--root', str(work), '--handoff', 'northstar-plan-plan-a'],
+                                              env=c.env())
+            self.assertEqual(exit_code, 1, json.dumps(report, indent=1))
+            self.assertIn('assurance_mismatch', codes(report))
+            self.assertIsNone(report['prs'][0]['assurance'])
 
 
 REPO_VERDICT = Path(__file__).resolve().parents[1] / 'reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json'
