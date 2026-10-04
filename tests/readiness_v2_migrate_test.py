@@ -93,7 +93,7 @@ def synthetic_registry(plan_id, legacy_sha256):
 def synthetic_inventory(plan_id, fate, merged=(), unmerged=(), goals=()):
     return {'schema': 'v1-inventory/1', 'registry': V1_REGISTRY, 'entries': [
         {'id': 'northstar-plan-' + plan_id, 'plan_id': plan_id, 'generation': 'd' * 64,
-         'goals': list(goals) or [item[0] for item in merged] + list(unmerged),
+         'goals': list(goals) or [item['goal'] for item in merged] + list(unmerged),
          'fate': fate, 'action': 'migrate-unmerged' if fate == 'partly-merged' else 'migrate',
          'merged': [dict(item) for item in merged], 'unmerged': list(unmerged),
          'in_flight': [], 'ambiguous': [], 'refused': []}]}
@@ -206,7 +206,8 @@ def disposable_v1_repo(base, plan_id='plan-m', goals=('M1',)):
                               sha(spec_text.encode()))
     legacy_path = '.ai/handoff/readiness-v1/%s/%s/goals.json' % (plan_id, 'd' * 64)
     write_json(work / legacy_path, legacy)
-    write_json(work / V1_REGISTRY, synthetic_registry(plan_id, sha(json.dumps(legacy, indent=2, sort_keys=True).encode() + '\n')))
+    write_json(work / V1_REGISTRY,
+               synthetic_registry(plan_id, sha((json.dumps(legacy, indent=2, sort_keys=True) + '\n').encode())))
     (work / 'spec.md').write_text(spec_text)
     git(work, 'add', '-A')
     git(work, 'commit', '-q', '-m', 'fixture: v1 generation')
