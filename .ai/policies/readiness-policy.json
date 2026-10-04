@@ -1,195 +1,168 @@
 {
-  "schema": "readiness-policy/1",
-  "repository": {
-    "id": "skills",
-    "root": "/Users/andresilvaburgstahler/Ws/Personal/AiTool/skills"
+  "approval": {
+    "accept": [
+      "ssh-tag",
+      "in-session"
+    ],
+    "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+    "max_age_days": 14
   },
-  "sources": [
-    {
-      "path": "AGENTS.md",
-      "sha256": "55ff94b7be1d7a960fdc4ebc36120182cffb6897ba351d0dd8c006564a200b88"
-    },
-    {
-      "path": ".rules.ts",
-      "sha256": "758e68adb486fc8b1ee170d8d37da2006a50b093fbbaf1830168b8bce599e955"
-    },
-    {
-      "path": ".ai/rules/security.md",
-      "sha256": "d84c5ed3c5f955364dca5b88a17702eb0b69135c48e89f9bea5c78a32794e812"
-    },
-    {
-      "path": ".ai/rules/technical-bounds.md",
-      "sha256": "0a4f5dcb339bfef4c01ff02a06cecfa36bcc17f18d8b94bbf30123ad43801c18"
-    },
-    {
-      "path": "CLAUDE.md",
-      "sha256": "2f9254f919e056cf6680e2c0897d96a2c26620bbc865a5e6b5e1dfc262c81a3d"
-    },
-    {
-      "path": "GEMINI.md",
-      "sha256": "2f9254f919e056cf6680e2c0897d96a2c26620bbc865a5e6b5e1dfc262c81a3d"
-    }
-  ],
-  "worktree": {
-    "schema": "git-worktree/1",
-    "root": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/skills-ach-s01",
-    "base_commit": "92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3",
-    "target_ref": "refs/remotes/origin/main"
-  },
+  "branch_pattern": "^(feat|fix|chore)/<plan_id>-<goal_id>$",
   "gates": [
     {
-      "id": "own-execution",
-      "stage": "implementation",
-      "scope": {
-        "repository": true
-      },
-      "kind": "ownership",
       "binding": {
         "roles": [
           "owner"
         ]
       },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "own-review",
-      "stage": "merge",
+      "id": "own-execution",
+      "kind": "ownership",
+      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
-      "kind": "ownership",
+      "stage": "implementation"
+    },
+    {
       "binding": {
         "roles": [
           "reviewer"
         ]
       },
-      "responsible": "Andres Silva Burgstahler"
+      "id": "own-review",
+      "kind": "ownership",
+      "responsible": "Andres Silva Burgstahler",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
     },
     {
-      "id": "branch-ach-s-01",
-      "stage": "implementation",
-      "scope": {
-        "goals": [
-          "ACH-S-01"
-        ]
-      },
+      "id": "branch-target",
       "kind": "branch_target",
-      "binding": {
-        "branch": "refs/heads/feat/ach-skills-contract-v2-ACH-S-01",
-        "target": "refs/remotes/origin/main"
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "approval-ach-s-01",
-      "stage": "implementation",
-      "scope": {
-        "goals": [
-          "ACH-S-01"
-        ]
-      },
-      "kind": "protected_approval",
-      "binding": {
-        "subject": {
-          "mode": "goal-scope",
-          "goal": "ACH-S-01",
-          "goal_sha256": "d3f083e87a52b06691a7e3c22432e7d466642b32ef132b5a22151ef700802212"
-        }
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "tool-bash",
-      "stage": "implementation",
+      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
+      "stage": "implementation"
+    },
+    {
+      "id": "branch-target-merge",
+      "kind": "branch_target",
+      "responsible": "Andres Silva Burgstahler",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
+    },
+    {
+      "id": "plan-approval",
+      "kind": "plan_approval",
+      "responsible": "Andres Silva Burgstahler",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "id": "plan-approval-merge",
+      "kind": "plan_approval",
+      "responsible": "Andres Silva Burgstahler",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
+    },
+    {
+      "id": "tooling",
       "kind": "tooling",
-      "binding": {
-        "tool": "bash"
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "tool-python3",
-      "stage": "implementation",
+      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
-      "kind": "tooling",
-      "binding": {
-        "tool": "python3"
-      },
-      "responsible": "Andres Silva Burgstahler"
+      "stage": "implementation"
     },
     {
-      "id": "tool-git",
-      "stage": "implementation",
+      "binding": {
+        "path": "scripts/validate-skill-catalog.py"
+      },
+      "id": "catalog-validator",
+      "kind": "fixture",
+      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
-      "kind": "tooling",
-      "binding": {
-        "tool": "git"
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "tool-prek",
-      "stage": "implementation",
-      "scope": {
-        "repository": true
-      },
-      "kind": "tooling",
-      "binding": {
-        "tool": "prek"
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "tool-ssh-keygen",
-      "stage": "implementation",
-      "scope": {
-        "repository": true
-      },
-      "kind": "tooling",
-      "binding": {
-        "tool": "ssh-keygen"
-      },
-      "responsible": "Andres Silva Burgstahler"
-    },
-    {
-      "id": "tool-catalog-validator",
-      "stage": "implementation",
-      "scope": {
-        "repository": true
-      },
-      "kind": "executable_presence",
-      "path": "scripts/validate-skill-catalog.py",
-      "responsible": "Andres Silva Burgstahler"
+      "stage": "implementation"
     },
     {
       "id": "planning-inputs-on-main",
-      "stage": "implementation",
+      "kind": "git_ancestor",
+      "responsible": "Andres Silva Burgstahler",
       "scope": {
         "repository": true
       },
-      "kind": "independent_result",
-      "responsible": "Andres Silva Burgstahler"
+      "stage": "implementation"
+    },
+    {
+      "binding": {
+        "commit": "f6be8346c1254fa2fc12ad853b2bacd0e6c1056e"
+      },
+      "id": "harness-trust",
+      "kind": "harness_trust",
+      "responsible": "Andres Silva Burgstahler",
+      "scope": {
+        "repository": true
+      },
+      "stage": "implementation"
+    },
+    {
+      "id": "hosted-checks",
+      "kind": "hosted_checks",
+      "responsible": "Andres Silva Burgstahler",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
+    },
+    {
+      "id": "review-lane",
+      "kind": "review",
+      "responsible": "Andres Silva Burgstahler",
+      "scope": {
+        "repository": true
+      },
+      "stage": "merge"
     }
   ],
-  "not_applicable": {
-    "fixtures": "ACH-S-01 has no independently provisioned prerequisite fixture. Its fixtures (ephemeral keys, temporary trust anchors and temporary git repositories) are disposable temporary-directory deliverables of its own tests, run by bash tests/run-tests.sh; they are not pre-existing external services, and their absence stays blocked by acceptance criteria and TDD/CI gates. v1 accepts any not_applicable reason (P7), so this reason is a disclosure, not a control.",
-    "harness_trust": "ACH-S-01 is the harness: it builds the v2 gate driver (validator, observer, certificate and merge authority), so no independently pinned prior harness commit can anchor trust. Trust rests on the independent review lane, the hosted checks (Pre-commit Hooks, Test Suite, Repository Secret Scan) and the hand-written readiness-context/1 records; v1 gates run from a detached worktree at the bound base commit 92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3 (worktree.base_commit), never from the ACH-S-01 head. v1 accepts any not_applicable reason (P7), so this reason is a disclosure, not a control. This exemption does not attest to installed runtime trust."
+  "identity_model": "single",
+  "repository": {
+    "id": "skills"
   },
-  "extensions": {
-    "active_plan": "ach-skills-contract-v2",
-    "registration": "northstar-plan-ach-skills-contract-v2",
-    "generation": "ba4a7996ca50979aa4cf21cd50892ac7dc8eb71c161547ccf8ae3d1f448a31b0",
-    "bundle_sha256": "1c7b4837af54742374b140ed06fda2561ec62a1cc86ed847afe1029bce9a8dcd",
-    "approval_status": "pending-independent-approval",
-    "supersedes_policy_sha256": "1ef4f92900133f582cac5638384f67a10266e910e883ec44493f0555690f2444",
-    "superseded_policy_retained_at": ".ai/handoff/xskp-p5-readiness-policy.retained.json",
-    "scope_limit": "ACH-S-01 only: the last readiness-v1 rollover (R4). readiness-contract/1 rejects policy goal scopes outside the admitted bundle, so XSKP P5 v1 admission is displaced until P5 migrates to v2 (ACH-S-05); prior policy approval receipts are not reusable. The worktree binding admits one linked worktree at one base commit; relocation requires a new reviewed rollover."
-  }
+  "required_checks": [
+    "Pre-commit Hooks",
+    "Test Suite",
+    "Repository Secret Scan"
+  ],
+  "reviewer_requirements": {
+    "independent_lane": true
+  },
+  "schema": "readiness-policy/2",
+  "skippable_checks": [],
+  "sources": [
+    "AGENTS.md",
+    ".rules.ts",
+    ".ai/rules/security.md",
+    ".ai/rules/technical-bounds.md",
+    "CLAUDE.md",
+    "GEMINI.md"
+  ],
+  "target": "main",
+  "tools": [
+    "bash",
+    "python3",
+    "git",
+    "prek",
+    "ssh-keygen",
+    "gh"
+  ]
 }
