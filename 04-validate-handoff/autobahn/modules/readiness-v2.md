@@ -102,17 +102,20 @@ No level is ever rendered as another.
 **Approval modes (K3).** `default_mode` selects the form:
 - `agent`: Autobahn issues the `agent-self` approval itself (`approval-request --assurance agent-self`).
 - `prompt`: only in-session, an explicit human confirmation; any other form is refused (`approval_form_refused_by_mode`, `agent_self_refused_by_mode`).
-- `ssh-tag`: an opt-in for human signatures; `agent-self` is refused here too.
+- `ssh-tag`: only ssh-tag, an opt-in for human signatures; any other form is refused (`approval_form_refused_by_mode`, `agent_self_refused_by_mode`).
 
 Verification refuses, each with its own code:
 - `agent_approval_signer_not_agent`: the agent signature's principal lacks `ai-catapult-agent-approval` or also holds `ai-catapult-plan-approval`;
 - `agent_self_claim_without_agent_signature`: a human-namespace signature or a digest-echo record claims `agent-self`;
 - `agent_self_not_accepted`: `accept` omits `agent-self`.
 
-**Rule (d).** A `policy-amendment` approval form must pass both the live policy's
-and the candidate's whole form rule, `accept` and `default_mode` alike
+**Rule (d).** A `policy-amendment` approval form must pass the live policy's whole
+form rule, `accept` and `default_mode` alike, and the candidate's `accept`
 (`approval_form_not_in_live_policy`, `approval_form_not_accepted`,
-`approval_form_refused_by_mode`, `agent_self_refused_by_mode`). A v1 or absent live policy counts as an empty live
+`approval_form_refused_by_mode`, `agent_self_refused_by_mode`). A bootstrap or
+amendment candidate's own `default_mode` never governs the approval of that same
+candidate, so an ssh-tag-only repository can approve a move to prompt mode by
+ssh-tag. A v1 or absent live policy counts as an empty live
 list, so an agent-self approval of a bootstrap generation is refused with
 `agent_self_bootstrap_refused`. When agent-self is in both lists it may approve an
 amendment (K3b); that approval reports the notice `agent_self_policy_change` in the
@@ -201,7 +204,16 @@ fails to load refuses with `plan_unloadable`.
   refuses with `v2_sidecar_not_tightening`.
 - **Diff observation.** The hosted changed-files list, renames by both names,
   unioned with the reserved paths of the head's own three-dot diff read from git
-  objects (fetched into a throwaway repository when absent). Reaching GitHub's
+  objects (renames off, submodules included). The objects come from the local
+  repository when it has the head, otherwise from a throwaway fetch of
+  `refs/pull/<n>/head` and then of the head branch. A fetch that lands on any other
+  commit than the observed head refuses with `pr_head_moved` (reported as
+  `v2_diff_unobservable`). The hosted list alone is used only when every fetch of
+  the PR head fails outright. Residual until ACH-S-06: for non-reserved paths the
+  hosted list governs, so a list served for another head (an A-B-A head flip
+  between the reads) can hide an edit to an active goal's scope, and there is no
+  detective control until ACH-S-06's audit. The decision prints `diff_head`, the
+  head the diff was computed from. Reaching GitHub's
   3000-file cap, or a count that differs from the PR's integer `changed_files`,
   refuses with `pr_files_truncated`; a missing count refuses. A PR whose head or
   base moves while it is listed refuses with `v2_diff_unobservable`. A PR whose
@@ -213,7 +225,11 @@ fails to load refuses with `plan_unloadable`.
   the goal's scope, and then only as the policy goal's policy file, a pinned
   publish-v2 replay, a `retired_v1`-only registry change for the policy goal, or a
   tightening sidecar change. Anything else refuses its certificate with
-  `goal_reserved_path`.
+  `goal_reserved_path`. A goal PR whose scope includes the registry and
+  `.ai/handoff/readiness-v2/**` (ACH-S-05's P5 publication) must be an exact
+  single-generation publish-v2 replay, up to date with `main` at certify time.
+- **Republish.** A replay that replaces a plan's entry (allowed only without merged
+  or open goal PRs) may also edit that plan's bound spec copy.
 - **Goal-branch facts.** A goal counts as merged only through a PR on its exact
   goal branch into the target, queried per branch, whose merge commit reaches the
   target and descends from the generation's publication. Spec copies bound by an
@@ -229,7 +245,11 @@ each entry's fate from hosted facts and git ancestry only (O10):
   merge commit is an ancestor of `origin/<target>`. Every match is listed as
   `{goal, pr, merge_commit}`. Commit-message and title text are never signals.
   (`audit-merges` separately recomputes each certificate's assurance from the
-  approval tag and flags `assurance_mismatch` or `approval_digest_unobserved`.)
+  approval tag and flags `assurance_mismatch` or `approval_digest_unobserved`; a
+  tag whose record claims another level than its carrier evidences counts as no
+  evidence. For ACH-S-06: Re-signing an approval tag flags certificates issued under
+  the earlier tag with `approval_digest_unobserved`; that flag is noise, not a
+  finding, once the re-signed approval verifies.)
 - `completed`: every goal merged. The entry is retired by a top-level
   `retired_v1[]` record in the v2 registry that carries the map, never by an entry
   of `plans[]`. The v1 bytes stay unchanged.

@@ -98,7 +98,8 @@ mode. This amends U1 ("agent keys never sign approvals"):
 - **`prompt` mode** admits only an explicit in-session human confirmation (the
   digest-echo record): never an agent-self record, and never an ssh-tag signature.
   `prompt` and `ssh-tag` modes may not list `agent-self` at all.
-- **`ssh-tag` mode** is an optional opt-in. No default requires a signature.
+- **`ssh-tag` mode** is an optional opt-in. No default requires a signature; a
+  repository in `ssh-tag` mode admits only ssh-tag approvals.
 - **Assurance.** `agent-self` is a fourth level, computed from the form and never
   upgraded. Every approval, admission report, certificate, merge decision,
   driver-log entry and `audit-merges` result carries it and prints
@@ -110,8 +111,9 @@ mode. This amends U1 ("agent keys never sign approvals"):
   under `single`, and no text, flag, variable or mode that maps to a waiver.
 
 **Rule (d).** A `policy-amendment` or bootstrap generation's approval form must
-pass both the live policy's and the candidate's whole form rule (`accept` and
-`default_mode`). A v1 or absent live
+pass the live policy's whole form rule (`accept` and `default_mode`) and the
+candidate's `accept`; the candidate's own `default_mode` never governs its own
+approval. A v1 or absent live
 policy counts as an empty live list. An agent-self approval of a bootstrap
 generation is therefore refused with `agent_self_bootstrap_refused`, and every
 repository's first policy/2 needs an in-session or ssh-tag approval.
@@ -163,6 +165,13 @@ refuses with `bootstrap_policy_live`, so republish its unmerged goals as a live-
 generation, or finish its bootstrap plans before any amendment. An amendment binds
 the live digest it amends (`amends_policy_sha256`), so a second, concurrent
 amendment refuses once the first lands.
+
+**Residual (until ACH-S-06).** Routing reads a non-goal PR's diff from git objects
+and refuses a fetch that lands on another commit (`pr_head_moved`), but for paths
+outside the reserved set the hosted changed-files list still governs. A list
+served for another head during an A-B-A head flip can therefore hide an edit to an
+active goal's scope, and so can a hosted list used alone when every fetch of the
+head fails. No detective control covers this until ACH-S-06's audit.
 
 ## Consequences
 
