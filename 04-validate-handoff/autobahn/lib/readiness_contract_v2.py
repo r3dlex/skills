@@ -60,6 +60,9 @@ CERTIFICATE_FIELDS = {'schema', 'repository', 'plan_id', 'generation', 'goal_id'
                       'unresolved_threads', 'review_lane', 'lane_independence', 'admin', 'adapter', 'certifier',
                       'issued_at'}
 TOOL = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._+-]*$')
+# M4: a branch_pattern is ^, literal [A-Za-z0-9/_.-] characters, at most one group of literal
+# alternatives, <plan_id> and <goal_id> once each, and $. No other regex syntax is accepted.
+BRANCH_PATTERN = re.compile(r'\^(?:[A-Za-z0-9/_.-]|<plan_id>|<goal_id>|\([A-Za-z0-9_.-]+(?:\|[A-Za-z0-9_.-]+)*\))*\$')
 STAMP = re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$')
 NO_AUTHORITY = 'none: no verified plan approval; this report carries no authority'
 NOTICES = {
@@ -111,6 +114,15 @@ def safe_path(name):
 
 def fill(pattern, plan_id, goal_id):
     return pattern.replace('<plan_id>', re.escape(plan_id)).replace('<goal_id>', re.escape(goal_id))
+
+
+def branch_names(pattern, plan_id, goal_id):
+    """Every concrete goal branch name a validated branch_pattern admits for one goal."""
+    body = pattern[1:-1].replace('<plan_id>', plan_id).replace('<goal_id>', goal_id)
+    group = re.search(r'\(([^()]*)\)', body)
+    if not group:
+        return [body]
+    return [body[:group.start()] + alternative + body[group.end():] for alternative in group.group(1).split('|')]
 
 
 def plan_namespace(pattern, plan_id):
@@ -186,12 +198,8 @@ def validate_policy(policy):
         check(unique_strings(policy[field]), 'policy_field_invalid', field)
     check(unique_strings(policy['tools'], TOOL), 'policy_field_invalid', 'tools')
     pattern = policy['branch_pattern']
-    check(string(pattern) and pattern.startswith('^') and pattern.endswith('$') and '<plan_id>' in pattern
-          and '<goal_id>' in pattern, 'policy_field_invalid', 'branch_pattern')
-    try:
-        re.compile(fill(pattern, 'plan', 'goal'))
-    except re.error:
-        refuse('policy_field_invalid', 'branch_pattern')
+    check(string(pattern) and BRANCH_PATTERN.fullmatch(pattern) and pattern.count('<plan_id>') == 1
+          and pattern.count('<goal_id>') == 1 and pattern.count('(') <= 1, 'policy_field_invalid', 'branch_pattern')
     target = policy['target']
     check(string(target) and re.fullmatch(r'[A-Za-z0-9._/-]+', target) and not target.startswith('refs/'),
           'policy_field_invalid', 'target')
@@ -207,6 +215,8 @@ def validate_policy(policy):
         check(approval['default_mode'] in DEFAULT_MODES, 'policy_approval_invalid', 'default_mode')
         check(DEFAULT_MODES[approval['default_mode']] in approval['accept'], 'policy_default_mode_not_accepted',
               '%s needs %s in accept' % (approval['default_mode'], DEFAULT_MODES[approval['default_mode']]))
+        check(not (approval['default_mode'] in ('prompt', 'ssh-tag') and 'agent-self' in approval['accept']),
+              'policy_default_mode_inconsistent', '%s mode never admits agent-self' % approval['default_mode'])
     gates = policy['gates']
     check(isinstance(gates, list), 'policy_field_invalid', 'gates')
     seen = set()
@@ -299,10 +309,14 @@ def bundle_sha256(bundle):
     return canonical(bundle)
 
 
-def generation_v2(bundle_sha256, spec_sha256, policy_sha256, anchor_sha256):
-    """What one approval signs: content, spec, policy and anchor. Never the sidecar."""
-    return canonical({'schema': 'generation/2', 'bundle_sha256': bundle_sha256, 'spec_sha256': spec_sha256,
-                      'policy_sha256': policy_sha256, 'anchor_sha256': anchor_sha256})
+def generation_v2(bundle_sha256, spec_sha256, policy_sha256, anchor_sha256, amends_policy_sha256=None):
+    """What one approval signs: content, spec, policy and anchor. Never the sidecar. A
+    policy-amendment generation also binds the live policy digest it amends (M1)."""
+    value = {'schema': 'generation/2', 'bundle_sha256': bundle_sha256, 'spec_sha256': spec_sha256,
+             'policy_sha256': policy_sha256, 'anchor_sha256': anchor_sha256}
+    if amends_policy_sha256 is not None:
+        value['amends_policy_sha256'] = amends_policy_sha256
+    return canonical(value)
 
 
 # --- sidecar: holds-only, tighten-only ---------------------------------------
@@ -363,12 +377,15 @@ def validate_bootstrap(bundle, live_policy2, candidate_is_live=False):
     return found[0]
 
 
-def validate_amendment(bundle, live_policy2):
-    """A policy-amendment generation: one goal scoping the fixed path while policy/2 is live."""
+def validate_amendment(bundle, live_policy2, candidate=None, live=None):
+    """A policy-amendment generation: one goal scoping the fixed path while policy/2 is live.
+    It never moves the reserved branch namespace (M4): routing reads the live branch_pattern."""
     check(live_policy2, 'amendment_requires_live_policy')
     check(len(bundle['goals']) == 1, 'amendment_not_single_goal', ','.join(g['id'] for g in bundle['goals']))
     found = policy_goals(bundle)
     check(found, 'amendment_policy_goal_missing', bundle['goals'][0]['id'])
+    check(candidate is None or live is None or candidate['branch_pattern'] == live['branch_pattern'],
+          'branch_pattern_change_refused', 'an amendment keeps the live branch_pattern')
     return found[0]
 
 
@@ -498,22 +515,52 @@ def check_sidecar_binding(record, sidecar, sidecar_v0):
     sidecar_leq(sidecar_v0, sidecar)
 
 
-def check_form(form, policy, mode='live', live_accept=()):
+def form_rule(form, approval, live=False):
+    """One policy's whole form rule: accept, and the default_mode (K3). prompt mode admits only
+    in-session; prompt and ssh-tag modes never admit agent-self."""
+    mode = approval.get('default_mode')
+    if form == 'agent-self':
+        check(form in approval['accept'], 'approval_form_not_in_live_policy' if live else 'agent_self_not_accepted', form)
+        check(mode in (None, 'agent'), 'agent_self_refused_by_mode', ('live policy ' if live else '') + str(mode))
+    else:
+        check(form in approval['accept'], 'approval_form_not_in_live_policy' if live else 'approval_form_not_accepted', form)
+        check(mode != 'prompt' or form == 'in-session', 'approval_form_refused_by_mode',
+              '%s%s in prompt mode' % ('live policy ' if live else '', form))
+
+
+def check_form(form, policy, mode='live', live_policy=None):
     """Whether policy (the candidate for bootstrap and amendment generations) admits form.
-    Rule (d): a bootstrap or amendment approval form must also be in the live policy's
-    accept list; a v1 or absent live policy counts as an empty one (K3, K3b)."""
-    approval = policy['approval']
+    Rule (d): an amendment's approval form must also pass the live policy's whole form rule; a
+    v1 or absent live policy counts as an empty one, so agent-self never approves a bootstrap."""
     if form == 'agent-self':
         check(mode != 'bootstrap', 'agent_self_bootstrap_refused', 'a bootstrap generation needs in-session or ssh-tag')
-        check(form in approval['accept'], 'agent_self_not_accepted')
-        check(approval.get('default_mode') in (None, 'agent'), 'agent_self_refused_by_mode', approval.get('default_mode'))
-    else:
-        check(form in approval['accept'], 'approval_form_not_accepted', form)
+    form_rule(form, policy['approval'])
     if mode == 'policy-amendment':
-        check(form in live_accept, 'approval_form_not_in_live_policy', form)
+        check(isinstance(live_policy, dict), 'approval_form_not_in_live_policy', 'no live readiness-policy/2')
+        form_rule(form, live_policy['approval'], live=True)
 
 
-def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0, mode='live', live_accept=()):
+def carrier_assurance(carrier):
+    """The assurance an approval tag itself evidences, recomputed from the observed carrier
+    without any time check; None when the carrier evidences none (M5)."""
+    record = (carrier or {}).get('record')
+    if not isinstance(record, dict) or carrier.get('record_canonical') is not True:
+        return None
+    form, signature = carrier.get('form'), carrier.get('signature') or {}
+    namespaces = set(signature.get('namespaces') or [])
+    if form == 'in-session':
+        return 'in-session' if carrier.get('digest_echo') == canonical(record) else None
+    if signature.get('verified') is not True or not signature.get('principal'):
+        return None
+    if form == 'agent-self' and carrier.get('signature_namespace') != 'human' and NS_AGENT_APPROVAL in namespaces \
+            and NS_APPROVAL not in namespaces:
+        return 'agent-self'
+    if form == 'ssh-tag' and NS_APPROVAL in namespaces and not ({NS_REVIEW, NS_CERTIFICATE, NS_AGENT_APPROVAL} & namespaces):
+        return assurance_for(form, signature.get('key_type'), signature.get('options') or [])
+    return None
+
+
+def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0, mode='live', live_policy=None):
     """Verify one approval carrier (observed tag facts) against observed digests."""
     anchor = policy['approval']['anchor_sha256']
     check(anchor is not None, 'anchor_unset')
@@ -534,7 +581,7 @@ def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0, mode='l
     check(not (isinstance(record, dict) and record.get('assurance') == 'agent-self'
                and (form != 'agent-self' or carrier.get('signature_namespace') == 'human')),
           'agent_self_claim_without_agent_signature', form)
-    check_form(form, policy, mode, live_accept)
+    check_form(form, policy, mode, live_policy)
     check(isinstance(record, dict) and carrier.get('record_canonical') is True, 'approval_carrier_invalid', 'record')
     principal = None
     if form == 'agent-self':
@@ -550,7 +597,7 @@ def decide_approval(carrier, policy, expected, now, sidecar, sidecar_v0, mode='l
         principal = signature.get('principal')
         check(principal, 'approval_signature_invalid', 'no anchor principal for this signature')
         namespaces = set(signature.get('namespaces') or [])
-        check(NS_APPROVAL in namespaces and not ({NS_REVIEW, NS_CERTIFICATE} & namespaces),
+        check(NS_APPROVAL in namespaces and not ({NS_REVIEW, NS_CERTIFICATE, NS_AGENT_APPROVAL} & namespaces),
               'approval_signer_not_approver', principal)
         check(signature.get('verified') is True, 'approval_signature_invalid', principal)
         assurance = assurance_for(form, signature.get('key_type'), signature.get('options') or [])
@@ -702,13 +749,19 @@ def admission(inputs):
         identity = dict(digests)
         if inputs.get('policy_mode') == 'live':
             identity.update({k: registered[k] for k in ('policy_sha256', 'anchor_sha256') if registered.get(k)})
+        if inputs.get('policy_mode') == 'policy-amendment':
+            identity['amends_policy_sha256'] = registered.get('amends_policy_sha256')
+            # M1: the amendment applies only to the live policy it was published against (or has landed).
+            if inputs.get('live_policy_sha256') not in (registered.get('amends_policy_sha256'), digests.get('policy_sha256')):
+                gaps.append(gap_entry('amendment_base_moved', 'the live policy is no longer the one this amendment amends',
+                                      source='policy', recovery='Publish the amendment again against the current live policy'))
         if generation_v2(**identity) != registered.get('generation'):
             gaps.append(gap_entry('generation_mismatch', 'observed inputs no longer match the registered generation'))
         try:
             if inputs.get('policy_mode') == 'bootstrap':
                 validate_bootstrap(bundle, inputs.get('live_policy2', False), inputs.get('candidate_is_live', False))
             elif inputs.get('policy_mode') == 'policy-amendment':
-                validate_amendment(bundle, inputs.get('live_policy2', False))
+                validate_amendment(bundle, inputs.get('live_policy2', False), policy, inputs.get('live_policy'))
             else:
                 validate_live_scope(bundle)
         except Invalid as error:
@@ -721,7 +774,7 @@ def admission(inputs):
                         goals=[g['id'] for g in bundle['goals']])
         try:
             approval = decide_approval(inputs.get('carrier'), policy, expected, now, inputs['sidecar'], inputs.get('sidecar_v0'),
-                                       inputs.get('policy_mode') or 'live', inputs.get('live_accept') or ())
+                                       inputs.get('policy_mode') or 'live', inputs.get('live_policy'))
         except Invalid as error:
             family = 'anchor' if code(error).startswith('anchor') else ('sidecar' if 'sidecar' in code(error) else 'approval')
             gaps.append(gap_entry(code(error), str(error), source='plan-approval/1', recovery=RECOVERY[family]))
