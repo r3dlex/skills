@@ -41,5 +41,38 @@ Every mandatory phase writes a status JSON with `phase_id`, `required`, `status`
 - `phases`: ordered phase records with `id`, `title`, `required`, `status_path`, and `outputs`.
 - `optional_branches`: optional branch records with `id`, `enabled_when`, and `status`.
 - `handoff`: path to `.ai/handoff/init-ai-repo-handoff.md`.
+- `local_ci`: optional local-CI declaration — see below. An absent or empty `local_ci` means the consumer parks.
 
 Validation fails when any manifest phase lacks a matching status file or when any generated entry surface omits either workflow link.
+
+## `local_ci` declaration
+
+`local_ci` declares what "local CI is green" means for this repository so that a consumer never has to probe for a command. Its shape is exactly a list of surfaces with per-surface hermeticity plus a truth claim:
+
+```json
+"local_ci": {
+  "surfaces": [
+    {
+      "cmd": "bash tools/ci-engine/root_validation.sh",
+      "hermetic": true,
+      "covers": "root validation: tests, lint and fixture gates"
+    },
+    {
+      "cmd": "moon run :ci",
+      "hermetic": false,
+      "covers": "the task-runner ci deps that do not route through root validation"
+    }
+  ],
+  "sole_source_of_truth": true
+}
+```
+
+- `surfaces`: list of surface records, one per real CI surface. Each record has exactly `cmd`, `hermetic`, and `covers`:
+  - `cmd`: non-empty string, the command run from the repository root.
+  - `hermetic`: boolean — `true` when the surface runs offline in a fresh worktree, `false` when it is a declared non-hermetic surface (network, hosted tooling).
+  - `covers`: non-empty string naming what the surface covers, so a completeness check can see what the declaration omits.
+- `sole_source_of_truth`: boolean — `true` only when the listed surfaces are the repository's complete definition of local CI and a drift guard holds them honest; `false` while the list is provisional or partial. `true` over zero surfaces is malformed.
+
+A flat command string or list (`"local_ci": "bash …"`, `"local_ci": ["bash …"]`) is **not** a valid declaration: one command cannot express a multi-surface definition of green with per-surface hermeticity and declared non-hermetic exemptions. Validation rejects a malformed declaration and names the offending JSON path (for example `local_ci.surfaces[0].hermetic`); the declaration is never repaired, defaulted, or replaced by a guess.
+
+**An absent or empty `local_ci` declaration means the consumer parks**: it never verifies, never merges, and never probes the repository for a command. The same park rule applies to a declaration whose `sole_source_of_truth` is `false` and to any malformed declaration (fail closed). The scaffold emits an empty declaration (`"surfaces": []`, `"sole_source_of_truth": false`) so a freshly initialized repository starts parked until its owner derives the declaration from that repository's real CI surfaces — a template default is never treated as a derived declaration.
