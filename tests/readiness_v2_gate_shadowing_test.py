@@ -3,9 +3,10 @@
 Every python3 the gates start runs as `python3 -I -B`, and local-ci.sh runs
 lib/local_ci_contract.py through `python3 -I -B -c` with the pinned lib directory inserted into
 sys.path and the module run by runpy. A PR checkout that carries shadowing stdlib modules in its
-root (the gates' working directory) and on PYTHONPATH, plus a sitecustomize there and a
-usercustomize in its user site-packages, never supplies a module to a gate, and each gate's
-outcome equals the outcome of the same checkout without them. Disposable checkouts only."""
+root, in the gates' working directory (the root itself, or a separate directory) and on
+PYTHONPATH, plus a sitecustomize there and a usercustomize in its user site-packages, never
+supplies a module to a gate, and each gate's outcome equals the outcome of the same checkout
+without them. Disposable checkouts only."""
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I drops the script directory
@@ -51,16 +52,19 @@ def user_site(userbase):
 class Checkout:
     """A disposable PR checkout; shadowed=True adds the shadowing modules and their environment."""
 
-    def __init__(self, base, name, shadowed):
+    def __init__(self, base, name, shadowed, separate_cwd=False):
         self.root = Path(base) / name
         self.root.mkdir()
+        self.cwd = Path(base) / (name + '-cwd') if separate_cwd else self.root
+        self.cwd.mkdir(exist_ok=True)
         self.sentinel = Path(base) / (name + '-imported.log')
         self.env = clean_env()
         if shadowed:
             pythonpath, userbase = Path(base) / (name + '-pythonpath'), Path(base) / (name + '-userbase')
             pythonpath.mkdir()
             userbase.mkdir()
-            for where, directory in (('root', self.root), ('pythonpath', pythonpath)):
+            places = [('root', self.root), ('pythonpath', pythonpath)] + ([('cwd', self.cwd)] if separate_cwd else [])
+            for where, directory in places:
                 for module in SHADOWED:
                     self.shadow(directory / (module + '.py'), '%s:%s' % (where, module), exit_code=97)
             self.shadow(pythonpath / 'sitecustomize.py', 'pythonpath:sitecustomize')
@@ -79,7 +83,7 @@ class Checkout:
         return self.sentinel.read_text().split() if self.sentinel.exists() else []
 
     def run(self, script, *args):
-        result = subprocess.run(['bash', str(AUTO / script), *map(str, args)], cwd=str(self.root), env=self.env,
+        result = subprocess.run(['bash', str(AUTO / script), *map(str, args)], cwd=str(self.cwd), env=self.env,
                                 capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
         normalize = lambda text: text.replace(str(self.root), '<ROOT>')
         return [result.returncode, normalize(result.stdout), normalize(result.stderr)]
@@ -98,8 +102,8 @@ def tdd_evidence(c):
 def tdd_mode(c):
     write(c.root, 'goal.json', json.dumps({'coverage_status': 'unknown', 'legacy_risk_reason': 'Unmeasured legacy seam'}))
     write(c.root, 'measured.json', json.dumps({'coverage_status': 'measured', 'coverage_percent': 80}))
-    return [c.run('tdd-mode.sh', '--goal', 'goal.json'), c.run('tdd-mode.sh', '--goal', 'measured.json'),
-            c.run('tdd-mode.sh', '--goal', 'goal.json', '--legacy-risk', 'maybe')]
+    return [c.run('tdd-mode.sh', '--goal', c.root / 'goal.json'), c.run('tdd-mode.sh', '--goal', c.root / 'measured.json'),
+            c.run('tdd-mode.sh', '--goal', c.root / 'goal.json', '--legacy-risk', 'maybe')]
 
 
 def lint_gate(c):
@@ -143,11 +147,12 @@ class GateShadowingTests(unittest.TestCase):
         self.base = Path(self.tmp.name).resolve()
 
     def outcome(self, case):
-        clean = Checkout(self.base, 'clean', shadowed=False)
-        shadowed = Checkout(self.base, 'shadowed', shadowed=True)
-        expected, actual = case(clean), case(shadowed)
-        self.assertEqual(shadowed.imported(), [], 'a PR checkout supplied a module to a gate')
-        self.assertEqual(actual, expected, 'the shadowing checkout changed the gate outcome')
+        expected = case(Checkout(self.base, 'clean', shadowed=False))
+        for name, separate_cwd in (('shadowed-root', False), ('shadowed-cwd', True)):
+            shadowed = Checkout(self.base, name, shadowed=True, separate_cwd=separate_cwd)
+            actual = case(shadowed)
+            self.assertEqual(shadowed.imported(), [], '%s: a PR checkout supplied a module to a gate' % name)
+            self.assertEqual(actual, expected, '%s: the shadowing checkout changed the gate outcome' % name)
         return expected
 
     def test_tdd_evidence_records_and_verifies_without_pr_modules(self):
