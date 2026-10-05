@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:ach-skills-agent-mode:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "target": "plan:skills:ach-skills-agent-mode:ACH-AM-01:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "type": "plans"
+    }
+  ],
+  "generation": "696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+  "goal_ids": [
+    "ACH-AM-01"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:ach-skills-agent-mode:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "6cee2beb692316f813e6a905d8a17690eb62594a1d4001f32ab6f410c48bcb77",
+      "id": "plan:skills:ach-skills-agent-mode:ACH-AM-01:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "ach-skills-agent-mode",
+  "schema_version": "1.1"
+}
