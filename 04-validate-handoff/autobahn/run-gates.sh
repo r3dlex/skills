@@ -137,6 +137,9 @@ print("yes" if any(isinstance(p, dict) and sys.argv[1] in (p.get("id"), p.get("h
   fi
 fi
 if [[ "$V2_RUN" == "yes" ]]; then
+  # readiness-contract/2 runs gate code in the observed root's tree (in place): bytecode must
+  # never dirty it, so every gate python inherits PYTHONDONTWRITEBYTECODE=1 here.
+  export PYTHONDONTWRITEBYTECODE=1
   [[ -z "$CONTEXT$WORKTREE_ROOT$BASE_COMMIT$EXECUTION_ROOT$DIRECT" ]] \
     || usage "a v2 selection takes no --context, --worktree-root, --base-commit, --execution-root or --goal"
   if [[ "$PHASE" == "pre-merge" || "$PHASE" == "all" ]]; then

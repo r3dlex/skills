@@ -190,7 +190,9 @@ clean head. The certificate binds:
 - every required check SUCCESS, completed before issue;
 - zero unresolved threads;
 - the review lane record, signed by an agent principal other than the certifier (`lane_independence: declared`);
-- the admin flag, set only under `identity_model: single`.
+- the admin flag, set only under `identity_model: single`;
+- `gate_workspace`, the isolated-copy provenance of the derivation: the gate
+  workspace's physical path and the `gate-workspace/1` record's path and sha256.
 
 The agent signing key is `~/.config/ai-catapult/agent_signing_key`, or a `.pub`
 with the key in the agent.
@@ -199,8 +201,44 @@ Local gates run PR code, so they run without credentials:
 - the environment holds only `PATH`, `LANG`, `LC_ALL` and `TMPDIR`;
 - `HOME` is a throwaway temporary directory;
 - `PYTHONDONTWRITEBYTECODE=1` is set;
-- there is no `GH_TOKEN`, `GH_CONFIG_DIR` or agent socket. Certificates, review records and the driver log live
+- there is no `GH_TOKEN`, `GH_CONFIG_DIR` or agent socket. Certificates, review records, the driver log and the `gate-workspace/1` records live
 under `<git common dir>/ai-catapult/observer/`.
+
+**Gate workspace.** `certify-v2` and `merge-v2` run the four local gates
+(`tdd-evidence`, `lint-gate`, the local safe CI subset and `ci-gate --verify`)
+only in an observer-built gate workspace, never in the observed root. The
+workspace is a new repository under the observed root's parent (a sibling,
+never inside the observed root), under the parent's `.omc/` tree — a name the
+existing `.omc/` ignored pattern of the umbrella and root `.gitignore` covers —
+with an empty template, no remote and no hooks. It borrows the observed
+repository's objects read-only through `objects/info/alternates` and checks the
+PR head out detached, so its HEAD is the certified head and its files are that
+head's tree. Every path handed to a gate is physical (`os.path.realpath`), and a
+gate's `git` reaches only the workspace's own git directory. The workspace is
+removed when the derivation ends, on success and on failure, and a leftover
+from an interrupted run is never reused.
+
+Before any gate runs, `tree_state(workspace)` must equal the head tree, or the
+derivation refuses with `gate_workspace_unfaithful`; when the workspace cannot
+be built at all it refuses with `gate_workspace_unavailable`. After every gate
+the observer re-checks the workspace: HEAD, the index entries
+(`git ls-files --stage`, so a stat-only index refresh is not a change) and every
+tracked path's bytes and mode must equal the head tree; a tracked change refuses
+with `worktree_changed_during_gates` plus `gate_workspace_tracked_changed:<path>`,
+and any untracked or ignored path refuses with `worktree_changed_during_gates`
+plus `gate_workspace_undeclared_output:<path>`. The observed common directory's
+`config`, `hooks/`, `info/` and `objects/info/alternates` are snapshotted around
+the gates and any change refuses with `git_metadata_changed_during_gates`. The
+target commit is resolved before the gates, and every check after them —
+`goal_reserved_refusals` included — uses that commit, never a re-read of
+`origin/<target>`. Every observed-root check is unchanged: the root's
+`tree_state` before and after the gates, ignored files included, the head checks
+and the admission worktree snapshot all stay exactly as they were.
+
+Residual risks (recorded, not fixed): there is no OS sandbox, so a gate runs
+with the user's uid and can write anywhere it can reach (a gate that does
+`cd ..` out of the workspace lands in the observed root's parent); the gates are
+not network-isolated; and a change a gate undoes within itself is not seen.
 
 `merge-authority.sh` requires `--pr` once a v2 artifact is observable (a
 registry or a live policy/2) on `origin/<target>`, on the commit

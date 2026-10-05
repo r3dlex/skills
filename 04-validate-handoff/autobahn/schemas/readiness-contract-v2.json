@@ -149,6 +149,22 @@
         "admin": {"type": "boolean"},
         "adapter": {"type": "string"},
         "certifier": {"type": "string", "minLength": 1},
+        "gate_workspace": {
+          "description": "The isolated-copy provenance the certificate binds (W9): the gate workspace's physical path and the gate-workspace/1 record's path and sha256. Pre-plan certificates carry no such field and keep validating.",
+          "type": "object",
+          "required": ["workspace", "record"],
+          "properties": {
+            "workspace": {"type": "string", "minLength": 1},
+            "record": {
+              "type": "object",
+              "required": ["path", "sha256"],
+              "properties": {
+                "path": {"type": "string", "minLength": 1},
+                "sha256": {"$ref": "#/$defs/sha256"}
+              }
+            }
+          }
+        },
         "issued_at": {"$ref": "#/$defs/timestamp"}
       }
     },
