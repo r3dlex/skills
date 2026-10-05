@@ -4,7 +4,7 @@
     "contract-run-v2.sh": "78dfe75ad32feab7c6b28f7895515f1cb9de0e044a9164e2acd3add694c85574",
     "contract-run.sh": "ba2f1ca5b3bcdda0944da878b2ffdf1809c1e54fc22c5d8506371d72c68e4757",
     "lib/local_ci_contract.py": "1e57533c11c5921f13e51a74aee4f87012f4c5d53ed0752f104b170fd60be9ea",
-    "lib/observer.py": "b7a42c8a4975084cc2da61180589ee4fa3a64c0d5edbdff2be18d15a6d06f5df",
+    "lib/observer.py": "a8fc70cfcaf273ae28176bb81d0bd5d70d327d807808f5745597c04377cbb5bc",
     "lib/readiness_contract.py": "30cfb9bf7436ff1f6b14c0b16542a62a6893321f5eface820c827ae4ec600166",
     "lib/readiness_contract_v2.py": "cc0022dd6734abfe91fd4520175362a2618d75ed002fd2c3d18dc4763f447881",
     "lib/verification.py": "572819a9c8a1039173c5483d0f7f9a33362588d197e27731bb97b5dd78d33524",
