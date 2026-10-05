@@ -441,6 +441,18 @@ class PublishedP5Tests(unittest.TestCase):
             if not path.is_file():
                 continue
             relative = path.relative_to(base)
+            if relative.as_posix() == REGISTRY:
+                # The plans list is compared order-insensitively: the publisher appends entries,
+                # so a second plan published after P5 changes the append order, while every entry
+                # stays byte-identical (H1 holds per generation; the cross-plan order is history).
+                produced = json.loads(path.read_bytes())
+                expected = json.loads((REPO / relative).read_bytes())
+                self.assertEqual({k: v for k, v in produced.items() if k != 'plans'},
+                                 {k: v for k, v in expected.items() if k != 'plans'}, relative.as_posix())
+                self.assertEqual(sorted(json.dumps(p, sort_keys=True) for p in produced['plans']),
+                                 sorted(json.dumps(p, sort_keys=True) for p in expected['plans']),
+                                 relative.as_posix())
+                continue
             self.assertEqual(path.read_bytes(), (REPO / relative).read_bytes(), relative.as_posix())
 
     def test_v1_bytes_unchanged(self):
