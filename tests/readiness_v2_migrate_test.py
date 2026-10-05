@@ -660,10 +660,15 @@ class ReleaseSurfaceTests(unittest.TestCase):
             self.assertIn(phrase, text, phrase)
         # Pin advanced by XSKP-P5-02 (plan xskp-p5-skill-producers): the registered
         # knowledge-publication pointer change deliberately edits five producer SKILL.md
-        # files; re-pin to the commit whose tree first carries those bytes (same
-        # maintenance precedent as tests/fixtures/host-default-golden.json refreshes).
+        # files; re-pin to the finalized goal head whose tree first carries those bytes
+        # (maintenance precedent: ACH goals #104..#114 re-pin per goal, like
+        # tests/fixtures/host-default-golden.json refreshes). The target must be
+        # reachable from plain clone history — amend-based evidence updates orphan
+        # intermediate commits (da45dec became unreachable, so CI clones hit git exit
+        # 128 on it), so the pin targets the last amend chain's final production head.
+        # Per-goal re-pin: the next goal that edits SKILL.md advances it again.
         diff = subprocess.run(['git', '-C', str(REPO), 'diff', '--exit-code',
-                               'da45dec455a1903cd7619707ab8a7e904718a791', '--', '*/SKILL.md'],
+                               '7c5d932c261c3aac4c3524b8ef2966d662e67813', '--', '*/SKILL.md'],
                               capture_output=True, text=True)
         self.assertEqual(diff.returncode, 0, diff.stdout)
 
