@@ -1,0 +1,184 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[D1, G3] certify-v2 and merge-v2 (derive_certificate) run the four local gates (tdd-evidence, lint-gate, local safe CI subset, ci-gate --verify) only in an observer-built gate work...",
+      "green": {
+        "at": "2026-10-05T13:52:16Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "606a137c18f576ddb06959baadf72508a4185b90e346fb851ad09a8cdba2f870"
+      },
+      "red": {
+        "at": "2026-10-05T12:48:45Z",
+        "exit_code": 1,
+        "output_sha256": "e2dc048937fb68605eae3703bb0dae85d9fa40b02ab4ea3dff15398ed4ca4dd3"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py WorkspaceLocationTests"
+    },
+    {
+      "ac": 2,
+      "criterion": "[D1, no gate relaxed] Every existing check on the observed root is kept unchanged: tree_state before and after the gates, ignored files included (tree_not_clean), head_before == he...",
+      "green": {
+        "at": "2026-10-05T13:52:19Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "076c95e4e1ca7b985388b9512e6d2483030a29ee190a1c910960d9c75d5508db"
+      },
+      "red": {
+        "at": "2026-10-05T12:48:48Z",
+        "exit_code": 1,
+        "output_sha256": "a4217c440163a3406bb6005da9fef1141801b29382ca689c3859e0f30d7580a7"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py ObservedRootUnchangedTests"
+    },
+    {
+      "ac": 3,
+      "criterion": "[Workspace integrity] After every gate the observer re-checks the workspace: HEAD, the index entries (git ls-files --stage, so a stat-only index refresh by git diff --check is not ...",
+      "green": {
+        "at": "2026-10-05T13:52:22Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "e8c5312f58bd1f5ea87bc918105b7e9a3982140951a90fb7d893303f5d3914d7"
+      },
+      "red": {
+        "at": "2026-10-05T12:48:51Z",
+        "exit_code": 1,
+        "output_sha256": "c5c0573f2da22e7d5d5efe10f30f5e60bc7285b97aed3bd700611698c613b78e"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py WorkspaceIntegrityTests"
+    },
+    {
+      "ac": 4,
+      "criterion": "[S-03 carried LOW d] A gate's git commands reach only the workspace's own git directory. Red first: a committed gate that runs git config --local, writes into $(git rev-parse --git...",
+      "green": {
+        "at": "2026-10-05T13:52:29Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "4f77f701b554dcf299689935bbef54e0082be514f8cfcf93d4243b5b445e5f41"
+      },
+      "red": {
+        "at": "2026-10-05T12:48:56Z",
+        "exit_code": 1,
+        "output_sha256": "c80d510d1da08b09671a458914327e67b495a49c35b1e3a660440fad1543aaf5"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py GitMetadataTests"
+    },
+    {
+      "ac": 5,
+      "criterion": "[Environment, S-03 carried LOW b] gate_env keeps exactly its variables (PATH, LANG, LC_ALL, TMPDIR, a throwaway HOME and PYTHONDONTWRITEBYTECODE=1; never GH_TOKEN, GH_CONFIG_DIR or...",
+      "green": {
+        "at": "2026-10-05T13:52:38Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "ce2ab09ac4bc56440edecee4f96bbc7e7f9b64efeaaaa10717721f931aba40a4"
+      },
+      "red": {
+        "at": "2026-10-05T12:49:04Z",
+        "exit_code": 1,
+        "output_sha256": "3df5971976c981d5381cd19d5d159aa6419215aab645400c2ccd6d7c377710df"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py PhysicalPathTests"
+    },
+    {
+      "ac": 6,
+      "criterion": "[S-03 carried LOW c] worktree_rows and every workspace digest read file bytes in fixed-size chunks into hashlib and never whole-file. Red first: with pathlib.Path.read_bytes patche...",
+      "green": {
+        "at": "2026-10-05T13:52:41Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "cdd45671c523b4f61c957572a903998481884f5ff505ba373d977f4cddd5db22"
+      },
+      "red": {
+        "at": "2026-10-05T12:49:07Z",
+        "exit_code": 1,
+        "output_sha256": "01e28c043297ad852abba2d861401a913756797b8c4005ffdf3fe4415bb8681d"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py StreamingDigestTests"
+    },
+    {
+      "ac": 7,
+      "criterion": "[S-03 carried LOW a] run-gates.sh exports PYTHONDONTWRITEBYTECODE=1 in its readiness-contract/2 branch. Red first: a v2 --phase local-validation run whose gate imports a tracked Py...",
+      "green": {
+        "at": "2026-10-05T13:52:41Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "6e8996e803b6b79d460c149cae099b7df4436a700f8e73227b618841aec0448e"
+      },
+      "red": {
+        "at": "2026-10-05T12:49:07Z",
+        "exit_code": 1,
+        "output_sha256": "a0fc5de022558583a8d00fac131ee79b6f2bcf5c1d1c5c08b7354002b551f4dc"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py RunGatesBytecodeTests"
+    },
+    {
+      "ac": 8,
+      "criterion": "[Compatibility] merge-certificate/1 adds exactly one field, gate_workspace, holding the isolated-copy provenance the certificate binds (the workspace's physical path and the gate-w...",
+      "green": {
+        "at": "2026-10-05T13:52:44Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "0d38e3a387086febf307472e677507c069c4d90ff7c09b91e5136ffb167cdf31"
+      },
+      "red": {
+        "at": "2026-10-05T12:49:10Z",
+        "exit_code": 1,
+        "output_sha256": "84e2c3289b6a7830c60415c1dbe587427adb383953400a490dba7f85f198012a"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py CertificateFieldTests"
+    },
+    {
+      "ac": 9,
+      "criterion": "[Documentation, ADR] modules/readiness-v2.md (Merge certificate and merge) and the v2 section of modules/worktree-execution.md describe the gate workspace, its location and lifetim...",
+      "green": {
+        "at": "2026-10-05T13:53:00Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "c346f1228fe88f4ab3cb336ffa610dc3a34ec7c7bb7d05df7a1c222f2d928881"
+      },
+      "red": {
+        "at": "2026-10-05T12:49:22Z",
+        "exit_code": 1,
+        "output_sha256": "d5170fdbb91d94459e9df97028411f5878554bc3030650b26a56dfe1ef4c3b47"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_workspace_test.py DocumentationTests"
+    },
+    {
+      "ac": 10,
+      "criterion": "[Hygiene] Both readiness-dependency-v2.json copies and .ai/ci/local-ci.json are re-pinned, and local-ci.json also pins the new test files; .ai/evidence/ACH-S-07.json carries the re...",
+      "green": {
+        "at": "2026-10-05T14:44:00Z",
+        "commit": "b96e73775bdfd3052f0765a84686955d370061de",
+        "exit_code": 0,
+        "output_sha256": "aae0dd6ca7b66bda7155302b7d6dfcdc7961a8b73cf9db39beeaf81552ae82b2"
+      },
+      "red": {
+        "at": "2026-10-05T14:31:37Z",
+        "exit_code": 1,
+        "output_sha256": "23c530bc1dab5c3a3df2102a919c7e422ed8b102ba5056e7f0601b0fe7de4c2a"
+      },
+      "test_command": "bash tests/run-tests.sh"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "6baa8e4c2b76f56d774de831528f25d639abcb5e0792df018e3c6482a2d21fbc",
+    "assurance": "agent-self",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-ach-skills-gate-workspace --goal-id ACH-S-07 --stage implementation"
+  },
+  "goal_id": "ACH-S-07",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head",
+    "red_first_commit": "58a9028 (tests committed before any production change)",
+    "red_method": "detached worktree at the red commit; each AC command ran against the pre-implementation code"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  }
+}

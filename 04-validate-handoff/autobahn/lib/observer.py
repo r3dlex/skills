@@ -10,7 +10,8 @@ fresh re-observation.
 The only writers are publish-v2 (immutable generation files, registry last), export-evidence
 (.ai/evidence/approvals/<plan_id>/: approval, anchor and certificate copies plus the driver
 log) and the observer state under the repository's git common directory (certificates,
-review records, prompt-mode approval requests and the driver log). Approvals are
+review records, prompt-mode approval requests, the driver log, and the gate-workspace/1
+records under ai-catapult/observer/gate-workspaces/). Approvals are
 never written here; only an agent-mode approval (K3) is signed here, with the agent
 key under its own namespace.
 """
@@ -18,6 +19,7 @@ import argparse
 import atexit
 import base64
 import contextlib
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -88,10 +90,13 @@ signing_key_locator = default_signing_key
 
 def gate_env(home):
     """Local gates run PR code: no credentials, no agent socket, a throwaway HOME, and
-    never any bytecode written into the observed tree."""
+    never any bytecode written into the observed tree. Every path handed to a gate (HOME,
+    TMPDIR, --root, the working directory and the goal record) is its physical path."""
     env = {name: os.environ[name] for name in ('PATH', 'LANG', 'LC_ALL', 'TMPDIR') if name in os.environ}
     env.setdefault('PATH', '/usr/bin:/bin')
-    env.update(HOME=str(home), PYTHONDONTWRITEBYTECODE='1')
+    if 'TMPDIR' in env:
+        env['TMPDIR'] = os.path.realpath(env['TMPDIR'])
+    env.update(HOME=os.path.realpath(str(home)), PYTHONDONTWRITEBYTECODE='1')
     return env
 
 
@@ -795,6 +800,15 @@ def tree_state(root):
     return head, True
 
 
+def streamed_sha256(path):
+    """The sha256 of a file read in fixed-size chunks, never whole-file."""
+    digest = hashlib.sha256()
+    with open(path, 'rb') as handle:
+        for chunk in iter(lambda: handle.read(65536), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def worktree_rows(root):
     """The canonical digest of #92's worktree_observation rows for every tracked or present path
     under root, ignored and untracked included: [path, mode, sha256], [path, 'directory', mode], or
@@ -822,7 +836,7 @@ def worktree_rows(root):
         elif stat.S_ISDIR(mode):
             rows.append([name, 'directory', stat.S_IMODE(mode)])
         elif stat.S_ISREG(mode):
-            rows.append([name, stat.S_IMODE(mode), v2.sha256(path.read_bytes())])
+            rows.append([name, stat.S_IMODE(mode), streamed_sha256(path)])
         else:
             rows.append([name, 'nonregular', stat.S_IFMT(mode)])
     return canonical(rows)
@@ -1531,14 +1545,14 @@ def issue_agent_approval(root, gen, fields, publication, origin):
 
 
 def run_local_gates(root, goal):
-    # Gate scripts start their embedded Python isolated (python3 -I -B), and they also run
-    # from a fresh empty directory and receive the PR checkout only through --root: a
-    # PR-root json.py can never stand in for a gate's own code.
+    # Gate scripts start their embedded Python isolated (python3 -I -B); they run with the gate
+    # workspace as their working directory and receive it through --root, so every path a gate
+    # observes is the workspace's physical path, and a gate's git reaches only the workspace's
+    # own git directory.
     with tempfile.TemporaryDirectory(prefix='observer-') as tmp:
+        tmp = os.path.realpath(tmp)
         home = Path(tmp) / 'home'
         home.mkdir()
-        neutral = Path(tmp) / 'cwd'
-        neutral.mkdir()
         record = Path(tmp) / 'goal.json'
         record.write_text(json.dumps({'id': goal['id'], 'verification': goal['verification']}))
         gates = [('tdd-evidence', ['bash', HERE / 'tdd-evidence.sh', '--verify', '--goal', goal['id'], '--root', root]),
@@ -1547,14 +1561,209 @@ def run_local_gates(root, goal):
                  ('ci-gate --verify', ['bash', HERE / 'ci-gate.sh', '--verify', '--root', root, '--goal-record', record])]
         results = []
         for name, argv in gates:
-            outcome = command(argv, cwd=neutral, env=gate_env(home))
+            outcome = command(argv, cwd=root, env=gate_env(home))
             if outcome.returncode:
                 sys.stderr.write(outcome.stdout.decode(errors='replace') + outcome.stderr.decode(errors='replace'))
             results.append({'name': name, 'exit': outcome.returncode})
         return results
 
 
-def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, now, certifier=None):
+# --- gate workspace (ACH-S-07) ---------------------------------------------------
+
+def gate_workspace_dir(root, plan_id, goal_id, pr, head):
+    """The isolated copy's fixed physical location: a sibling of the observed root, under the
+    parent's `.omc/` tree — a name matching the existing `.omc/` ignored pattern of the umbrella
+    and root .gitignore — never inside the observed root. Deterministic per (plan, goal, pr,
+    head) so the certificate's gate_workspace re-derives at merge."""
+    return Path(root).parent / '.omc' / 'ai-catapult' / 'gate-workspaces' / ('%s-%s-%s-%s' % (plan_id, goal_id, pr, head))
+
+
+def gate_workspace_record_path(root, plan_id, goal_id, pr, head, op):
+    return state_dir(root) / 'gate-workspaces' / plan_id / goal_id / ('%s-%s-%s.json' % (pr, head, op))
+
+
+def build_gate_workspace(root, plan_id, goal_id, pr, head):
+    """A fresh repository at the PR head under the observed root's parent: an empty template, no
+    remote and no hooks, and the observed repository's objects borrowed read-only through
+    objects/info/alternates (the pattern of the planning simulation). A leftover from an
+    interrupted run is removed, never reused. Returns None only when it cannot be built."""
+    path = gate_workspace_dir(root, plan_id, goal_id, pr, head)
+    try:
+        if path.exists():
+            shutil.rmtree(path)
+        path.mkdir(parents=True)
+        git(path, 'init', '-q')
+        shutil.rmtree(path / '.git' / 'hooks')
+        (path / '.git' / 'hooks').mkdir()
+        git(path, 'config', 'core.hooksPath', os.devnull)
+        objects = git_text(root, 'rev-parse', '--path-format=absolute', '--git-path', 'objects')
+        (path / '.git' / 'objects' / 'info' / 'alternates').write_text(objects + '\n')
+        git(path, 'checkout', '-q', '--detach', head)
+    except (Invalid, OSError):
+        shutil.rmtree(path, ignore_errors=True)
+        return None
+    return path
+
+
+def workspace_violations(path, head):
+    """Workspace integrity at the head: HEAD, the index entries (ls-files --stage, so a
+    stat-only index refresh is not a change) and every tracked path's bytes and mode must equal
+    the head tree, and no untracked or ignored path may exist (this goal declares none). Each
+    violation is gate_workspace_tracked_changed:<path> or gate_workspace_undeclared_output:<path>."""
+    if git_text(path, 'rev-parse', '--verify', 'HEAD^{commit}') != head:
+        return ['gate_workspace_tracked_changed:HEAD']
+    tree, index = {}, {}
+    for entry in git(path, 'ls-tree', '-r', '-z', head).stdout.split(b'\0'):
+        if entry:
+            meta, name = entry.split(b'\t', 1)
+            mode, _, oid = meta.split()
+            tree[os.fsdecode(name)] = (mode, oid)
+    for entry in git(path, 'ls-files', '--stage', '-z').stdout.split(b'\0'):
+        if entry:
+            meta, name = entry.split(b'\t', 1)
+            mode, oid, stage = meta.split()
+            if stage != b'0':
+                return ['gate_workspace_tracked_changed:%s' % os.fsdecode(name)]
+            index[os.fsdecode(name)] = (mode, oid)
+    if index != tree:
+        names = sorted(set(index) ^ set(tree))
+        names += sorted(name for name in set(index) & set(tree) if index[name] != tree[name])
+        return ['gate_workspace_tracked_changed:%s' % name for name in names]
+    disk = set()
+    for directory, directories, names in os.walk(path):
+        if Path(directory) == path:
+            directories[:] = [d for d in directories if d != '.git']
+            names = [n for n in names if n != '.git']
+        disk.update(Path(directory, n).relative_to(path).as_posix() for n in names)
+        disk.update(Path(directory, d).relative_to(path).as_posix() for d in directories if Path(directory, d).is_symlink())
+    undeclared = sorted(name for name in disk - set(tree) if not any(name.startswith(p + '/') for p in disk - set(tree)))
+    if undeclared:
+        return ['gate_workspace_undeclared_output:%s' % name for name in undeclared]
+    violations = []
+    for name in sorted(set(tree) - disk):
+        violations.append('gate_workspace_tracked_changed:%s' % name)
+    for name in sorted(tree):
+        try:
+            info = os.lstat(Path(path, name))
+        except (FileNotFoundError, NotADirectoryError):
+            violations.append('gate_workspace_tracked_changed:%s' % name)
+            continue
+        if not stat.S_ISREG(info.st_mode):
+            violations.append('gate_workspace_tracked_changed:%s' % name)
+            continue
+        digest = hashlib.sha1(('blob %d\0' % info.st_size).encode())
+        try:
+            with open(Path(path, name), 'rb') as handle:
+                for chunk in iter(lambda: handle.read(65536), b''):
+                    digest.update(chunk)
+        except OSError:
+            violations.append('gate_workspace_tracked_changed:%s' % name)
+            continue
+        mode = b'100755' if info.st_mode & 0o100 else b'100644'
+        if (mode, digest.hexdigest().encode()) != tree[name]:
+            violations.append('gate_workspace_tracked_changed:%s' % name)
+    return violations
+
+
+def git_metadata_snapshot(root):
+    """The observed common directory's config, hooks/, info/ and objects/info/alternates bytes."""
+    common = Path(common_dir(root))
+    snapshot = {}
+    for rel in ('config', 'hooks', 'info', 'objects/info/alternates'):
+        path = common / rel
+        if path.is_dir():
+            for entry in sorted(path.rglob('*')):
+                if entry.is_file() or entry.is_symlink():
+                    snapshot['%s/%s' % (rel, entry.relative_to(path).as_posix())] = \
+                        os.readlink(entry).encode() if entry.is_symlink() else entry.read_bytes()
+        elif path.exists() or path.is_symlink():
+            snapshot[rel] = os.readlink(path).encode() if path.is_symlink() else path.read_bytes()
+    return snapshot
+
+
+def head_local_ci(root, head):
+    """The .ai/ci/local-ci.json at the head: its sha256 and schema, or None when absent."""
+    data = show(root, head, '.ai/ci/local-ci.json')
+    if data is None:
+        return None
+    schema = None
+    try:
+        record = parse_json(data, 'local-ci')
+        schema = record.get('schema') if isinstance(record, dict) else None
+    except Invalid:
+        pass
+    return {'path': '.ai/ci/local-ci.json', 'sha256': v2.sha256(data), 'schema': schema}
+
+
+def write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace):
+    """The gate-workspace/1 record of one derivation at its fixed path, and its sha256."""
+    path = gate_workspace_record_path(root, plan_id, goal_id, pr, head, 'certify')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({'schema': 'gate-workspace/1', 'head': head,
+                                'tree': git_text(root, 'rev-parse', head + '^{tree}'),
+                                'contract': head_local_ci(root, head),
+                                'bootstrap': [], 'inputs': [], 'dependencies': [], 'outputs': [],
+                                'network': 'bootstrap', 'workspace': str(workspace)},
+                               indent=2, sort_keys=True) + '\n')
+    return path, v2.sha256(path.read_bytes())
+
+
+def run_gates_in_workspace(root, gen, goal, pr, head, op):
+    """The four local gates, run only in an observer-built gate workspace at the PR head: a fresh
+    repository in a sibling directory under the observed root's parent with no remote and no
+    hooks, borrowing the observed objects read-only. Before any gate the workspace must equal the
+    head tree (gate_workspace_unfaithful); after every gate HEAD, the index and every tracked
+    path must still equal the head tree and no untracked or ignored path may exist
+    (worktree_changed_during_gates with gate_workspace_tracked_changed:<path> or
+    gate_workspace_undeclared_output:<path>). The observed git metadata is snapshotted around the
+    gates (git_metadata_changed_during_gates). The workspace is removed when the derivation ends;
+    the gate-workspace/1 record is the provenance the certificate's gate_workspace field binds."""
+    plan_id, goal_id = gen['bundle']['id'], goal['id']
+    workspace = build_gate_workspace(root, plan_id, goal_id, pr, head)
+    refusals, provenance, gates = [], None, []
+    if workspace is None:
+        return gates, ['gate_workspace_unavailable'], provenance
+    try:
+        identity = workspace.lstat()
+        if not tree_state(workspace)[1]:
+            refusals.append('gate_workspace_unfaithful')
+            return gates, refusals, provenance
+        metadata = git_metadata_snapshot(root)
+        gates = run_local_gates(workspace, goal)
+        for _ in gates:
+            try:
+                current = workspace.lstat()
+            except OSError:
+                current = None
+            if current is None or current.st_dev != identity.st_dev or current.st_ino != identity.st_ino:
+                refusals.append('gate_workspace_unavailable')
+                break
+            for violation in workspace_violations(workspace, head):
+                refusals += ['worktree_changed_during_gates', violation]
+        if git_metadata_snapshot(root) != metadata:
+            refusals.append('git_metadata_changed_during_gates')
+        record_path = gate_workspace_record_path(root, plan_id, goal_id, pr, head, 'certify')
+        if op == 'certify':
+            path, digest = write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace)
+        elif not record_path.is_file():
+            path, digest = record_path, None
+            refusals.append('gate_workspace_record_missing')
+        else:
+            path, digest = record_path, v2.sha256(record_path.read_bytes())
+        if digest is not None:
+            provenance = {'workspace': str(workspace), 'record': {'path': str(path), 'sha256': digest}}
+        return gates, sorted(set(refusals)), provenance
+    finally:
+        if workspace.is_symlink() or not workspace.is_dir():
+            try:
+                workspace.unlink()
+            except OSError:
+                pass
+        else:
+            shutil.rmtree(workspace, ignore_errors=True)
+
+
+def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, now, certifier=None, op='certify'):
     """Everything a merge certificate binds, re-observed from scratch. At issue the
     certifier is the local agent signing key; at merge it is the verified signer."""
     anchor, _ = observe_anchor()
@@ -1573,7 +1782,14 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
         except (Invalid, OSError) as error:
             refusals.append(v2.code(error) if isinstance(error, Invalid) else 'certifier_key_unavailable')
     goal = next(g for g in gen['bundle']['goals'] if g['id'] == goal_id)
-    gates = run_local_gates(root, goal) if not refusals and clean_before and pull['head'] == head_before else []
+    # W7: the target commit resolved before the gates; every check after them uses it, never a
+    # re-read of origin/<target>.
+    target = context['observation']['target_revision']
+    gate_workspace = None
+    gates = []
+    if not refusals and clean_before and pull['head'] == head_before:
+        gates, workspace_refusals, gate_workspace = run_gates_in_workspace(root, gen, goal, pr, pull['head'], op)
+        refusals += workspace_refusals
     head_after, clean_after = tree_state(root)
     # G3: the snapshot admission took before the gates must still hold after them.
     if worktree_snapshot(root) != facts['worktree_state']['value']:
@@ -1589,7 +1805,7 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
         'certifier': certifier, 'policy_goal': policy_goal, 'goal_id': goal_id,
         'head_policy_sha256': v2.sha256(head_policy) if head_policy is not None else None,
         'policy_sha256': gen['digests']['policy_sha256']})
-    refusals += goal_reserved_refusals(root, ref, gen, goal_id, adapter)
+    refusals += goal_reserved_refusals(root, target, gen, goal_id, adapter)
     if not gates and not refusals:
         refusals.append('local_gates_not_run')
     approval = context['approval'] or {}
@@ -1604,7 +1820,7 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
         review_lane={'digest': lane['digest'] if lane else None, 'principal': lane['principal'] if lane else None,
                      'verdict': lane['verdict'] if lane else None},
         admin=gen['policy']['identity_model'] == 'single', adapter=adapter.name, certifier=certifier,
-        issued_at=v2.stamp(now))
+        gate_workspace=gate_workspace, issued_at=v2.stamp(now))
     return {'body': body, 'key': key, 'anchor': anchor, 'gen': gen, 'approval': approval,
             'certifier': certifier}, context, sorted(set(refusals))
 
@@ -2087,17 +2303,17 @@ def scratch_entries(root, scratch):
             for p, oid in zip(found, hashed.stdout.decode().split())}
 
 
-def goal_reserved_refusals(root, ref, gen, goal_id, adapter):
+def goal_reserved_refusals(root, target, gen, goal_id, adapter):
     """H1: a goal PR's own diff (merge-base..head from git objects, renames off) may touch a
     reserved path, or a spec copy bound by an active generation, only inside the goal's bound
     scope, and then only as: the policy goal's policy file; a pinned publish-v2 replay of the
     registry and .ai/handoff/readiness-v2/**; a registry change limited to the top-level
-    retired_v1 key, for the policy goal; or a tightening change to an existing sidecar."""
+    retired_v1 key, for the policy goal; or a tightening change to an existing sidecar.
+    The target is the commit resolved before the gates (W7); it is never re-read."""
     head = git_text(root, 'rev-parse', '--verify', 'HEAD^{commit}')
-    target = git_text(root, 'rev-parse', '--verify', ref + '^{commit}')
     base = git_text(root, 'merge-base', target, head)
     changed = changed_names(root, base, head)
-    specs = bound_specs(root, [ref])
+    specs = bound_specs(root, [target])
     reserved = [name for name in changed if fixed_reserved(name) or path_key(name) in specs]
     if not reserved:
         return []
@@ -2114,10 +2330,10 @@ def goal_reserved_refusals(root, ref, gen, goal_id, adapter):
     try:
         if policy_goal and handoff == [v2.REGISTRY] and retired_only(root, target, head):
             pass
-        elif all(existing_sidecar(root, ref, base, name) for name in handoff):
-            sidecar_lane(root, ref, pull, handoff)
+        elif all(existing_sidecar(root, target, base, name) for name in handoff):
+            sidecar_lane(root, target, pull, handoff)
         else:
-            replay_lane(root, ref, pull, adapter)
+            replay_lane(root, target, pull, adapter)
     except Invalid:
         refusals += ['goal_reserved_path:' + name for name in handoff]
     return refusals
@@ -2188,7 +2404,7 @@ def op_merge(args, now, adapter):
     review = state_dir(root) / 'reviews' / ('%s.json' % (stored.get('review_lane') or {}).get('digest'))
     derived, context, refusals = derive_certificate(root, ref, found['handoff'], found['goal_id'], args.pr,
                                                     review if review.is_file() else None, adapter, now,
-                                                    certifier=signed['principal'])
+                                                    certifier=signed['principal'], op='merge')
     rederived = derived['body'] if derived else {}
     differences = v2.certificate_differences(stored, rederived) if derived else ['fields']
     if differences:
