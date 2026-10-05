@@ -1,0 +1,115 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[D-ACCEPT variant a] The merged .ai/policies/readiness-policy.json bytes equal the generation's policy-candidate.json: the live readiness-policy/2 (sha256 2ee17...",
+      "green": {
+        "at": "2026-10-05T07:14:07Z",
+        "commit": "18a26563a40db2457d2fa01635d3769f8b5215bb",
+        "exit_code": 0,
+        "output_sha256": "865a8309cc239e93b80a3c6e1850aa0d723536279d7a2fb86a868b9bdba4c89d"
+      },
+      "note": "the only AC whose pin follows the live policy bytes: the retargeted pin test fails at the red-first commit (live policy still 2ee17f06) and passes at the final head (live policy equals the amendment candidate 58bcd9e7)",
+      "red": {
+        "at": "2026-10-05T06:13:31Z",
+        "exit_code": 1,
+        "output_sha256": "efaa8c84f059fb4360b0ffd80222d7b299dd449fea711207320747a70fd280a6"
+      },
+      "test_command": "bash tests/readiness_policy_v2_test.sh"
+    },
+    {
+      "ac": 2,
+      "criterion": "[M4] The candidate keeps the live branch_pattern ^(feat|fix|chore)/<plan_id>-<goal_id>$ byte-identical; routing reads the live pattern, and any candidate that c...",
+      "green": {
+        "at": "2026-10-05T07:14:07Z",
+        "commit": "18a26563a40db2457d2fa01635d3769f8b5215bb",
+        "exit_code": 0,
+        "output_sha256": "79a21a17d17d388d3792da01bebbef0f7f42728a8ba0e85b9edc270c551def1a"
+      },
+      "note": "characterization: the branch_pattern_change_refused mechanism guard exists since S-06 and is green at the base; the retargeted pin test additionally asserts the live branch_pattern byte-identical (green on both legs, because the candidate never changes it)",
+      "red": {
+        "at": "2026-10-05T06:13:31Z",
+        "exit_code": 0,
+        "output_sha256": "5fe99dec77a979adf965610c4a5a04322f1bc3f5f46a235464bdc8527a0c2a33"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py ReviewRoundOneAmendmentTests.test_an_amendment_may_not_move_the_branch_namespace"
+    },
+    {
+      "ac": 3,
+      "criterion": "[M1] The registry entry records amends_policy_sha256 = 2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176 and the generation id binds it; if any o...",
+      "green": {
+        "at": "2026-10-05T07:14:08Z",
+        "commit": "18a26563a40db2457d2fa01635d3769f8b5215bb",
+        "exit_code": 0,
+        "output_sha256": "7e4601921f2ea7599320c9c8a2d38f34687522e2cd59da6374ae4fb34e674e19"
+      },
+      "note": "characterization: the amendment_base_moved mechanism guard exists since S-06 and is green at the base; the registry entry recording amends_policy_sha256 2ee17f06 was published by PR #109 and is additionally pinned by the retargeted pin test (green on both legs); the live admission of this goal binds the same generation",
+      "red": {
+        "at": "2026-10-05T06:13:32Z",
+        "exit_code": 0,
+        "output_sha256": "304da10cc95a106747792a4fc41465463e9d5cf517f504ee76a4fe0e2136af16"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py ReviewRoundOneAmendmentTests.test_a_concurrent_amendment_is_refused_once_another_lands"
+    },
+    {
+      "ac": 4,
+      "criterion": "[rule (d)] This amendment's own approval is in-session or ssh-tag only: agent-self is refused with approval_form_not_in_live_policy while the live accept list l...",
+      "green": {
+        "at": "2026-10-05T07:14:11Z",
+        "commit": "18a26563a40db2457d2fa01635d3769f8b5215bb",
+        "exit_code": 0,
+        "output_sha256": "7ddbdc82d7c789e8c1eb524097fda0ac06f73b85c3ba72d535780ee6e51bc2b0"
+      },
+      "note": "characterization: the post-S-06 rule-(d) scenario guard exists since S-06 and is green at the base; the real rule-(d) proof is this goal's own admission, whose approval is in-session (digest 4e6ebe0242eb6c1002e48b23627279b24929b33eb970706b4cfc56cc78b632cd) while the live accept list lacked agent-self",
+      "red": {
+        "at": "2026-10-05T06:13:35Z",
+        "exit_code": 0,
+        "output_sha256": "1501435faf59eb0dc05969a7b455c022d5f9295ba88ae4d6a8c244710a10651c"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py RuleDTests.test_the_post_s06_amendment_to_agent_mode_needs_a_human_form"
+    },
+    {
+      "ac": 5,
+      "criterion": "[K3b] After this merge, agent-self is admissible for every later skills generation and for later amendments (both accept lists hold agent-self and default_mode ...",
+      "green": {
+        "at": "2026-10-05T07:14:13Z",
+        "commit": "18a26563a40db2457d2fa01635d3769f8b5215bb",
+        "exit_code": 0,
+        "output_sha256": "82bcd6cf3209e63ea01233a7bcdcdc81caa933b5104949851303fcbea9369068"
+      },
+      "note": "characterization: the agent_self_policy_change reporting guard exists since S-06 and is green at the base; K3b becomes reachable only after this merge (both accept lists then hold agent-self)",
+      "red": {
+        "at": "2026-10-05T06:13:38Z",
+        "exit_code": 0,
+        "output_sha256": "cf0214d575e19cc4ae1cc7a70bb37954b04e7d14054401871cd8ffe96c8e4178"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py AgentSelfPolicyChangeTests.test_agent_self_amendment_is_recorded_reported_and_audited"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "4e6ebe0242eb6c1002e48b23627279b24929b33eb970706b4cfc56cc78b632cd",
+    "assurance": "in-session",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-ach-skills-agent-mode --goal-id ACH-AM-01 --stage implementation",
+    "gaps": [],
+    "generation": "696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+    "provenance": "base-copy",
+    "stage": "implementation"
+  },
+  "goal_id": "ACH-AM-01",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head",
+    "h1_replay": "tests/readiness_v2_migrate_test.py test_offline_replay_is_byte_equal followed the live policy bytes: red (exit 1) at the implementation head after the policy swap, green (exit 0) after its pin moved to the policy P5 was published with (see the commit and the PR body)",
+    "red_first_commit": "tests retargeted to pin the amendment candidate before any production change",
+    "red_method": "the red-first commit checks out only the retargeted tests/; each AC command run against the pre-amendment live policy (2ee17f06)",
+    "run_tests_legs": "observed by tdd-evidence.sh: red at the red-first commit, green at the implementation head"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  }
+}

@@ -418,10 +418,24 @@ class PublishedP5Tests(unittest.TestCase):
         entry = entries[0]
         prefix = '.ai/handoff/readiness-v2/xskp-p5-skill-producers/' + entry['generation']
         base = Path(tempfile.mkdtemp()).resolve()
-        for relative in (POLICY, REGISTRY, entry['spec']['path'], 'tests/run-tests.sh'):
+        # The policy amendment (ACH-AM-01) changed the live policy digest after P5 was published,
+        # so the byte-for-byte H1 replay of the committed generation runs under the policy it was
+        # published with (the registered policy_sha256, the contract-v2 candidate bytes), never
+        # under the amended live bytes: the replay under the live policy is the later mandated
+        # republish, not this generation.
+        published_policy = (REPO / '.ai/handoff/readiness-v2/ach-skills-contract-v2'
+                            '/9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527'
+                            '/policy-candidate.json')
+        self.assertEqual(sha(published_policy), entry['policy_sha256'])
+        self.assertNotEqual(sha(REPO / POLICY), entry['policy_sha256'],
+                            'the live policy has moved on; the P5 republish against it is a later effort')
+        for relative in (REGISTRY, entry['spec']['path'], 'tests/run-tests.sh'):
             source, target = REPO / relative, base / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(source.read_bytes())
+        target = base / POLICY
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(published_policy.read_bytes())
         registry = json.loads((REPO / REGISTRY).read_text())
         write_json(base / REGISTRY, dict(registry, plans=[p for p in registry['plans']
                                                           if p.get('plan_id') != 'xskp-p5-skill-producers']))
@@ -441,6 +455,11 @@ class PublishedP5Tests(unittest.TestCase):
             if not path.is_file():
                 continue
             relative = path.relative_to(base)
+            if relative.as_posix() == POLICY:
+                # The replay lane compares the reserved entries, never the policy file (S-05 §3.4):
+                # the base carries the policy this generation was published with.
+                self.assertEqual(path.read_bytes(), published_policy.read_bytes(), relative.as_posix())
+                continue
             if relative.as_posix() == REGISTRY:
                 # The plans list is compared order-insensitively: the publisher appends entries,
                 # so a second plan published after P5 changes the append order, while every entry

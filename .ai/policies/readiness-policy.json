@@ -1,10 +1,12 @@
 {
   "approval": {
     "accept": [
+      "agent-self",
       "ssh-tag",
       "in-session"
     ],
     "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+    "default_mode": "agent",
     "max_age_days": 14
   },
   "branch_pattern": "^(feat|fix|chore)/<plan_id>-<goal_id>$",
