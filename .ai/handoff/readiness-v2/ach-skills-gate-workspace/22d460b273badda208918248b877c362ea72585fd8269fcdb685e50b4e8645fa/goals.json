@@ -1,0 +1,107 @@
+{
+  "attachments": {
+    "blocker": "D1 (ACH execution log section 9, 2026-10-04): certify requires a byte-clean observed tree, ignored files included, before and after the local gates, so ai-catapult (npm test needs the gitignored vendor/ and writes dist/ and dist-snapshot/) and ai-factory (needs node_modules/) can never be certified.",
+    "consensus_plan": "aitool-root .omc/plans/ralplan-admission-complete-handoffs.md section 9 (local, non-authoritative); D1 recommendation (A): run local gates in an observer-built copy of the PR head, never relax a gate.",
+    "generation_scope": "A live-mode generation (no policy candidate, no goal scopes the policy file) of two goals, published after ACH-S-06 and the default_mode agent amendment merge.",
+    "o8": "ACH-S-08's merge commit on skills main is the named O8 commit that ai-catapult and ai-factory pin and check by git ancestry; it descends from ACH-S-06's merge, so it also satisfies the earlier O8.",
+    "owner": "not in the bundle or sidecar: owner and reviewer lane are recorded once in plan-approval/1",
+    "readiness_notes": {
+      "ACH-S-07": {
+        "implementation": "No hold. v2 admission from a linked worktree and an observed red/green.",
+        "merge": "No hold. merge-certificate/1 at the exact head, issued by the base-copy observer (pre-goal code, so the goal never certifies itself), and merge-authority.sh re-observation; assurance agent-self recorded.",
+        "preparation": "No hold. Observed by the publishing agent at publication, not an admission gate: ACH-S-06's merge commit and the default_mode agent amendment's merge commit are ancestors of origin/main, and this generation binds the amended live policy digest. Admission observes the publication commit on origin/main (B5), the anchor and the generation's single verified plan-approval/1 (agent-self)."
+      },
+      "ACH-S-08": {
+        "implementation": "No hold. Dependency check on ACH-S-07's merge commit; v2 admission from a linked worktree and an observed red/green.",
+        "merge": "No hold. merge-certificate/1 at the exact head, issued by the base-copy observer that ACH-S-07 merged, so this is the first certificate whose gates run in a workspace; merge-authority.sh re-observation; assurance agent-self recorded. This merge is O8.",
+        "preparation": "No hold. Observed by the publishing agent at publication, not an admission gate: ACH-S-06's merge commit and the default_mode agent amendment's merge commit are ancestors of origin/main, and this generation binds the amended live policy digest. Admission observes the publication commit on origin/main (B5), the anchor and the generation's single verified plan-approval/1 (agent-self)."
+      }
+    },
+    "umbrella_spec": "r3dlex/ai-tool-workspace docs/specifications/ACTIVE/admission-complete-handoffs.md sha256 e6feb698bde18356f0d49c497b7f368f242f39bc254b12942f7f1902408cee39 (relied on for O8 only; not restated or amended)"
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "[D1, G3] certify-v2 and merge-v2 (derive_certificate) run the four local gates (tdd-evidence, lint-gate, local safe CI subset, ci-gate --verify) only in an observer-built gate workspace, never in the observed root. The workspace is a new repository created with an empty template, no remote and no hooks in a new directory under the observed root's parent (a sibling of the observed root), named to match an existing ignored pattern of the umbrella/root .gitignore and never inside the observed root (coordinator ruling; its physical path is handed to the gates); it borrows the observed repository's objects read-only through objects/info/alternates (the pattern of ACH-S-04's planning simulation) and checks out the PR head detached, so its HEAD is the certified head and its files are that head's tree. Before any gate runs, tree_state(workspace) must report HEAD, index and every file equal to the head tree byte for byte with no extra path, otherwise the derivation refuses with gate_workspace_unfaithful. The workspace is removed when the derivation ends, on success and on failure, and a leftover from an interrupted run is never reused. tests/readiness_v2_gate_workspace_test.py (discovered by tests/test-scripts.sh via its .sh wrapper) proves, red first, that a gate recording `pwd -P`, `git rev-parse --show-toplevel` and `git rev-parse HEAD` ran in a workspace in a sibling directory under the observed root's parent at the PR head and not in the observed root, and that no workspace remains afterwards.",
+        "[D1, no gate relaxed] Every existing check on the observed root is kept unchanged: tree_state before and after the gates, ignored files included (tree_not_clean), head_before == head_after == PR head (head_changed_during_gates, pr_head_mismatch) and the admission worktree snapshot (worktree_changed_during_gates). Red first: after certifying a goal whose committed gate appends to an ignored gate.log, the observed root holds no gate.log and its worktree_snapshot equals the pre-run snapshot, and the certificate is still refused with worktree_changed_during_gates, now reported together with gate_workspace_undeclared_output:gate.log.",
+        "[Workspace integrity] After every gate the observer re-checks the workspace: HEAD, the index entries (git ls-files --stage, so a stat-only index refresh by git diff --check is not a change) and every tracked path's bytes and mode must equal the head tree, and no untracked or ignored path may exist outside the declared paths (none in this goal; ACH-S-08 adds the declaration). A tracked change refuses with worktree_changed_during_gates and gate_workspace_tracked_changed:<path>; an extra path refuses with worktree_changed_during_gates and gate_workspace_undeclared_output:<path>. Red first: a gate that rewrites the tracked src/app.txt and exits 0 is refused with gate_workspace_tracked_changed:src/app.txt. Characterization: a gate that runs only git diff --check and git ls-files is issued.",
+        "[S-03 carried LOW d] A gate's git commands reach only the workspace's own git directory. Red first: a committed gate that runs git config --local, writes into $(git rev-parse --git-dir)/hooks and moves a ref changes only the workspace, and the observed repository's config, hooks/, info/ and objects/info/alternates are byte-identical afterwards (today the same gate changes the observed config and hooks). The observer snapshots those four paths of the observed common directory before and after the gates and refuses any change with git_metadata_changed_during_gates, so a gate that writes them by absolute path is refused. Every check after the gates, goal_reserved_refusals included, uses the target commit resolved before the gates, never a re-read of origin/<target>.",
+        "[Environment, S-03 carried LOW b] gate_env keeps exactly its variables (PATH, LANG, LC_ALL, TMPDIR, a throwaway HOME and PYTHONDONTWRITEBYTECODE=1; never GH_TOKEN, GH_CONFIG_DIR or SSH_AUTH_SOCK) and the gate scripts keep python3 -I -B. Every path the observer hands a gate (--root, --goal-record, the working directory, HOME and TMPDIR) is its physical path (os.path.realpath). Red first: with TMPDIR reached through a symlinked directory, a gate observes $HOME, $TMPDIR and its --root equal to their `pwd -P` forms. identity_root_symlinked is unchanged, and modules/worktree-execution.md documents passing `pwd -P` as --root (macOS /tmp and /var).",
+        "[S-03 carried LOW c] worktree_rows and every workspace digest read file bytes in fixed-size chunks into hashlib and never whole-file. Red first: with pathlib.Path.read_bytes patched to raise, worktree_rows returns the same digest a chunked hashlib read computes (today it calls read_bytes).",
+        "[S-03 carried LOW a] run-gates.sh exports PYTHONDONTWRITEBYTECODE=1 in its readiness-contract/2 branch. Red first: a v2 --phase local-validation run whose gate imports a tracked Python module no longer refuses with worktree_changed_during_gates on its own __pycache__. pre-commit and local-validation keep running in place, because they validate the working tree, not a commit; only certify-v2 and merge-v2 use the workspace, and tests/readiness_v2_identity_test.py's in-place recheck case passes unmodified.",
+        "[Compatibility] merge-certificate/1 adds exactly one field, gate_workspace, holding the isolated-copy provenance the certificate binds (the workspace's physical path and the gate-workspace/1 record's path and sha256); its local_gates entries stay ({name, exit} for the four gates) and no admission fact is added. Certificates issued before this plan keep validating without the field, and audit-merges and export-evidence results for merged goals are unchanged. The digest-coupling cases in tests/readiness_v2_certificate_test.py are re-derived for the new field (that file is in this goal's scope for those cases only); every other case in that file, and tests/readiness_v1_freeze_test.sh, tests/readiness_v2_core_test.py, tests/readiness_v2_approval_test.py, tests/readiness_v2_identity_test.py, tests/readiness_v2_gate_shadowing_test.py, tests/local_ci_contract_test.py, tests/autobahn_local_ci_test.sh, tests/autobahn_run_gates_test.sh, tests/autobahn_ci_gate_test.sh and the ACH-S-04..ACH-S-06 tests (tests/readiness_v2_context_test.py, tests/northstar_v2_publish_test.py, tests/readiness_v2_migrate_test.py, tests/readiness_v2_e2e_test.py, tests/readiness_v2_fixture.py) pass unmodified. No file joins readiness-dependency-v2.json, so contract-run-v2.sh's manifest set and the core test's pinned-set assertion are unchanged. No scope exception is taken: if a merged test turns out to assert in-place gate execution, the goal stops and the plan is republished.",
+        "[Documentation, ADR] modules/readiness-v2.md (Merge certificate and merge) and the v2 section of modules/worktree-execution.md describe the gate workspace, its location and lifetime, the codes gate_workspace_unfaithful, gate_workspace_tracked_changed, gate_workspace_undeclared_output and git_metadata_changed_during_gates, and the residual risks: no OS sandbox, no network isolation of gates, and a change undone within one gate is not seen. docs/architecture/adr/0017-isolated-gate-workspace.md records the decision and the rejected alternatives (in-place gates with a relaxed snapshot, a linked worktree of the observed repository, a clone with a remote, a TMPDIR location). The new test asserts each code is documented.",
+        "[Hygiene] Both readiness-dependency-v2.json copies and .ai/ci/local-ci.json are re-pinned, and local-ci.json also pins the new test files; .ai/evidence/ACH-S-07.json carries the red and green legs; work happens in a linked worktree from origin/main; autobahn and northstar SKILL.md are unchanged."
+      ],
+      "dependencies": [],
+      "id": "ACH-S-07",
+      "issue_ref": "issue:skills:ach-skills-gate-workspace",
+      "scope": [
+        "04-validate-handoff/autobahn/lib/observer.py",
+        "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "04-validate-handoff/autobahn/schemas/readiness-contract-v2.json",
+        "04-validate-handoff/autobahn/run-gates.sh",
+        "04-validate-handoff/autobahn/modules/readiness-v2.md",
+        "04-validate-handoff/autobahn/modules/worktree-execution.md",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        "docs/architecture/adr/0017-isolated-gate-workspace.md",
+        "tests/readiness_v2_certificate_test.py",
+        "tests/readiness_v2_gate_workspace_test.py",
+        "tests/readiness_v2_gate_workspace_test.sh",
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/ACH-S-07.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "[Declaration, local-ci/2] lib/local_ci_contract.py accepts schema local-ci/2: exactly the local-ci/1 fields plus a required workspace object with exactly bootstrap, dependencies and outputs. Each bootstrap entry is exactly `npm ci`, `npm ci --ignore-scripts` or `bash <path>` with <path> a pinned sources key; an npm form requires package-lock.json or npm-shrinkwrap.json to be a pinned sources key. dependencies and outputs are unique, normalized, repository-relative literal paths with no glob character, no `..` and no .git component in any letter case, and no entry equals, contains or lies inside another. local-ci/1 behavior is unchanged and a local-ci/2 record without workspace is still refused, so tests/local_ci_contract_test.py and tests/autobahn_local_ci_test.sh pass unmodified. tests/local_ci_contract_v2_test.py (discovered via its .sh wrapper) covers a valid record and one negative per rule, red first (today local-ci/2 is an unknown schema).",
+        "[Declaration, observed at the head] The observer reads .ai/ci/local-ci.json from the workspace, so from the head tree, validates it with the pinned lib/local_ci_contract.py, and before any command runs also refuses a declared dependency or output path that is tracked at the head, contains a tracked path, or is not ignored by the head's ignore rules (git check-ignore --no-index in the workspace), each as gate_workspace_declaration_invalid:<reason>. A local-ci/1 contract or no contract declares nothing, which is ACH-S-07's strict workspace. Red first in tests/readiness_v2_gate_bootstrap_test.py.",
+        "[Bootstrap, network and credential policy] For a local-ci/2 head the observer runs each bootstrap command in the workspace, in order and before the gates, as argv with shell=False and stdin closed, with the gate environment plus GIT_CONFIG_NOSYSTEM=1, GIT_CONFIG_GLOBAL=/dev/null, GIT_TERMINAL_PROMPT=0, npm_config_userconfig=/dev/null and npm_config_cache inside the derivation's temporary directory, so no token, keychain credential helper, agent socket or user configuration reaches it. Network access is permitted for the bootstrap step and recorded as such; it is the only step the declaration grants. A non-zero exit refuses gate_workspace_bootstrap_failed:<command> and no gate runs. After the bootstrap every tracked file still equals the head tree and every untracked path lies under a declared dependency, otherwise worktree_changed_during_gates with gate_workspace_tracked_changed or gate_workspace_undeclared_output. Red first; tests use a pinned `bash tests/bootstrap.sh` and a recording `npm` stand-in on PATH, never the network.",
+        "[Outputs] During and after the gates, untracked paths in the workspace are allowed only under dependencies and outputs, and tracked paths stay checked after every gate (ACH-S-07). A declaration never relaxes a check on the observed root (tree_not_clean, worktree_changed_during_gates and git_metadata_changed_during_gates are unchanged). Red first: an npm-test-shaped fixture whose bootstrap creates vendor/ and whose gate writes dist/ and dist-snapshot/ is issued with the declaration, and is refused with gate_workspace_undeclared_output:dist-snapshot when dist-snapshot is not declared.",
+        "[Provenance] Every certify-v2 and merge-v2 derivation writes one gate-workspace/1 record to <git common dir>/ai-catapult/observer/gate-workspaces/<plan_id>/<goal_id>/<pr>-<head>-<certify|merge>.json holding: the head and its tree; the sha256 and schema of .ai/ci/local-ci.json; each bootstrap command with its resolved executable path, the `--version` output of that executable (and of node for an npm form), its exit code and duration; the pinned sha256 of every sources entry the bootstrap names or requires; a streaming digest of each dependency path (path, mode, sha256 or symlink target; nested .git directories excluded and listed); the outputs present after the gates; network: bootstrap; and the workspace path (informational). The certify-v2 and merge-v2 results and the driver-log entry carry the record's path and sha256. The record is evidence, not authority: merge-certificate/1 binds the head, its gate_workspace field references the record (W9), and the head binds the declaration and its pinned inputs. Red first.",
+        "[Compatibility] A repository with local-ci/1 or no local CI contract behaves exactly as after ACH-S-07 (no bootstrap, no allowed untracked path), and skills' own .ai/ci/local-ci.json stays local-ci/1. The certificate (its gate_workspace field included), the local_gates entries and the admission facts are unchanged by this goal. tests/readiness_v1_freeze_test.sh, tests/readiness_v2_core_test.py, tests/readiness_v2_approval_test.py, tests/readiness_v2_certificate_test.py, tests/readiness_v2_identity_test.py, tests/readiness_v2_gate_shadowing_test.py, tests/local_ci_contract_test.py, tests/autobahn_local_ci_test.sh, tests/autobahn_run_gates_test.sh, tests/autobahn_ci_gate_test.sh and the ACH-S-04..ACH-S-06 tests (tests/readiness_v2_context_test.py, tests/northstar_v2_publish_test.py, tests/readiness_v2_migrate_test.py, tests/readiness_v2_e2e_test.py, tests/readiness_v2_fixture.py) and ACH-S-07's tests/readiness_v2_gate_workspace_test.py pass unmodified. lib/verification.py is not modified; the bootstrap allowlist lives in lib/local_ci_contract.py.",
+        "[Documentation, consumers] modules/ci-gate.md documents local-ci/2 with the two consumer shapes: ai-catapult (sources pin setup.sh and skills.lock.json; bootstrap [`bash setup.sh`]; dependencies [vendor]; outputs [dist, dist-snapshot]) and ai-factory (sources pin package-lock.json; bootstrap [`npm ci --ignore-scripts`]; dependencies [node_modules]; outputs []), and states that a change to a pinned lockfile or bootstrap script re-pins the contract in the same change. modules/readiness-v2.md and docs/architecture/adr/0017-isolated-gate-workspace.md add the declaration, the network and credential policy, the provenance record and the codes gate_workspace_declaration_invalid and gate_workspace_bootstrap_failed; the new tests assert each is documented.",
+        "[Evidence] The PR body records a scratch run of the bootstrap and the gate commands of ai-catapult a87c912 and ai-factory 69ed795 under the bootstrap and gate environments, with the untracked paths each creates. Planning baseline (2026-10-04): ai-catapult `bash setup.sh` then npm test, 248 of 248 pass, creating only vendor/, dist/ and dist-snapshot/; ai-factory `npm ci --ignore-scripts` then npm test (237 of 237 with the umbrella reachable), lint and typecheck, creating only node_modules/. This is supporting evidence, not a CI test, because it needs the network.",
+        "[Hygiene] Both readiness-dependency-v2.json copies and .ai/ci/local-ci.json are re-pinned, and local-ci.json also pins the new test files; .ai/evidence/ACH-S-08.json carries the red and green legs; work happens in a linked worktree from origin/main; autobahn and northstar SKILL.md are unchanged."
+      ],
+      "dependencies": [
+        "ACH-S-07"
+      ],
+      "id": "ACH-S-08",
+      "issue_ref": "issue:skills:ach-skills-gate-workspace",
+      "scope": [
+        "04-validate-handoff/autobahn/lib/local_ci_contract.py",
+        "04-validate-handoff/autobahn/lib/observer.py",
+        "04-validate-handoff/autobahn/modules/ci-gate.md",
+        "04-validate-handoff/autobahn/modules/readiness-v2.md",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        "docs/architecture/adr/0017-isolated-gate-workspace.md",
+        "tests/local_ci_contract_v2_test.py",
+        "tests/local_ci_contract_v2_test.sh",
+        "tests/readiness_v2_gate_bootstrap_test.py",
+        "tests/readiness_v2_gate_bootstrap_test.sh",
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/ACH-S-08.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "ach-skills-gate-workspace",
+  "issue_ref": "issue:skills:ach-skills-gate-workspace",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-gate-workspace.md"
+  }
+}
