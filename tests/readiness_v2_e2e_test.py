@@ -375,6 +375,17 @@ class AuditMergesTests(Base):
         code, report, err = repo.audit()
         self.assert_scope_finding(code, report)
 
+    def test_goal_merges_rewound_off_the_target_are_flagged(self):
+        repo = self.agent_repo(chain='goal')
+        git(repo.origin, 'update-ref', 'refs/heads/main', repo.publication)
+        repo.fetch(repo.work)
+        code, report, err = repo.audit()
+        self.assertEqual(code, 1, json.dumps(report, indent=1))
+        self.assertIn('merge_commit_not_on_target', codes(report))
+        for entry in report['prs']:
+            self.assertIs(entry['merge_commit_reached'], False)
+            self.assertIn('merge_commit_not_on_target', entry['flags'])
+
     def test_the_same_pr_merged_after_g2_completed_is_not_flagged(self):
         repo = self.residual_repo()
         wt2 = repo.add_worktree('G2', 'feat/%s-G2' % PLAN)

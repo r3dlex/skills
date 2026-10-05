@@ -2441,7 +2441,11 @@ def op_audit(args, now, adapter):
     if len(merged) >= AUDIT_LIMIT:
         report['refusals'] = [{'code': 'audit_unobservable', 'detail': 'merged PR list reached %d' % AUDIT_LIMIT}]
         return EXIT_FAIL_CLOSED, report
-    report['target_revision'] = fresh_target(root, args.target)
+    try:
+        report['target_revision'] = fresh_target(root, args.target)
+    except Invalid as error:
+        report['refusals'] = [{'code': v2.code(error), 'detail': str(error)}]
+        return EXIT_FAIL_CLOSED, report
     publication = gen.get('published_at')
     if publication is None:
         report['refusals'] = [{'code': 'audit_unobservable', 'detail': 'the generation has no publication commit'}]
@@ -2471,11 +2475,13 @@ def op_audit(args, now, adapter):
                  'approval_expires_at': None, 'merge_commit_reached': None,
                  'certificate': None, 'approval_digest': None, 'assurance': None, 'lane_independence': None,
                  'flags': [], 'notices': []}
-        entry['merge_commit_reached'] = ancestry(root, pull['merge_commit'], ref) if pull.get('merge_commit') else False
+        entry['merge_commit_reached'] = ancestry(root, pull['merge_commit'], ref) if pull.get('merge_commit') else None
         if entry['merge_commit_reached'] is None:
             entry['notices'].append({'code': 'merge_commit_unobservable',
                                      'detail': 'PR %s merge commit %s is not observable locally' % (
                                          pull['number'], pull['merge_commit'])})
+        elif entry['merge_commit_reached'] is False:
+            entry['flags'].append('merge_commit_not_on_target')
         runs = adapter.check_runs(pull['head']) if pull.get('head') else []
         entry['checks_at_merge'] = [dict(run) for run in runs]
         entry['unresolved_threads'] = adapter.unresolved_threads(pull['number'])
