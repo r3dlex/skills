@@ -1,0 +1,46 @@
+{
+  "goals": {
+    "XSKP-P5-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unknown (skills is Markdown and bash; no line-coverage tooling). New files only (contract copy and fingerprint test discovered by tests/run-tests.sh); legacy-safe is equivalent to standard test-first here.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "XSKP-P5-02": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unknown (skills is Markdown and bash; no line-coverage tooling). Existing seams: northstar, to-spec, to-prd, to-issues and research SKILL.md files, shipped to three hosts via ai-catapult. Characterize current catalog output and line budgets; sprout behavior into the new knowledge-publish module, minimal SKILL.md edits.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "XSKP-P5-03": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unknown (skills is Markdown and bash; no line-coverage tooling). Existing seams: handoff, retro, code-review and domain-modeling SKILL.md files. Characterize catalog output and line budgets; minimal references to the shared module.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "XSKP-P5-04": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unknown (skills is Markdown and bash; no line-coverage tooling). Existing seams: ai-catapult-init modules migration.md and documentation-blueprint.md, the templates every scaffolded repo receives, and tests/ai-catapult-templates_test.sh. Characterize template output; additive changes only.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "xskp-p5-skill-producers",
+  "schema": "readiness-sidecar/1"
+}
