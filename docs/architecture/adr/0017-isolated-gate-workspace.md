@@ -1,6 +1,7 @@
 # ADR-0017: Isolated gate workspace
 
-- Status: Accepted for ACH-S-07 (readiness-contract/2)
+- Status: Accepted for ACH-S-07 (readiness-contract/2); extended for ACH-S-08
+  (the `local-ci/2` declaration, the bootstrap and the enriched record)
 - Date: 2026-10-05
 - Specification: `ach-skills-gate-workspace` (D1 gate isolation; `docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-gate-workspace.md`), decisions W1–W9
 
@@ -66,14 +67,43 @@ copy's provenance.**
   they validate the working tree, not a commit.
 - **Provenance.** Every derivation writes one `gate-workspace/1` record to
   `<git common dir>/ai-catapult/observer/gate-workspaces/<plan>/<goal>/<pr>-<head>-<op>.json`
-  (head, tree, the local CI contract's sha256 and schema, the bootstrap it ran,
-  and the declared outputs; this goal runs no bootstrap and declares nothing).
-  The certificate's single new field, `gate_workspace`, binds the workspace's
-  physical path and the record's path and sha256. Its `local_gates` entries stay
-  `{name, exit}` for the four gates, no admission fact is added, and the context
-  projection is otherwise unchanged. Certificates issued before this change keep
-  validating — the field is simply absent there — and `audit-merges` and
-  `export-evidence` results for merged goals are unchanged.
+  (head and tree; the local CI contract's sha256 and schema; each bootstrap
+  command with its resolved executable, `--version` output — and of node for an
+  npm form — exit code and duration; the pinned input digests; a streaming
+  digest of each dependency path; the outputs present after the gates;
+  `network: bootstrap`; and the workspace path). The certify-v2 and merge-v2
+  results and the driver-log entry carry the record's path and sha256. The
+  certificate's single new field, `gate_workspace`, binds the workspace's
+  physical path and the certify-op record's path and sha256. Its `local_gates`
+  entries stay `{name, exit}` for the four gates, no admission fact is added,
+  and the context projection is otherwise unchanged. Certificates issued before
+  this change keep validating — the field is simply absent there — and
+  `audit-merges` and `export-evidence` results for merged goals are unchanged.
+- **Declaration (`local-ci/2`).** `.ai/ci/local-ci.json` may upgrade to schema
+  `local-ci/2`: the `local-ci/1` fields plus a required `workspace` object with
+  exactly `bootstrap`, `dependencies` and `outputs`. Each bootstrap entry is
+  exactly `npm ci`, `npm ci --ignore-scripts` or `bash <pinned sources key>`; an
+  npm form needs a pinned `package-lock.json` or `npm-shrinkwrap.json`.
+  Dependencies and outputs are unique, normalized, repository-relative literal
+  paths with no glob character, no `..` and no `.git` component in any case, and
+  none nests in another. The observer reads the declaration from the workspace
+  (the head tree), validates it with the pinned lib, and refuses a declared path
+  that is tracked at the head, contains a tracked path or is not ignored by the
+  head's ignore rules as `gate_workspace_declaration_invalid:<reason>` before
+  any command runs. A `local-ci/1` contract or no contract declares nothing.
+- **Bootstrap and network policy.** The bootstrap is the only step a declaration
+  grants, and it runs in the workspace, in order, before the gates, as argv with
+  `shell=False` and stdin closed, under the gate environment plus
+  `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_TERMINAL_PROMPT=0`,
+  `npm_config_userconfig=/dev/null` and a private `npm_config_cache` inside the
+  derivation's temporary directory — no token, keychain credential helper, agent
+  socket or user configuration reaches it. Network access is permitted for the
+  bootstrap and recorded as such; a non-zero exit refuses with
+  `gate_workspace_bootstrap_failed:<command>` and no gate runs. After the
+  bootstrap every tracked file must still equal the head tree and every
+  untracked path must lie under a declared dependency; during and after the
+  gates, under the declared dependencies and outputs. The inputs stay pinned at
+  the head through the existing `sources` map — one pin map, not two.
 
 ## Rejected alternatives
 
@@ -114,6 +144,17 @@ copy's provenance.**
   target is resolved once; gate paths are physical; digests are streamed; the
   v2 `run-gates.sh` branch writes no bytecode; and the certificate adds only
   `gate_workspace`. The documentation test asserts every code is documented.
+- `tests/local_ci_contract_v2_test.py` (discovered via its `.sh` wrapper) proves,
+  red first, that `lib/local_ci_contract.py` accepts a valid `local-ci/2` record
+  and one negative per declaration rule, with `local-ci/1` unchanged.
+- `tests/readiness_v2_gate_bootstrap_test.py` (discovered via its `.sh` wrapper)
+  proves, red first, the declaration checks at the head
+  (`gate_workspace_declaration_invalid`), the bootstrap under the network and
+  credential policy (`gate_workspace_bootstrap_failed`, a recording `npm`
+  stand-in on PATH, never the network), the declared outputs, the enriched
+  `gate-workspace/1` record carried by the results and the driver log, the
+  merge-op record, and the unchanged `local-ci/1` behavior. The new tests assert
+  each code and the consumer shapes are documented.
 - The digest-coupled cases of `tests/readiness_v2_certificate_test.py` (field
   set, canonical bytes, re-derivation digests) are re-derived for the new field;
   every other case there is unchanged.
