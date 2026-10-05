@@ -7,8 +7,7 @@ eval: northstar
 # Northstar
 
 Northstar converges intent into a tracked, sliced plan inside a repo initialized
-with `ai-catapult-init` v3. This lightweight **composer** delegates to existing
-skills. Its output is the A→B handoff that `autobahn` consumes.
+with `ai-catapult-init` v3. This lightweight **composer** delegates to existing skills; its output is the A→B handoff that `autobahn` consumes.
 
 ## Execution boundary (hard stop)
 
@@ -85,10 +84,8 @@ See [modules/command-surface.md](modules/command-surface.md).
 - Planning completion is not implementation readiness; report preparation, implementation and merge gaps separately.
 - Publish completion through the separate v1 registry, never legacy discovery; missing or mismatched peers block publication.
 - Hard stop: do not invoke `autobahn`, `ultragoal`, `team`, `ralph`, `ultrawork`,
-  or another implementation engine; stop after the verified A→B handoff and
-  never implement in the same run.
-- Fail closed: a missing prereq, missing authorization, or partial handoff write
-  stops with guidance — never silently proceed or mutate.
+  or another implementation engine; stop after the verified A→B handoff — never implement in the same run.
+- Fail closed: a missing prereq, missing authorization, or partial handoff write stops with guidance — never silently proceed or mutate.
 - Compose, never reimplement: delegate every loop to its owning skill.
 - Adversarial pass is `grill-with-docs` then `grill-me`, taken or declined as one
   unit; the loop is not done on the deep-interview gate alone unless the user
@@ -103,3 +100,6 @@ See [modules/command-surface.md](modules/command-surface.md).
 - [modules/issue.md](modules/issue.md) — local-first / hosted-if-authorized issue raising.
 - [modules/handoff.md](modules/handoff.md) — A→B handoff schema and recovery.
 - [modules/command-surface.md](modules/command-surface.md) — shared omx/omc command schema.
+
+End by declaring knowledge kind `plan`, then reading
+`03-configure-generate/ai-catapult-init/modules/knowledge-publish.md` and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.

@@ -658,8 +658,12 @@ class ReleaseSurfaceTests(unittest.TestCase):
                        'extensions.b5_inputs', 'carries no authority', '--root "$(pwd -P)"',
                        'northstar/handoff-write.sh'):
             self.assertIn(phrase, text, phrase)
+        # Pin advanced by XSKP-P5-02 (plan xskp-p5-skill-producers): the registered
+        # knowledge-publication pointer change deliberately edits five producer SKILL.md
+        # files; re-pin to the commit whose tree first carries those bytes (same
+        # maintenance precedent as tests/fixtures/host-default-golden.json refreshes).
         diff = subprocess.run(['git', '-C', str(REPO), 'diff', '--exit-code',
-                               '977ed13b6f091a279828e1ddb4665df0a17b52ea', '--', '*/SKILL.md'],
+                               'da45dec455a1903cd7619707ab8a7e904718a791', '--', '*/SKILL.md'],
                               capture_output=True, text=True)
         self.assertEqual(diff.returncode, 0, diff.stdout)
 

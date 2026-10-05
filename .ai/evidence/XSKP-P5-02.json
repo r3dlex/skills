@@ -1,0 +1,104 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "AC-1: a shared module defines the host-neutral producer step: when .ai/knowledge/registry.json exists, run the publish argv declared by .ai/commands/<host>/knowledge.json; otherwise record 'unpublished: no-registry'; on a missing descriptor or non-zero exit, record 'unpublished: <token>' (no-descriptor / publish-failed). The skill never fails because of the registry.",
+      "green": {
+        "exit_code": 0,
+        "note": "module 03-configure-generate/ai-catapult-init/modules/knowledge-publish.md (72 lines) carries the registry check, descriptor-driven publish argv, the three unpublished tokens, the never-fails guarantee and the nine-kind table; producer test §1 green"
+      },
+      "red": {
+        "at": "module absent at the red-leg base; producer test FAIL: shared module missing: 03-configure-generate/ai-catapult-init/modules/knowledge-publish.md",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh §1 (discovered by tests/test-scripts.sh under bash tests/run-tests.sh)"
+    },
+    {
+      "ac": 2,
+      "criterion": "AC-2: northstar, to-spec, to-prd, to-issues and research each end with a pointer of at most 3 lines to that module and declare their kind.",
+      "green": {
+        "exit_code": 0,
+        "note": "all five end with exactly 1 blank + 2 content lines (kind plan/spec/prd/plan/research per file); producer test §3 green inside Results PASS=3 FAIL=0"
+      },
+      "red": {
+        "at": "pointer absent on all five: 3 producer-test FAILs each (pointer / kind / unpublished: <reason> fallback) x5 = 15",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh §3 (tail -n 2 case assertions per producer)"
+    },
+    {
+      "ac": 3,
+      "criterion": "AC-3: every description stays at most 160 characters; northstar/SKILL.md (105 lines at planning) has a net line delta of 0 or less; other bodies stay at most 100 lines.",
+      "green": {
+        "exit_code": 0,
+        "note": "northstar exactly 105 lines (numstat 6/6 pure reflow, no semantic drift beyond the three planned reflows); other four +3 lines each; descriptions <=160; catalog-audit delta exactly four body_lines +3 rows (research 28->31, to-issues 76->79, to-prd 79->82, to-spec 71->74), northstar row unchanged; all budget-assertions green in the producer test"
+      },
+      "red": {
+        "at": "budget assertions were green at the red base as well (nothing over budget pre-change); red consisted of the pointer/kind/module set",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh §3 length assertions + .ai/skills/catalog-audit.json regen diff"
+    },
+    {
+      "ac": 4,
+      "criterion": "AC-4: tests/knowledge_producers_test.sh asserts the pointer and kind in each skill and is discovered by tests/run-tests.sh (find tests -name '*_test.sh'); scripts/validate-skill-catalog.py, tests/codex_parity_test.sh and tests/opencode_parity_test.sh pass under run-tests.sh.",
+      "green": {
+        "exit_code": 0,
+        "note": "full suite bash tests/run-tests.sh OVERALL: PASSED (2/2 suites): test-scripts.sh and test-skills.sh green; producer test Results PASS=3 FAIL=0; codex parity Results PASS=41 FAIL=0; opencode parity Results PASS=42 FAIL=0 (identical PASS counts to the pre-change baselines); validate-skill-catalog.py: skill catalog validation passed (39 skills)"
+      },
+      "red": {
+        "at": "suite exit 1 at the red-leg base with the predicted producer-test assertion set (PASS=0 FAIL=25 = 1 module + 9 kinds + 15 pointer/kind/fallback); all other suites green",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/run-tests.sh (full suite, same command both legs)"
+    },
+    {
+      "ac": 5,
+      "criterion": "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes.",
+      "green": {
+        "exit_code": 0,
+        "note": "diff vs origin/main constrained to the 7 goal-scope files plus documented mechanical mirror maintenance and the goal's own evidence file; the worktree is a fresh cut from origin/main and the primary checkout stays untouched"
+      },
+      "red": {
+        "at": "no production paths existed at the red base; untracked state limited to the tests file recorded pre-leg",
+        "exit_code": 1
+      },
+      "test_command": "git status --porcelain + git diff origin/main...HEAD --stat (pre-commit gate and review)"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+    "assurance": "agent-self",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root /Users/andresilvaburgstahler/Ws/Personal/worktrees/xskp-p5-02-20261005 --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation --target main --context /Users/andresilvaburgstahler/Ws/Personal/worktrees/xskp-p5-ctx-20261005/p5-02-context.json",
+    "authority": "plan-approval/1",
+    "dependency": "XSKP-P5-01 satisfied (merge commit 475a325fa4d9c29b4a2a644c76e55af5428e544e == fetched origin/main at admission)",
+    "gaps": 0,
+    "generation": "a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d",
+    "stage": "implementation"
+  },
+  "goal_id": "XSKP-P5-02",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "goal_record": "scratch copy of the exact bundle goal object (kept outside the repo, per ~/.config/ai-catapult/contexts precedent)",
+    "green_method": "green leg observed by tdd-evidence.sh --record-green in the same goal worktree after the byte-true module copy, five SKILL.md publish-step copies, catalog-audit regen and the mechanical mirror maintenance below; rebase on origin/main 475a325f happened before this leg; same command both legs",
+    "mirror_maintenance": "the first green attempt failed with two pre-existing mirror pins, not the goal test: (1) tests/readiness_v2_migrate_test.py ReleaseSurfaceTests pins SKILL.md bytes at ACH-S-05's red base 977ed13b (hygiene pin, never advanced) - advanced to da45dec455a1903cd7619707ab8a7e904718a791 (the commit whose tree first carries the planned pointer bytes; content-state pin, stable across the evidence amend) and the py test file's sha re-pinned in .ai/ci/local-ci.json (maintenance precedent: ACH commits #104/#106/#108/#110/#111/#114); (2) tests/host_default_golden_test.sh pins the flattened host installs byte-for-byte - regenerated with the sanctioned scripts/regen-host-golden.sh: gemini/northstar.md and auggie/northstar.md drift via the planned reflow, copilot-instructions.md via the same aggregated northstar body; the publish-pointer blocks are intentionally DROPPED from flat host projections by scripts/catalog-install.sh's unavailable-path policy (the module is not shipped standalone in flat installs; dir-copying hosts omc/omx do carry it - covered by codex/opencode parity inside this green leg)",
+    "red_method": "red leg observed by tdd-evidence.sh --record-red in the goal worktree at the red-leg base (test committed as f3635b0's content, production absent) on clean 423dd5c; producer test Results PASS=0 FAIL=25 (predicted set); goal test bytes unchanged since, so the recorded red matches the final test bytes"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  },
+  "review": {
+    "accepted_residual": "non-blocking nits ship as-is: total-vs-body line-count basis in the producer test budget guard (latent, currently harmless), total-line label wording, missing-description 0-case (covered by test-skills.sh + catalog validator), module deny-list prose over-broad vs publication-policy.json (policy file is authoritative), pin-rationale comment is 4 lines not 5, ACH-S-05.json's recorded red command must never be replayed as a live check (it pins 977ed13b; records are not gates); no AC affected",
+    "architect_verdict": "APPROVE (round 1 on the 8-file goal diff, zero findings; round 2 supplemental on the 3-file mirror delta, APPROVE, one cosmetic advisory)",
+    "code_reviewer_verdict": "APPROVE (round 1, zero blocking; round 2 supplemental APPROVE, zero blocking; verifies 62/62 local-ci pins match current bytes and 977ed13b survives only in historical records)",
+    "iterations": 2,
+    "lane": "independent agent review lane",
+    "round1_record": "read-only reviewers (no artifacts, no test runs - a TDD evidence leg was recording concurrently); both verified diff confinement, module AC-1 semantics, nine-kind table vs contract pack publication-policy.json, byte-true pointer shape, verbatim northstar reflows, audit delta, descriptions <=160; goal producer test bytes unchanged through both rounds",
+    "round2_record": "supplemental, triggered by the post-round-1 test-byte change (migration pin): ARCHITECT APPROVE (pin diff vs HEAD empty for */SKILL.md; history f3635b0 test-only -> da45dec production -> 9b3627e amend; exactly 3 golden hash changes gemini/auggie northstar.md + copilot copilot-instructions.md; single local-ci entry matches shasum; ACH precedent rows #104..#114) and CODE REVIEWER APPROVE (62/62 contract pins match bytes at HEAD; 977ed13b only in historical evidence records; golden format preserved; evidence wording accurate). First round-2 attempts stalled mid-turn without delivering verdicts and were re-run to completion (sessions ses_ef2d3983cffefdKkTRHokBHkRq, ses_ef2d3983cffd8kOfXSR3ROIF03); stalled sessions abandoned, no artifacts."
+  }
+}

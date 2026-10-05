@@ -30,3 +30,6 @@ Record what you could *not* establish as explicitly as what you could. An unansw
 Match the existing convention — look for `docs/`, `notes/`, `research/`, or wherever comparable notes already live. If there is no convention, pick a sensible location and say where you put it.
 
 **Done when:** the file is written and you have told the user its path.
+
+End by declaring knowledge kind `research`, then reading
+`03-configure-generate/ai-catapult-init/modules/knowledge-publish.md` and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.
