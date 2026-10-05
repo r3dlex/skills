@@ -32,9 +32,11 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 
+import local_ci_contract as local_ci
 import readiness_contract_v2 as v2
 from readiness_contract import Invalid, canonical, read as read_json, worktree_observation
 from verification import validate as validate_commands, VerificationError
@@ -1544,28 +1546,25 @@ def issue_agent_approval(root, gen, fields, publication, origin):
                'signs': True, 'provenance': origin}
 
 
-def run_local_gates(root, goal):
+def run_local_gates(root, goal, tmp):
     # Gate scripts start their embedded Python isolated (python3 -I -B); they run with the gate
     # workspace as their working directory and receive it through --root, so every path a gate
     # observes is the workspace's physical path, and a gate's git reaches only the workspace's
     # own git directory.
-    with tempfile.TemporaryDirectory(prefix='observer-') as tmp:
-        tmp = os.path.realpath(tmp)
-        home = Path(tmp) / 'home'
-        home.mkdir()
-        record = Path(tmp) / 'goal.json'
-        record.write_text(json.dumps({'id': goal['id'], 'verification': goal['verification']}))
-        gates = [('tdd-evidence', ['bash', HERE / 'tdd-evidence.sh', '--verify', '--goal', goal['id'], '--root', root]),
-                 ('lint-gate', ['bash', HERE / 'lint-gate.sh', '--root', root]),
-                 ('local safe CI subset', ['bash', HERE / 'local-ci.sh', '--root', root]),
-                 ('ci-gate --verify', ['bash', HERE / 'ci-gate.sh', '--verify', '--root', root, '--goal-record', record])]
-        results = []
-        for name, argv in gates:
-            outcome = command(argv, cwd=root, env=gate_env(home))
-            if outcome.returncode:
-                sys.stderr.write(outcome.stdout.decode(errors='replace') + outcome.stderr.decode(errors='replace'))
-            results.append({'name': name, 'exit': outcome.returncode})
-        return results
+    home = Path(tmp) / 'home'
+    record = Path(tmp) / 'goal.json'
+    record.write_text(json.dumps({'id': goal['id'], 'verification': goal['verification']}))
+    gates = [('tdd-evidence', ['bash', HERE / 'tdd-evidence.sh', '--verify', '--goal', goal['id'], '--root', root]),
+             ('lint-gate', ['bash', HERE / 'lint-gate.sh', '--root', root]),
+             ('local safe CI subset', ['bash', HERE / 'local-ci.sh', '--root', root]),
+             ('ci-gate --verify', ['bash', HERE / 'ci-gate.sh', '--verify', '--root', root, '--goal-record', record])]
+    results = []
+    for name, argv in gates:
+        outcome = command(argv, cwd=root, env=gate_env(home))
+        if outcome.returncode:
+            sys.stderr.write(outcome.stdout.decode(errors='replace') + outcome.stderr.decode(errors='replace'))
+        results.append({'name': name, 'exit': outcome.returncode})
+    return results
 
 
 # --- gate workspace (ACH-S-07) ---------------------------------------------------
@@ -1605,11 +1604,13 @@ def build_gate_workspace(root, plan_id, goal_id, pr, head):
     return path
 
 
-def workspace_violations(path, head):
+def workspace_violations(path, head, declared=()):
     """Workspace integrity at the head: HEAD, the index entries (ls-files --stage, so a
     stat-only index refresh is not a change) and every tracked path's bytes and mode must equal
-    the head tree, and no untracked or ignored path may exist (this goal declares none). Each
-    violation is gate_workspace_tracked_changed:<path> or gate_workspace_undeclared_output:<path>."""
+    the head tree, and no untracked or ignored path may exist outside the declared dependency
+    and output paths. Each violation is gate_workspace_tracked_changed:<path> or
+    gate_workspace_undeclared_output:<path>."""
+    declared = tuple(declared)
     if git_text(path, 'rev-parse', '--verify', 'HEAD^{commit}') != head:
         return ['gate_workspace_tracked_changed:HEAD']
     tree, index = {}, {}
@@ -1635,8 +1636,15 @@ def workspace_violations(path, head):
             directories[:] = [d for d in directories if d != '.git']
             names = [n for n in names if n != '.git']
         disk.update(Path(directory, n).relative_to(path).as_posix() for n in names)
-        disk.update(Path(directory, d).relative_to(path).as_posix() for d in directories if Path(directory, d).is_symlink())
-    undeclared = sorted(name for name in disk - set(tree) if not any(name.startswith(p + '/') for p in disk - set(tree)))
+        disk.update(Path(directory, d).relative_to(path).as_posix() for d in directories)
+    # A directory holding tracked files is part of the head tree, not an untracked path; the
+    # untracked set is everything else, and an untracked entry is reported only at its root
+    # (no untracked ancestor), so a gate writing dist-snapshot/x reports dist-snapshot.
+    tracked_dirs = {name for name in disk - set(tree) if any(tracked.startswith(name + '/') for tracked in tree)}
+    untracked = disk - set(tree) - tracked_dirs
+    undeclared = sorted(name for name in untracked
+                        if not any(name.startswith(p + '/') for p in untracked)
+                        and not any(name == d or name.startswith(d + '/') for d in declared))
     if undeclared:
         return ['gate_workspace_undeclared_output:%s' % name for name in undeclared]
     violations = []
@@ -1695,29 +1703,198 @@ def head_local_ci(root, head):
     return {'path': '.ai/ci/local-ci.json', 'sha256': v2.sha256(data), 'schema': schema}
 
 
-def write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace):
+def gate_declaration(workspace):
+    """The head's validated local-ci/2 declaration, read from the workspace (so from the head
+    tree) and validated with the pinned local CI contract lib. A local-ci/1 contract or no
+    contract declares nothing (ACH-S-07's strict workspace, so a /1 contract is not validated
+    here; the local safe CI subset gate validates it later). Raises for an unsupported schema."""
+    path = workspace / '.ai/ci/local-ci.json'
+    if not path.is_file():
+        return None
+    record = parse_json(path.read_bytes(), 'local-ci')
+    schema = record.get('schema') if isinstance(record, dict) else None
+    if schema == 'local-ci/1':
+        return None
+    if schema != 'local-ci/2':
+        raise ValueError('unsupported local CI schema')
+    return local_ci.read_record(workspace)['workspace']
+
+
+def ignored_at_head(workspace, name, home):
+    """Whether the head's ignore rules cover a declared path: git check-ignore --no-index on the
+    path, or on a child probe while it does not exist yet (declared paths are untracked at the
+    head). Only the head's own ignore rules count: a throwaway HOME, no system or global git
+    configuration, and the ./ prefix keeps git pathspec magic inert."""
+    probe = name if (workspace / name).exists() else name + '/.ai-catapult-gate-workspace-probe'
+    env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / '.config'), 'GIT_CONFIG_NOSYSTEM': '1',
+           'GIT_CONFIG_GLOBAL': os.devnull}
+    return git(workspace, 'check-ignore', '--no-index', '--quiet', './' + probe, check=False, env=env).returncode == 0
+
+
+def declaration_refusals(workspace, head, declaration, home):
+    """Every declared dependency and output must be untracked at the head, contain no tracked
+    path and be ignored by the head's ignore rules, checked before any command runs. Each
+    violation refuses as gate_workspace_declaration_invalid:<reason>."""
+    tracked = {os.fsdecode(entry.split(b'\t', 1)[1]) for entry in git(workspace, 'ls-tree', '-r', '-z', head).stdout.split(b'\0') if entry}
+    refusals = []
+    for kind in ('dependencies', 'outputs'):
+        for name in declaration[kind]:
+            if name in tracked:
+                refusals.append('gate_workspace_declaration_invalid:tracked at the head: ' + name)
+            elif any(other.startswith(name + '/') for other in tracked):
+                refusals.append('gate_workspace_declaration_invalid:contains a tracked path: ' + name)
+            elif not ignored_at_head(workspace, name, home):
+                refusals.append('gate_workspace_declaration_invalid:not ignored by the head: ' + name)
+    return refusals
+
+
+def bootstrap_argv(entry):
+    """The argv of an allowlisted bootstrap entry, executed with shell=False and stdin closed."""
+    if entry.startswith('npm'):
+        return entry.split()
+    return ['bash', entry[len('bash '):]]
+
+
+def bootstrap_env(home, cache):
+    """The bootstrap environment: the gate environment plus the network and credential policy —
+    no system or global git configuration, no git prompts, no user npm configuration and a
+    private npm cache inside the derivation's temporary directory. Network access is permitted
+    for the bootstrap step only, and recorded as such."""
+    env = gate_env(home)
+    env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull, GIT_TERMINAL_PROMPT='0',
+               npm_config_userconfig=os.devnull, npm_config_cache=str(cache))
+    return env
+
+
+def run_bootstrap(workspace, declaration, env):
+    """Each declared bootstrap command in order, before the gates, as argv with shell=False and
+    stdin closed. Returns the provenance entries (resolved executable, --version output — and of
+    node for an npm form — exit code, duration) and the first
+    gate_workspace_bootstrap_failed:<command> refusal, if any."""
+    entries = []
+    for text in declaration['bootstrap']:
+        argv = bootstrap_argv(text)
+        executable = shutil.which(argv[0], path=env['PATH'])
+        if executable is None:
+            return entries, 'gate_workspace_bootstrap_failed:%s' % text
+        executable = os.path.realpath(executable)
+        versions = {}
+        for name in (argv[0],) + (('node',) if argv[0] == 'npm' else ()):
+            located = shutil.which(name, path=env['PATH'])
+            outcome = command([located, '--version'], cwd=workspace, env=env) if located else None
+            versions[name] = outcome.stdout.decode(errors='replace').strip() \
+                if outcome is not None and not outcome.returncode else ''
+        started = time.monotonic()
+        outcome = command(argv, cwd=workspace, env=env)
+        entry = {'command': text, 'argv': argv, 'executable': executable, 'version': versions[argv[0]],
+                 'exit': outcome.returncode, 'duration': time.monotonic() - started}
+        if argv[0] == 'npm':
+            entry['node_version'] = versions['node']
+        entries.append(entry)
+        if outcome.returncode:
+            sys.stderr.write(outcome.stdout.decode(errors='replace') + outcome.stderr.decode(errors='replace'))
+            return entries, 'gate_workspace_bootstrap_failed:%s' % text
+    return entries, None
+
+
+def bootstrap_inputs(root, head, declaration):
+    """The pinned sha256 of every sources entry a bootstrap command names or requires."""
+    data = show(root, head, '.ai/ci/local-ci.json')
+    if data is None:
+        return {}
+    try:
+        record = parse_json(data, 'local-ci')
+        sources = record.get('sources') if isinstance(record, dict) else None
+    except Invalid:
+        sources = None
+    if not isinstance(sources, dict):
+        return {}
+    named = set()
+    for text in declaration['bootstrap']:
+        if text.startswith('npm'):
+            for lockfile in ('package-lock.json', 'npm-shrinkwrap.json'):
+                if lockfile in sources:
+                    named.add(lockfile)
+                    break
+        else:
+            named.add(text[len('bash '):])
+    return {name: sources[name] for name in sorted(named) if name in sources}
+
+
+def declared_path_rows(root, name):
+    """Every entry under a declared dependency or output: [path, mode, sha256] for a regular file
+    (streamed, never whole-file), [path, 'directory', mode] or [path, 'symlink', target]. Nested
+    .git directories are excluded from the digest and listed."""
+    rows, git_dirs = [], []
+    path = Path(root, name)
+    if path.is_symlink() or not path.exists():
+        return rows, git_dirs
+    for directory, directories, files in os.walk(path):
+        git_dirs += sorted(Path(directory, d).relative_to(root).as_posix()
+                           for d in directories if d == '.git')
+        directories[:] = [d for d in directories if d != '.git']
+        for entry in sorted(files) + sorted(directories):
+            candidate = Path(directory, entry)
+            relative = candidate.relative_to(root).as_posix()
+            try:
+                info = candidate.lstat()
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+            if stat.S_ISLNK(info.st_mode):
+                rows.append([relative, 'symlink', os.readlink(candidate)])
+            elif stat.S_ISDIR(info.st_mode):
+                rows.append([relative, 'directory', stat.S_IMODE(info.st_mode)])
+            elif stat.S_ISREG(info.st_mode):
+                rows.append([relative, stat.S_IMODE(info.st_mode), streamed_sha256(candidate)])
+            else:
+                rows.append([relative, 'nonregular', stat.S_IFMT(info.st_mode)])
+    rows.sort(key=lambda row: row[0])
+    return rows, sorted(git_dirs)
+
+
+def write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op, bootstrap, inputs,
+                                dependencies, outputs):
     """The gate-workspace/1 record of one derivation at its fixed path, and its sha256."""
-    path = gate_workspace_record_path(root, plan_id, goal_id, pr, head, 'certify')
+    path = gate_workspace_record_path(root, plan_id, goal_id, pr, head, op)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({'schema': 'gate-workspace/1', 'head': head,
                                 'tree': git_text(root, 'rev-parse', head + '^{tree}'),
                                 'contract': head_local_ci(root, head),
-                                'bootstrap': [], 'inputs': [], 'dependencies': [], 'outputs': [],
-                                'network': 'bootstrap', 'workspace': str(workspace)},
+                                'bootstrap': bootstrap, 'inputs': inputs, 'dependencies': dependencies,
+                                'outputs': outputs, 'network': 'bootstrap', 'workspace': str(workspace)},
                                indent=2, sort_keys=True) + '\n')
     return path, v2.sha256(path.read_bytes())
+
+
+def workspace_identity_ok(workspace, identity):
+    """The workspace directory still is the one the observer built: a bootstrap or gate that
+    moved it aside and put something else in its place must not be trusted."""
+    try:
+        current = workspace.lstat()
+    except OSError:
+        return False
+    return current.st_dev == identity.st_dev and current.st_ino == identity.st_ino
 
 
 def run_gates_in_workspace(root, gen, goal, pr, head, op):
     """The four local gates, run only in an observer-built gate workspace at the PR head: a fresh
     repository in a sibling directory under the observed root's parent with no remote and no
-    hooks, borrowing the observed objects read-only. Before any gate the workspace must equal the
-    head tree (gate_workspace_unfaithful); after every gate HEAD, the index and every tracked
-    path must still equal the head tree and no untracked or ignored path may exist
+    hooks, borrowing the observed objects read-only. Before anything runs the workspace must
+    equal the head tree (gate_workspace_unfaithful), and the head's local-ci/2 declaration — read
+    from the workspace, so from the head tree — is validated with the pinned local CI contract
+    lib; a declared dependency or output that is tracked at the head, contains a tracked path or
+    is not ignored refuses as gate_workspace_declaration_invalid:<reason>. A local-ci/1 contract
+    or no contract declares nothing. For a declared head each bootstrap command runs in the
+    workspace, in order, before the gates, as argv with shell=False and stdin closed under the
+    bootstrap environment; a non-zero exit refuses as gate_workspace_bootstrap_failed:<command>
+    and no gate runs. After the bootstrap and after every gate HEAD, the index and every tracked
+    path must still equal the head tree and untracked paths may exist only under the declared
+    dependencies (bootstrap) or dependencies and outputs (gates)
     (worktree_changed_during_gates with gate_workspace_tracked_changed:<path> or
     gate_workspace_undeclared_output:<path>). The observed git metadata is snapshotted around the
-    gates (git_metadata_changed_during_gates). The workspace is removed when the derivation ends;
-    the gate-workspace/1 record is the provenance the certificate's gate_workspace field binds."""
+    bootstrap and the gates (git_metadata_changed_during_gates). Every derivation writes one
+    gate-workspace/1 record; the certificate's gate_workspace field binds the certify-op record.
+    The workspace is removed when the derivation ends."""
     plan_id, goal_id = gen['bundle']['id'], goal['id']
     workspace = build_gate_workspace(root, plan_id, goal_id, pr, head)
     refusals, provenance, gates = [], None, []
@@ -1728,31 +1905,69 @@ def run_gates_in_workspace(root, gen, goal, pr, head, op):
         if not tree_state(workspace)[1]:
             refusals.append('gate_workspace_unfaithful')
             return gates, refusals, provenance
-        metadata = git_metadata_snapshot(root)
-        gates = run_local_gates(workspace, goal)
-        for _ in gates:
+        with tempfile.TemporaryDirectory(prefix='observer-') as tmp:
+            tmp = os.path.realpath(tmp)
+            home = Path(tmp) / 'home'
+            home.mkdir()
+            cache = Path(tmp) / 'npm-cache'
+            cache.mkdir()
             try:
-                current = workspace.lstat()
-            except OSError:
-                current = None
-            if current is None or current.st_dev != identity.st_dev or current.st_ino != identity.st_ino:
+                declaration = gate_declaration(workspace) or {'bootstrap': [], 'dependencies': [], 'outputs': []}
+            except (Invalid, OSError, ValueError) as error:
+                refusals.append('gate_workspace_declaration_invalid:%s' % error)
+                write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op, [], [], [], [])
+                return gates, refusals, provenance
+            refusals += declaration_refusals(workspace, head, declaration, home)
+            if refusals:
+                write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op, [], [], [], [])
+                return gates, refusals, provenance
+            metadata = git_metadata_snapshot(root)
+            bootstrap = []
+            refused = None
+            if declaration['bootstrap']:
+                bootstrap, refused = run_bootstrap(workspace, declaration, bootstrap_env(home, cache))
+            if refused:
+                refusals.append(refused)
+                write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op, bootstrap, [], [], [])
+                return gates, refusals, provenance
+            if not workspace_identity_ok(workspace, identity):
                 refusals.append('gate_workspace_unavailable')
-                break
-            for violation in workspace_violations(workspace, head):
+                return gates, refusals, provenance
+            for violation in workspace_violations(workspace, head, declared=declaration['dependencies']):
                 refusals += ['worktree_changed_during_gates', violation]
-        if git_metadata_snapshot(root) != metadata:
-            refusals.append('git_metadata_changed_during_gates')
-        record_path = gate_workspace_record_path(root, plan_id, goal_id, pr, head, 'certify')
-        if op == 'certify':
-            path, digest = write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace)
-        elif not record_path.is_file():
-            path, digest = record_path, None
-            refusals.append('gate_workspace_record_missing')
-        else:
-            path, digest = record_path, v2.sha256(record_path.read_bytes())
-        if digest is not None:
-            provenance = {'workspace': str(workspace), 'record': {'path': str(path), 'sha256': digest}}
-        return gates, sorted(set(refusals)), provenance
+            if refusals:
+                write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op, bootstrap, [], [], [])
+                return gates, refusals, provenance
+            gates = run_local_gates(workspace, goal, tmp)
+            for _ in gates:
+                if not workspace_identity_ok(workspace, identity):
+                    refusals.append('gate_workspace_unavailable')
+                    break
+                for violation in workspace_violations(workspace, head,
+                                                      declared=declaration['dependencies'] + declaration['outputs']):
+                    refusals += ['worktree_changed_during_gates', violation]
+            if git_metadata_snapshot(root) != metadata:
+                refusals.append('git_metadata_changed_during_gates')
+            inputs = [{'path': name, 'sha256': digest}
+                      for name, digest in sorted(bootstrap_inputs(root, head, declaration).items())]
+            dependencies = [{'path': name, 'rows': declared_path_rows(workspace, name)[0],
+                             'git_dirs': declared_path_rows(workspace, name)[1]}
+                            for name in declaration['dependencies']]
+            outputs = [{'path': name, 'rows': declared_path_rows(workspace, name)[0],
+                        'git_dirs': declared_path_rows(workspace, name)[1]}
+                       for name in declaration['outputs']]
+            path, digest = write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op,
+                                                       bootstrap, inputs, dependencies, outputs)
+            bound_path = gate_workspace_record_path(root, plan_id, goal_id, pr, head, 'certify')
+            if not bound_path.is_file():
+                refusals.append('gate_workspace_record_missing')
+                bound = None
+            else:
+                bound = {'path': str(bound_path), 'sha256': v2.sha256(bound_path.read_bytes())}
+            if bound is not None:
+                provenance = {'gate_workspace': {'workspace': str(workspace), 'record': bound},
+                              'op_record': {'path': str(path), 'sha256': digest}}
+            return gates, sorted(set(refusals)), provenance
     finally:
         if workspace.is_symlink() or not workspace.is_dir():
             try:
@@ -1786,10 +2001,14 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
     # re-read of origin/<target>.
     target = context['observation']['target_revision']
     gate_workspace = None
+    op_record = None
     gates = []
     if not refusals and clean_before and pull['head'] == head_before:
-        gates, workspace_refusals, gate_workspace = run_gates_in_workspace(root, gen, goal, pr, pull['head'], op)
+        gates, workspace_refusals, provenance = run_gates_in_workspace(root, gen, goal, pr, pull['head'], op)
         refusals += workspace_refusals
+        if provenance:
+            gate_workspace = provenance.get('gate_workspace')
+            op_record = provenance.get('op_record')
     head_after, clean_after = tree_state(root)
     # G3: the snapshot admission took before the gates must still hold after them.
     if worktree_snapshot(root) != facts['worktree_state']['value']:
@@ -1822,7 +2041,7 @@ def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, 
         admin=gen['policy']['identity_model'] == 'single', adapter=adapter.name, certifier=certifier,
         gate_workspace=gate_workspace, issued_at=v2.stamp(now))
     return {'body': body, 'key': key, 'anchor': anchor, 'gen': gen, 'approval': approval,
-            'certifier': certifier}, context, sorted(set(refusals))
+            'certifier': certifier, 'op_record': op_record}, context, sorted(set(refusals))
 
 
 def certificate_path(root, plan_id, goal_id, pr, head):
@@ -1864,6 +2083,8 @@ def op_certify(args, now, adapter):
     shutil.copyfile(str(review) + '.sig', reviews / (body['review_lane']['digest'] + '.json.sig'))
     result.update(issued=True, certificate=body, path=str(path), approval_digest=body['approval_digest'],
                   assurance=body['assurance'])
+    if derived['op_record']:
+        result['gate_workspace_record'] = derived['op_record']
     if body['assurance'] in PROMINENT:
         result['assurance_notice'] = v2.render_assurance(body['assurance'])
     return 0, result
@@ -2420,6 +2641,8 @@ def op_merge(args, now, adapter):
     if not merged:
         return refused('head_moved_at_merge', detail)
     result.update(decision='merge', head=stored['head'], certificate=str(path), merged_with=['--match-head-commit', stored['head']])
+    if (derived or {}).get('op_record'):
+        result['gate_workspace_record'] = derived['op_record']
     if stored['assurance'] in PROMINENT:
         result['assurance_notice'] = v2.render_assurance(stored['assurance'])
     return 0, result
@@ -2983,6 +3206,8 @@ def log_exit(operation, root_arg, code, result, goal_id=None, pr=None):
                  'assurance': result.get('assurance'), 'provenance': result.get('provenance'),
                  'codes': sorted({r['code'] for r in result.get('refusals', []) + result.get('gaps', [])
                                   + result.get('findings', [])})}
+        if result.get('gate_workspace_record'):
+            entry['gate_workspace_record'] = result['gate_workspace_record']
         with (directory / 'driver-log.jsonl').open('a') as handle:
             handle.write(json.dumps(entry, sort_keys=True) + '\n')
     except (Invalid, OSError):
