@@ -1,0 +1,127 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[O4, U2] contract-run.sh audit-merges --plan <id> re-observes every fact through the production adapter (merged PRs matching the branch pattern, mergedAt, merge...",
+      "green": {
+        "at": "2026-10-05T01:51:58Z",
+        "commit": "7bea3cc62ab75a4e1df19891531e5033c79b01e9",
+        "exit_code": 0,
+        "output_sha256": "af242479aa55ee2894c3684389d0ca52c8d589d5b5574a53a00e0c210c846ca9"
+      },
+      "red": {
+        "at": "2026-10-05T01:51:28Z",
+        "exit_code": 1,
+        "output_sha256": "d06694f1af31a80b472358f68b709155cacbed22876e32950b41da547ff75d3b"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_e2e_test.py DualModeEndToEndTests.test_audit_by_plan_reports_every_merged_goal AuditMergesTests"
+    },
+    {
+      "ac": 2,
+      "criterion": "[AC-9 support, O4] contract-run.sh export-evidence --plan <id> writes .ai/evidence/approvals/<plan_id>/ with approval.json, approval.sig (absent for in-session)...",
+      "green": {
+        "at": "2026-10-05T01:54:36Z",
+        "commit": "7bea3cc62ab75a4e1df19891531e5033c79b01e9",
+        "exit_code": 0,
+        "output_sha256": "df57a89f5cb7d2f2b6ebf3e123f79c2b9653941293fffee700739f951abb49f8"
+      },
+      "red": {
+        "at": "2026-10-05T01:51:39Z",
+        "exit_code": 1,
+        "output_sha256": "74728dd94208626a10be0a00fd0c8dab7925afaa132293c404fbc6d4f12ca322"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_e2e_test.py DualModeEndToEndTests.test_export_after_each_mode_verifies_from_a_temporary_copy ExportEvidenceTests"
+    },
+    {
+      "ac": 3,
+      "criterion": "[AC-1, R3a] tests/readiness_v2_e2e_test.py (discovered by tests/test-scripts.sh) builds a disposable repository with a bare origin, linked worktrees and an in-p...",
+      "green": {
+        "at": "2026-10-05T01:55:38Z",
+        "commit": "7bea3cc62ab75a4e1df19891531e5033c79b01e9",
+        "exit_code": 0,
+        "output_sha256": "0222b3e0087ab1bd607bbae5a2c26a24c23c693ccfcd4234d2aac2531294b252"
+      },
+      "red": {
+        "at": "2026-10-05T01:51:39Z",
+        "exit_code": 1,
+        "output_sha256": "6b74469d21610a8c7f1241156871f39fa27ac1a014c9a90b56ff503a44472869"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_e2e_test.py DualModeEndToEndTests.test_prompt_mode_counts_exactly_one DualModeEndToEndTests.test_agent_mode_counts_exactly_zero"
+    },
+    {
+      "ac": 4,
+      "criterion": "[AC-2] The same fixture runs the full negative list (forged signature, agent-role signature (an agent-namespace signature on a human-namespace approval, and und...",
+      "green": {
+        "at": "2026-10-05T01:56:34Z",
+        "commit": "7bea3cc62ab75a4e1df19891531e5033c79b01e9",
+        "exit_code": 0,
+        "output_sha256": "96ecb575880cac0f8532b192ebc244288400b2c9d640a8cb929119a30c227845"
+      },
+      "note": "partly characterization: the single-refusal negatives (forged signature, agent-namespace signature, the K3/K3b refusals, expired and digest-changed approvals, supplied context/verdict, forged certificate, moved head, pending/unlisted-SKIPPED checks, unresolved thread, missing/self review lane, anchor inside a worktree, proceed text) already refused at the base since S-01..S-05; the red leg is real through the shared pre-built fixture, whose chain needs the S-06 hosted_command seam and fails at base",
+      "red": {
+        "at": "2026-10-05T01:51:40Z",
+        "exit_code": 1,
+        "output_sha256": "4e433b4e17334380e6741a0d48182a57fdff01f513b890cb15eba88ef0e5fb47"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_e2e_test.py NegativeListTests"
+    },
+    {
+      "ac": 5,
+      "criterion": "[Edge cases, K2] Two plans whose generations share a 12-character prefix get distinct approval tags; an approval expiring between certificate issue and merge is...",
+      "green": {
+        "at": "2026-10-05T01:57:02Z",
+        "commit": "7bea3cc62ab75a4e1df19891531e5033c79b01e9",
+        "exit_code": 0,
+        "output_sha256": "9092cc65cc910819f0b33704d62cce678134cdfce9132d84bf78aa76dabe883f"
+      },
+      "note": "partly characterization: the approval-expiring-between-issue-and-merge refusal existed at the base (op_merge re-checks the approval); the 12-character-prefix tag case is new S-06 coverage",
+      "red": {
+        "at": "2026-10-05T01:51:40Z",
+        "exit_code": 1,
+        "output_sha256": "50c3db04c1d68d19e48721ceba13ebcd91bbdba78d3028c4e1159af6fd4c9f07"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_e2e_test.py EdgeCaseTests"
+    },
+    {
+      "ac": 6,
+      "criterion": "[AC-3..AC-7, O8] The freeze test and the AC-4, AC-5, AC-6 and AC-7 checks (AC-7 as ACH-S-04 defines the planning gap set) pass in the end-to-end context, offlin...",
+      "green": {
+        "at": "2026-10-05T01:57:12Z",
+        "commit": "7bea3cc62ab75a4e1df19891531e5033c79b01e9",
+        "exit_code": 0,
+        "output_sha256": "ca20cf4141694f89468c425f95b49f29a8a3ff40dedf2ab1a05747a7939f81f7"
+      },
+      "red": {
+        "at": "2026-10-05T01:51:41Z",
+        "exit_code": 1,
+        "output_sha256": "3837d180f51a7936c378b8851e9946ebfa090566e824ef52b2fcc9f4cfc640b8"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_e2e_test.py AcceptanceInContextTests"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "08f355259b58f0838dc0429270de96d9c55fb8b3b7067b3ab76d08931dab7d7d",
+    "assurance": "in-session",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-ach-skills-contract-v2 --goal-id ACH-S-06 --stage implementation",
+    "gaps": [],
+    "generation": "9b96709c9b0682524af8eba9094f7911f657d4b364b5f38788014f6927d71527",
+    "provenance": "base-copy",
+    "stage": "implementation"
+  },
+  "goal_id": "ACH-S-06",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head",
+    "red_first_commit": "7af480b (tests committed before any production change)",
+    "red_method": "detached worktree at base 000bc3c31fc7e693532e2da9b2f20ad17fd9ddeb with only the final tests/ checked out from the goal branch; each AC command run against the pre-implementation code",
+    "run_tests_legs": "observed by tdd-evidence.sh: red at the red-first commit, green at the implementation head"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  }
+}

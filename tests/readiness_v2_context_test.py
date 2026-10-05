@@ -121,7 +121,7 @@ class ContextBuildTests(Case):
             self.assertEqual(result.returncode, 2, (args, result.stdout, result.stderr))
             self.assertIn('readiness-contract/2', result.stderr)
         exit_code, result = observer.run(['export-evidence'])
-        self.assertEqual((exit_code, result['refusals'][0]['code']), (2, 'operation_not_in_this_release'))
+        self.assertEqual((exit_code, result['refusals'][0]['code']), (2, 'usage'))
 
 
 class ContextDependencyTests(Case):
