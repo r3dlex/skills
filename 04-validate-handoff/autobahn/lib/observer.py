@@ -1724,12 +1724,20 @@ def run_gates_in_workspace(root, gen, goal, pr, head, op):
     if workspace is None:
         return gates, ['gate_workspace_unavailable'], provenance
     try:
+        identity = workspace.lstat()
         if not tree_state(workspace)[1]:
             refusals.append('gate_workspace_unfaithful')
             return gates, refusals, provenance
         metadata = git_metadata_snapshot(root)
         gates = run_local_gates(workspace, goal)
         for _ in gates:
+            try:
+                current = workspace.lstat()
+            except OSError:
+                current = None
+            if current is None or current.st_dev != identity.st_dev or current.st_ino != identity.st_ino:
+                refusals.append('gate_workspace_unavailable')
+                break
             for violation in workspace_violations(workspace, head):
                 refusals += ['worktree_changed_during_gates', violation]
         if git_metadata_snapshot(root) != metadata:
@@ -1746,7 +1754,13 @@ def run_gates_in_workspace(root, gen, goal, pr, head, op):
             provenance = {'workspace': str(workspace), 'record': {'path': str(path), 'sha256': digest}}
         return gates, sorted(set(refusals)), provenance
     finally:
-        shutil.rmtree(workspace, ignore_errors=True)
+        if workspace.is_symlink() or not workspace.is_dir():
+            try:
+                workspace.unlink()
+            except OSError:
+                pass
+        else:
+            shutil.rmtree(workspace, ignore_errors=True)
 
 
 def derive_certificate(root, ref, handoff, goal_id, pr, review_record, adapter, now, certifier=None, op='certify'):

@@ -122,6 +122,18 @@ class ObservedRootUnchangedTests(GateWorkspaceTests):
         self.assertFalse((c.fixture.work / 'gate.log').exists(), 'the observed root never held the gate output')
         self.assertEqual(observer.worktree_snapshot(c.fixture.work), before)
 
+    def test_a_gate_replacing_the_workspace_with_a_symlink_refuses(self):
+        """A gate that moves the workspace aside and symlinks another path in its place must
+        refuse: the workspace identity (dev, ino) is re-asserted after every gate, and the
+        leftover symlink is unlinked, never followed."""
+        check = '#!/bin/sh\nW="$(pwd -P)"\nmv "$W" "$W.saved"\nln -s /tmp "$W"\nexit 0\n'
+        c = GateWorkspaceFixture(self.base, check)
+        exit_code, result = c.certify()
+        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
+        self.assertFalse(result['issued'])
+        self.assertIn('gate_workspace_unavailable', codes(result))
+        self.assertFalse(c.workspace().exists(), 'the leftover symlink must be unlinked')
+
 
 class WorkspaceIntegrityTests(GateWorkspaceTests):
     """AC-W3: HEAD, index and tracked bytes are re-checked after every gate; undeclared paths
