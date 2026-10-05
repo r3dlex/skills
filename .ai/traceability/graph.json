@@ -171,6 +171,21 @@
       "source": "handoff:skills:ach-skills-agent-mode:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
       "target": "plan:skills:ach-skills-agent-mode:ACH-AM-01:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
       "type": "plans"
+    },
+    {
+      "source": "spec:skills:ach-skills-gate-workspace",
+      "target": "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "target": "plan:skills:ach-skills-gate-workspace:ACH-S-07:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "target": "plan:skills:ach-skills-gate-workspace:ACH-S-08:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -625,6 +640,53 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "ACH-AM-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa"
+      ],
+      "id": "spec:skills:ach-skills-gate-workspace",
+      "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-gate-workspace.md",
+      "repo_id": "skills",
+      "sha256": "1dfa49c52d3d6737bc01b48c8c96a067db9646f7e32a392d05d2c66e8ddb86c8",
+      "status": "active",
+      "title": "Isolated gate workspace (`skills`, plan `ach-skills-gate-workspace`) \u2014 plan-scoped planning specification",
+      "type": "spec"
+    },
+    {
+      "backlinks": [
+        "spec:skills:ach-skills-gate-workspace",
+        "plan:skills:ach-skills-gate-workspace:ACH-S-07:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+        "plan:skills:ach-skills-gate-workspace:ACH-S-08:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa"
+      ],
+      "id": "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "ach-skills-gate-workspace",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa"
+      ],
+      "id": "plan:skills:ach-skills-gate-workspace:ACH-S-07:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "ACH-S-07",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa"
+      ],
+      "id": "plan:skills:ach-skills-gate-workspace:ACH-S-08:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "ACH-S-08",
       "type": "plan"
     }
   ],
