@@ -19,6 +19,7 @@ Runs are prompt mode (a bootstrap generation approved in-session) or agent mode 
 generation over a pre-seeded live policy listing `agent-self`, approved agent-self with a
 non-bootstrap generation — bootstrap refuses agent-self by design).
 """
+import atexit
 import builtins
 import getpass
 import io
@@ -217,7 +218,9 @@ class HostStub:
         if number in self.knobs['unfetchable']:
             git(self.repo.origin, 'fetch', '-q', str(self.repo.base / 'fork.git'), head)
         main = git(self.repo.origin, 'rev-parse', 'refs/heads/main')
-        if git(self.repo.origin, 'merge-base', '--is-ancestor', main, head, check=False).returncode:
+        ancestry = subprocess.run(['git', '-C', str(self.repo.origin), 'merge-base', '--is-ancestor', main, head],
+                                  capture_output=True)
+        if ancestry.returncode:
             return Run(1, err='Pull request is not mergeable: the base branch is out of date.')
         tree = git(self.repo.origin, 'rev-parse', head + '^{tree}')
         merged = git(self.repo.origin, 'commit-tree', tree, '-p', main, '-m', 'Merge %s (#%d)' % (head, number))
@@ -403,7 +406,8 @@ class E2ERepo:
             def __getattr__(self, name):
                 return getattr(self._inner, name)
 
-        null = open(os.devnull, 'rb')
+        self._devnull = open(os.devnull, 'rb')
+        atexit.register(self._devnull.close)
         real_run, real_popen = subprocess.run, subprocess.Popen
 
         def counted_run(*args, **kwargs):
@@ -429,15 +433,22 @@ class E2ERepo:
                 mock.patch.object(getpass, 'getpass', guarded_input),
                 mock.patch.object(builtins, 'open', counted_open),
                 mock.patch.object(os, 'open', counted_os_open),
-                mock.patch.object(sys, 'stdin', CountingStdin(null, counters)),
+                mock.patch.object(sys, 'stdin', CountingStdin(self._devnull, counters)),
                 mock.patch.object(subprocess, 'run', counted_run),
                 mock.patch.object(subprocess, 'Popen', counted_popen)]
 
     def run_op(self, argv, env=None, key='certifier', anchor=None):
-        """One operation through the real main(), with every counter installed."""
+        """One operation through the real main(), with every counter installed and the
+        fixture clock as the observer's `now` (so every timestamp is monotonic)."""
+        real_run = observer.run
+
+        def clocked_run(argv_, now=None, adapter=None):
+            return real_run(argv_, now=self.clock.now, adapter=adapter)
+
         patches = [mock.patch.object(observer, 'anchor_locator', lambda: Path(anchor or self.keys.anchor)),
                    mock.patch.object(observer, 'signing_key_locator', lambda: self.keys.paths[key]),
                    mock.patch.object(observer, 'hosted_command', self.stub.dispatch),
+                   mock.patch.object(observer, 'run', clocked_run),
                    *self.human_patches()]
         if env is not None:
             patches.append(mock.patch.dict(os.environ, env))
@@ -586,6 +597,7 @@ class E2ERepo:
         base_sha = git(wt, 'rev-parse', 'origin/main')
         self.stub.register(head=head, head_ref='feat/%s-%s' % (PLAN, gid), base=base_sha, base_ref='main',
                            files=self.stub.diff_files(base_sha, head))
+        self.clock.tick()  # the checks completed before the certificate issue
         return head
 
     def certify(self, wt, gid, pr, review=None, extra=()):
@@ -593,7 +605,10 @@ class E2ERepo:
         if review:
             argv += ['--review-record', str(review)]
         argv += list(extra)
-        return self.run_op(argv, env=self.env())
+        code, out, err = self.run_op(argv, env=self.env())
+        if code == 0:
+            self.clock.tick()  # the issue predates the merge
+        return code, out, err
 
     def merge(self, wt, pr, extra=()):
         cwd = os.getcwd()
@@ -622,6 +637,16 @@ class E2ERepo:
             assert context['assurance'] == self.assurance, json.dumps(context, indent=1)
             self.results['admissions'].append(context)
             head = self.implement_goal(wt, gid)
+            # A real goal PR is up to date with main at certify time (H1): rebase onto the
+            # latest main and re-register the PR head, like a PR that merged its base.
+            git(wt, 'rebase', '-q', 'origin/main')
+            git(wt, 'push', '-q', '--force-with-lease', 'origin', 'HEAD:refs/heads/feat/%s-%s' % (PLAN, gid))
+            head = git(wt, 'rev-parse', 'HEAD')
+            self.fetch(wt)
+            base_sha = git(wt, 'rev-parse', 'origin/main')
+            self.stub.pulls[pr].update({'head': {'sha': head, 'ref': 'feat/%s-%s' % (PLAN, gid)},
+                                        'base': {'sha': base_sha, 'ref': 'main'},
+                                        'files': self.stub.diff_files(base_sha, head)})
             review = self.review_record(gid, pr, head)
             code, out, err = self.certify(wt, gid, pr, review)
             assert code == 0, (out, err)

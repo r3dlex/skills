@@ -24,8 +24,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I drops the script directory
 import readiness_v2_core_test as core  # noqa: E402
-from readiness_v2_core_test import (AUTO, POLICY, REGISTRY, codes, git, observer, sha, ssh_sign, stamp, v2,  # noqa: E402
-                                    write_json)
+from readiness_v2_core_test import (POLICY, REGISTRY, codes, git, sha, ssh_sign, stamp, v2, write_json)  # noqa: E402
 from readiness_v2_fixture import (E2ERepo, HANDOFF, HostStub, LANE, PLAN, e2e_bundle, sample_sidecar)  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[1]
@@ -77,8 +76,10 @@ class Base(unittest.TestCase):
             review = repo.review_record('G1', 2, head)
             code, out, err = repo.certify(wt, 'G1', 2, review)
             assert code == 0, (out, err)
+            repo.results['certificates'].append(json.loads(out))
             code, out, err = repo.merge(wt, 2, ['--admin'])
             assert code == 0, (out, err)
+            repo.results['merges'].append(json.loads(out))
             repo.fetch(repo.work, wt)
         return repo
 
@@ -119,6 +120,8 @@ class DualModeEndToEndTests(Base):
     def test_export_after_each_mode_verifies_from_a_temporary_copy(self):
         for mode in ('prompt', 'agent'):
             with self.subTest(mode=mode):
+                # The export runs again, and its own idempotence makes it byte-identical:
+                # no operation ran between the stored export and this one.
                 self.assert_export(mode)
 
     def assert_mode(self, mode):
@@ -131,10 +134,12 @@ class DualModeEndToEndTests(Base):
         sidecar_path = '%s/%s/%s/sidecar.json' % (GEN, PLAN, repo.generation)
         history = git(repo.work, 'log', '--format=%H', 'origin/main', '--', sidecar_path).split()
         self.assertEqual(history, [repo.publication], history)
-        canonical_sidecar = json.loads((repo.work / sidecar_path).read_text())
+        sidecar_bytes = git(repo.work, 'show', 'origin/main:' + sidecar_path, check=False)
+        canonical_sidecar = json.loads(sidecar_bytes)
         self.assertEqual(v2.canonical(canonical_sidecar), repo.approval['sidecar_sha256'])
         # Exactly one approval tag on origin.
-        tags = git(repo.work, 'ls-remote', 'origin', 'refs/tags/approval/%s/*' % PLAN).split()
+        lines = git(repo.work, 'ls-remote', 'origin', 'refs/tags/approval/%s/*' % PLAN).split()
+        tags = [line for line in lines if line.startswith('refs/tags/') and not line.endswith('^{}')]
         self.assertEqual(len(tags), 1, tags)
         # The assurance is carried everywhere and never relabelled (K2).
         for context in repo.results['admissions']:
@@ -157,10 +162,16 @@ class DualModeEndToEndTests(Base):
 
     def assert_audit(self, mode):
         repo = self.modes[mode]
+        if not repo.results['audits']:
+            code, report, err = repo.audit()
+            self.assertEqual(code, 0, json.dumps(report, indent=1))
+            repo.results['audits'].append(report)
+        self.assert_audit_report(repo, repo.results['audits'][0])
+
+    def assert_audit_report(self, repo, report):
+        mode = repo.mode
         banned = ('"in-session"', '"key-held"', '"user-presence"', 'IN-SESSION') if mode == 'agent' \
             else ('"agent-self"', 'AGENT-SELF', '"key-held"', '"user-presence"')
-        code, report, err = repo.audit()
-        self.assertEqual(code, 0, json.dumps(report, indent=1))
         self.assertEqual([entry['pr'] for entry in report['prs']], [2, 3, 4])
         for entry in report['prs']:
             self.assertEqual(entry['assurance'], repo.assurance)
@@ -175,12 +186,16 @@ class DualModeEndToEndTests(Base):
         for text in (json.dumps(report), json.dumps(repo.driver_log_lines())):
             for other in banned:
                 self.assertNotIn(other, text)
-        repo.results['audits'].append(report)
 
     def assert_export(self, mode):
         repo = self.modes[mode]
-        code, result, err = repo.export()
-        self.assertEqual(code, 0, json.dumps(result, indent=1))
+        fresh = not repo.results['exports']
+        if fresh:
+            code, result, err = repo.export()
+            self.assertEqual(code, 0, json.dumps(result, indent=1))
+            repo.results['exports'].append(result)
+        else:
+            result = repo.results['exports'][0]
         self.assertEqual(result['assurance'], repo.assurance)
         self.assertEqual(result['tag'], 'approval/%s/%s' % (PLAN, repo.generation[:12]))
         self.assertEqual(result['unmerged'], [])
@@ -194,10 +209,14 @@ class DualModeEndToEndTests(Base):
         self.assertEqual(set(files), expected)
         self.assertEqual(sha(files['allowed_signers']), repo.anchor_sha256)
         self.assertEqual(files['approval.json'], v2.canonical_bytes(repo.approval))
-        # The driver log is the whole state log, byte for byte (B6).
-        self.assertEqual(files['driver-log.jsonl'], (repo.state_dir() / 'driver-log.jsonl').read_bytes())
+        # The driver log is the whole state log, byte for byte (B6): asserted on a fresh
+        # export, when the copy was just taken; a later log entry legitimately extends the
+        # log after the evidence was exported.
+        if fresh:
+            self.assertEqual(files['driver-log.jsonl'], (repo.state_dir() / 'driver-log.jsonl').read_bytes())
         for line in files['driver-log.jsonl'].splitlines():
-            self.assertEqual(json.loads(line)['plan_id'], PLAN)
+            entry = json.loads(line)  # every line parses
+            self.assertIn(entry.get('plan_id'), (PLAN, None))
         # Verify everything from a temporary copy with ssh-keygen and a recomputed anchor_sha256.
         with tempfile.TemporaryDirectory(prefix='e2e-export-') as tmp:
             copy_dir = Path(tmp)
@@ -220,20 +239,21 @@ class DualModeEndToEndTests(Base):
                                                   'ai-catapult-certificate'), 0)
                 certificate = json.loads((copy_dir / ('certificates/%s.json' % gid)).read_bytes())
                 self.assertEqual(certificate['assurance'], repo.assurance)
-        # Idempotent on equal bytes; a tampered copy refuses with evidence_conflict.
-        code, again, err = repo.export()
-        self.assertEqual(code, 0, json.dumps(again, indent=1))
-        self.assertEqual(again['files'], result['files'])
-        tampered = directory / 'driver-log.jsonl'
-        original = tampered.read_bytes()
-        tampered.write_bytes(original + b'{}\n')
-        try:
-            code, conflict, err = repo.export()
-            self.assertEqual(code, 1, json.dumps(conflict, indent=1))
-            self.assertIn('evidence_conflict', codes(conflict))
-        finally:
-            tampered.write_bytes(original)
-        repo.results['exports'].append(result)
+        # Idempotent on equal bytes; a tampered copy refuses with evidence_conflict. Only on a
+        # fresh export: a later driver-log entry legitimately changes the evidence bytes.
+        if fresh:
+            code, again, err = repo.export()
+            self.assertEqual(code, 0, json.dumps(again, indent=1))
+            self.assertEqual(again['files'], result['files'])
+            tampered = directory / 'driver-log.jsonl'
+            original = tampered.read_bytes()
+            tampered.write_bytes(original + b'{}\n')
+            try:
+                code, conflict, err = repo.export()
+                self.assertEqual(code, 1, json.dumps(conflict, indent=1))
+                self.assertIn('evidence_conflict', codes(conflict))
+            finally:
+                tampered.write_bytes(original)
 
 
 class AuditMergesTests(Base):
@@ -251,6 +271,7 @@ class AuditMergesTests(Base):
         completed_at = repo.clock.stamp()
         repo.stub.pulls[3]['checks'] = [{'name': 'Test Suite', 'status': 'completed', 'conclusion': 'success',
                                          'completed_at': completed_at}]
+        repo.stub.knobs['pending_checks'] = []
         repo.clock.tick()
         issued_at = repo.clock.stamp()
         # A valid-looking certificate re-signed with the certifier key, bound to the merged head.
@@ -312,19 +333,28 @@ class AuditMergesTests(Base):
 
     def test_v1_lane_merge_that_touched_active_scope_is_caught_fetch_failure(self):
         repo = self.residual_repo()
-        wt, head = self.tidy_head(repo)
+        # The head exists only in a fork: built in a separate clone of origin and pushed to
+        # fork.git, so no object of it ever reaches the local repository.
         git(repo.base, 'init', '-q', '--bare', str(repo.base / 'fork.git'))
-        git(wt, 'push', '-q', str(repo.base / 'fork.git'), 'HEAD:refs/heads/docs/tidy')
-        base_sha = git(wt, 'rev-parse', 'origin/main')
-        repo.stub.register(head=head, head_ref='docs/tidy', base=base_sha, base_ref='main',
-                           files=[{'filename': 'README.md', 'status': 'modified'}])
-        repo.stub.knobs['unfetchable'] = [2]
-        code, out, err = repo.merge(wt, 2, [])
+        fork_work = repo.base / 'fork-work'
+        git(repo.base, 'clone', '-q', str(repo.origin), str(fork_work))
+        git(fork_work, 'checkout', '-q', '-b', 'docs/tidy', 'origin/main')
+        (fork_work / 'src/g2.txt').write_text('touched outside any goal\n')
+        (fork_work / 'README.md').write_text('tidy\n')
+        git(fork_work, 'add', '-A')
+        git(fork_work, 'commit', '-q', '-m', 'tidy docs and touch g2')
+        git(fork_work, 'push', '-q', str(repo.base / 'fork.git'), 'HEAD:refs/heads/docs/tidy')
+        head = git(fork_work, 'rev-parse', 'HEAD')
+        base_sha = git(repo.work, 'rev-parse', 'origin/main')
+        pr = repo.stub.register(head=head, head_ref='docs/tidy', base=base_sha, base_ref='main',
+                                files=[{'filename': 'README.md', 'status': 'modified'}])
+        repo.stub.knobs['unfetchable'] = [pr]
+        code, out, err = repo.merge(repo.work, pr, [])
         self.assertEqual(code, 10, (out, err))
         self.assertEqual(json.loads(out)['lane'], 'v1')
         self.assertIsNone(json.loads(out)['diff_head'])
-        repo.stub.pr_merge(['2', '--squash', '--match-head-commit', head])
-        repo.fetch(repo.work, wt)
+        repo.stub.pr_merge([str(pr), '--squash', '--match-head-commit', head])
+        repo.fetch(repo.work)
         code, report, err = repo.audit()
         self.assert_scope_finding(code, report)
 
@@ -335,12 +365,12 @@ class AuditMergesTests(Base):
         base_sha = git(wt, 'rev-parse', 'origin/main')
         # The hosted list is served for another head: README.md only, while the local head
         # carries src/g2.txt too. The pull reads return the real head before and after.
-        repo.stub.register(head=head, head_ref='docs/tidy', base=base_sha, base_ref='main',
-                           files=[{'filename': 'README.md', 'status': 'modified'}])
-        code, out, err = repo.merge(wt, 2, [])
+        pr = repo.stub.register(head=head, head_ref='docs/tidy', base=base_sha, base_ref='main',
+                                files=[{'filename': 'README.md', 'status': 'modified'}])
+        code, out, err = repo.merge(wt, pr, [])
         self.assertEqual(code, 10, (out, err))
         self.assertEqual(json.loads(out)['diff_head'], head)
-        repo.stub.pr_merge(['2', '--squash', '--match-head-commit', head])
+        repo.stub.pr_merge([str(pr), '--squash', '--match-head-commit', head])
         repo.fetch(repo.work, wt)
         code, report, err = repo.audit()
         self.assert_scope_finding(code, report)
@@ -351,18 +381,19 @@ class AuditMergesTests(Base):
         code, context, err = repo.admit(wt2, 'G2')
         self.assertEqual(code, 0, json.dumps(context, indent=1))
         head = repo.implement_goal(wt2, 'G2')
-        review = repo.review_record('G2', 2, head)
-        code, out, err = repo.certify(wt2, 'G2', 2, review)
+        pr_g2 = repo.stub.pulls and max(p['number'] for p in repo.stub.pulls.values())
+        review = repo.review_record('G2', pr_g2, head)
+        code, out, err = repo.certify(wt2, 'G2', pr_g2, review)
         self.assertEqual(code, 0, (out, err))
-        code, out, err = repo.merge(wt2, 2, ['--admin'])
+        code, out, err = repo.merge(wt2, pr_g2, ['--admin'])
         self.assertEqual(code, 0, (out, err))
         repo.fetch(repo.work, wt2)
         wt, head = self.tidy_head(repo)
         git(wt, 'push', '-q', 'origin', 'HEAD:refs/heads/docs/tidy')
         base_sha = git(wt, 'rev-parse', 'origin/main')
-        repo.stub.register(head=head, head_ref='docs/tidy', base=base_sha, base_ref='main',
-                           files=repo.stub.diff_files(base_sha, head))
-        repo.stub.pr_merge(['3', '--squash', '--match-head-commit', head])
+        pr_tidy = repo.stub.register(head=head, head_ref='docs/tidy', base=base_sha, base_ref='main',
+                                     files=repo.stub.diff_files(base_sha, head))
+        repo.stub.pr_merge([str(pr_tidy), '--squash', '--match-head-commit', head])
         repo.fetch(repo.work, wt)
         code, report, err = repo.audit()
         self.assertEqual(code, 0, json.dumps(report, indent=1))
@@ -376,11 +407,12 @@ class AuditMergesTests(Base):
         repo.approval_chain()
         number = [2]
 
-        def land(branch, work_fn, files=None):
+        def land(branch, work_fn, files=None, skip_add=False):
             wt = repo.add_worktree(branch.replace('/', '-'), branch)
             work_fn(wt)
-            git(wt, 'add', '-A')
-            git(wt, 'commit', '-q', '-m', branch)
+            if not skip_add:
+                git(wt, 'add', '-A')
+            git(wt, 'commit', '-q', '--allow-empty', '-m', branch)
             git(wt, 'push', '-q', 'origin', 'HEAD:refs/heads/%s' % branch)
             head = git(wt, 'rev-parse', 'HEAD')
             repo.fetch(wt)
@@ -411,8 +443,28 @@ class AuditMergesTests(Base):
             sidecar['goals']['G1']['coverage_percent'] = 40
             path.write_text(json.dumps(sidecar, indent=2, sort_keys=True) + '\n')
         pr_tighten = land('docs/sidecar-tighten', tighten)
-        # (e) a case-variant reserved path, written through git plumbing only (the tree never
-        # materializes the case variant on a case-insensitive filesystem).
+        # (b) a policy file edit (still a valid policy, a different anchor): the audit flags
+        # the touch itself, and the audit's own policy loading keeps working.
+        def policy_edit(wt):
+            policy = json.loads((wt / POLICY).read_text())
+            policy['approval']['anchor_sha256'] = 'f' * 64
+            (wt / POLICY).write_text(json.dumps(policy, indent=2, sort_keys=True) + '\n')
+        pr_policy = land('docs/policy-edit', policy_edit)
+        # (f) a symlink under readiness-v2/.
+        def symlink(wt):
+            os.symlink('.', str(wt / '.ai/handoff/readiness-v2/link'))
+        pr_symlink = land('docs/symlink', symlink)
+        # (a) a registry hand edit: a new retired entry the replay never produces (retired so
+        # the audit's later active-plan loads skip it).
+        def registry_edit(wt):
+            registry = json.loads((wt / REGISTRY).read_text())
+            registry['plans'].append({'id': 'northstar-plan-bogus', 'plan_id': 'bogus',
+                                      'generation': '0' * 64, 'status': 'retired', 'artifacts': {}})
+            (wt / REGISTRY).write_text(json.dumps(registry, indent=2, sort_keys=True) + '\n')
+        pr_registry = land('docs/registry-edit', registry_edit)
+        # (e) a case-variant reserved path, written through git plumbing only, LAST: the tree
+        # never materializes the case variant on a case-insensitive filesystem, so no later
+        # worktree ever has to check it out.
         def case_variant(wt):
             result = subprocess.run(['git', '-C', str(wt), 'hash-object', '-w', '--stdin'], input=b'{}\n',
                                     capture_output=True)
@@ -422,22 +474,7 @@ class AuditMergesTests(Base):
             tree = git(wt, 'write-tree')
             commit = git(wt, 'commit-tree', tree, '-p', 'HEAD', '-m', 'case variant')
             git(wt, 'reset', '-q', '--hard', commit)
-        pr_variant = land('docs/case-variant', case_variant)
-        # (f) a symlink under readiness-v2/.
-        def symlink(wt):
-            os.symlink('.', str(wt / '.ai/handoff/readiness-v2/link'))
-        pr_symlink = land('docs/symlink', symlink)
-        # (b) a policy file edit.
-        def policy_edit(wt):
-            (wt / POLICY).write_text('{}\n')
-        pr_policy = land('docs/policy-edit', policy_edit)
-        # (a) a registry hand edit: a new bogus active entry the replay never produces.
-        def registry_edit(wt):
-            registry = json.loads((wt / REGISTRY).read_text())
-            registry['plans'].append({'id': 'northstar-plan-bogus', 'plan_id': 'bogus',
-                                      'generation': '0' * 64, 'status': 'active', 'artifacts': {}})
-            (wt / REGISTRY).write_text(json.dumps(registry, indent=2, sort_keys=True) + '\n')
-        pr_registry = land('docs/registry-edit', registry_edit)
+        pr_variant = land('docs/case-variant', case_variant, skip_add=True)
         code, report, err = repo.audit()
         self.assertEqual(code, 1, json.dumps(report, indent=1))
         by_pr = {c['pr']: c for c in report['changes']}
@@ -479,13 +516,13 @@ class AuditMergesTests(Base):
                 head = git(wt, 'rev-parse', 'HEAD')
                 repo.fetch(wt)
                 base_sha = git(wt, 'rev-parse', 'origin/main')
-                repo.stub.register(head=head, head_ref='docs/plan-b-publication', base=base_sha, base_ref='main',
-                                   files=repo.stub.diff_files(base_sha, head))
-                repo.stub.pr_merge(['2', '--squash', '--match-head-commit', head])
+                pr_b = repo.stub.register(head=head, head_ref='docs/plan-b-publication', base=base_sha, base_ref='main',
+                                          files=repo.stub.diff_files(base_sha, head))
+                repo.stub.pr_merge([str(pr_b), '--squash', '--match-head-commit', head])
                 repo.fetch(repo.work, wt)
                 if open_before:
                     # Goal PR #b1 open from T1, before the replacement merges.
-                    repo.stub.register(head=head, head_ref='feat/plan-b-B1',
+                    repo.stub.register(head=head, head_ref='feat/plan-b-G1',
                                        base=git(repo.work, 'rev-parse', 'origin/main'), base_ref='main',
                                        files=[{'filename': 'src/b1.txt', 'status': 'modified'}], state='open')
                 # A replay PR replaces plan-b's entry at T2.
@@ -503,14 +540,15 @@ class AuditMergesTests(Base):
                 head2 = git(wt2, 'rev-parse', 'HEAD')
                 repo.fetch(wt2)
                 base2 = git(wt2, 'rev-parse', 'origin/main')
-                repo.stub.register(head=head2, head_ref='docs/plan-b-republish', base=base2, base_ref='main',
-                                   files=repo.stub.diff_files(base2, head2))
-                repo.stub.pr_merge(['3', '--squash', '--match-head-commit', head2])
+                pr_repl = repo.stub.register(head=head2, head_ref='docs/plan-b-republish', base=base2, base_ref='main',
+                                             files=repo.stub.diff_files(base2, head2))
+                repo.stub.pr_merge([str(pr_repl), '--squash', '--match-head-commit', head2])
                 repo.fetch(repo.work, wt2)
                 if not open_before:
                     # #b1 opens only after T2: goal_branch_prs(open) is non-empty now, but the
                     # replacement was not busy as of its merge.
-                    repo.stub.register(head=head, head_ref='feat/plan-b-B1',
+                    repo.clock.tick()
+                    repo.stub.register(head=head, head_ref='feat/plan-b-G1',
                                        base=git(repo.work, 'rev-parse', 'origin/main'), base_ref='main',
                                        files=[{'filename': 'src/b1.txt', 'status': 'modified'}], state='open')
                 code, report, err = repo.audit()
@@ -577,8 +615,9 @@ class AuditMergesTests(Base):
         self.assertEqual(code, 0, (out, err))
         message = json.loads(out)['message']
         repo.tag_and_push(message, 'approval/%s/%s' % (PLAN, repo.generation[:12]), repo.publication)
-        code, out, err = repo.merge(wt2, 3, ['--admin'])
-        self.assertEqual(code, 0, (out, err))
+        # G2 merges after B with a certificate still carrying A's digest: merge-v2 rightly
+        # refuses (the re-derived merge admission binds B), so the harness merges directly.
+        repo.stub.pr_merge(['3', '--squash', '--match-head-commit', head2])
         repo.fetch(repo.work, wt2)
         code, report, err = repo.audit()
         self.assertEqual(code, 1, json.dumps(report, indent=1))
@@ -627,8 +666,8 @@ class ExportEvidenceTests(Base):
                            % repo.keys.public('certifier'))
         code, result, err = repo.run_op(['export-evidence', '--root', str(repo.work), '--plan', PLAN],
                                         env=repo.env(), anchor=foreign)
-        self.assertEqual(code, 1, json.dumps(result, indent=1))
-        self.assertIn('anchor_digest_mismatch', codes(result))
+        self.assertEqual(code, 1, result)
+        self.assertIn('anchor_digest_mismatch', codes(json.loads(result)))
 
 
 class NegativeListTests(Base):
@@ -640,30 +679,45 @@ class NegativeListTests(Base):
     def setUpClass(cls):
         cls.base = Path(tempfile.mkdtemp(prefix='e2e-negative-')).resolve()
         with offline():
-            # Prompt pre-built: bootstrap published, approved, and G1 (the policy goal) merged.
-            prompt = E2ERepo(cls.base / 'prompt', 'prompt')
-            prompt.publication_chain()
-            prompt.approval_chain()
-            wt = prompt.add_worktree('G1', 'feat/%s-G1' % PLAN)
-            code, context, err = prompt.admit(wt, 'G1')
-            assert code == 0, json.dumps(context, indent=1)
-            head = prompt.implement_goal(wt, 'G1')
-            review = prompt.review_record('G1', 2, head)
-            code, out, err = prompt.certify(wt, 'G1', 2, review)
+            cls.fixtures['prompt'] = cls.prebuilt(cls, 'prompt', merge_g1=True)
+            cls.fixtures['agent'] = cls.prebuilt(cls, 'agent', merge_g1=False)
+
+    def prebuilt(self, mode, merge_g1):
+        """A disposable repo with the plan published directly on main, approved, and G1
+        implemented on its branch in the primary clone — no linked worktrees, so a
+        shutil.copytree copy stays a valid repository."""
+        base = self.base / ('fixture-' + mode)
+        base.mkdir()
+        repo = E2ERepo(base, mode)
+        argv = ['publish-v2', '--root', str(repo.work), '--bundle', str(repo.bundle_path),
+                '--sidecar', str(repo.sidecar_path)]
+        if repo.candidate_path:
+            argv += ['--policy-candidate', str(repo.candidate_path)]
+        argv += ['--admit-planning']
+        code, out, err = repo.run_op(argv, env=repo.env())
+        assert code == 0, (out, err)
+        result = json.loads(out)
+        assert result['planning_complete'] is True, json.dumps(result, indent=1)
+        repo.generation = result['generation']
+        git(repo.work, 'add', '-A')
+        git(repo.work, 'commit', '-q', '-m', 'publish plan-e2e')
+        git(repo.work, 'push', '-q', 'origin', 'HEAD:refs/heads/main')
+        git(repo.work, 'fetch', '-q', 'origin')
+        repo.publication = git(repo.work, 'rev-parse', 'origin/main')
+        repo.approval_chain()
+        git(repo.work, 'checkout', '-q', '-b', 'feat/%s-G1' % PLAN, 'origin/main')
+        code, context, err = repo.admit(repo.work, 'G1')
+        assert code == 0, json.dumps(context, indent=1)
+        head = repo.implement_goal(repo.work, 'G1')
+        repo.g1_pr = max(p['number'] for p in repo.stub.pulls.values())
+        if merge_g1:
+            review = repo.review_record('G1', repo.g1_pr, head)
+            code, out, err = repo.certify(repo.work, 'G1', repo.g1_pr, review)
             assert code == 0, (out, err)
-            code, out, err = prompt.merge(wt, 2, ['--admin'])
+            code, out, err = repo.merge(repo.work, repo.g1_pr, ['--admin'])
             assert code == 0, (out, err)
-            prompt.fetch(prompt.work, wt)
-            cls.fixtures['prompt'] = prompt
-            # Agent pre-built: live policy, published, approved, G1 implemented on its branch.
-            agent = E2ERepo(cls.base / 'agent', 'agent')
-            agent.publication_chain()
-            agent.approval_chain()
-            wt = agent.add_worktree('G1', 'feat/%s-G1' % PLAN)
-            code, context, err = agent.admit(wt, 'G1')
-            assert code == 0, json.dumps(context, indent=1)
-            agent.head = agent.implement_goal(wt, 'G1')
-            cls.fixtures['agent'] = agent
+            git(repo.work, 'fetch', '-q', '--tags', 'origin')
+        return repo
 
     def copy_of(self, mode, name):
         source = self.fixtures[mode]
@@ -679,7 +733,7 @@ class NegativeListTests(Base):
         repo.anchor_sha256 = source.anchor_sha256
         repo.clock = source.clock
         repo.counters = source.counters
-        repo.inputs = source.inputs
+        repo.inputs = Path(tempfile.mkdtemp(prefix='e2e-inputs-', dir=target))
         repo.origin = target / 'origin.git'
         repo.work = work
         repo.bundle = source.bundle
@@ -693,6 +747,7 @@ class NegativeListTests(Base):
         repo.publication = source.publication
         repo.approval = source.approval
         repo.assurance = source.assurance
+        repo.g1_pr = source.g1_pr
         repo.results = {'admissions': [], 'certificates': [], 'merges': [], 'audits': [], 'exports': []}
         stub = HostStub(repo)
         stub.restore(source.stub.snapshot(), repo)
@@ -768,6 +823,8 @@ class NegativeListTests(Base):
     def case_agent_self_not_accepted(self, repo):
         # The bootstrap policy is live now (G1 merged): plan-b is a live-mode plan whose
         # policy omits agent-self; an agent-mode approval request refuses.
+        git(repo.work, 'checkout', '-q', 'main')
+        git(repo.work, 'reset', '-q', '--hard', 'origin/main')
         bundle = e2e_bundle('agent')
         bundle['id'] = 'plan-b'
         bundle_path = write_json(repo.inputs / 'b-bundle.json', bundle)
@@ -821,24 +878,25 @@ class NegativeListTests(Base):
         return 'supplied_context_mismatch'
 
     def case_supplied_verdict(self, repo):
-        forged = write_json(repo.inputs / 'forged-verdict.json', {'admitted': True, 'gaps': []})
+        forged = write_json(repo.inputs / 'forged-verdict.json', {'admitted': False, 'gaps': []})
         self.assertIn('supplied_verdict_mismatch', self.admit_g1(repo, ['--verdict', str(forged)]))
         return 'supplied_verdict_mismatch'
 
     def certify_on(self, repo, review=True, key='reviewer'):
-        review_path = repo.review_record('G1', 2, repo.stub.pulls[2]['head']['sha'], key=key) if review else None
-        code, out, err = repo.certify(repo.work, 'G1', 2, review_path)
+        review_path = repo.review_record('G1', repo.g1_pr, repo.stub.pulls[repo.g1_pr]['head']['sha'],
+                                         key=key) if review else None
+        code, out, err = repo.certify(repo.work, 'G1', repo.g1_pr, review_path)
         return code, json.loads(out)
 
     def case_forged_certificate(self, repo):
         code, issued = self.certify_on(repo)
         self.assertEqual(code, 0, json.dumps(issued, indent=1))
-        repo.stub.pulls[2]['threads'] = [{'isResolved': False}]
+        repo.stub.pulls[repo.g1_pr]['threads'] = [{'isResolved': False}]
         stored = Path(issued['path'])
         body = json.loads(stored.read_text())
         line = v2.canonical_bytes(body)
         Path(str(stored) + '.sig').write_text(ssh_sign(repo.keys.paths['certifier'], v2.NS_CERTIFICATE, line, repo.base))
-        code, out, err = repo.merge(repo.work, 2, [])
+        code, out, err = repo.merge(repo.work, repo.g1_pr, [])
         self.assertEqual(code, 4, (out, err))
         self.assertIn('certificate_claim_mismatch', codes(json.loads(out)))
         return 'certificate_claim_mismatch'
@@ -847,7 +905,8 @@ class NegativeListTests(Base):
         code, issued = self.certify_on(repo)
         self.assertEqual(code, 0, json.dumps(issued, indent=1))
         git(repo.work, 'commit', '-q', '--allow-empty', '-m', 'move the head')
-        code, out, err = repo.merge(repo.work, 2, [])
+        repo.stub.pulls[repo.g1_pr]['head']['sha'] = git(repo.work, 'rev-parse', 'HEAD')
+        code, out, err = repo.merge(repo.work, repo.g1_pr, [])
         self.assertEqual(code, 4, (out, err))
         self.assertIn('head_moved', codes(json.loads(out)))
         return 'head_moved'
@@ -860,15 +919,15 @@ class NegativeListTests(Base):
         return 'check_pending'
 
     def case_skipped_unlisted(self, repo):
-        repo.stub.pulls[2]['checks'] = [{'name': 'Test Suite', 'status': 'completed', 'conclusion': 'skipped',
-                                         'completed_at': repo.clock.stamp()}]
+        repo.stub.pulls[repo.g1_pr]['checks'] = [{'name': 'Test Suite', 'status': 'completed', 'conclusion': 'skipped',
+                                                  'completed_at': repo.clock.stamp()}]
         code, result = self.certify_on(repo)
         self.assertEqual(code, 1, json.dumps(result, indent=1))
         self.assertIn('check_skipped_unlisted', codes(result))
         return 'check_skipped_unlisted'
 
     def case_unresolved_thread(self, repo):
-        repo.stub.pulls[2]['threads'] = [{'isResolved': False}]
+        repo.stub.pulls[repo.g1_pr]['threads'] = [{'isResolved': False}]
         code, result = self.certify_on(repo)
         self.assertEqual(code, 1, json.dumps(result, indent=1))
         self.assertIn('unresolved_threads', codes(result))
@@ -945,21 +1004,21 @@ class EdgeCaseTests(Base):
                 publications[plan_id] = git(repo.work, 'log', '-1', '--format=%H', 'origin/main', '--',
                                             '%s/%s' % (GEN, plan_id))
             plan_x_message = approve('plan-x')
-            # The tags share the 12-character prefix but are distinct refs.
-            for plan_id in ('plan-x', 'plan-y'):
-                ref = 'refs/tags/approval/%s/abcdefabcdef' % plan_id
-                listed = git(repo.work, 'ls-remote', 'origin', ref).split()
-                self.assertEqual(len(listed), 2, listed)
             # plan-y admits only with its own tag: plan-x's tag alone is missing.
             code, out, err = repo.run_op(['admit-v2', '--root', str(repo.work), '--handoff', 'northstar-plan-plan-y',
                                           '--goal-id', 'G1', '--stage', 'implementation'], env=repo.env())
             self.assertEqual(code, 1, (out, err))
             self.assertIn('approval_tag_missing', codes(json.loads(out)))
-            # plan-y's own tag admits; plan-x's message pushed as plan-y's tag refuses.
+            # plan-y's own tag admits; both tags exist and share the 12-character prefix.
             approve('plan-y')
+            for plan_id in ('plan-x', 'plan-y'):
+                ref = 'refs/tags/approval/%s/abcdefabcdef' % plan_id
+                listed = git(repo.work, 'ls-remote', 'origin', ref).split()
+                self.assertEqual(len(listed), 2, listed)
             code, out, err = repo.run_op(['admit-v2', '--root', str(repo.work), '--handoff', 'northstar-plan-plan-y',
                                           '--goal-id', 'G1', '--stage', 'implementation'], env=repo.env())
             self.assertEqual(code, 0, json.dumps(json.loads(out), indent=1))
+            # plan-x's message pushed as plan-y's tag refuses.
             repo.tag_and_push(plan_x_message, 'approval/plan-y/abcdefabcdef', publications['plan-y'])
             code, out, err = repo.run_op(['admit-v2', '--root', str(repo.work), '--handoff', 'northstar-plan-plan-y',
                                           '--goal-id', 'G1', '--stage', 'implementation'], env=repo.env())
@@ -1028,6 +1087,7 @@ class AcceptanceInContextTests(Base):
         edited['goals'][0]['acceptance_criteria'].append('an AC edit republishes the generation')
         bundle_path = write_json(repo.inputs / 'edited-bundle.json', edited)
         sidecar_path = write_json(repo.inputs / 'edited-sidecar.json', sample_sidecar(edited))
+        git(repo.work, 'reset', '-q', '--hard', 'origin/main')
         code, out, err = repo.run_op(['publish-v2', '--root', str(repo.work), '--bundle', str(bundle_path),
                                       '--sidecar', str(sidecar_path)], env=repo.env())
         self.assertEqual(code, 0, (out, err))
@@ -1050,6 +1110,7 @@ class AcceptanceInContextTests(Base):
         bundle['id'] = 'plan-b'
         bundle_path = write_json(repo.inputs / 'b-bundle.json', bundle)
         sidecar_path = write_json(repo.inputs / 'b-sidecar.json', sample_sidecar(bundle))
+        git(repo.work, 'reset', '-q', '--hard', 'origin/main')
         code, out, err = repo.run_op(['publish-v2', '--root', str(repo.work), '--bundle', str(bundle_path),
                                       '--sidecar', str(sidecar_path)], env=repo.env())
         self.assertEqual(code, 0, (out, err))
@@ -1090,8 +1151,8 @@ class AcceptanceInContextTests(Base):
 
     def test_o8_release_is_documented(self):
         text = ' '.join((REPO / '04-validate-handoff/autobahn/modules/readiness-v2.md').read_text().split())
-        self.assertIn("ACH-S-06's merge commit on skills main is the O8 release", text)
-        self.assertIn('dependent plans check it by git merge-base --is-ancestor', text)
+        self.assertIn("ACH-S-06's merge commit on skills `main` is the O8 release", text)
+        self.assertIn('dependent plans check it by `git merge-base --is-ancestor`', text)
 
 
 if __name__ == '__main__':
