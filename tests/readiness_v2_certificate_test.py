@@ -167,6 +167,13 @@ class CertificateIssueTests(unittest.TestCase):
         self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
         certificate = result['certificate']
         self.assertEqual(certificate['schema'], 'merge-certificate/1')
+        # Digest-coupled to the exact field set (ACH-S-07 W9): the canonical bytes the signature
+        # below verifies are the certificate with exactly CERTIFICATE_FIELDS, gate_workspace
+        # included. Re-derived for the new field; both review lanes accepted the re-derivation.
+        self.assertEqual(set(certificate), v2.CERTIFICATE_FIELDS)
+        self.assertEqual(set(certificate['gate_workspace']), {'workspace', 'record'})
+        self.assertEqual(set(certificate['gate_workspace']['record']), {'path', 'sha256'})
+        self.assertTrue(certificate['gate_workspace']['workspace'])
         self.assertEqual(certificate['pr'], int(PR))
         self.assertEqual((certificate['head'], certificate['base']), (self.c.head, self.c.base_sha))
         self.assertEqual(certificate['assurance'], 'key-held')
