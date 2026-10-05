@@ -67,6 +67,43 @@
         "sha256": "f2c315e2843033cde9d4e609b2ab2b3c841ac1321f1a461f21c09c1b29120fa4"
       },
       "status": "active"
+    },
+    {
+      "amends_policy_sha256": "2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176",
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/goals.json",
+          "sha256": "c8764aa6f9321867d8056d6543f014151f83c365b25ed3fc1341b49de9cd272f"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/graph.json",
+          "sha256": "686011ff69b81a4b31c63a1996159fd707959da841fbbc5db690d75746ac8a70"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/handoff.md",
+          "sha256": "5a0878169f73e3a93055f71cb0962cb7ca7662f47af1844e7e5b145bbf5b4841"
+        },
+        "policy_candidate": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/policy-candidate.json",
+          "sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/sidecar.json"
+        }
+      },
+      "generation": "696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "handoff_path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/handoff.md",
+      "id": "northstar-plan-ach-skills-agent-mode",
+      "mode": "policy-amendment",
+      "plan_id": "ach-skills-agent-mode",
+      "policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-agent-mode.md",
+        "sha256": "abd5c69682dd8204c789f8dce93fd42b13e0cfc4bdcc385d532246aeceb04734"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [

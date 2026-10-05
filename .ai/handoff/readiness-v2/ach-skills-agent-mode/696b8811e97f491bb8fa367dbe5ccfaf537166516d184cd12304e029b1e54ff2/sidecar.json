@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "ACH-AM-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Changes only the live .ai/policies/readiness-policy.json (approval.accept gains agent-self, approval.default_mode becomes agent; every other byte unchanged). The live policy file is read by the v2 admission path in every repository that uses the skills source lane, so a defect here would admit or refuse approvals everywhere; tests/readiness_v2_policy_amend_test.py pins the rule-(d) scenario this amendment follows, and the suite (bash tests/run-tests.sh) must stay green unmodified.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "ach-skills-agent-mode",
+  "schema": "readiness-sidecar/1"
+}

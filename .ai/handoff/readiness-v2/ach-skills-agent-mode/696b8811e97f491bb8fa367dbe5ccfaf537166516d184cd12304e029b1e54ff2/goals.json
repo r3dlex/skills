@@ -1,0 +1,38 @@
+{
+  "attachments": {
+    "consensus_plan": "aitool-root .omc/plans/ralplan-admission-complete-handoffs.md (local, non-authoritative); execution log section 9 decisions",
+    "generation_scope": "One policy-amendment goal (ACH-AM-01) scoping only .ai/policies/readiness-policy.json, D-ACCEPT variant a (artifacts/post-s06/amendment-prep.md, sitting-1-batch.md section 1)",
+    "owner": "not in the bundle or sidecar: owner and reviewer lane are recorded once in plan-approval/1",
+    "umbrella_spec": "r3dlex/ai-tool-workspace docs/specifications/ACTIVE/admission-complete-handoffs.md sha256 e6feb698bde18356f0d49c497b7f368f242f39bc254b12942f7f1902408cee39; this plan never amends it (root #95 L5)"
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "[D-ACCEPT variant a] The merged .ai/policies/readiness-policy.json bytes equal the generation's policy-candidate.json: the live readiness-policy/2 (sha256 2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176) with exactly two edits \u2014 approval.accept becomes [\"agent-self\", \"ssh-tag\", \"in-session\"] and approval.default_mode becomes \"agent\" \u2014 and every other byte unchanged (identity_model single, anchor_sha256 8b33406c\u2026, max_age_days 14, required_checks, skippable_checks, sources, tools, gates, branch_pattern, target).",
+        "[M4] The candidate keeps the live branch_pattern ^(feat|fix|chore)/<plan_id>-<goal_id>$ byte-identical; routing reads the live pattern, and any candidate that changes it is refused with branch_pattern_change_refused.",
+        "[M1] The registry entry records amends_policy_sha256 = 2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176 and the generation id binds it; if any other policy change lands before this amendment merges, admission refuses amendment_base_moved and the amendment must be republished.",
+        "[rule (d)] This amendment's own approval is in-session or ssh-tag only: agent-self is refused with approval_form_not_in_live_policy while the live accept list lacks agent-self, and the candidate's own default_mode never governs its own approval (the live policy's whole form rule governs).",
+        "[K3b] After this merge, agent-self is admissible for every later skills generation and for later amendments (both accept lists hold agent-self and default_mode agent governs); every agent-self approval is reported as agent-self and never upgraded to a human label; an agent-self approval of a policy change emits agent_self_policy_change."
+      ],
+      "dependencies": [],
+      "id": "ACH-AM-01",
+      "issue_ref": "issue:skills:ach-skills-agent-mode",
+      "scope": [
+        ".ai/policies/readiness-policy.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "ach-skills-agent-mode",
+  "issue_ref": "issue:skills:ach-skills-agent-mode",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-agent-mode.md"
+  }
+}

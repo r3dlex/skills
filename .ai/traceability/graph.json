@@ -161,6 +161,16 @@
       "source": "handoff:skills:xskp-p5-skill-producers:6a211a9c7f76c110130100d9cc8d0e4ce45e0259f24152095a60ce91c8aab063",
       "target": "plan:skills:xskp-p5-skill-producers:XSKP-P5-04:6a211a9c7f76c110130100d9cc8d0e4ce45e0259f24152095a60ce91c8aab063",
       "type": "plans"
+    },
+    {
+      "source": "spec:skills:ach-skills-agent-mode",
+      "target": "handoff:skills:ach-skills-agent-mode:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-agent-mode:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "target": "plan:skills:ach-skills-agent-mode:ACH-AM-01:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -580,6 +590,41 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "XSKP-P5-04",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:ach-skills-agent-mode:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2"
+      ],
+      "id": "spec:skills:ach-skills-agent-mode",
+      "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-agent-mode.md",
+      "repo_id": "skills",
+      "sha256": "abd5c69682dd8204c789f8dce93fd42b13e0cfc4bdcc385d532246aeceb04734",
+      "status": "active",
+      "title": "Policy amendment to agent mode (`skills`, plan `ach-skills-agent-mode`) \u2014 plan-scoped planning specification",
+      "type": "spec"
+    },
+    {
+      "backlinks": [
+        "spec:skills:ach-skills-agent-mode",
+        "plan:skills:ach-skills-agent-mode:ACH-AM-01:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2"
+      ],
+      "id": "handoff:skills:ach-skills-agent-mode:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "ach-skills-agent-mode",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:ach-skills-agent-mode:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2"
+      ],
+      "id": "plan:skills:ach-skills-agent-mode:ACH-AM-01:696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "ACH-AM-01",
       "type": "plan"
     }
   ],
