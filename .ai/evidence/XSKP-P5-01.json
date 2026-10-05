@@ -1,0 +1,100 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "AC-1: .ai/knowledge/contract is a byte-identical copy of the repo's docs/specifications/ACTIVE/cross-surface-knowledge-publication.contract; tests/knowledge_contract_fingerprint_test.sh verifies both copies against contract.lock.json, pins lock sha256 9f5d7edfc17554c383b06aa4726dfffe564ecc8d657b16baa89ce72098d5e102, and goes red on a mutated byte in a temp copy.",
+      "green": {
+        "exit_code": 0,
+        "note": "after copy: test Results: PASS=4 FAIL=0; suite exit 0; scan-secret-material clean; markdown_links + dead_reference suites exit 0"
+      },
+      "red": {
+        "at": "recorded before implementation: .ai/knowledge/contract absent; suite exit 1; test Results: PASS=1 FAIL=3",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_contract_fingerprint_test.sh (discovered by tests/test-scripts.sh under bash tests/run-tests.sh)"
+    },
+    {
+      "ac": 2,
+      "criterion": "The test is discovered by tests/test-scripts.sh (find tests -name '*_test.sh') under tests/run-tests.sh.",
+      "green": {
+        "exit_code": 0,
+        "note": "after copy: test Results: PASS=4 FAIL=0; suite exit 0; scan-secret-material clean; markdown_links + dead_reference suites exit 0"
+      },
+      "red": {
+        "at": "recorded before implementation: .ai/knowledge/contract absent; suite exit 1; test Results: PASS=1 FAIL=3",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_contract_fingerprint_test.sh (discovered by tests/test-scripts.sh under bash tests/run-tests.sh)"
+    },
+    {
+      "ac": 3,
+      "criterion": "python3 scripts/scan-secret-material.py reports no offenders, and the markdown-link and dead-reference suites stay green with the two contract copies present.",
+      "green": {
+        "exit_code": 0,
+        "note": "after copy: test Results: PASS=4 FAIL=0; suite exit 0; scan-secret-material clean; markdown_links + dead_reference suites exit 0"
+      },
+      "red": {
+        "at": "recorded before implementation: .ai/knowledge/contract absent; suite exit 1; test Results: PASS=1 FAIL=3",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_contract_fingerprint_test.sh (discovered by tests/test-scripts.sh under bash tests/run-tests.sh)"
+    },
+    {
+      "ac": 4,
+      "criterion": "The checkout's pre-existing branch and dirty files are untouched; work happens in a worktree from the default branch.",
+      "green": {
+        "exit_code": 0,
+        "note": "after copy: test Results: PASS=4 FAIL=0; suite exit 0; scan-secret-material clean; markdown_links + dead_reference suites exit 0"
+      },
+      "red": {
+        "at": "recorded before implementation: .ai/knowledge/contract absent; suite exit 1; test Results: PASS=1 FAIL=3",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_contract_fingerprint_test.sh (discovered by tests/test-scripts.sh under bash tests/run-tests.sh)"
+    },
+    {
+      "ac": 5,
+      "criterion": "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes.",
+      "green": {
+        "exit_code": 0,
+        "note": "after copy: test Results: PASS=4 FAIL=0; suite exit 0; scan-secret-material clean; markdown_links + dead_reference suites exit 0"
+      },
+      "red": {
+        "at": "recorded before implementation: .ai/knowledge/contract absent; suite exit 1; test Results: PASS=1 FAIL=3",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_contract_fingerprint_test.sh (discovered by tests/test-scripts.sh under bash tests/run-tests.sh)"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+    "assurance": "agent-self",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root /Users/andresilvaburgstahler/Ws/Personal/worktrees/xskp-p5-01-20261005 --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-01 --stage implementation --context /Users/andresilvaburgstahler/Ws/Personal/worktrees/xskp-p5-ctx-20261005/p5-01-context.json",
+    "generation": "a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d",
+    "stage": "implementation"
+  },
+  "goal_id": "XSKP-P5-01",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "goal_record": "scratch copy of the exact bundle goal object (kept outside the repo, per ~/.config/ai-catapult/contexts precedent)",
+    "green_method": "green leg observed by tdd-evidence.sh --record-green in the goal worktree after the byte-identical pack copy; same command both legs",
+    "red_method": "red leg observed by tdd-evidence.sh --record-red with the production change absent (.ai/knowledge/contract deleted), clean tree at origin/main 4fee2ef8769e40ae298493df8a92441a82c04713 plus the final tests/knowledge_contract_fingerprint_test.sh uncommitted; re-recorded after the review round so the red leg matches the final test bytes"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  },
+  "review": {
+    "accepted_residual": "conservative false-red nit: diff -r byte-identity check does not ignore .DS_Store (errs red, never green; cleanup is rm the noise file) \u2014 no AC affected",
+    "architect_verdict": "APPROVE (round 1 and round 2)",
+    "code_reviewer_verdict": "APPROVE (round 1 and round 2)",
+    "iterations": 2,
+    "lane": "independent agent review lane",
+    "round1_resolution": "reviewer finding: symmetric unlisted extra file in both copies false-passed (architect minor) -> resolved by an orphan/not-on-disk file-set check inside verify_pack; diagnosability nits -> resolved: per-copy attributed FAIL lines with the verifier's own output, lock_sha distinguishes missing vs unreadable, mutation heredoc guards an empty file, empty-files-map guarded; .DS_Store ignored in the orphan census",
+    "round2_confirmation": "architect empirically probed the orphan check (both-clones symmetric extra -> each verify_pack red while diff -r between clones passes), .DS_Store pruning, lock diagnosis tokens; code-reviewer confirmed errexit-safety of the new capture patterns, bash-3.2 portability (green under /bin/bash 3.2.57 and default bash), evidence shape, diffstat confinement"
+  }
+}
