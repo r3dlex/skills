@@ -9,7 +9,7 @@
 #   (c) all *.json files under templates/ are valid JSON (placeholder tokens
 #       of the form {{TOKEN}} are allowed — they are not a JSON error)
 #   (d) the mechanical set covers the required v3 skeleton:
-#       - the 18 .ai/ subdirs (present as dirs under templates/dot-ai/)
+#       - the 20 .ai/ subdirs (present as dirs under templates/dot-ai/)
 #       - matrix.json template
 #       - thin pointer files AGENTS.md, CLAUDE.md, GEMINI.md
 #   (h) knowledge registry templates (XSKP-P5-04): dot-ai/knowledge/registry.json

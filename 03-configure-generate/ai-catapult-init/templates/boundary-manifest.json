@@ -109,6 +109,12 @@
       "rationale": "Empty array at scaffold time; shape is fixed."
     },
     {
+      "path": ".ai/knowledge/registry.json",
+      "classification": "mechanical",
+      "template": "dot-ai/knowledge/registry.json",
+      "rationale": "Initial knowledge registry: emitted as the P4 init bytes under the knowledge-registry/1 contract serialization (sorted keys, 2-space indent, ensure_ascii=False, trailing newline) with entries empty, generated_from fixed to .ai/knowledge/entries and schema fixed to knowledge-registry/1; only {{REPO_ID}} is substituted."
+    },
+    {
       "path": ".ai/rules/security.md",
       "classification": "mechanical",
       "template": "dot-ai/rules/security.md",
@@ -315,7 +321,7 @@
       "rationale": "Provider-neutral DPUA execution profile with self-hosted-first defaults and bounded retry/fallback policy."
     }
   ],
-  "mechanical_count": 41,
+  "mechanical_count": 42,
   "judgment_laden_count": 10,
   "notes": [
     "Dirs without a named file get a .gitkeep in the template tree so the directory is tracked by git.",

@@ -1,0 +1,11 @@
+{
+  "goal_id": "XSKP-P5-04",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  }
+}
