@@ -1,0 +1,44 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "target": "plan:skills:ach-skills-gate-workspace:ACH-S-07:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "target": "plan:skills:ach-skills-gate-workspace:ACH-S-08:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "type": "plans"
+    }
+  ],
+  "generation": "22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+  "goal_ids": [
+    "ACH-S-07",
+    "ACH-S-08"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:ach-skills-gate-workspace:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "75771afb7a5177b882394b511260e5693e7beb5bd2dfef85b01b14c3658e6f44",
+      "id": "plan:skills:ach-skills-gate-workspace:ACH-S-07:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "e9e3ff8cefde16cf8b2ddf15669f67e7851fc7cab35cf75536326e0356e5a616",
+      "id": "plan:skills:ach-skills-gate-workspace:ACH-S-08:22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "ach-skills-gate-workspace",
+  "schema_version": "1.1"
+}

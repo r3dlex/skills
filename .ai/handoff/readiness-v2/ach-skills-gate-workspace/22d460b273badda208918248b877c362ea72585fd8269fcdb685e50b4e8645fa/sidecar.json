@@ -1,0 +1,26 @@
+{
+  "goals": {
+    "ACH-S-07": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Changes lib/observer.py derive_certificate, run_local_gates, tree_state and worktree_rows, which every v2 certificate and merge-authority.sh re-derivation runs through, adds the one gate_workspace field to merge-certificate/1 (lib/readiness_contract_v2.py and the v2 schema), and touches run-gates.sh's v2 branch; characterized by tests/readiness_v2_certificate_test.py (its digest-coupling cases re-derived for the new field, every other case unmodified), tests/readiness_v2_identity_test.py, tests/readiness_v2_gate_shadowing_test.py and tests/readiness_v2_core_test.py, and by ACH-S-06's end-to-end test. A defect here would issue or refuse certificates in every repository that uses the skills source lane. Coverage unknown.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "ACH-S-08": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Changes lib/local_ci_contract.py, which local-ci.sh runs as a gate in every repository with a local CI contract (characterized by tests/local_ci_contract_test.py and tests/autobahn_local_ci_test.sh, which must pass unmodified), and adds a network-enabled bootstrap step to lib/observer.py's certificate derivation. Coverage unknown.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "ach-skills-gate-workspace",
+  "schema": "readiness-sidecar/1"
+}
