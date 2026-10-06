@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "ACH-GW-DISC-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Repairs an absolute discovery filter that excludes the entire HEAD checkout beneath the unchanged observer's .omc ancestor. The accepted four-path goal and six ACs are unchanged. Static self-bootstrap support is not runtime evidence; internal namespace filtering, unchanged validators/zero-assertion refusal and whitespace/symlink behavior still need admitted regressions. D5 planning sequence is accepted, not generation approval. This new unpublished candidate has unknown readiness at all stages, never ready, and needs independently reviewed metadata windows and producer planning admission before local publication. Future implementation/merge remain unadmitted: own approval/live authority, original-S08 shared-CI sequencing, exact-head TDD/full CI/independent review/signed certification/formal host authority are not supplied by metadata preparation. Original claims and sole-author HOLD persist; same-uid/no-containment risks remain.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "ach-skills-gate-discovery-repair",
+  "schema": "readiness-sidecar/1"
+}
