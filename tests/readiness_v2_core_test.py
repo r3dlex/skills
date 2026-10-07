@@ -725,7 +725,8 @@ class EntryPointTests(unittest.TestCase):
             v1 = run('admit', '--root', tmp)
             self.assertEqual(json.loads(v1.stdout)['schema'], 'readiness-contract/1')
             self.assertIn('invalid choice', run('not-an-operation').stderr)
-            for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2', 'audit-merges'):
+            for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2', 'audit-merges',
+                              'context-build'):
                 result = run(operation, '--definitely-unknown')
                 self.assertEqual(result.returncode, 2, operation + result.stdout + result.stderr)
                 self.assertIn('readiness-contract/2', result.stderr)
@@ -744,7 +745,8 @@ class EntryPointTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2, args)
 
     def test_unknown_arguments_and_proceed_text_exit_2(self):
-        for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2', 'audit-merges'):
+        for operation in ('admit-v2', 'publish-v2', 'approval-request', 'certify-v2', 'merge-v2', 'audit-merges',
+                          'context-build'):
             for extra in (['proceed'], ['override'], ['--force'], ['--admin', 'if', 'necessary'], ['--anchor', '/x'],
                           ['-h'], ['--help']):
                 with self.subTest(operation=operation, extra=extra):
@@ -762,9 +764,11 @@ class EntryPointTests(unittest.TestCase):
             'schemas/readiness-contract-v2.json', 'contract-run.sh', 'contract-run-v2.sh', 'run-gates.sh',
             'merge-authority.sh', 'prereq-check.sh', 'migrate-handoff.sh', 'northstar/handoff-write.sh',
             # ACH-S-03: the five local gate scripts and the local CI contract module they run.
-            'tdd-evidence.sh', 'tdd-mode.sh', 'lint-gate.sh', 'ci-gate.sh', 'local-ci.sh', 'lib/local_ci_contract.py'})
+            'tdd-evidence.sh', 'tdd-mode.sh', 'lint-gate.sh', 'ci-gate.sh', 'local-ci.sh', 'lib/local_ci_contract.py',
+            # ACH-S-04: the mode-aware northstar approve entry point.
+            'northstar/approve.sh'})
         for name, expected in autobahn['files'].items():
-            path = NORTH / 'handoff-write.sh' if name == 'northstar/handoff-write.sh' else AUTO / name
+            path = NORTH / name[len('northstar/'):] if name.startswith('northstar/') else AUTO / name
             self.assertEqual(sha(path), expected, name)
         with tempfile.TemporaryDirectory() as tmp:
             flat = Path(tmp)

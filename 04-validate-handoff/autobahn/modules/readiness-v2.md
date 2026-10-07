@@ -16,17 +16,67 @@ other name stays on the v1 path.
 
 | Operation | Does |
 | --- | --- |
-| `publish-v2 --root R --bundle B --sidecar S [--policy-candidate C]` | Writes `goals.json`, `graph.json`, `handoff.md`, `sidecar.json` and an optional `policy-candidate.json` under `.ai/handoff/readiness-v2/<plan>/<generation>/`. The registry is written last. Never touches readiness-v1 paths, and refuses holds. |
+| `publish-v2 --root R --bundle B --sidecar S [--policy-candidate C]` | Writes `goals.json`, `graph.json`, `handoff.md`, `sidecar.json` and an optional `policy-candidate.json` under `.ai/handoff/readiness-v2/<plan>/<generation>/`. The registry is written last. Never touches readiness-v1 paths, and refuses holds. A sidecar may hold only each goal's `legacy_risk_reason`: readiness and coverage default to `unknown` and `legacy_safe_tdd` to true, and a goal without a non-empty reason is refused (`legacy_risk_reason_missing`). |
+| `publish-v2 ... --admit-planning [--target T]` | What `northstar/handoff-write.sh` runs for a `handoff-goals/2` bundle. Planning-stage admission against the simulated post-merge target, then the same write. See [Planning publication](#planning-publication). |
 | `approval-request --root R --handoff H --owner O --reviewer-lane L [--assurance agent-self]` | Prints the `plan-approval/1` record, its digest, the anchor sha256, the `ssh-keygen -Y sign` and `git tag` commands, and the in-session fallback labelled `assurance: in-session`. It never signs and never writes. With `--assurance agent-self` (agent mode) it issues the record itself: signed with the agent key under `ai-catapult-agent-approval`, with the tag message and `git tag` commands printed. It still never writes or pushes the tag. |
+| `approval-request ... --mode default\|agent\|prompt\|ssh-tag`, `approval-request --root R --handoff H --confirm D` | What `northstar/approve.sh` runs: one request in the governing mode, after an anchor preflight that prints the human setup steps when the anchor is missing. See [approval](../../../02-govern-plan/northstar/modules/approval.md). |
 | `admit-v2 --root R --handoff H --goal-id G --stage S` | Rebuilds `readiness-context/2` from fresh observation plus the verified approval, and exits 0 only when admitted. A supplied `--context`, `--observation` or `--verdict` is only compared with the rebuilt one; any difference refuses. |
+| `context-build --root R --handoff H --goal-id G --stage S [--context C]` | The same builder as `admit-v2` (one handler): prints `readiness-context/2` and exits 0 only when admitted. Without a verified approval, or when blocked, `authority` states that the context carries none. A supplied `--context` that differs from the rebuilt one refuses. |
 | `certify-v2` (through `run-gates.sh --phase pre-merge --pr N --review-record F`) | Issues an agent-signed `merge-certificate/1` and stores it in observer state. |
 | `merge-v2` (through `merge-authority.sh --pr N [--admin]`) | Re-observes every certificate claim, then merges with `gh pr merge --match-head-commit`. |
 | `inventory-v1 --root R` | Decides the fate of every v1 registry entry on `origin/<target>` (O10), the one implementation every policy goal uses. See [v1 inventory](#v1-inventory). Exits 1 while any entry is in flight. |
-| `audit-merges --root R --handoff H` | Lists merged PRs through the production adapter (fails closed at 200). It flags each goal-branch PR whose merged head has no certificate (`merged_without_certificate`), has a certificate not signed by an agent principal with the certificate role (`certificate_signature_invalid`), or was certified at another head (`certified_head_mismatch`). For each PR it reports the approval digest, assurance and `lane_independence`. Exits 1 when anything is flagged, 4 when unobservable. |
+| `migrate-v2` (through `migrate-handoff.sh --to readiness-contract/2`) | Emits a reviewable `handoff-migration/2` candidate of one v1 generation's unmerged goals to stdout, never writes, and carries no authority. See [Migration (R1, O10)](#migration-r1-o10). |
+| `audit-merges (--root R --handoff H | --plan ID)` | Re-observes every fact through the production adapter (fails closed at 200). It flags each goal-branch PR whose merged head has no certificate (`merged_without_certificate`), has a certificate not signed by an agent principal with the certificate role (`certificate_signature_invalid`), or was certified at another head (`certified_head_mismatch`). Timing is re-observed against the PR's `mergedAt`: a required check missing, not successful, or completed at or after the merge (`check_missing_at_merge`, `check_not_success_at_merge`, `check_completed_after_merge`), an approval the certificate cites whose `expires_at` is not later than the merge (`approval_expired_at_merge`), and a certificate issued after the merge (`certificate_issued_after_merge`). For each PR it reports the approval digest, assurance and `lane_independence`. It also re-derives every change landed on `origin/<target>` after the plan's publication commit from git objects (first-parent walk) and flags `v2_scope_outside_goal` when a non-goal PR touched a goal's scope while that goal was still active, or touched the policy file, the registry or `.ai/handoff/readiness-v2/**` without matching the publish-v2 replay or the sidecar-tighten exception; those results are in `changes[]`, never in `prs`. Exits 1 when anything is flagged, 4 when unobservable. |
+| `export-evidence (--root R --handoff H | --plan ID)` | Writes `.ai/evidence/approvals/<plan_id>/`: `approval.json` (the exact signed record bytes), `approval.sig` (absent for in-session), `allowed_signers` (a byte copy of the anchor), `certificates/<goal_id>.json` + `.sig`, and `driver-log.jsonl` (the whole driver log). Every merged goal PR of the plan must carry a verifying certificate, else nothing is written (`evidence_incomplete`); different existing bytes refuse with `evidence_conflict`. The copies verify with `ssh-keygen -Y verify`. |
 
-`context-build` and `export-evidence` are reserved names. They exit 2 until the
-goals that deliver them land. Timing checks in `audit-merges`
-(check completion and approval expiry against `mergedAt`) also arrive later.
+**Timing and export (ACH-S-06).** `audit-merges` re-observes check completion and approval
+expiry against each PR's `mergedAt` and flags the timing violations above; `export-evidence`
+exports the verified approval, anchor and certificate evidence of one plan. Both take
+`--handoff` or `--plan <id>` (which resolves to `northstar-plan-<id>`), with `--root` defaulting
+to the current directory.
+
+**Blocked admissions (proceed semantics).** A context that is not admitted carries no
+authority: `authority` is `plan-approval/1` only when admitted, even when the approval
+itself verified. Every gap names its `code`, `detail`, `goal`, `gate`, `fact` (the observed
+fact, such as `tool:git`, `ancestor:<commit>` or `dependency:<goal>`), `source` and
+`recovery`. The gaps are ordered by code, goal, gate, fact, detail and source, without
+duplicates, and stderr prints them once as one consolidated report. A dependency is
+complete only when its goal-branch PR merge commit reaches `origin/<target>`, for every
+ancestor in the dependency chain; no receipt or flag stands in for it.
+
+## Planning publication
+
+`publish-v2 --admit-planning` (from `handoff-write.sh`) refuses unless `origin/<target>`
+equals `git ls-remote` (`target_ref_rewound`). Under the publication lock it then:
+
+1. computes the publication exactly as `publish-v2` does, plus publish-time checks that
+   registered generations never meet: literal scope paths (`bundle_scope_unsafe`), `bash
+   tests/...` verification scripts present at the base (`verification_not_at_base`), no
+   goal branch shared with another active plan (`goal_branch_collision`), and a working-tree
+   registry equal to the target's (`publication_base_mismatch`);
+2. builds the simulated post-merge target: a throwaway repository that borrows the root's
+   objects read-only, whose `origin/<target>` and detached HEAD are one deterministic commit
+   of the target plus exactly the registry, the generation files and the spec copy;
+3. runs planning-stage admission of every goal there, with a hosted adapter that sees no
+   goal-branch PR (`planning-simulation`), since none can descend from a commit that does not
+   exist yet;
+4. writes, registry last, only when no gap blocks.
+
+Gaps are classified by kind, never by gate stage, in `context.planning` and in the
+`northstar-publication/2` result:
+
+- **approval**: `approval_*`, `plan_approval_missing` and `ownership_unresolved`;
+- **deferred**: `branch_target_mismatch`, `pr_required`, `check_*`,
+  `protection_check_unsatisfied`, `review_lane_missing`, `threads_unobserved` and
+  `dependency_incomplete`. They are listed, and their gates report `deferred`, never `pass`;
+- **blocking**: every other code, unknown codes and `agent_self_*` included.
+
+At planning only, an anchor whose sha256 equals the policy's must satisfy an approval form
+the policy admits (through `check_form`: in-session needs no principal, ssh-tag an
+approver principal, agent-self an agent-approval principal) and hold a certifier and a
+reviewer that are distinct agent principals. Otherwise planning reports
+`anchor_role_capability_missing`, which blocks. Publishing therefore needs the real anchor
+on the publisher host.
 
 ## Inputs on the target
 
@@ -140,7 +190,9 @@ clean head. The certificate binds:
 - every required check SUCCESS, completed before issue;
 - zero unresolved threads;
 - the review lane record, signed by an agent principal other than the certifier (`lane_independence: declared`);
-- the admin flag, set only under `identity_model: single`.
+- the admin flag, set only under `identity_model: single`;
+- `gate_workspace`, the isolated-copy provenance of the derivation: the gate
+  workspace's physical path and the `gate-workspace/1` record's path and sha256.
 
 The agent signing key is `~/.config/ai-catapult/agent_signing_key`, or a `.pub`
 with the key in the agent.
@@ -149,8 +201,44 @@ Local gates run PR code, so they run without credentials:
 - the environment holds only `PATH`, `LANG`, `LC_ALL` and `TMPDIR`;
 - `HOME` is a throwaway temporary directory;
 - `PYTHONDONTWRITEBYTECODE=1` is set;
-- there is no `GH_TOKEN`, `GH_CONFIG_DIR` or agent socket. Certificates, review records and the driver log live
+- there is no `GH_TOKEN`, `GH_CONFIG_DIR` or agent socket. Certificates, review records, the driver log and the `gate-workspace/1` records live
 under `<git common dir>/ai-catapult/observer/`.
+
+**Gate workspace.** `certify-v2` and `merge-v2` run the four local gates
+(`tdd-evidence`, `lint-gate`, the local safe CI subset and `ci-gate --verify`)
+only in an observer-built gate workspace, never in the observed root. The
+workspace is a new repository under the observed root's parent (a sibling,
+never inside the observed root), under the parent's `.omc/` tree — a name the
+existing `.omc/` ignored pattern of the umbrella and root `.gitignore` covers —
+with an empty template, no remote and no hooks. It borrows the observed
+repository's objects read-only through `objects/info/alternates` and checks the
+PR head out detached, so its HEAD is the certified head and its files are that
+head's tree. Every path handed to a gate is physical (`os.path.realpath`), and a
+gate's `git` reaches only the workspace's own git directory. The workspace is
+removed when the derivation ends, on success and on failure, and a leftover
+from an interrupted run is never reused.
+
+Before any gate runs, `tree_state(workspace)` must equal the head tree, or the
+derivation refuses with `gate_workspace_unfaithful`; when the workspace cannot
+be built at all it refuses with `gate_workspace_unavailable`. After every gate
+the observer re-checks the workspace: HEAD, the index entries
+(`git ls-files --stage`, so a stat-only index refresh is not a change) and every
+tracked path's bytes and mode must equal the head tree; a tracked change refuses
+with `worktree_changed_during_gates` plus `gate_workspace_tracked_changed:<path>`,
+and any untracked or ignored path refuses with `worktree_changed_during_gates`
+plus `gate_workspace_undeclared_output:<path>`. The observed common directory's
+`config`, `hooks/`, `info/` and `objects/info/alternates` are snapshotted around
+the gates and any change refuses with `git_metadata_changed_during_gates`. The
+target commit is resolved before the gates, and every check after them —
+`goal_reserved_refusals` included — uses that commit, never a re-read of
+`origin/<target>`. Every observed-root check is unchanged: the root's
+`tree_state` before and after the gates, ignored files included, the head checks
+and the admission worktree snapshot all stay exactly as they were.
+
+Residual risks (recorded, not fixed): there is no OS sandbox, so a gate runs
+with the user's uid and can write anywhere it can reach (a gate that does
+`cd ..` out of the workspace lands in the observed root's parent); the gates are
+not network-isolated; and a change a gate undoes within itself is not seen.
 
 `merge-authority.sh` requires `--pr` once a v2 artifact is observable (a
 registry or a live policy/2) on `origin/<target>`, on the commit
@@ -211,8 +299,12 @@ fails to load refuses with `plan_unloadable`.
   `v2_diff_unobservable`). The hosted list alone is used only when every fetch of
   the PR head fails outright. Residual until ACH-S-06: for non-reserved paths the
   hosted list governs, so a list served for another head (an A-B-A head flip
-  between the reads) can hide an edit to an active goal's scope, and there is no
-  detective control until ACH-S-06's audit. The decision prints `diff_head`, the
+  between the reads) can hide an edit to an active goal's scope, and there was no
+  detective control until ACH-S-06's audit. The audit re-derives every landed change
+  from git objects (a first-parent walk from the plan's publication commit, against
+  a target ref checked by `git ls-remote`) and flags any touch of an active goal's
+  scope, the policy file, the registry or `.ai/handoff/readiness-v2/**` that no
+  exception covers as `v2_scope_outside_goal`. The decision prints `diff_head`, the
   head the diff was computed from. Reaching GitHub's
   3000-file cap, or a count that differs from the PR's integer `changed_files`,
   refuses with `pr_files_truncated`; a missing count refuses. A PR whose head or
@@ -247,9 +339,12 @@ each entry's fate from hosted facts and git ancestry only (O10):
   (`audit-merges` separately recomputes each certificate's assurance from the
   approval tag and flags `assurance_mismatch` or `approval_digest_unobserved`; a
   tag whose record claims another level than its carrier evidences counts as no
-  evidence. For ACH-S-06: Re-signing an approval tag flags certificates issued under
+  evidence. Re-signing an approval tag flags certificates issued under
   the earlier tag with `approval_digest_unobserved`; that flag is noise, not a
-  finding, once the re-signed approval verifies.)
+  finding, once the re-signed approval verifies — `audit-merges` reports the notice
+  `approval_resigned` when the current tag's carrier evidences an assurance for the
+  same plan and generation and both the merge and the certificate issue predate the
+  re-signing.)
 - `completed`: every goal merged. The entry is retired by a top-level
   `retired_v1[]` record in the v2 registry that carries the map, never by an entry
   of `plans[]`. The v1 bytes stay unchanged.
@@ -260,6 +355,52 @@ each entry's fate from hosted facts and git ancestry only (O10):
   API, a truncated list or an unattributable match is ambiguous and also in
   flight. Admission of a policy goal then refuses with `v1_inventory_in_flight`.
 
+## Migration (R1, O10)
+
+`migrate-handoff.sh --to readiness-contract/2 --legacy <v1 goals.json> --inventory
+<report.json> [--root R] [--target T]` emits a reviewable `handoff-migration/2`
+candidate of one v1 generation's unmerged goals to stdout and never writes:
+
+- Without a `--to` token the unchanged v1 `migrate` path runs (AC-3); with
+  `--to readiness-contract/2` the pinned driver's `migrate-v2` branch runs. Any
+  other `--to` value, a missing `--legacy` or `--inventory`, `-h`, `--help` and
+  `proceed` exit 2. Refusals exit 1 and carry no authority.
+- The candidate's `authority` is `none: no verified plan approval; this report
+  carries no authority`: a migration grants nothing, and admission refuses the
+  migrated generation until one new plan approval binds it.
+- The pure `v2.migrate_main` decides everything from the data it is handed. The
+  legacy bytes must be `handoff-goals/1` (`migration_legacy_unsupported`); their
+  sha256 must equal the `artifacts.bundle.sha256` of exactly one active v1
+  registry entry with that plan id on `origin/<target>` (`migration_legacy_unregistered`;
+  older v1 generations are refused); the inventory-v1 report must hold that entry
+  with fate `unstarted` or `partly-merged` (`migration_fate_refused`; `completed`
+  retires through `retired_v1[]`, `in-flight` means wait); and the spec on
+  `origin/<target>` must still equal the v1 binding (`migration_spec_drifted`).
+- The bundle keeps the plan id unchanged (P7), the spec path, `issue_ref` and the
+  v1 `attachments` verbatim, and reduces each unmerged goal to its content fields
+  (`id`, `scope`, `acceptance_criteria`, `dependencies`, `verification`,
+  `issue_ref`). Merged goals, decided by the inventory-v1 `{goal, pr,
+  merge_commit}` map (never by commit text), become `extensions.b5_inputs`
+  (shape-validated; a malformed item refuses with `migration_b5_invalid`) and
+  disappear from the goal list; their dependencies are listed under
+  `dropped_dependencies`. B5 ancestry is not checked here — that is the
+  executing repository's admission. `bundle_*` and `sidecar_*` refusals pass
+  through from the pinned validators.
+- The sidecar resets readiness to unknown at every stage and carries each v1
+  goal's `coverage_status`, `coverage_percent` (when measured), `legacy_safe_tdd`
+  and `legacy_risk_reason`.
+- The legacy bundle and its sha256 are retained under
+  `extensions.legacy_original` and `extensions.legacy_sha256`.
+- Publish the candidate's `bundle` and `sidecar` with
+  `02-govern-plan/northstar/handoff-write.sh --root "$(pwd -P)" --bundle <bundle>
+  --sidecar <sidecar>` (the admission-complete publisher; a planning PR), merge
+  it, then obtain one plan approval for the new generation through
+  `contract-run.sh approval-request --handoff northstar-plan-<plan_id>`. The
+  migrated generation admits only after that approval binds it.
+- Run migrate from a clone or the base copy, and pass `--root "$(pwd -P)"`: a
+  symlinked root refuses with `identity_root_symlinked`. A driver whose pinned
+  files differ from `origin/<target>` refuses with `driver_not_base_copy`.
+
 ## Environment and provenance
 
 Every v2 entry point builds its environment from an allowlist:
@@ -269,9 +410,17 @@ Every v2 entry point builds its environment from an allowlist:
 
 Unknown arguments exit 2. The hosted adapter is the `gh` CLI. A test adapter
 exists only in-process, and it is recorded in every observation and certificate.
+The end-to-end test (ACH-S-06) patches the in-process `hosted_command` seam, so the
+production `GhAdapter` path still runs and every observation records
+`adapter: production-gh` while no real `gh` executes.
 
 `readiness-dependency-v2.json`, identical in autobahn and northstar, pins the v2
 and v1 helper files and the entry points. A driver running inside the
 repository it admits must match the `origin/<target>` copy byte for byte, so a
 PR that edits the driver is admitted by the base copy, never by its own head.
 Run it from a detached worktree at the base.
+
+## Release
+
+ACH-S-06's merge commit on skills `main` is the O8 release; dependent plans
+check it by `git merge-base --is-ancestor`.

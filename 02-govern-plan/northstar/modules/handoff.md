@@ -13,6 +13,40 @@ The source spec must already have one unambiguous node in the traceability graph
 Publication uses the exact pinned Autobahn helper in canonical source layout or
 sibling-flat install; missing/mismatched producer/consumer dependencies stop.
 
+## v2 publication (readiness-contract/2)
+
+Given a `handoff-goals/2` bundle, the same command runs planning-stage admission
+before anything is written:
+
+```sh
+bash northstar/handoff-write.sh --root /repo --bundle /input/goals-v2.json --sidecar /input/sidecar.json
+```
+
+- **Simulated post-merge target.** Admission reads `origin/<target>` (equal to
+  `git ls-remote`, else `target_ref_rewound`) plus exactly this publication: the
+  registry, the generation files and the spec copy. Nothing else in the checkout counts.
+- **Gaps by kind.** The approval gap (`approval_*`, `plan_approval_missing`,
+  `ownership_unresolved`) is expected. Deferred gaps (`branch_target_mismatch`,
+  `pr_required`, `check_*`, `protection_check_unsatisfied`, `review_lane_missing`,
+  `threads_unobserved`, `dependency_incomplete`) are listed, never counted as passed.
+  Every other gap blocks, for example tooling, fixture, B5 ancestry, `harness_trust`
+  and `anchor_role_capability_missing`.
+- **Refusal.** With any blocking gap it writes nothing, prints
+  `northstar-publication/2` with `planning_complete: false` and one consolidated
+  report, and exits 1.
+- **Defaults.** The sidecar may hold only each goal's `legacy_risk_reason`. Readiness
+  defaults to `unknown`, coverage to `unknown` and `legacy_safe_tdd` to true. A goal
+  without a non-empty reason is refused (`legacy_risk_reason_missing`). Holds are refused.
+- **Publish-time checks.** Scope entries are plain literal paths (`bundle_scope_unsafe`).
+  Every `bash tests/...` verification script exists at the base commit
+  (`verification_not_at_base`). A goal branch shared with another active plan refuses
+  (`goal_branch_collision`). The working-tree registry must be the target's
+  (`publication_base_mismatch`): one generation per planning PR.
+
+A v1 bundle takes the v1 path below, byte for byte. Publication grants no authority:
+after the planning PR merges, request the plan approval with `approve.sh`; see
+[approval](approval.md).
+
 ## Same-repository worktree publication
 
 To preserve canonical repository identity while publishing only in a verified

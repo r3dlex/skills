@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:ach-skills-gate-discovery-repair:2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
+      "target": "plan:skills:ach-skills-gate-discovery-repair:ACH-GW-DISC-01:2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
+      "type": "plans"
+    }
+  ],
+  "generation": "2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
+  "goal_ids": [
+    "ACH-GW-DISC-01"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:ach-skills-gate-discovery-repair:2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
+      "path": ".ai/handoff/readiness-v2/ach-skills-gate-discovery-repair/2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "8520938fdbb044f3bfc0daa4cedbf97fe650a66a988cff8f82d99910dbd543f7",
+      "id": "plan:skills:ach-skills-gate-discovery-repair:ACH-GW-DISC-01:2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
+      "path": ".ai/handoff/readiness-v2/ach-skills-gate-discovery-repair/2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "ach-skills-gate-discovery-repair",
+  "schema_version": "1.1"
+}

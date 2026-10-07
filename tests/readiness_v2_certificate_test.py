@@ -167,6 +167,13 @@ class CertificateIssueTests(unittest.TestCase):
         self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
         certificate = result['certificate']
         self.assertEqual(certificate['schema'], 'merge-certificate/1')
+        # Digest-coupled to the exact field set (ACH-S-07 W9): the canonical bytes the signature
+        # below verifies are the certificate with exactly CERTIFICATE_FIELDS, gate_workspace
+        # included. Re-derived for the new field; both review lanes accepted the re-derivation.
+        self.assertEqual(set(certificate), v2.CERTIFICATE_FIELDS)
+        self.assertEqual(set(certificate['gate_workspace']), {'workspace', 'record'})
+        self.assertEqual(set(certificate['gate_workspace']['record']), {'path', 'sha256'})
+        self.assertTrue(certificate['gate_workspace']['workspace'])
         self.assertEqual(certificate['pr'], int(PR))
         self.assertEqual((certificate['head'], certificate['base']), (self.c.head, self.c.base_sha))
         self.assertEqual(certificate['assurance'], 'key-held')
@@ -660,7 +667,7 @@ class BaseCopyTests(unittest.TestCase):
             observer_copy.write_text(observer_copy.read_text() + '\n# head edit\n')
             manifest = {'schema': 'readiness-contract/2', 'files': {}}
             for name in json.loads((AUTO / 'readiness-dependency-v2.json').read_text())['files']:
-                path = work / ('02-govern-plan/northstar/handoff-write.sh' if name == 'northstar/handoff-write.sh'
+                path = work / ('02-govern-plan/northstar/' + name[len('northstar/'):] if name.startswith('northstar/')
                                else '04-validate-handoff/autobahn/' + name)
                 manifest['files'][name] = sha(path)
             for directory in ('04-validate-handoff/autobahn', '02-govern-plan/northstar'):
@@ -997,7 +1004,7 @@ class NonGoalRoutingTests(RoutingHelpers, unittest.TestCase):
         observer_copy.write_text(observer_copy.read_text() + '\n# head edit\n')
         manifest = {'schema': 'readiness-contract/2', 'files': {}}
         for name in json.loads((AUTO / 'readiness-dependency-v2.json').read_text())['files']:
-            path = work / ('02-govern-plan/northstar/handoff-write.sh' if name == 'northstar/handoff-write.sh'
+            path = work / ('02-govern-plan/northstar/' + name[len('northstar/'):] if name.startswith('northstar/')
                            else '04-validate-handoff/autobahn/' + name)
             manifest['files'][name] = sha(path)
         for directory in ('04-validate-handoff/autobahn', '02-govern-plan/northstar'):

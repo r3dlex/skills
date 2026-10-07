@@ -35,6 +35,139 @@
         "sha256": "ba7431dd22b71206ecb111fc05592941d33b24b54b080e973f28d16b341e020a"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d/goals.json",
+          "sha256": "d9349db2e6ef5e4f7ec06c5272caecb1a0a7bdbc860b3a00ca817e5909921a25"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d/graph.json",
+          "sha256": "711f2fc7c2eaea705994b1fd0ed85782c2cd757a03f96ad1b7054379b2659016"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d/handoff.md",
+          "sha256": "54a6aded75578b32f86873143dd853859366aad31ab51f43181adfc949f9750e"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d/sidecar.json"
+        }
+      },
+      "generation": "a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d",
+      "handoff_path": ".ai/handoff/readiness-v2/xskp-p5-skill-producers/a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d/handoff.md",
+      "id": "northstar-plan-xskp-p5-skill-producers",
+      "mode": "live",
+      "plan_id": "xskp-p5-skill-producers",
+      "policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5-skill-producers.md",
+        "sha256": "f2c315e2843033cde9d4e609b2ab2b3c841ac1321f1a461f21c09c1b29120fa4"
+      },
+      "status": "active"
+    },
+    {
+      "amends_policy_sha256": "2ee17f06817e424dffdb30047f83b8e69805fe92d4771c21d1c4662092cb2176",
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/goals.json",
+          "sha256": "c8764aa6f9321867d8056d6543f014151f83c365b25ed3fc1341b49de9cd272f"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/graph.json",
+          "sha256": "686011ff69b81a4b31c63a1996159fd707959da841fbbc5db690d75746ac8a70"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/handoff.md",
+          "sha256": "5a0878169f73e3a93055f71cb0962cb7ca7662f47af1844e7e5b145bbf5b4841"
+        },
+        "policy_candidate": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/policy-candidate.json",
+          "sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/sidecar.json"
+        }
+      },
+      "generation": "696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2",
+      "handoff_path": ".ai/handoff/readiness-v2/ach-skills-agent-mode/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2/handoff.md",
+      "id": "northstar-plan-ach-skills-agent-mode",
+      "mode": "policy-amendment",
+      "plan_id": "ach-skills-agent-mode",
+      "policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-agent-mode.md",
+        "sha256": "abd5c69682dd8204c789f8dce93fd42b13e0cfc4bdcc385d532246aeceb04734"
+      },
+      "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/goals.json",
+          "sha256": "a5b5e4a84c6f0a85bddb65de6a997c378114f61506abe6d6afe9dcb254748924"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/graph.json",
+          "sha256": "067450776c49f07fef910050e7dad6957019330f8353a270615713070bafd57c"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/handoff.md",
+          "sha256": "8edd9d594bb305c2dedb5b8254afedfdbdb75d581a3aba70d437e0c1c0de8bc7"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/sidecar.json"
+        }
+      },
+      "generation": "22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "handoff_path": ".ai/handoff/readiness-v2/ach-skills-gate-workspace/22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa/handoff.md",
+      "id": "northstar-plan-ach-skills-gate-workspace",
+      "mode": "live",
+      "plan_id": "ach-skills-gate-workspace",
+      "policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-gate-workspace.md",
+        "sha256": "1dfa49c52d3d6737bc01b48c8c96a067db9646f7e32a392d05d2c66e8ddb86c8"
+      },
+      "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-gate-discovery-repair/2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449/goals.json",
+          "sha256": "2c9ad1889484a3deccc1cfb424c0634b441343316c5afdfb5c9eb43cb1fd731e"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-gate-discovery-repair/2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449/graph.json",
+          "sha256": "1301065bbd0070fcde4628f83eeb26602313c435872bbf7b40200ca5b2c81d30"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-gate-discovery-repair/2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449/handoff.md",
+          "sha256": "875a871d99bb401126c1856a65be339993b9e6e70b71563a58a17c4e7c121277"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/ach-skills-gate-discovery-repair/2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449/sidecar.json"
+        }
+      },
+      "generation": "2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
+      "handoff_path": ".ai/handoff/readiness-v2/ach-skills-gate-discovery-repair/2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449/handoff.md",
+      "id": "northstar-plan-ach-skills-gate-discovery-repair",
+      "mode": "live",
+      "plan_id": "ach-skills-gate-discovery-repair",
+      "policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-gate-discovery-repair.md",
+        "sha256": "37c3763ce0860936d5afa3ffaa3533468e1448f6f14e35a8b75370e7d80136cc"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [
