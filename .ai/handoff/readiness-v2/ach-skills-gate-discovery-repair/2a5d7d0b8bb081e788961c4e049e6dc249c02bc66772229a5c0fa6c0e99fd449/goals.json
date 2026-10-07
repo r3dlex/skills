@@ -1,0 +1,68 @@
+{
+  "attachments": {
+    "decision_proposal": "D5-20261006 is ACCEPTED for the unchanged reviewed planning sequence. External receipt: aitool-root .omc/handoffs/ach-20261004/D5-DECISION-20261006.json, raw SHA256 136279cf2742dc31c74a3d73301fce721052e81aabd0f7505f7f76b8f150d9d8; accepted nine-input aggregate 58ac1d5d079195b72f8407e6eaaf926101c92751f052eac07cb4f470b2a7dea5. The historical decisions.json null fields remain untouched. This changed publication candidate needs its own independent review; the accepted aggregate does not authenticate its new bytes and is not plan approval or current operation authority.",
+    "draft_status": "LIVE discovery publication candidate for independent review, metadata preparation only; not remotely published, approved, admitted, implemented or certified. Six ACs and four future product paths exactly preserved from the accepted discovery draft. Not an original D1 third goal.",
+    "p5_blocker_reference": {
+      "certification": "Existing retained-owner evidence: #118 at 4d71ba1501f032d7e880374d2322568ff0043ee2, fresh base-copy 2ac9926fb007a1b98cdc6f7a77196767e62bf652; actual exit 1, no certificate, no merge attempt. No reproduction or repeated gate run by this planner.",
+      "completed_report": "aitool-root .omc/handoffs/ach-20261004/artifacts/next-slices-20261005/p5-02-certify-blocker-20261006.md",
+      "final_release_context": "PARALLEL-LANES.md:351-355 carries retained P5 owner's FINAL: window explicitly RELEASED, owner quiescent; #118 at 4d71ba1501f032d7e880374d2322568ff0043ee2 and #121 at a2251b1e4e7f1bdbebccd1081d715fac9c0e5a92 OPEN, hosted green and independently reviewed, not merged or certified; P5-03 dependency incomplete/unimplemented. Supersedes old window-held and local-only report snapshot. Release is not publication/source admission or formal host approval."
+    },
+    "publication_preparation": {
+      "base_commit": "6b1e893238a64e8db933755ed1f954858c7c6eea",
+      "current_target_source": "Normal origin/main fetch in the publisher's owned worktree, then read-only git ls-remote origin refs/heads/main; both equal the named base. Recheck at each actual producer/review/merge boundary.",
+      "evidence_home": "aitool-root .omc/handoffs/ach-20261004/artifacts/next-slices-20261005/d1-discovery-publication/",
+      "future_readiness": "No product readiness is claimed. The new unpublished sidecar uses unknown, never ready, at each stage with unknown coverage and legacy-safe TDD. Current producer planning gaps and external owner windows must be checked before local metadata emission. Own post-publication approval, independently verified live authority, clean exact-subject admission and actual runtime evidence precede implementation; complete exact-head CI/review/signature/host authority precede merge.",
+      "live_policy_raw_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "owner": "Retained D1 publisher ses_ef1f4424bffeaNnbfvk6XBn2At; publication metadata only. Original product author ses_ef269e5b6ffeLKzDZxKbPsHj0I remains retained/quiescent; no WIP access or new product writer assigned.",
+      "routing_and_windows": "Actual exact-candidate paths/head/routing and discovery-first metadata slot are coordinated through sole main ses_ef20636c4ffe0Ka0K3S4ZhLan4. Conditional E6 capacity and author non-contention are reused, not resumed or treated as an acquired slot. The current slot receipt and full-diff review live separately in evidence_home; this attachment is not a machine authority input or claim retirement."
+    },
+    "source_inspection": {
+      "commit": "6b1e893238a64e8db933755ed1f954858c7c6eea",
+      "proof": "Unchanged base observer.py builds a repository at PR HEAD under root.parent/.omc, then passes that workspace to local-ci.sh and ci-gate.sh. Base local_ci_contract.py reads and pins the HEAD-local contract/scripts; ci-gate executes the head's existing tests/run-tests.sh in that root. Thus a corrected HEAD-local tests/test-skills.sh plus its valid HEAD source pin can remove this discovery blocker under the unchanged current driver. Static source proof only, not an executed successful certificate.",
+      "upstream_release": "2ac9926fb007a1b98cdc6f7a77196767e62bf652 (S-07, not current hosted-target proof)"
+    },
+    "upstream_reference": {
+      "generation": "22d460b273badda208918248b877c362ea72585fd8269fcdb685e50b4e8645fa",
+      "goal_id": "ACH-S-07",
+      "merge_commit": "2ac9926fb007a1b98cdc6f7a77196767e62bf652",
+      "plan_id": "ach-skills-gate-workspace",
+      "receipt": "aitool-root .omc/handoffs/ach-20261004/artifacts/next-slices-20261005/s07-backup-receipt.json",
+      "receipt_raw_sha256": "6b57bf72e7cede9b2d39408f1a1e9eaf4ea5b5a74b46c693526bc14da49e64e3",
+      "semantics": "Procedural upstream verification hold only, not a machine dependency/B5 field. Fresh target/head ancestry and existing exact receipt/signature verification remain prerequisites for the later authorized lane. No O8/S-08/P5-02 product dependency: this independent repair must precede S-08 certification."
+    }
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "[Root-relative discovery] tests/test-skills.sh filters each discovered SKILL.md candidate by its literal path relative to the supplied REPO_ROOT, never by ancestor components outside that root. Retain current find traversal/default no-follow behavior and exact SKILL.md name matching; exclude every candidate below any internal .omc, .git or .claude component at any depth, exactly as the current filters intend. Keep all other candidate types/order/visibility semantics unchanged; no blanket hidden-directory allowance or new exclusion, no -L/-H, no sandbox or observer-location change. Emit the original filename form expected by the unchanged validation loop (absolute for the observer's absolute root), with quoted root-prefix removal and read/emit operations preserving spaces, tabs and backslashes. Do not use an unquoted root glob, substring ancestor match or cd-through-symlink traversal that broadens the candidate set.",
+        "[Validation invariance and positive/negative controls] In the existing discovered tests/test-skills-validator_test.sh home, append root-discovery regression sections without altering earlier cases or assertions. A valid identical skill/exception byte tree under an ordinary supplied root and the same tree under an enclosing .omc/ai-catapult/gate-workspaces ancestor reports the same relative skill names, nonzero assertion totals and validation outcomes; also cover enclosing .git and .claude names so all three filters are root-relative. A genuine invalid discovered SKILL.md (for example missing frontmatter or the existing 101-line body without exception) remains nonzero with the same diagnostic under both ordinary and .omc-ancestor roots. tests/test-skills.sh validation function definitions, limits, exception lookup and per-file assertion/exit behavior stay byte-identical to the reviewed base; the production delta is only discovery and its adjacent explanatory comment/path mapping.",
+        "[Internal namespaces and path semantics] Regression controls place deliberately invalid SKILL.md files in root-internal and nested .omc, .git and .claude directories beside a valid ordinary skill. Internal files never appear in discovered names or counts, while the ordinary skill is actually validated; a tree containing only those internal files remains zero-skill. Cover spaces and tabs in supplied root and skill directory names without splitting filenames or changing diagnostics. Preserve the current find no-follow behavior for symlink files, internal/external symlink directories and a symlink supplied as the starting root; capture that behavior against the reviewed base in later admitted characterization, then require equality in the candidate. Do not silently start following links or switch a symlink filename to a different canonical target. Newline-bearing filenames retain the current line-oriented interface limitation, not a new support or waiver claim.",
+        "[Zero-skill fail-closed full suite] Preserve tests/test-skills.sh's zero-skill WARNING and direct exit-0 behavior, and keep tests/run-tests.sh byte-identical, including its missing/zero Results: PASS refusal and nonzero overall exit. The appended regression invokes a disposable copy of the unchanged full runner with the candidate skill suite and an isolated positive-assertion shell-suite stand-in to demonstrate that an empty or internal-only skill tree still fails with Skill Structure Tests (zero assertions reported) and OVERALL: FAILED. This scratch control never stubs, skips, removes or relaxes a production suite or assertion. Real tests/run-tests.sh remains mandatory and fully executed for the goal.",
+        "[Self-bootstrap, evidence and delivery] The goal's PR body maps the completed P5 failure and immutable source chain to later actual red/green full-suite evidence at exact commits. The admitted author must demonstrate the corrected HEAD-local discovery runs beneath the unchanged base-copy observer's .omc workspace during real certification, with nonzero skill assertions and every local gate passing; no candidate-driver override, environment bypass, zero-assertion waiver, patched verification module or prerequisite-after-itself sequence. .ai/evidence/ACH-GW-DISC-01.json binds this unique plan/goal/head and actual same-command red and green legs. Full local and hosted CI, independent code/security review, a signed independent review record, exact-head signed certificate, formal ordinary-host approval and fresh ordinary merge authority remain required. No success, new certificate or merge is claimed by this draft.",
+        "[Pins and narrow scope] Keep skills .ai/ci/local-ci.json at local-ci/1 with unchanged verification/workflow inventory and all unrelated source values. Re-pin only sources[tests/test-skills.sh] and add sources[tests/test-skills-validator_test.sh] if absent (otherwise re-pin that existing key), using the final reviewed source bytes. Keep the existing regression script discovered by unchanged tests/test-scripts.sh through *_test.sh; no runner, wrapper, fixture file or driver/manifest edit is needed. Observer location, observed-root/workspace/git-metadata cleanliness and identity checks, admission/certificate schema, v1 frozen bytes, SHA assertion/cases and original D1 registry/payloads stay unchanged. Tests use cleanup-bound external temporary roots, leaving neither observed root nor gate workspace with outputs. If later evidence requires any additional source, test or pin path, stop for separately reviewed scope/claim disposition before editing it."
+      ],
+      "dependencies": [],
+      "id": "ACH-GW-DISC-01",
+      "issue_ref": "issue:skills:ach-skills-gate-discovery-repair",
+      "scope": [
+        "tests/test-skills.sh",
+        "tests/test-skills-validator_test.sh",
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/ACH-GW-DISC-01.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "ach-skills-gate-discovery-repair",
+  "issue_ref": "issue:skills:ach-skills-gate-discovery-repair",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/admission-complete-handoffs-ach-skills-gate-discovery-repair.md"
+  }
+}

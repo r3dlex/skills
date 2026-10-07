@@ -58,7 +58,7 @@ APPROVAL_FIELDS = {'schema', 'plan_id', 'generation', 'bundle_sha256', 'spec_sha
 CERTIFICATE_FIELDS = {'schema', 'repository', 'plan_id', 'generation', 'goal_id', 'approval_digest', 'assurance', 'pr',
                       'head', 'base', 'base_ref', 'merge_admission_digest', 'local_gates', 'required_checks',
                       'unresolved_threads', 'review_lane', 'lane_independence', 'admin', 'adapter', 'certifier',
-                      'issued_at'}
+                      'gate_workspace', 'issued_at'}
 TOOL = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._+-]*$')
 # M4: a branch_pattern is ^, literal [A-Za-z0-9/_-] characters, at most one group of literal
 # alternatives, <plan_id> and <goal_id> once each, and $. No other regex syntax is accepted, and no
@@ -1126,6 +1126,18 @@ def certificate_body(**fields):
     body = dict(fields, schema=CERTIFICATE_SCHEMA, lane_independence='declared')
     check(set(body) == CERTIFICATE_FIELDS, 'certificate_invalid', ','.join(sorted(set(body) ^ CERTIFICATE_FIELDS)))
     check(body['assurance'] in ASSURANCE, 'certificate_invalid', 'assurance')
+    # W9: gate_workspace is the isolated-copy provenance the certificate binds (the workspace's
+    # physical path and the gate-workspace/1 record's path and sha256); None only when the
+    # gates never ran. Pre-plan certificates have no field at all and keep validating.
+    workspace = body['gate_workspace']
+    check(workspace is None or (isinstance(workspace, dict) and set(workspace) == {'workspace', 'record'}
+                                and isinstance(workspace['workspace'], str)
+                                and isinstance(workspace['record'], dict)
+                                and set(workspace['record']) == {'path', 'sha256'}
+                                and isinstance(workspace['record']['path'], str)
+                                and isinstance(workspace['record']['sha256'], str)
+                                and re.fullmatch('[0-9a-f]{64}', workspace['record']['sha256'])),
+          'certificate_invalid', 'gate_workspace')
     return body
 
 

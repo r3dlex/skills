@@ -122,3 +122,26 @@ approach without overriding it. For a handoff registered in
   `python3 -I -B -c`, which puts the pinned `lib` directory on `sys.path` and
   runs the module through `runpy`. The five scripts and the module are pinned in
   `readiness-dependency-v2.json`.
+- **Gate workspace.** `certify-v2` and `merge-v2` never run the four local gates
+  in the observed root: they build a gate workspace, a fresh repository in a
+  sibling directory under the observed root's parent (under the parent's
+  `.omc/` tree, a name the existing `.omc/` ignored pattern of the umbrella and
+  root `.gitignore` covers, never inside the observed root), borrowing the
+  observed objects read-only through `objects/info/alternates` and checking the
+  PR head out detached. Its HEAD is the certified head and its files are that
+  head's tree; before any gate runs it must equal the head tree or the
+  derivation refuses with `gate_workspace_unfaithful`. The workspace is removed
+  when the derivation ends, and a leftover from an interrupted run is never
+  reused.
+- **Physical paths.** Every path the observer hands a gate — `--root`, the
+  `--goal-record`, the working directory, `HOME` and `TMPDIR` — is its physical
+  path (`os.path.realpath`), so pass `pwd -P` as `--root` where the checkout was
+  reached through a symlink (macOS `/tmp` and `/var`, for example). A gate that
+  runs `git` from the workspace reaches only the workspace's own git directory;
+  the observed common directory's `config`, `hooks/`, `info/` and
+  `objects/info/alternates` are snapshotted around the gates and any change
+  refuses with `git_metadata_changed_during_gates`. After every gate the
+  workspace's HEAD, index entries and tracked files must still equal the head
+  tree (`gate_workspace_tracked_changed:<path>`) and no untracked or ignored
+  path may exist (`gate_workspace_undeclared_output:<path>`), each also refusing
+  with `worktree_changed_during_gates`.
