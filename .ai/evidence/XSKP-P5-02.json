@@ -741,5 +741,94 @@
       "supersedes review_corrections_round_2 M1 and M3 wording on undo and Placement (\"delete the file this step created\", \"move it there; never copy it\"): round 3 deletes only the copy this step made and copies, publishes, then removes the original only after success",
       "supersedes review_corrections_round_2 M2 on the registry repo_id: <repo_id> comes from .ai/init/repo-profile.json"
     ]
+  },
+  "review_corrections_round_4": {
+    "admission": {
+      "admitted": true,
+      "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+      "assurance": "agent-self",
+      "authority": "plan-approval/1",
+      "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <durable worktree on feat/xskp-p5-skill-producers-XSKP-P5-02> --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation",
+      "gaps": 0,
+      "head": "4662eafce470ac695443d5ae738661c10523d990",
+      "report_sha256": "91490b4ab20b32537df8b2af78da9dbc7a7bd04d0defe49f00c9b4a6b5f190cd"
+    },
+    "base_update": "the coordinator merged origin/main de949f9 (#123) into the goal branch as 02154d1; this lane merged origin/main 7863e64 (#121, XSKP-P5-04) as 4662eafce470ac695443d5ae738661c10523d990 (merge, not rebase; no conflicts; no #118 file touched by either); the P5-04 registry template (repo_id \"{{REPO_ID}}\") agrees with the module, which takes repo_id from .ai/init/repo-profile.json written from the same REPO_ID",
+    "follow_ups": [
+      "crash case J: publish the original from where it is (derived_from = original), remove only after success",
+      "link detection: specify \"a tracked file links to it\" (git grep -lF <basename>, resolve each hit)",
+      "ADR numbering across the legacy and canonical ADR dirs",
+      "encoded usernames containing \"-\" keep their later parts (Claude Code directory encoding is not invertible)"
+    ],
+    "items": [
+      {
+        "change": "knowledge-scrub block: encoded Claude Code project/scratchpad dirs (-Users-<name>-, -home-<name>-) -> -<home>; C:\\Users\\<name>, /root, $HOME, ~ and file:// home paths -> <home>, anchored with (?<![\\w.~-]) so src/home/, /scim/v2/Users/ and URLs stay intact; a UUID is replaced only in a session path (sessions/, projects/<dir>/, rollout-, /scratchpad), case-insensitively; ses_ ids unchanged",
+        "green": {
+          "at": "2026-10-08T19:03:14Z",
+          "commit": "4662eafce470ac695443d5ae738661c10523d990",
+          "exit_code": 0,
+          "note": "full suite at the merged head: OVERALL: PASSED, test-scripts PASS=244 FAIL=0, skills PASS=184 FAIL=0; producer test PASS=7 FAIL=0",
+          "output_sha256": "e3b09f3e8fdda852a6884476b7486402e2d21fdd90d15a7cfdb6e990da27d39b"
+        },
+        "item": "critic M1 + L1: privacy scrub misses encoded, Windows, /root and $HOME home paths and uppercase UUIDs; over-strips REST paths, URLs and non-session UUIDs",
+        "mutations": {
+          "at": "2026-10-08T18:53:22Z",
+          "commit": "b0b8f52",
+          "exit_code": 0,
+          "note": "dropping each of the 9 rules, unanchoring the home or /root rule, making the session UUID rule context-free or case-sensitive, or narrowing the encoded-username class each fails section 7; the restored module passes",
+          "output_sha256": "6adf02b6116883f2005d6702189deae151a0a3597bb90dff6e7c4728e84cb71a"
+        },
+        "probe_after": {
+          "at": "2026-10-08T18:22:34Z",
+          "commit": "b0b8f52",
+          "exit_code": 0,
+          "note": "critic scrub_probe.py on the round-4 module: all encoded/Windows/root/$HOME/session-path samples replaced; SCIM path, /home URL and non-session UUID unchanged; a standalone uppercase GUID stays by design (UUIDs only in session paths)",
+          "output_sha256": "1ecd8b598726012463f0adbae4690c0e370b15c6e4381036afdb7d7c12bc5d32"
+        },
+        "probe_before": {
+          "at": "2026-10-08T18:17:57Z",
+          "commit": "02154d1",
+          "exit_code": 0,
+          "note": "critic scrub_probe.py on the round-3 module: 6 UNDER (leaks) and 3 OVER (over-strips)",
+          "output_sha256": "e47fdf5f1fa76f7a8929fbb02d0571e067cba07ec55536cfa100914e3fdbfc5c"
+        },
+        "red": {
+          "at": "2026-10-08T18:16:52Z",
+          "commit": "047fcef",
+          "exit_code": 1,
+          "note": "14 FAILs against the round-3 module: 12 scrub samples (8 leaks, 4 over-strips) plus the 2 code-review scope cues",
+          "output_sha256": "1cfd45055b572d21e9c98b07f4710e23f662900eae995bb1bd97c1b73db8b28b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 7 (14 must-replace samples and 6 must-stay-unchanged samples, exact outputs)"
+      },
+      {
+        "change": "Private content covers handoff, retro and code-review; the code-review row names it",
+        "green": {
+          "at": "2026-10-08T19:03:14Z",
+          "commit": "4662eafce470ac695443d5ae738661c10523d990",
+          "exit_code": 0,
+          "note": "producer test PASS=7 FAIL=0 within the full suite",
+          "output_sha256": "e3b09f3e8fdda852a6884476b7486402e2d21fdd90d15a7cfdb6e990da27d39b"
+        },
+        "item": "item 4: Private content for code-review",
+        "red": {
+          "at": "2026-10-08T18:16:52Z",
+          "commit": "047fcef",
+          "exit_code": 1,
+          "note": "FAILs: code-review document cue; handoff, retro and code-review Private content cue",
+          "output_sha256": "1cfd45055b572d21e9c98b07f4710e23f662900eae995bb1bd97c1b73db8b28b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      }
+    ],
+    "local_checks": {
+      "at": "2026-10-08T19:04:04Z",
+      "commit": "4662eafce470ac695443d5ae738661c10523d990",
+      "exit_code": 0,
+      "note": "catalog validator passed (39 skills, audit unchanged); secret scan clean; git diff --check clean; markdown links passed; prek exit 0; migrate pin OK; SKILL.md, golden and migrate pin unchanged since round 3",
+      "output_sha256": "3f956c1d0a09a02c2aa327106e9796f0381f420044954091b15b5e60666fabce"
+    },
+    "notes": "needs-adoption now names ai-catapult adopt as a planned follow-up (plan P4), not yet on ai-catapult main",
+    "review": "agent review round 3 of #118 at 02154d195a042ea0e38606fa115eed7ed7ff2bd7: code-review APPROVE; critic REQUEST CHANGES with one MEDIUM (M1, privacy scrub); needs-adoption accepted as an AC1 extension"
   }
 }
