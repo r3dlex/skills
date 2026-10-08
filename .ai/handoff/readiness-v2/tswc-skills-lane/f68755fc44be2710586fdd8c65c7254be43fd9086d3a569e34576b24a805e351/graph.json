@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:tswc-skills-lane:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "target": "plan:skills:tswc-skills-lane:tswc-sk-b2:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "type": "plans"
+    }
+  ],
+  "generation": "f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+  "goal_ids": [
+    "tswc-sk-b2"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:tswc-skills-lane:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane/f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "7fe322833d2c7d5778ba39bc8700e8704854f1b4e86cd520927bab1e6b54c341",
+      "id": "plan:skills:tswc-skills-lane:tswc-sk-b2:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane/f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "tswc-skills-lane",
+  "schema_version": "1.1"
+}

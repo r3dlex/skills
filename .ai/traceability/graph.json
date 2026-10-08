@@ -216,6 +216,21 @@
       "source": "handoff:skills:ach-skills-gate-discovery-repair:2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
       "target": "plan:skills:ach-skills-gate-discovery-repair:ACH-GW-DISC-01:2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:tswc-skills-lane",
+      "target": "prd:skills:tswc-skills-lane",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:tswc-skills-lane",
+      "target": "handoff:skills:tswc-skills-lane:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "target": "plan:skills:tswc-skills-lane:tswc-sk-b2:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -799,6 +814,55 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "ACH-GW-DISC-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:tswc-skills-lane",
+        "handoff:skills:tswc-skills-lane:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351"
+      ],
+      "id": "prd:skills:tswc-skills-lane",
+      "path": "docs/specifications/ACTIVE/typescript-wikiskill-convergence-tswc-skills-lane.md",
+      "repo_id": "skills",
+      "sha256": "ffd7315396a9801c58c68ddbe890611cc1fd29f812e24848841836a7c201a172",
+      "status": "active",
+      "title": "TSWC skills lane (`skills`, plan `tswc-skills-lane`) \u2014 plan-scoped planning specification",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:tswc-skills-lane"
+      ],
+      "id": "issue:skills:tswc-skills-lane",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/tswc-skills-lane.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "TSWC skills lane (`skills`, plan `tswc-skills-lane`) \u2014 local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:tswc-skills-lane",
+        "plan:skills:tswc-skills-lane:tswc-sk-b2:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351"
+      ],
+      "id": "handoff:skills:tswc-skills-lane:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane/f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "tswc-skills-lane",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:tswc-skills-lane:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351"
+      ],
+      "goal_revision": "7fe322833d2c7d5778ba39bc8700e8704854f1b4e86cd520927bab1e6b54c341",
+      "id": "plan:skills:tswc-skills-lane:tswc-sk-b2:f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane/f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "tswc-sk-b2",
       "type": "plan"
     }
   ],
