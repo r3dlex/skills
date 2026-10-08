@@ -34,14 +34,18 @@ log_fail() {
 }
 
 # -----------------------------------------------------------------------------
-# Find all SKILL.md files, excluding .git/, hidden dirs, and .omc/ internal dirs.
+# Filter root-relative internal namespaces, preserving find's original filenames.
 # -----------------------------------------------------------------------------
 find_skills() {
-    find "$REPO_ROOT" \
-        -name "SKILL.md" \
-        -not -path "*/.git/*" \
-        -not -path "*/.claude/*" \
-        -not -path "*/.omc/*"
+    local candidates skill_file
+    candidates=$(find "$REPO_ROOT" \
+        -name "SKILL.md") || return
+    while IFS= read -r skill_file; do
+        case "/${skill_file#"$REPO_ROOT"}" in
+            */.git/*|*/.claude/*|*/.omc/*) continue ;;
+        esac
+        printf '%s\n' "$skill_file"
+    done <<< "$candidates"
 }
 
 # -----------------------------------------------------------------------------
