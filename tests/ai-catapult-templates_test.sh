@@ -9,9 +9,15 @@
 #   (c) all *.json files under templates/ are valid JSON (placeholder tokens
 #       of the form {{TOKEN}} are allowed — they are not a JSON error)
 #   (d) the mechanical set covers the required v3 skeleton:
-#       - the 18 .ai/ subdirs (present as dirs under templates/dot-ai/)
+#       - the 20 .ai/ subdirs (present as dirs under templates/dot-ai/)
 #       - matrix.json template
 #       - thin pointer files AGENTS.md, CLAUDE.md, GEMINI.md
+#   (h) knowledge registry templates (XSKP-P5-04): dot-ai/knowledge/registry.json
+#       renders the P4 init bytes under the contract serialization (sorted keys,
+#       2-space indent, ensure_ascii=False, trailing newline - the pack's
+#       fixtures/vectors/serialization-expected.json shape), entries/.gitkeep is
+#       present, and the boundary manifest classifies .ai/knowledge/registry.json
+#       as mechanical.
 
 set -euo pipefail
 
@@ -211,7 +217,7 @@ echo "--- (d) Required v3 skeleton coverage ---"
 
 DOT_AI="$TEMPLATES/dot-ai"
 
-# 18 required .ai/ subdirs (from documentation-blueprint.md tree shape)
+# 20 required .ai/ subdirs (from documentation-blueprint.md tree shape)
 REQUIRED_AI_SUBDIRS=(
     "system-prompts"
     "skills"
@@ -224,6 +230,8 @@ REQUIRED_AI_SUBDIRS=(
     "handoff"
     "traceability"
     "evals"
+    "knowledge"
+    "knowledge/entries"
     "policies"
     "observability"
     "mcp"
@@ -327,6 +335,65 @@ while IFS= read -r line; do
 done <<< "$BASELINE_OUTPUT"
 if ! printf '%s\n' "$BASELINE_OUTPUT" | grep -q '  PASS: '; then
     fail "readiness-policy/2 baseline checks did not run"
+fi
+
+# ─── (h) knowledge registry templates (XSKP-P5-04) ─────────────────────────────
+echo ""
+echo "--- (h) knowledge registry templates ---"
+
+set +e
+KNOWLEDGE_OUTPUT=$(python3 -I -B - "$REPO_ROOT" <<'PYEOF'
+import json, re, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+templates = root / "03-configure-generate/ai-catapult-init/templates"
+manifest = json.loads((templates / "boundary-manifest.json").read_text())
+results = []
+def check(name, condition):
+    results.append((name, bool(condition)))
+
+registry = templates / "dot-ai/knowledge/registry.json"
+gitkeep = templates / "dot-ai/knowledge/entries/.gitkeep"
+check("registry template exists", registry.is_file())
+check("entries/.gitkeep exists", gitkeep.is_file())
+
+entry = [e for e in manifest["paths"] if e.get("path") == ".ai/knowledge/registry.json"]
+check("manifest lists .ai/knowledge/registry.json as mechanical",
+      len(entry) == 1 and entry[0].get("classification") == "mechanical"
+      and entry[0].get("template") == "dot-ai/knowledge/registry.json")
+
+# P4 init bytes under the contract serialization: the initial registry carries
+# exactly the four schema-required keys, serialized canonically (sorted keys,
+# 2-space indent, ensure_ascii=False, trailing newline) — the shape pinned by
+# the contract pack's fixtures/vectors/serialization-expected.json.
+sample = "fixture-repo"
+def canonical(repo_id):
+    data = {"entries": [], "generated_from": ".ai/knowledge/entries",
+            "repo_id": repo_id, "schema": "knowledge-registry/1"}
+    return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+text = registry.read_text() if registry.is_file() else ""
+tokens = re.findall(r"\{\{([A-Z0-9_]+)\}\}", text)
+check("registry template uses {{REPO_ID}} as its only token", tokens == ["REPO_ID"])
+check("rendered registry equals the P4 init bytes under the contract serialization",
+      text.replace("{{REPO_ID}}", sample) == canonical(sample))
+check("repo_id is parameterized (a second id renders different bytes)",
+      text.replace("{{REPO_ID}}", "other-repo") == canonical("other-repo"))
+for name, ok in results:
+    print("  %s: %s" % ("PASS" if ok else "FAIL", name))
+sys.exit(0 if all(ok for _, ok in results) else 1)
+PYEOF
+)
+KNOWLEDGE_EXIT=$?
+set -e
+echo "$KNOWLEDGE_OUTPUT"
+while IFS= read -r line; do
+    case "$line" in
+        "  PASS:"*) PASS=$((PASS + 1)) ;;
+        "  FAIL:"*) FAIL=$((FAIL + 1)) ;;
+    esac
+done <<< "$KNOWLEDGE_OUTPUT"
+if ! printf '%s\n' "$KNOWLEDGE_OUTPUT" | grep -q '  PASS: '; then
+    fail "knowledge registry checks did not run"
 fi
 
 # ─── Summary ──────────────────────────────────────────────────────────────────
