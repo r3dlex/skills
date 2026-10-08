@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "e6-sk-00-ledger": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Creates the TS toolchain, the five-class shrink-only ledger, the legacy strict stack, the env-isolated shim template, the node shadowing test and the differential harness, and moves skills local CI to the O8 workspace bootstrap; waits for O8 and the node/npm policy-tools amendment. Nothing existing is converted; negative fixtures characterize every check. Touches only ci.yml and tests/test-scripts.sh among existing files, so CI and local CI must stay green with unchanged job names. Coverage unknown; post-O8.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e6-skills-legacy-ts",
+  "schema": "readiness-sidecar/1"
+}
