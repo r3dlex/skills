@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "tswc-sk-b2": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: skills has no line-coverage tooling for SKILL.md, shell or catalog content and no coverage threshold applies, so legacy-safe TDD is used; the red leg is the blindness negative fixtures per master intake section 4.7 with same-command red-to-green evidence in .ai/evidence/tswc-sk-b2.json. Blast radius: regenerates shared catalog surfaces (README.md, AGENTS.md, CATALOG.md, catalog audit and report) and narrows two retained-policy regression tests, which both review lanes must accept explicitly. The skills ship experimental with no supported hosts, so default installs, plugin payloads and the host golden do not change; the SKILL.md no-growth guard and one local-CI hash are re-pinned. Readiness stays unknown until one verified plan approval binds this generation.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "tswc-skills-lane",
+  "schema": "readiness-sidecar/1"
+}
