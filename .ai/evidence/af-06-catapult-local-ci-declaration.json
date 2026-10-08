@@ -1,0 +1,27 @@
+{
+  "goal_id": "af-06-catapult-local-ci-declaration",
+  "green": {
+    "command": "bash tests/local_ci_declaration_test.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "final_green_output_sha256": "273f44bc5ed31230a0cd34fc829e2a9f096f32f8ff032bb0653830e41d29313a",
+    "final_test_sha256": "635eab52031e1e71dd5ba793630751cbb7a36e8a8394b3fc70db6cd108880214",
+    "fixture_script_sha256": "e49f5035a8d757e2acc2d2180ce099a89e65e7daa7958873f817735617b97099",
+    "green_method": "replace both placeholders with the fixture-root validator; the test file is byte-identical between the red and first green run",
+    "green_output_sha256": "c97c708633098aa4986f16e770dd04ffa1e0b01cd8014ed265464946dd8fffd9",
+    "green_result": "13 tests passed",
+    "placeholder_fixture_script_sha256": "06cacb4fc7ac2dbb7b7c601ef35c99c88a988ba68e3cb7628d6dcfa174443655",
+    "red_base_commit": "56b6c6c8b4b5903aed418088df1cddd4c135681a",
+    "red_method": "add FixtureSurfacesRun and the completeness test to tests/local_ci_declaration_test.py while both fixture-root tests/workflow-fixtures_test.sh are the exit-0 placeholder; run the identical command",
+    "red_output_sha256": "05cd00cf64b09a9731a372297460ba12929687ab7efd5195ca760471e182a7c7",
+    "red_result": "13 tests; failures=14 (7 covered-input defects x 2 fixture variants still exited 0)",
+    "red_test_sha256": "9f770dce13bfe1c4df31570a84b0a0af946aa92ce9ad8018d5e13bb44515a4e2",
+    "refactor": "validate_local_ci split into check_fields and validate_surface, malformed cases moved to MALFORMED_CASES; 90,024 generated declarations gave identical results, paths and messages under the 3166ae0 and refactored validators; green re-observed afterwards",
+    "scope": "r3dlex/skills#105 review corrections (fixture surfaces, defect-negative and completeness guard); the original af-06 PR 1 red/green chronology is not reconstructed"
+  },
+  "red": {
+    "command": "bash tests/local_ci_declaration_test.sh",
+    "exit_code": 1
+  }
+}

@@ -14,18 +14,39 @@ consumer parks. A malformed declaration is rejected with the offending JSON
 path named. A flat command string or list is not a valid declaration.
 """
 import json
+import os
 import pathlib
+import shlex
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 TEMPLATE = (REPO / "03-configure-generate/ai-catapult-init/templates"
             / "dot-ai/workflows/repo-workflow.json")
 SCHEMA_DOC = (REPO / "03-configure-generate/ai-catapult-init/modules/workflow.md")
+FIXTURE_ROOT = REPO / "reference/fixtures/v3"
 FIXTURES = ("standalone", "umbrella")
 
 DECL_KEYS = ("surfaces", "sole_source_of_truth")
 SURFACE_KEYS = ("cmd", "hermetic", "covers")
+
+# Inputs the v3 fixture declarations claim to cover, each broken one at a time:
+# (label, fixture-relative path, text to replace or None to delete, replacement).
+COVERED_INPUT_DEFECTS = (
+    ("workflow doc removed", ".ai/workflows/repo-workflow.md", None, None),
+    ("workflow doc loses its mandatory steps", ".ai/workflows/repo-workflow.md",
+     "## Mandatory steps", "## Steps"),
+    ("manifest removed", ".ai/workflows/repo-workflow.json", None, None),
+    ("phase status removed", ".ai/phases/02-govern-plan/status.json", None, None),
+    ("phase status names another phase", ".ai/phases/03-configure-generate/status.json",
+     '"phase_id": "03-configure-generate"', '"phase_id": "02-govern-plan"'),
+    ("entry surface removed", "README.md", None, None),
+    ("entry surface drops the manifest link", "AGENTS.md",
+     ".ai/workflows/repo-workflow.json", ".ai/workflows/repo-workflow.txt"),
+)
 
 
 class Malformed(Exception):
@@ -34,6 +55,27 @@ class Malformed(Exception):
     def __init__(self, path, message):
         self.path = path
         super().__init__(f"{path}: {message}")
+
+
+def check_fields(path, record, keys):
+    """Reject the first unknown field (sorted), then the first missing one."""
+    for key in sorted(k for k in record if k not in keys):
+        raise Malformed(f"{path}.{key}", "unknown field")
+    for key in keys:
+        if key not in record:
+            raise Malformed(f"{path}.{key}", "missing required field")
+
+
+def validate_surface(index, surface):
+    """Validate one {cmd, hermetic, covers} record at local_ci.surfaces[index]."""
+    path = f"local_ci.surfaces[{index}]"
+    check_fields(path, surface, SURFACE_KEYS)
+    if not isinstance(surface["cmd"], str) or not surface["cmd"].strip():
+        raise Malformed(f"{path}.cmd", "must be a non-empty string")
+    if not isinstance(surface["hermetic"], bool):
+        raise Malformed(f"{path}.hermetic", "must be a boolean")
+    if not isinstance(surface["covers"], str) or not surface["covers"].strip():
+        raise Malformed(f"{path}.covers", "must be a non-empty string")
 
 
 def validate_local_ci(manifest):
@@ -47,11 +89,7 @@ def validate_local_ci(manifest):
     if not isinstance(decl, dict):
         raise Malformed("local_ci", "must be an object with keys "
                         f"{list(DECL_KEYS)}, got {type(decl).__name__}")
-    for key in sorted(k for k in decl if k not in DECL_KEYS):
-        raise Malformed(f"local_ci.{key}", "unknown field")
-    for key in DECL_KEYS:
-        if key not in decl:
-            raise Malformed(f"local_ci.{key}", "missing required field")
+    check_fields("local_ci", decl, DECL_KEYS)
     surfaces = decl["surfaces"]
     if not isinstance(surfaces, list):
         raise Malformed("local_ci.surfaces",
@@ -62,18 +100,7 @@ def validate_local_ci(manifest):
                         "must be a list of {cmd, hermetic, covers} surfaces; "
                         "a flat command list is not a declaration")
     for index, surface in enumerate(surfaces):
-        path = f"local_ci.surfaces[{index}]"
-        for key in sorted(k for k in surface if k not in SURFACE_KEYS):
-            raise Malformed(f"{path}.{key}", "unknown field")
-        for key in SURFACE_KEYS:
-            if key not in surface:
-                raise Malformed(f"{path}.{key}", "missing required field")
-        if not isinstance(surface["cmd"], str) or not surface["cmd"].strip():
-            raise Malformed(f"{path}.cmd", "must be a non-empty string")
-        if not isinstance(surface["hermetic"], bool):
-            raise Malformed(f"{path}.hermetic", "must be a boolean")
-        if not isinstance(surface["covers"], str) or not surface["covers"].strip():
-            raise Malformed(f"{path}.covers", "must be a non-empty string")
+        validate_surface(index, surface)
     sole = decl["sole_source_of_truth"]
     if not isinstance(sole, bool):
         raise Malformed("local_ci.sole_source_of_truth", "must be a boolean")
@@ -101,6 +128,77 @@ def consumer_verdict(manifest):
     return "verify", surfaces
 
 
+def fixture_surfaces(variant):
+    """The surfaces the committed v3 fixture declares (read before any defect)."""
+    manifest = json.loads(
+        (FIXTURE_ROOT / variant / ".ai/workflows/repo-workflow.json").read_text())
+    return validate_local_ci(manifest)[1]
+
+
+def run_surfaces(root, surfaces):
+    """Run each declared surface from root, offline, as a consumer would."""
+    env = {"PATH": os.environ["PATH"], "PYTHONDONTWRITEBYTECODE": "1"}
+    return [subprocess.run(shlex.split(s["cmd"]), cwd=root, env=env,
+                           capture_output=True, text=True).returncode
+            for s in surfaces]
+
+
+def break_input(root, path, old, new):
+    """Delete root/path, or replace old with new in it (never a no-op)."""
+    target = root / path
+    if old is None:
+        target.unlink()
+        return
+    text = target.read_text()
+    if old not in text:
+        raise AssertionError(f"defect would be a no-op: {old!r} not in {path}")
+    target.write_text(text.replace(old, new))
+
+
+def make_surface(cmd="bash tests/run-tests.sh", hermetic=True, covers="test suite"):
+    return {"cmd": cmd, "hermetic": hermetic, "covers": covers}
+
+
+# Malformed declarations, each with the JSON path the rejection must name.
+MALFORMED_CASES = (
+    ("local_ci", "bash tests/run-tests.sh"),
+    ("local_ci", ["bash tests/run-tests.sh"]),
+    ("local_ci", None),
+    ("local_ci.surfaces", {"sole_source_of_truth": True}),
+    ("local_ci.sole_source_of_truth", {"surfaces": [make_surface()]}),
+    ("local_ci.extra",
+     {"surfaces": [], "sole_source_of_truth": False, "extra": 1}),
+    ("local_ci.surfaces",
+     {"surfaces": "bash tests/run-tests.sh",
+      "sole_source_of_truth": False}),
+    ("local_ci.surfaces",
+     {"surfaces": ["bash tests/run-tests.sh", "bash other.sh"],
+      "sole_source_of_truth": False}),
+    ("local_ci.surfaces", {"surfaces": [42],
+                           "sole_source_of_truth": False}),
+    ("local_ci.surfaces[0].cmd",
+     {"surfaces": [{"hermetic": True, "covers": "t"}],
+      "sole_source_of_truth": False}),
+    ("local_ci.surfaces[0].cmd",
+     {"surfaces": [make_surface(cmd="")], "sole_source_of_truth": False}),
+    ("local_ci.surfaces[0].hermetic",
+     {"surfaces": [make_surface(hermetic="yes")],
+      "sole_source_of_truth": False}),
+    ("local_ci.surfaces[0].covers",
+     {"surfaces": [make_surface(covers="")], "sole_source_of_truth": False}),
+    ("local_ci.surfaces[0].covers",
+     {"surfaces": [dict(make_surface(), covers=["tests"])],
+      "sole_source_of_truth": False}),
+    ("local_ci.surfaces[0].extra",
+     {"surfaces": [dict(make_surface(), extra=1)],
+      "sole_source_of_truth": False}),
+    ("local_ci.sole_source_of_truth",
+     {"surfaces": [make_surface()], "sole_source_of_truth": "yes"}),
+    ("local_ci.sole_source_of_truth",
+     {"surfaces": [], "sole_source_of_truth": True}),
+)
+
+
 class ShapeContract(unittest.TestCase):
     """Validator cases: well-formed accepted, malformed rejected, absent as absent."""
 
@@ -108,18 +206,14 @@ class ShapeContract(unittest.TestCase):
         return {"local_ci": {"surfaces": list(surfaces),
                              "sole_source_of_truth": sole}}
 
-    def surface(self, cmd="bash tests/run-tests.sh", hermetic=True,
-                covers="test suite"):
-        return {"cmd": cmd, "hermetic": hermetic, "covers": covers}
-
     def test_well_formed_declaration_accepted(self):
-        manifest = self.well_formed(self.surface())
-        self.assertEqual(validate_local_ci(manifest), ("declared", [self.surface()]))
+        manifest = self.well_formed(make_surface())
+        self.assertEqual(validate_local_ci(manifest), ("declared", [make_surface()]))
         self.assertEqual(consumer_verdict(manifest)[0], "verify")
 
     def test_well_formed_multi_surface_per_surface_hermeticity(self):
-        offline = self.surface(hermetic=True, covers="offline checks")
-        hosted = self.surface(cmd="gh run list", hermetic=False,
+        offline = make_surface(hermetic=True, covers="offline checks")
+        hosted = make_surface(cmd="gh run list", hermetic=False,
                               covers="hosted reconciliation")
         manifest = self.well_formed(offline, hosted)
         state, surfaces = validate_local_ci(manifest)
@@ -127,45 +221,7 @@ class ShapeContract(unittest.TestCase):
         self.assertEqual([s["hermetic"] for s in surfaces], [True, False])
 
     def test_malformed_rejected_with_offending_path(self):
-        cases = [
-            # (offending path, local_ci value)
-            ("local_ci", "bash tests/run-tests.sh"),
-            ("local_ci", ["bash tests/run-tests.sh"]),
-            ("local_ci", None),
-            ("local_ci.surfaces", {"sole_source_of_truth": True}),
-            ("local_ci.sole_source_of_truth", {"surfaces": [self.surface()]}),
-            ("local_ci.extra",
-             {"surfaces": [], "sole_source_of_truth": False, "extra": 1}),
-            ("local_ci.surfaces",
-             {"surfaces": "bash tests/run-tests.sh",
-              "sole_source_of_truth": False}),
-            ("local_ci.surfaces",
-             {"surfaces": ["bash tests/run-tests.sh", "bash other.sh"],
-              "sole_source_of_truth": False}),
-            ("local_ci.surfaces", {"surfaces": [42],
-                                   "sole_source_of_truth": False}),
-            ("local_ci.surfaces[0].cmd",
-             {"surfaces": [{"hermetic": True, "covers": "t"}],
-              "sole_source_of_truth": False}),
-            ("local_ci.surfaces[0].cmd",
-             {"surfaces": [self.surface(cmd="")], "sole_source_of_truth": False}),
-            ("local_ci.surfaces[0].hermetic",
-             {"surfaces": [self.surface(hermetic="yes")],
-              "sole_source_of_truth": False}),
-            ("local_ci.surfaces[0].covers",
-             {"surfaces": [self.surface(covers="")], "sole_source_of_truth": False}),
-            ("local_ci.surfaces[0].covers",
-             {"surfaces": [dict(self.surface(), covers=["tests"])],
-              "sole_source_of_truth": False}),
-            ("local_ci.surfaces[0].extra",
-             {"surfaces": [dict(self.surface(), extra=1)],
-              "sole_source_of_truth": False}),
-            ("local_ci.sole_source_of_truth",
-             {"surfaces": [self.surface()], "sole_source_of_truth": "yes"}),
-            ("local_ci.sole_source_of_truth",
-             {"surfaces": [], "sole_source_of_truth": True}),
-        ]
-        for path, decl in cases:
+        for path, decl in MALFORMED_CASES:
             with self.subTest(path=path, decl=decl):
                 with self.assertRaises(Malformed) as caught:
                     validate_local_ci({"local_ci": decl})
@@ -198,7 +254,7 @@ class ShapeContract(unittest.TestCase):
         self.assertEqual(consumer_verdict(manifest)[0], "park")
 
     def test_surfaces_without_sole_truth_claim_park(self):
-        manifest = self.well_formed(self.surface(), sole=False)
+        manifest = self.well_formed(make_surface(), sole=False)
         self.assertEqual(validate_local_ci(manifest)[0], "declared")
         self.assertEqual(consumer_verdict(manifest)[0], "park")
 
@@ -238,6 +294,19 @@ class ScaffoldAndFixtures(unittest.TestCase):
                                     f"{variant}: declared surface missing: "
                                     f"{surface['cmd']}")
 
+    def test_reference_fixture_declarations_are_complete(self):
+        # sole_source_of_truth: true claims the surfaces are the fixture repo's
+        # whole local CI, so every fixture test script must be declared.
+        for variant in FIXTURES:
+            root = FIXTURE_ROOT / variant
+            declared = {shlex.split(s["cmd"])[-1] for s in fixture_surfaces(variant)}
+            scripts = {p.relative_to(root).as_posix()
+                       for p in (root / "tests").glob("*_test.*")}
+            with self.subTest(variant=variant):
+                self.assertTrue(scripts)
+                self.assertLessEqual(scripts, declared,
+                                     f"{variant}: undeclared local CI scripts")
+
     def test_schema_doc_states_park_rule_and_shape(self):
         doc = SCHEMA_DOC.read_text()
         self.assertIn("absent or empty", doc)
@@ -246,6 +315,32 @@ class ScaffoldAndFixtures(unittest.TestCase):
         self.assertIn("flat", doc)
         for token in ("surfaces", "sole_source_of_truth", "hermetic", "covers"):
             self.assertIn(token, doc, f"schema doc must define {token}")
+
+
+class FixtureSurfacesRun(unittest.TestCase):
+    """The declared fixture surfaces really validate what they claim to cover."""
+
+    def test_declared_surfaces_pass_in_a_fresh_copy(self):
+        for variant in FIXTURES:
+            with tempfile.TemporaryDirectory() as tmp, self.subTest(variant=variant):
+                root = pathlib.Path(tmp) / variant
+                shutil.copytree(FIXTURE_ROOT / variant, root)
+                codes = run_surfaces(root, fixture_surfaces(variant))
+                self.assertEqual(codes, [0] * len(codes))
+
+    def test_declared_surfaces_fail_on_each_covered_input_defect(self):
+        # Defect-negative: a surface that still exits 0 after one of its
+        # covered inputs is removed or corrupted validates nothing.
+        for variant in FIXTURES:
+            for label, path, old, new in COVERED_INPUT_DEFECTS:
+                with tempfile.TemporaryDirectory() as tmp, \
+                        self.subTest(variant=variant, defect=label):
+                    root = pathlib.Path(tmp) / variant
+                    shutil.copytree(FIXTURE_ROOT / variant, root)
+                    break_input(root, path, old, new)
+                    codes = run_surfaces(root, fixture_surfaces(variant))
+                    self.assertTrue(codes)
+                    self.assertNotIn(0, codes, f"{variant}: {label} still exits 0")
 
 
 if __name__ == "__main__":
