@@ -1,0 +1,79 @@
+{
+  "attachments": {
+    "cross_lane_edges": "tswc-sk-b2 <- tswc-ac-b1 (ai-catapult lane, evolve/ layout vocabulary): non-blocking, vocabulary pinned from master intake section 5.4, synced when B1 lands. The role skills stay experimental with supported_hosts [] until tswc-ac-b1 and tswc-ac-b3 land; promotion (listing hosts) is a later change, not this goal. Cross-lane follow-up for ai-catapult (a note, not a dependency): src/skill-resolver.js should exclude experimental entries by default; today (lines 122-128 at ai-catapult origin/main f31de08) it bundles every non-deprecated entry whose supported_hosts names the host or that omits the field.",
+    "e6_shared_files": "Not a dispatch gate on tswc-sk-b2, which has no dependency. tswc-sk-b2 converts nothing E6 converts but edits .ai/ci/local-ci.json (only the existing tests/readiness_v2_migrate_test.py hash value), so every E6 goal that edits that file, including e6-sk-00-ledger, waits for its merge. E6's py-lib goal (tests/readiness_v2_migrate_test.py), v1-port goal (the two retained-policy tests, ported in the narrowed form) and test-harness goal (tests/catalog_contract_test.sh) also wait for it. XSKP-P5-02 (#118) shares .ai/skills/catalog-audit.json, .ai/ci/local-ci.json and tests/readiness_v2_migrate_test.py and serializes in either order: whichever merges first sets the SKILL.md digest form, and the other advances it. Never two open PRs on one shared file. Checked against #120 head a514f182e32e2bafda8a1df980036ceffad56ffa (generation 5e11d668031d9ace54c79a6820510f267009012a2c2860d2e453996bcba41786), where all eight E6 goals scope .ai/ci/local-ci.json, so all eight wait for this goal's merge. The waits are one-way, so there is no cycle.",
+    "interview_record": ".ai/work-intake/tswc-skills-lane.md (interview record rows 1-23, adversarial pass, ralplan slicing, decision log D-1..D-16).",
+    "publication_posture": "Born readiness-contract/2, live mode (umbrella R1: new plans publish v2; ADR-0016 freezes the v1 registry and corpus). Published by 02-govern-plan/northstar/handoff-write.sh v2 dispatch (contract-run.sh publish-v2 --admit-planning). The v1 registry, every readiness-v1 payload and tests/readiness_v2_inventory_test.py stay byte-identical to main. Publication grants no authority; implementation needs one verified plan approval for this generation. E6's planned node/npm policy amendment voids every existing approval when it merges, so if this goal is approved before that amendment lands it must be re-signed: a live-mode generation keeps its identity, so the same generation is re-signed against the amended policy.",
+    "scoped_intake": "r3dlex/ai-tool-workspace origin/main 575d3edf702996d0df367700ab1ea117539ce32f .ai/work-intake/tswc-skills.md sha256 8b5b38aa0dc7b1c8ccb9422e930e80b7686c157abe8eb2623a2e240b1ce306c4",
+    "successor_plan": "E5-H1, E5-H3 and E5-H4 leave this generation (coordinator decision 2026-10-08) for the successor plan tswc-skills-lane-matrix, published only after E6's e6-sk-01-py-leaf merges and written against the TypeScript catalog. Carried notes: M-4 (H4 must depend on H3), M-5 (all-host delivery would reverse the opencode-only edit-article decision of #82/G-03; needs a carve-out or a user decision), M-6 (omo-ai has no payload, mechanism or entrypoint contract). See the spec section Successor plan.",
+    "superseded_candidate": "Withdrawn, never registered on main: the v1 candidate generation 81b1d4eac07bfffbd5469307109f3eab2c7064813872f881a5e066ec834ab35d (skills#107 head efa30b11bb4ae698d950d470e47cfdfdc889e623; author-lane git bundle archive sha256 4b27d5a6c42e46c62067014184c6c03cb9d1d4dc4e1d7d350efb41052e2791b0), the round-1 v2 candidate generation c5e7de57500a42def933cc5109ede56d5ea45f148b9bbe02105c71b658307cf7 (skills#107 head a79ef406249938297da9c8d8418a7ef4c0801997) and the round-2 v2 candidate generation 27acc0958e9b2e75f1f2437b8642116c0aea15a56f6d38d82900a50e3303d109 (skills#107 head 0c962a102dce32084621978b18b461bbc24ac4d7). All three stay retrievable by commit id from the PR's force-push history.",
+    "umbrella_spec": "r3dlex/ai-tool-workspace origin/main 575d3edf702996d0df367700ab1ea117539ce32f .ai/work-intake/typescript-wikiskill-convergence.md sha256 242fb2c928f75dc64aaa0a4ce6961599d1ce602e2ae7527b68cc926470239fc6 (re-pinned from c29fafd3... per master section 9.2 FU-1)",
+    "user_decisions": "2026-10-07, relayed by the coordinator and not yet recorded in the root intake: (1) change it all to TypeScript; every new non-test executable is strict TypeScript in E6's ts-tooling package and new test logic is plain bash. (2) E6 (skills#120, e6-skills-legacy-ts) owns TSWC A4 and A5; tswc-sk-a4 and tswc-sk-a5 leave TSWC. Coordinator decisions 2026-10-08: B2-only split, experimental lifecycle with supported_hosts [], retained-policy test narrowing, SKILL.md guard re-pin in #118's digest form (see the spec)."
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "Sequencing and scope: no dispatch gate applies and this goal has no dependency. It converts nothing E6 converts and adds no non-test executable (user decision 2026-10-07: everything new is TypeScript); the three skills are Markdown procedures and the new test is plain bash. It does edit .ai/ci/local-ci.json (only the existing tests/readiness_v2_migrate_test.py sources hash value), so E6's e6-sk-00-ledger waits for this goal's merge, as does every other E6 goal that edits that file (all eight at #120 head a514f182); E6's py-lib goal (tests/readiness_v2_migrate_test.py), v1-port goal (tests/xskp_p5_readiness_policy_test.sh, tests/ach_s01_readiness_policy_test.sh, which it ports in the narrowed form of the retained-policy criterion) and test-harness goal (tests/catalog_contract_test.sh) also wait for it. XSKP-P5-02 (#118) shares .ai/skills/catalog-audit.json, .ai/ci/local-ci.json and tests/readiness_v2_migrate_test.py and serializes with this goal in either order. Never two open PRs on one shared file; the later PR rebases on the earlier. The E6 waits are one-way, so there is no cycle. Any change outside this scope, including tests/fixtures/host-default-golden.json, any other .ai/ci/local-ci.json value or the retained policy JSON files, requires a reviewed scope successor before it is made.",
+        "Three role skills, evolution-rollout, wiki-maintainer and skill-proposer, exist under 02-govern-plan/ with catalog.json entries: owner_phase 02-govern-plan, lifecycle experimental and supported_hosts [] (coordinator decision 2026-10-08, the pre-G-03 edit-article precedent), until ai-catapult's tswc-ac-b1 evolve/ layout and tswc-ac-b3 validation CLI land. The entries stay catalogued for docs, the validator and lifecycle but resolve into no host bundle: ai-catapult's src/skill-resolver.js:122-128 bundles every non-deprecated entry whose supported_hosts names the host, so the empty list is what keeps a skills.lock bump from shipping them. scripts/catalog.py accepts the empty list (its lines 56-60), and the catalog validator passes. python3 scripts/catalog-query.py lists none of the three for any host, even with --include-lifecycle experimental, and --skill <name> exits 2 for each of them on every host. Default installs, the default catalog view and tests/fixtures/host-default-golden.json stay unchanged: bash tests/host_default_golden_test.sh, bash tests/lifecycle_installers_test.sh and bash tests/install_cross_host_parity_test.sh pass without edits. Promotion (listing hosts) belongs to the successor plan or a later goal.",
+        "Generated surfaces are regenerated in the same change set: README.md, AGENTS.md, 01-discover-decide/ask-ai-catapult/CATALOG.md and 02-govern-plan/README.md with the catalog doc generator (python3 scripts/generate-skill-docs.py, or its form on main at implementation), and .ai/skills/catalog-audit.json and .ai/skills/modernization-report.md with the catalog validator's --write-audit mode. The generator's --check mode, the validator, bash tests/skill-catalog_test.sh and bash tests/agents_index_test.sh pass.",
+        "The role bodies follow the repo conventions: description at most 160 characters and SKILL.md body at most 100 lines with no new description or body-line exception entry, Quick Start first, progressive disclosure, CONTEXT.md vocabulary, and Codex/OpenCode parity (bash tests/codex_parity_test.sh and bash tests/opencode_parity_test.sh pass).",
+        "The role bodies speak B1's evolve/ vocabulary exactly as master intake sections 5.4 and 6-B1 state: raw/<run-id>/ write-once traces, wiki/ with append-only logs.md and skill-impact.md, proposals/ overlays, PURPOSE.md, the audit-entry schema and the judgment-record schema (judgment_id, run_id, candidate_overlay_sha256, skill_under_test, task_set_id, task_set_version, judge_model, rubric_sha256, per_criterion_scores[], weighted_aggregate, verdict, cost_usd, recorded_at, recorder). The proposer is atomic single-skill, the wiki stays append-only even on reject, and in-place skill mutation is forbidden (section 3c). The cross-lane edge to tswc-ac-b1 is non-blocking, and a vocabulary-sync note is recorded for when B1 lands.",
+        "Blindness is enforced by the environment, never by a prompt check (master F3, section 6-B2): the evolution-rollout procedure builds a wiki-stripped export with path denial (no evolve/ and no git history, so wiki files are unreachable, including through history), and its SKILL.md carries the export commands in exactly one fenced block with the info string bash blindness-sandbox. Every record states that the prompt-grep gate is a cheap pre-check only.",
+        "Red leg (section 4.7): the new tests/blindness_sandbox_test.sh is plain bash with no embedded Python or other interpreter program. It extracts the bash blindness-sandbox block from the evolution-rollout SKILL.md and runs exactly those commands against a seeded source repository in a cleanup-bound temporary directory, so the test and the procedure cannot drift. It proves the workload is exported while a direct read of evolve/wiki/ and a read through git history both fail; it is red when the block is missing; and its negative fixtures (the extracted block with path denial removed, and a history-preserving export) are red. It is discovered by tests/test-scripts.sh and reports a nonzero Results: PASS count.",
+        "The roles carry the locked loop economics: the $100 per cycle ceiling (user 2026-10-04; section 5.5 pre-reject before spend plus gate accounting), human out-of-band judges (section 4.4), and no citation of the WikiSkill paper for any threshold value (section 3a).",
+        "Retained-policy narrowing (coordinator decision 2026-10-08): tests/xskp_p5_readiness_policy_test.sh and tests/ach_s01_readiness_policy_test.sh keep asserting that .ai/handoff/xskp-p5-readiness-policy.retained.json and .ai/handoff/ach-skills-contract-v2/s01-readiness-policy-v1.retained.json equal their pinned digests, unchanged. Retained snapshots are historical evidence, not live claims: each 'every source digest is current' assertion becomes a well-formedness assertion over the retained source digests, and each contract-acceptance simulation relaxes only source-digest currency for the retained policy's own source entries, exactly as it already relaxes repository-root equality. Every other assertion and expected gap stays unchanged, and the retained JSON files are never edited. Both review lanes record explicit acceptance of this narrowing before merge.",
+        "tests/catalog_contract_test.sh no longer hard-codes the default count (-eq 36). The literal is replaced in plain bash: the codex default view must be nonempty and name each skill once. The existing per-host assertion that each default view equals catalog.json's stable/compatibility membership stays, so together they fix the count from data, as tests/skill-catalog_test.sh already derives its count. With supported_hosts [] the codex default view stays 36, so this change keeps promotion from editing the test again. No other assertion is weakened.",
+        "SKILL.md no-growth guard: the ACH-S-05 assertion at tests/readiness_v2_migrate_test.py:661-664 (git diff --exit-code 977ed13b6f091a279828e1ddb4665df0a17b52ea -- '*/SKILL.md') fails once the three new SKILL.md files are committed, and with it bash tests/run-tests.sh. It is re-pinned in #118's digest form (#118 at 9299b7c, tests/readiness_v2_migrate_test.py:661-682): sha256 over every tracked */SKILL.md path, index mode and working-tree bytes, sorted. If #118 has merged, this goal advances that digest; otherwise it introduces the form and #118 advances it. The re-pin covers exactly the deliberate addition of the three role SKILL.md files, and every other assertion in the test is unchanged. .ai/ci/local-ci.json changes only the existing tests/readiness_v2_migrate_test.py sources hash value: no other key, value, command, workflow, tier or format changes.",
+        "catalog.json serializes with the successor plan tswc-skills-lane-matrix (E5-H1): never two open PRs on catalog.json, and the successor rebases on this goal.",
+        "Evidence and verification: every simulation and verification of this goal runs on a committed tree, never with untracked files (the SKILL.md guard sees only tracked files). The observed same-command red then green is recorded in .ai/evidence/tswc-sk-b2.json. bash tests/run-tests.sh, prek run --all-files and git diff --check pass."
+      ],
+      "dependencies": [],
+      "id": "tswc-sk-b2",
+      "issue_ref": "issue:skills:tswc-skills-lane",
+      "scope": [
+        "02-govern-plan/evolution-rollout",
+        "02-govern-plan/wiki-maintainer",
+        "02-govern-plan/skill-proposer",
+        "catalog.json",
+        "AGENTS.md",
+        "README.md",
+        "01-discover-decide/ask-ai-catapult/CATALOG.md",
+        "02-govern-plan/README.md",
+        ".ai/skills/catalog-audit.json",
+        ".ai/skills/modernization-report.md",
+        "tests/blindness_sandbox_test.sh",
+        "tests/catalog_contract_test.sh",
+        "tests/xskp_p5_readiness_policy_test.sh",
+        "tests/ach_s01_readiness_policy_test.sh",
+        "tests/readiness_v2_migrate_test.py",
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/tswc-sk-b2.json"
+      ],
+      "verification": [
+        "bash tests/skill-catalog_test.sh",
+        "bash tests/agents_index_test.sh",
+        "bash tests/catalog_contract_test.sh",
+        "bash tests/xskp_p5_readiness_policy_test.sh",
+        "bash tests/ach_s01_readiness_policy_test.sh",
+        "bash tests/codex_parity_test.sh",
+        "bash tests/opencode_parity_test.sh",
+        "bash tests/host_default_golden_test.sh",
+        "bash tests/lifecycle_installers_test.sh",
+        "bash tests/install_cross_host_parity_test.sh",
+        "bash tests/readiness_v2_migrate_test.sh",
+        "bash tests/run-tests.sh",
+        "prek run --all-files",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "tswc-skills-lane",
+  "issue_ref": "issue:skills:tswc-skills-lane",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/typescript-wikiskill-convergence-tswc-skills-lane.md"
+  }
+}
