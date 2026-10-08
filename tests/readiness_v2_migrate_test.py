@@ -660,17 +660,19 @@ class ReleaseSurfaceTests(unittest.TestCase):
             self.assertIn(phrase, text, phrase)
         # Pin advanced by XSKP-P5-02 (plan xskp-p5-skill-producers): the registered
         # knowledge-publication pointer change deliberately edits five producer SKILL.md
-        # files; re-pin to the finalized goal head whose tree first carries those bytes
-        # (maintenance precedent: ACH goals #104..#114 re-pin per goal, like
-        # tests/fixtures/host-default-golden.json refreshes). The target must be
-        # reachable from plain clone history — amend-based evidence updates orphan
-        # intermediate commits (da45dec became unreachable, so CI clones hit git exit
-        # 128 on it), so the pin targets the last amend chain's final production head.
-        # Per-goal re-pin: the next goal that edits SKILL.md advances it again.
-        diff = subprocess.run(['git', '-C', str(REPO), 'diff', '--exit-code',
-                               '7c5d932c261c3aac4c3524b8ef2966d662e67813', '--', '*/SKILL.md'],
-                              capture_output=True, text=True)
-        self.assertEqual(diff.returncode, 0, diff.stdout)
+        # files. The pin is a content digest over every tracked */SKILL.md (path and
+        # working-tree bytes), the same file set `git diff <commit> -- '*/SKILL.md'`
+        # compared: a commit pin breaks once a squash merge drops the branch-only commit
+        # (git exit 128), a digest holds in any clone. Per-goal re-pin, like
+        # tests/fixtures/host-default-golden.json: the next goal that edits a SKILL.md
+        # advances it (maintenance precedent: ACH goals #104..#114).
+        listed = subprocess.run(['git', '-C', str(REPO), 'ls-files', '-z', '--', '*/SKILL.md'],
+                                capture_output=True, check=True).stdout.split(b'\0')
+        digest = hashlib.sha256()
+        for path in sorted(name for name in listed if name):
+            digest.update(path + b'\0' + hashlib.sha256((REPO / os.fsdecode(path)).read_bytes()).digest())
+        self.assertEqual(digest.hexdigest(), 'f323f513bc9e00f261c9300ecec88f15a37ff5beb2c8ed21a8451d19f96a619e',
+                         'a tracked */SKILL.md changed; re-pin only for a deliberate, reviewed edit')
 
 
 if __name__ == '__main__':
