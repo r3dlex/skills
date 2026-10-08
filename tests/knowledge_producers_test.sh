@@ -42,10 +42,20 @@ bad() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 SCRATCH="$(mktemp -d)"
 trap 'rm -rf "$SCRATCH"' EXIT
 
-# Body-line budget for non-northstar producers: <=100 lines.
+# Body-line budget for non-northstar producers: <=100 lines after the closing
+# frontmatter delimiter, counted by the catalog validator's own parser.
 within_body_budget() {
   local lines
-  lines="$(wc -l < "$1" | tr -d ' ')"
+  lines="$(python3 -B - "$1" <<'PY'
+import importlib.util, sys
+from pathlib import Path
+sys.path.insert(0, 'scripts')
+spec = importlib.util.spec_from_file_location('validate_skill_catalog', 'scripts/validate-skill-catalog.py')
+validator = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(validator)
+print(len(validator.frontmatter(Path(sys.argv[1]))[1]))
+PY
+)" || return 1
   [ "$lines" -le 100 ]
 }
 
@@ -287,7 +297,8 @@ for name in producers:
         continue
     target = targets[0]
     resolved, cross_skill = links.logical_target(repo, name, target, by_name)
-    if not cross_skill or resolved.resolve() != module.resolve():
+    direct = (skill.parent / target).resolve()
+    if direct != module.resolve() and (not cross_skill or resolved.resolve() != module.resolve()):
         print(f'{name}: {target} does not resolve to {sys.argv[2]} in the source layout')
     for host, root in installed.items():
         path = root / name / target

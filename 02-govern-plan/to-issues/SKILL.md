@@ -80,4 +80,4 @@ Or "None - can start immediately" if no blockers.
 Do NOT close or modify any parent issue.
 
 End by declaring knowledge kind `plan`, then reading
-`03-configure-generate/ai-catapult-init/modules/knowledge-publish.md` and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.
+[ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md) and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.

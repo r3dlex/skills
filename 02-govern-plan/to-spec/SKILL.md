@@ -75,4 +75,4 @@ What this spec deliberately does not cover.
 Anything else worth recording.
 
 End by declaring knowledge kind `spec`, then reading
-`03-configure-generate/ai-catapult-init/modules/knowledge-publish.md` and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.
+[ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md) and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.

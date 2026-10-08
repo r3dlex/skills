@@ -32,4 +32,4 @@ Match the existing convention — look for `docs/`, `notes/`, `research/`, or wh
 **Done when:** the file is written and you have told the user its path.
 
 End by declaring knowledge kind `research`, then reading
-`03-configure-generate/ai-catapult-init/modules/knowledge-publish.md` and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.
+[ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md) and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.
