@@ -115,26 +115,38 @@ If this run already saved the document elsewhere:
   producer saved it.
 - Never move or remove a file that existed before this run, or one that a
   tracked file links to. It stays where it is: record
-  `unpublished: needs-adoption` and leave it to `ai-catapult adopt`.
+  `unpublished: needs-adoption` and leave it to `ai-catapult adopt`, a planned
+  follow-up (plan P4) that is not on ai-catapult main yet.
 
 ## Private content
 
-`handoff` and `retro` write only what is safe to track:
+`handoff`, `retro` and `code-review` write only what is safe to track:
 
 - Never copy content read from a path the policy lists under `deny`, such as
   `~/**` (global instructions and session logs in the home directory),
   `.memory/**`, `.omc/project-memory.json`, `.omc/sessions/**`,
   `.omc/logs/**` and `.omx/notepad.md`; cite such a file by name only.
 - Before the write, replace home-directory paths with `<home>` and session ids
-  with `<session>`, using the patterns below in order.
+  with `<session>`, using the patterns below in order. They cover plain,
+  encoded (`-Users-<name>-`, `-home-<name>-` in Claude Code project and
+  scratchpad dirs), Windows, `/root` and `$HOME` home paths, and only at the
+  start of a path, so a repository path such as `src/home/` or a URL stays
+  intact. A UUID is replaced only in a session path (`sessions/`,
+  `projects/<dir>/`, `rollout-`, `/scratchpad`), in any case. An encoded
+  username that itself contains `-` keeps its later parts.
 - `handoff` runs its redaction step before the write; the step never writes
   unredacted text.
 
 ```knowledge-scrub
-(?:/Users|/home)/[^/\s]+ -> <home>
-~(?=/) -> <home>
+(?<![^/\s])-(?:Users|home)-[A-Za-z0-9._]+ -> -<home>
+(?<![\w.~-])(?:/Users|/home)/[^/\s]+ -> <home>
+(?<![\w.~-])/root(?=/) -> <home>
+(?<![\w.~-])[A-Za-z]:\\(?i:users)\\[^\\\s]+ -> <home>
+(?<![\w.~-])~(?=/) -> <home>
+\$\{?HOME\}?(?=/) -> <home>
+(?i)(sessions/|projects/[^/\s]+/|rollout-[0-9t-]+-)[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b -> \1<session>
+(?i)\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?=/scratchpad\b) -> <session>
 \bses_[0-9A-Za-z]{8,} -> <session>
-\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b -> <session>
 ```
 
 ## Reasons recorded as `unpublished: <reason>`
@@ -149,7 +161,7 @@ If this run already saved the document elsewhere:
   first.
 - `unpublished: needs-adoption` — the document lies outside its canonical
   target and existed before this run, or a tracked file links to it; it stays
-  where it is for `ai-catapult adopt`.
+  where it is for the planned `ai-catapult adopt` (plan P4).
 
 A publish that did not run (or failed) never invalidates the document the
 skill produced, and never marks the skill's own checks as failed.
@@ -166,7 +178,7 @@ skill produced, and never marks the skill's own checks as failed.
 | `handoff` | `handoff` | `.ai/handoff/` | the handoff document after its redaction step and *Private content*, written to the target; the OS temp-directory copy is not published |
 | `retro` | `learning` | `docs/learning/` | the retro findings under *Private content*, written to the target without session-log or transcript content |
 | `domain-modeling` | `adr` | `docs/architecture/adr/` | the ADR it wrote, saved at the target as `<NNNN>-<slug>.md`, numbered after the highest existing number in the target (*Placement*); `CONTEXT.md` is not published |
-| `code-review` | `review` | `.ai/reviews/` | the `## Standards` and `## Spec` report, written to the target |
+| `code-review` | `review` | `.ai/reviews/` | the `## Standards` and `## Spec` report under *Private content*, written to the target |
 
 A native source counts only when the first `native_rules` glob that matches
 its path has the same kind as the producer: a Codex plan under
