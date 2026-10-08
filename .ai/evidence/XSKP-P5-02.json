@@ -282,5 +282,275 @@
     "residuals_closed": "the round-1 accepted residuals \"total-vs-body line-count basis\" and \"module deny-list prose over-broad\" are fixed by P3 and the deny-path item",
     "review": "independent Standards + Spec/drift review of #118 at 4d71ba1501f032d7e880374d2322568ff0043ee2 against main 4ff1d933d6519f1e9ef0ebaa3944c86186d64738: P1, P2, P3, AC1 gap, module deny-path finding",
     "unchanged": "catalog-audit.json, tests/fixtures/host-default-golden.json and every SKILL.md line count are unchanged by the corrections; northstar stays 105 lines"
+  },
+  "review_corrections_round_2": {
+    "admission": {
+      "admitted": true,
+      "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+      "assurance": "agent-self",
+      "authority": "plan-approval/1",
+      "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <fix worktree on feat/xskp-p5-skill-producers-XSKP-P5-02> --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation",
+      "gaps": 0,
+      "gates_pass": [
+        "own-execution",
+        "branch-target",
+        "plan-approval",
+        "tooling",
+        "catalog-validator",
+        "planning-inputs-on-main",
+        "harness-trust"
+      ],
+      "head": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+      "report_sha256": "057d895080626014b0ca169d77da8a6b8b9fe5beb4d626d3e8c4e68caf9ef366"
+    },
+    "full_suite_finding": {
+      "at": "2026-10-08T03:19:58Z",
+      "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+      "exit_code": 1,
+      "note": "bash tests/run-tests.sh in the squash-shaped clone of 120fc0b: tests/adr_path_test.sh (P0-3 guard) flagged the bare legacy ADR path in the new Placement example; fixed in the module by 9d4605e (guard unchanged); the green full suite is the tdd-evidence --record-green observation at the evidence head",
+      "output_sha256": "20f28be93a6b23e6af69242810529fb50a69ef025aaa16293e6602ca178b206d"
+    },
+    "items": [
+      {
+        "change": "module Write rules: refuse a path another registry entry uses as its canonical path; write only an absent path or a same-id revision (`knowledge_id: <id>` frontmatter and this run revises it); try <slug>-2, <slug>-3; create exclusively; step 6 undoes the write (delete the created file or restore the replaced bytes) before recording unpublished: publish-failed",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic M1: write-before-publish can clobber or leak",
+        "mutation": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "recording publish-failed before the undo fails the undo-order check",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAILs: write only to an absent path or a same-id revision; refuse a path another registry entry already uses; <slug>-2/<slug>-3; create exclusively; undo before publish-failed",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (Write rules cues; undo stated before publish-failed in the same step item)"
+      },
+      {
+        "change": "module step 3 names <id> = <repo_id>:<kind>:<slug> (repo_id from the registry, slug from the title) and step 5 always passes --id <id>; Declared kinds gains a document column naming ONE source for all nine producers (northstar: native ralplan plan, else its .ai/work-intake/ record text; to-prd with its tracker reference; to-issues in dependency order; research and domain-modeling via Placement; handoff after its redaction step; retro without session-log or transcript content; code-review report); Who runs the step: only the outermost producer publishes, a nested producer skips",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic M2: one document per producer, explicit --id, outermost producer only",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAILs: --id <repo_id>:<kind>:<slug>; outermost producer; document column; one document cue for each of the nine producers",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (--id cues, document column present with a cue per producer, outermost cues)"
+      },
+      {
+        "change": "module Placement: with a registry, a non-native document is saved at <target><slug>.md under the Write rules in the first place, moved there if already saved elsewhere this run, never copied, so publish registers it in place (one tracked copy, umbrella D1)",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic M3: local non-native outputs create a second copy",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAIL: a non-native document is saved at <target><slug>.md and published in place, never copied",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (Placement cues)"
+      },
+      {
+        "change": "a native source counts only when its first matching native_rules glob has the same kind as the producer (.omx/plans/small-work-reviews/**/*.md is review, never a northstar source)",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic L1: native source kind must match",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAIL: native source kind cue",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      },
+      {
+        "change": "Who runs the step: Gemini, Auggie and Copilot are not XSKP hosts; their flat projections drop the pointer",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic L3: flat hosts are not XSKP hosts",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAIL: Gemini, Auggie and Copilot are not XSKP hosts",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      },
+      {
+        "change": "the publish-failed reason: the document could not be written or the publish run exited non-zero; the write was undone first",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "code-review L3: publish-failed covers a failed write",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAIL: publish-failed covers a document that could not be written",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      },
+      {
+        "change": "section 5 splits the module into statements (table rows, prose sentences); a statement about deny paths may cite only policy deny paths, one about native sources only native_rules globs",
+        "green": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "round-2 test fails it: module cites '.omc/state/**' as a native source; the unmutated module passes",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "item": "code-review L2: classify cited paths, not only membership",
+        "red": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "round-1 test bytes (4463c2b, membership only) pass the mutated module: PASS=6 FAIL=0",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5, under a mutation that moves the deny path .omc/state/** into the native sentence"
+      },
+      {
+        "change": "line_counts uses the catalog validator frontmatter() and Python splitlines: an unparsable frontmatter is reported as \"frontmatter does not parse\" (not an over-long body), and a northstar last line without a trailing newline is counted",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "budgets: 97/100-line bodies pass, 101 fails, parse errors are named, unterminated last lines count",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "code-review L6 and L7: budget messages and counts",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAILs under the old counters: an unterminated frontmatter is not reported as a parse error; a 106-line northstar file without a trailing newline is not counted as 106 lines (wc -l says 105)",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 4 fixtures (unterminated frontmatter; 105- and 106-line northstar files without a trailing newline)"
+      },
+      {
+        "change": "tests/readiness_v2_migrate_test.py: the digest covers path, index mode (git ls-files -s -z) and working-tree bytes of every tracked */SKILL.md; a mismatch prints mode, sha256 and path per file; .ai/ci/local-ci.json re-pinned",
+        "green": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "the round-2 pin fails and lists 100755 <sha256> 02-govern-plan/to-spec/SKILL.md; restored, it passes",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "item": "code-review L1: SKILL.md pin hashes the mode and reports per file",
+        "red": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "the round-1 digest scheme (path + bytes) still matches its pin f323f513 after the mode-only change: undetected",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "squash_shaped": {
+          "at": "2026-10-08T03:00:52Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "single-branch clone of main 4ff1d93 plus the squash of 120fc0b: ReleaseSurfaceTests OK",
+          "output_sha256": "fd579a2585c205ee1268997cb309a671434f9241cfb7bfd2d89c10d829982ac1"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py ReleaseSurfaceTests, in a squash-shaped clone, under git update-index --chmod=+x 02-govern-plan/to-spec/SKILL.md"
+      }
+    ],
+    "local_checks": {
+      "at": "2026-10-08T03:07:45Z",
+      "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+      "exit_code": 0,
+      "note": "catalog validator passed (39 skills, audit unchanged); secret scan clean; git diff --check clean; markdown links passed; prek exit 0; SKILL.md, golden and catalog-audit unchanged since round 1 (northstar 105 lines)",
+      "output_sha256": "16b01103487314d423ec8ca4cdf260eaa8bd860fe09efb14b14a104288ac60a4"
+    },
+    "review": "agent review round 1 of #118 at 4463c2bf2c40cccc41c52574e739bd1dd4e0eb4d: code-review APPROVE (7 LOW); critic REQUEST CHANGES (3 MEDIUM, probed against root scripts/knowledge/publish.py)",
+    "superseding_notes": [
+      "supersedes provenance.mirror_maintenance on the SKILL.md hygiene pin: the commit pins it describes (977ed13b, da45dec, 7c5d932) were replaced in round 1 by a content digest and in round 2 by a digest over path, index mode and bytes (expected value in tests/readiness_v2_migrate_test.py); no commit id is pinned any more",
+      "supersedes review.accepted_residual on \"total-vs-body line-count basis\" and \"module deny-list prose over-broad\": both were fixed in round 1 (P3, deny-path item) and tightened in round 2 (CR L6/L7, CR L2)",
+      "supersedes review_corrections_round_1 item P1 \"change\" on the digest inputs (path + bytes): round 2 adds the index mode"
+    ]
   }
 }
