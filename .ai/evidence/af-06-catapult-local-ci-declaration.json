@@ -11,6 +11,16 @@
     "green_method": "replace both placeholders with the fixture-root validator; the test file is byte-identical between the red and first green run",
     "green_output_sha256": "c97c708633098aa4986f16e770dd04ffa1e0b01cd8014ed265464946dd8fffd9",
     "green_result": "13 tests passed",
+    "original_goal": {
+      "green_method": "the same command in a disposable tree of the PR head 11c3b37fbcb9dc2999c62bbc46dfb4398b02ebe9 (tests/local_ci_declaration_test.py sha256 635eab52031e1e71dd5ba793630751cbb7a36e8a8394b3fc70db6cd108880214)",
+      "green_result": "13 tests passed",
+      "observed_at": "2026-10-08T18:06:54Z",
+      "recorder": "autobahn tdd-evidence.sh --record-red / --record-green observed exit 1 then exit 0 for the identical command",
+      "red_base_commit": "de949f90a728d995c1d761448f543c905c8d8758",
+      "red_method": "disposable tree of the merge-base with origin/main (none of the PR's product changes) plus only the PR head's tests/local_ci_declaration_test.{py,sh}; run the identical command",
+      "red_result": "13 tests; failures=20, errors=0: scaffold carries no local_ci (1), fixtures carry no declaration (2), fixture declarations incomplete (2), schema doc lacks the park rule and shape (1), no declared surface to fail on any covered-input defect (14)",
+      "scope": "the af-06 PR 1 tests (validator per case, scaffold declaration, fixtures, schema doc) red against the pre-change product and green against the change; an observation made after authoring, not the original authoring chronology"
+    },
     "placeholder_fixture_script_sha256": "06cacb4fc7ac2dbb7b7c601ef35c99c88a988ba68e3cb7628d6dcfa174443655",
     "red_base_commit": "56b6c6c8b4b5903aed418088df1cddd4c135681a",
     "red_method": "add FixtureSurfacesRun and the completeness test to tests/local_ci_declaration_test.py while both fixture-root tests/workflow-fixtures_test.sh are the exit-0 placeholder; run the identical command",
@@ -18,7 +28,7 @@
     "red_result": "13 tests; failures=14 (7 covered-input defects x 2 fixture variants still exited 0)",
     "red_test_sha256": "9f770dce13bfe1c4df31570a84b0a0af946aa92ce9ad8018d5e13bb44515a4e2",
     "refactor": "validate_local_ci split into check_fields and validate_surface, malformed cases moved to MALFORMED_CASES; 90,024 generated declarations gave identical results, paths and messages under the 3166ae0 and refactored validators; green re-observed afterwards",
-    "scope": "r3dlex/skills#105 review corrections (fixture surfaces, defect-negative and completeness guard); the original af-06 PR 1 red/green chronology is not reconstructed"
+    "scope": "r3dlex/skills#105 review corrections (fixture surfaces, defect-negative and completeness guard); the original af-06 PR 1 authoring chronology is not reconstructed; original_goal records an observed red/green of the PR 1 tests against the pre-change product"
   },
   "red": {
     "command": "bash tests/local_ci_declaration_test.sh",
