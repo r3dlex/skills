@@ -83,7 +83,7 @@ native source is published (the publisher then writes that path itself):
 When `.ai/knowledge/registry.json` exists, a producer whose document is not a
 native harness file saves it at `<target><slug>.md` under the *Write rules*
 in the first place, instead of a location its own body suggests (a notes
-folder, `docs/adr/`). The publisher then registers it in place, and the repo
+folder, a repo-local ADR folder). The publisher then registers it in place, and the repo
 keeps one tracked copy. If this run already saved it elsewhere, move it
 there; never copy it.
 
