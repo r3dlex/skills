@@ -658,10 +658,28 @@ class ReleaseSurfaceTests(unittest.TestCase):
                        'extensions.b5_inputs', 'carries no authority', '--root "$(pwd -P)"',
                        'northstar/handoff-write.sh'):
             self.assertIn(phrase, text, phrase)
-        diff = subprocess.run(['git', '-C', str(REPO), 'diff', '--exit-code',
-                               '977ed13b6f091a279828e1ddb4665df0a17b52ea', '--', '*/SKILL.md'],
-                              capture_output=True, text=True)
-        self.assertEqual(diff.returncode, 0, diff.stdout)
+        # Pin advanced by XSKP-P5-02 (plan xskp-p5-skill-producers): the registered
+        # knowledge-publication pointer change deliberately edits five producer SKILL.md
+        # files. The pin is a content digest over every tracked */SKILL.md (path, index
+        # mode and working-tree bytes), the same file set `git diff <commit> -- '*/SKILL.md'`
+        # compared: a commit pin breaks once a squash merge drops the branch-only commit
+        # (git exit 128), a digest holds in any clone. Per-goal re-pin, like
+        # tests/fixtures/host-default-golden.json: the next goal that edits a SKILL.md
+        # advances it (maintenance precedent: ACH goals #104..#114).
+        listed = subprocess.run(['git', '-C', str(REPO), 'ls-files', '-s', '-z', '--', '*/SKILL.md'],
+                                capture_output=True, check=True).stdout.split(b'\0')
+        files = []
+        for record in (item for item in listed if item):
+            meta, path = record.split(b'\t', 1)
+            files.append((path, meta.split(b' ', 1)[0],
+                          hashlib.sha256((REPO / os.fsdecode(path)).read_bytes()).hexdigest()))
+        digest = hashlib.sha256()
+        for path, mode, file_sha in sorted(files):
+            digest.update(path + b'\0' + mode + b'\0' + bytes.fromhex(file_sha))
+        current = '\n'.join(f'{mode.decode()} {file_sha} {os.fsdecode(path)}' for path, mode, file_sha in sorted(files))
+        self.assertEqual(digest.hexdigest(), 'ca420e6e708b8babe3f60092be3501b7c594a0c3e92b61725fbc04df78133cba',
+                         'a tracked */SKILL.md changed; re-pin only for a deliberate, reviewed edit. '
+                         'Current mode, sha256 and path per file:\n' + current)
 
 
 if __name__ == '__main__':
