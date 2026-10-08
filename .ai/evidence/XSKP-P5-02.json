@@ -101,5 +101,186 @@
     "round1_record": "read-only reviewers (no artifacts, no test runs - a TDD evidence leg was recording concurrently); both verified diff confinement, module AC-1 semantics, nine-kind table vs contract pack publication-policy.json, byte-true pointer shape, verbatim northstar reflows, audit delta, descriptions <=160; goal producer test bytes unchanged through all three rounds",
     "round2_record": "supplemental, triggered by the post-round-1 test-byte change (migration pin): ARCHITECT APPROVE (pin diff vs HEAD empty for */SKILL.md; history f3635b0 test-only -> da45dec production -> 9b3627e amend; exactly 3 golden hash changes gemini/auggie northstar.md + copilot copilot-instructions.md; single local-ci entry matches shasum; ACH precedent rows #104..#114) and CODE REVIEWER APPROVE (62/62 contract pins match bytes at HEAD; 977ed13b only in historical evidence records; golden format preserved; evidence wording accurate). First round-2 attempts stalled mid-turn without delivering verdicts and were re-run to completion (sessions ses_ef2d3983cffefdKkTRHokBHkRq, ses_ef2d3983cffd8kOfXSR3ROIF03); stalled sessions abandoned, no artifacts.",
     "round3_record": "supplemental, triggered by the hosted-CI exit-128 incident (pin target da45dec orphaned by the amend chain - unreachable from fresh clone history, resolving only via local reflog; deterministic CI failure, local pass): ARCHITECT APPROVE (retarget to 7c5d932 changes zero pinned bytes - da45dec and 7c5d932 SKILL.md trees identical; pin target now amend-proof as the tip's parent; failure mode structurally closed; zero blocking, cosmetic re-serialization + first-carries wording advisories) and CODE REVIEWER APPROVE (58 sources + 3 workflows sha values all byte-match at retargeted HEAD; only hard-coded revision pin in live test code is this one; goal test bytes unchanged since red; zero blocking, mooted historical wording advisories). sessions ses_ef27372d9ffeUT4cc3ZWlYfCLi (architect), ses_ef27372d9ffdRb5aGpgTZeFDB4 (code reviewer)."
+  },
+  "review_corrections_round_1": {
+    "admission": {
+      "admitted": true,
+      "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+      "assurance": "agent-self",
+      "authority": "plan-approval/1",
+      "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <fix worktree> --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation --pr 118",
+      "gaps": 0,
+      "gates_pass": [
+        "own-execution",
+        "branch-target",
+        "plan-approval",
+        "tooling",
+        "catalog-validator",
+        "planning-inputs-on-main",
+        "harness-trust"
+      ],
+      "head": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+      "note": "without --pr the observer reads the local branch name of the fix worktree, which is not the goal branch, so branch-target reports branch_target_mismatch; --pr 118 observes the PR head_ref feat/xskp-p5-skill-producers-XSKP-P5-02 into main",
+      "report_sha256": "1c90239370761c066975ac7743df7682d525233d80d9ddc7ecf6037ee7acf6f2"
+    },
+    "base_update": "merge (not rebase) of origin/main 4ff1d933d6519f1e9ef0ebaa3944c86186d64738 into the reviewed head as 3d675c7e44c73161ac7f035ea617bed43a8d066e; .ai/ci/local-ci.json auto-merged, its migrate-test pin re-pinned in e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+    "full_suite": {
+      "at": "2026-10-08T00:37:21Z",
+      "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+      "exit_code": 0,
+      "note": "bash tests/run-tests.sh at the fix head: OVERALL: PASSED (2/2 suites), test-scripts PASS=184 FAIL=0",
+      "output_sha256": "f5e670e1a30f5c9c862d9545ab8366b9dbe8765e9b26f05c6d9be489f0f15e80"
+    },
+    "items": [
+      {
+        "change": "tests/readiness_v2_migrate_test.py: the */SKILL.md hygiene pin is a sha256 over every tracked */SKILL.md path and its bytes (git ls-files -z -- */SKILL.md, the file set git diff -- */SKILL.md compared) instead of the branch-only commit 7c5d932; .ai/ci/local-ci.json re-pinned",
+        "green": {
+          "at": "2026-10-08T00:02:22Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "squash of the fix (tree 5c0effe5a4b8702a699b97affe947aba2188d49c): OK; the full migrate test file also passes there (16 tests)",
+          "output_sha256": "d0178470e6d462de94749c43f76e69dcc905e810aa402ff4955f691a1a35e4c7"
+        },
+        "item": "P1 squash/cold-target pin failure",
+        "red": {
+          "at": "2026-10-07T23:21:01Z",
+          "commit": "3d675c7e44c73161ac7f035ea617bed43a8d066e",
+          "exit_code": 1,
+          "note": "squash of the reviewed head (tree e17a1ce279f913ca789b9192926b384a024fe450): AssertionError 128 != 0 (git diff against 7c5d932 fails with fatal: bad object)",
+          "output_sha256": "1377d09e3ad2d92df75d4a17a24edb993cfe1056920faebb491dbc9903f88279"
+        },
+        "strictness": {
+          "at": "2026-10-08T00:03:18Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 1,
+          "note": "in the same clone the pin fails for the pre-fix pointer bytes, one appended byte in a non-producer SKILL.md, an added tracked SKILL.md and a removed tracked SKILL.md; it passes again after restore",
+          "output_sha256": "5b0c6bba2d9b4a817a7f8d41cdfac35c16eb2fd7ff62d948668b2950b3e4b676"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py ReleaseSurfaceTests.test_migration_surface_and_pins, run in a squash-shaped clone: git clone --single-branch --branch main of origin (main 4ff1d93, full target ancestry, no feature refs, 7c5d932 and da45dec unresolvable) plus one commit applying git diff --binary 4ff1d93 <rev>"
+      },
+      {
+        "change": "the five pointer tails link [ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md), the repo cross-skill form that scripts/check-markdown-links.py validates in source (via the catalog) and installed-flat; line counts unchanged",
+        "green": {
+          "at": "2026-10-08T00:05:14Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "Results: PASS=6 FAIL=0 in the squash-shaped clone of the fix",
+          "output_sha256": "ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2"
+        },
+        "installed_layout": {
+          "at": "2026-10-08T00:05:54Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "old pointer path 03-configure-generate/... is missing under both installed roots; the new link resolves byte-equal for all five producers under Claude Code and Codex",
+          "output_sha256": "8da3938341db87a0fa6bd7ba94084730ada78339192bee683a3648c185f56282"
+        },
+        "item": "P2 installed module resolution",
+        "mutation": {
+          "at": "2026-10-07T23:45:29Z",
+          "commit": "7b57f86",
+          "exit_code": 1,
+          "note": "a source-literal link ../../03-configure-generate/... fails the Claude Code and Codex resolution checks",
+          "output_sha256": "929bbf3fde9dcf5768d4ea01bea199551202e26edab5c038f6b6034244cc628b"
+        },
+        "red": {
+          "at": "2026-10-07T23:34:14Z",
+          "commit": "10f03f7",
+          "exit_code": 1,
+          "note": "five FAILs: <producer>: pointer carries no markdown link to knowledge-publish.md (same five with the final test bytes against the pre-fix production, producers-final-red-green.log ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2)",
+          "output_sha256": "ce6917cdd70d03412012e8786b9ffe0bd07bfbe5a2361a7df44a3c1b6a165476"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 6: runs install-claude-code.sh --user, install-codex.sh --all, install-gemini.sh --all, install-auggie.sh --all and install-copilot.sh --all into a temp HOME; every pointer must resolve to the module in the source layout and to a byte-equal installed module under <skills>/<producer>/ for Claude Code and Codex; flat projections must carry no pointer. The repo ships no OpenCode installer."
+      },
+      {
+        "change": "the producer test counts body lines after the closing frontmatter delimiter with scripts/validate-skill-catalog.py frontmatter(); northstar keeps its 105-line whole-file budget",
+        "edges": [
+          {
+            "at": "2026-10-07T23:46:59Z",
+            "commit": "7b57f86",
+            "exit_code": 0,
+            "note": "research padded to 100 body lines (104 file lines) passes",
+            "output_sha256": "885da73878033b1e8db116c471fe516046667e47c4232d020db7c6ae6b377f12"
+          },
+          {
+            "at": "2026-10-07T23:47:10Z",
+            "commit": "7b57f86",
+            "exit_code": 1,
+            "note": "research padded to 101 body lines (105 file lines) fails: body exceeds 100 lines",
+            "output_sha256": "a60fa7c2192e36713c39696fc07dd142e4b491ab9e574f7d959b71ccc991578e"
+          }
+        ],
+        "green": {
+          "at": "2026-10-08T00:05:14Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "body budget accepts 97- and 100-line bodies and rejects a 101-line body",
+          "output_sha256": "ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2"
+        },
+        "item": "P3 body budget counted whole-file lines",
+        "red": {
+          "at": "2026-10-07T23:34:14Z",
+          "commit": "10f03f7",
+          "exit_code": 1,
+          "note": "two FAILs with the wc -l counter: a valid 97-line / 100-line body under a 4-line frontmatter is rejected by the body budget",
+          "output_sha256": "ce6917cdd70d03412012e8786b9ffe0bd07bfbe5a2361a7df44a3c1b6a165476"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 4: 4-line frontmatter fixtures with 97- and 100-line bodies (101 and 104 whole-file lines) must pass, a 101-line body must fail"
+      },
+      {
+        "change": "module step 3 selects the one local document; new section \"Which document is published\": a local output is passed as written (a native_rules document where it is), a hosted-only to-prd/to-issues (or issue-only to-spec) output is materialized verbatim, preceded by its tracker reference(s), to <canonical_targets[kind]><slug>.md before publish; step 4 runs <argv> publish <path> --kind <kind> --producer <skill>",
+        "green": {
+          "at": "2026-10-08T00:05:14Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "module selects or materializes the published document and quotes the policy path classes",
+          "output_sha256": "ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2"
+        },
+        "item": "AC1 gap: no local document for publish <path> from hosted-only outputs",
+        "red": {
+          "at": "2026-10-07T23:34:14Z",
+          "commit": "10f03f7",
+          "exit_code": 1,
+          "note": "two FAILs: module does not name the `publish <path>` argument it fills; module does not materialize a hosted-only to-prd/to-issues output under canonical_targets",
+          "output_sha256": "ce6917cdd70d03412012e8786b9ffe0bd07bfbe5a2361a7df44a3c1b6a165476"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (selection cues: `publish <path>`, a hosted-only block naming `to-prd`, `to-issues`, materialize and `canonical_targets`)"
+      },
+      {
+        "change": "module Rules quote the frozen publication-policy.json: deny paths (e.g. .omc/state/**, .omc/sessions/**, .omc/logs/**, .omc/project-memory.json, .omx/state/**, .omx/context/**, .omx/notepad.md, .omo/boulder.json) and publishable native_rules globs (.omc/plans/*.md, .omc/research/**/*.md, .omx/plans/**/*.md, .omo/plans/*.md)",
+        "green": {
+          "at": "2026-10-08T00:05:14Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "policy-class assertions pass",
+          "output_sha256": "ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2"
+        },
+        "item": "module deny-path summary (.omc/** / .omx/**)",
+        "mutation": {
+          "at": "2026-10-07T23:45:52Z",
+          "commit": "7b57f86",
+          "exit_code": 1,
+          "note": "widening .omc/state/** back to .omc/** fails: module cites '.omc/**'",
+          "output_sha256": "03b452035d5df2299f2b1decb001d3154d4dc1ae660ab3c8f6dbe4902feb9f60"
+        },
+        "red": {
+          "at": "2026-10-07T23:34:14Z",
+          "commit": "10f03f7",
+          "exit_code": 1,
+          "note": "four FAILs: module cites '.omc/**' and '.omx/**' (in neither list); cites no denied .omc/ subpath; cites no native .omc/ glob",
+          "output_sha256": "ce6917cdd70d03412012e8786b9ffe0bd07bfbe5a2361a7df44a3c1b6a165476"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (every harness/private path the module cites must be a deny path or a native_rules glob of .ai/knowledge/contract/publication-policy.json; at least one denied and one native .omc/ path)"
+      }
+    ],
+    "local_checks": {
+      "at": "2026-10-08T00:43:31Z",
+      "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+      "exit_code": 0,
+      "note": "validate-skill-catalog.py --write-audit passed (39 skills, audit unchanged); scan-secret-material.py clean; git diff --check clean; check-markdown-links.py passed (45 files, source + installed-flat)",
+      "output_sha256": "3960866e44cc459722f69572ec99694968a75fb99d0d720feaeb995daf4c443a"
+    },
+    "residuals_closed": "the round-1 accepted residuals \"total-vs-body line-count basis\" and \"module deny-list prose over-broad\" are fixed by P3 and the deny-path item",
+    "review": "independent Standards + Spec/drift review of #118 at 4d71ba1501f032d7e880374d2322568ff0043ee2 against main 4ff1d933d6519f1e9ef0ebaa3944c86186d64738: P1, P2, P3, AC1 gap, module deny-path finding",
+    "unchanged": "catalog-audit.json, tests/fixtures/host-default-golden.json and every SKILL.md line count are unchanged by the corrections; northstar stays 105 lines"
   }
 }
