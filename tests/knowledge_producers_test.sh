@@ -59,6 +59,18 @@ PY
   [ "$lines" -le 100 ]
 }
 
+# check_budget <producer> <file> <label>: prints the failure reason, nothing
+# when the file keeps its budget.
+check_budget() {
+  local lines
+  if [ "$1" = "northstar" ]; then
+    lines="$(wc -l < "$2" | tr -d ' ')"
+    [ "$lines" -le 105 ] || echo "$3 is $lines lines (northstar planning budget 105, net delta 0)"
+  elif ! within_body_budget "$2"; then
+    echo "$3 body exceeds 100 lines"
+  fi
+}
+
 want_kind() {
   case "$1" in
     northstar) echo plan ;;
@@ -168,15 +180,9 @@ PY
   else
     bad "$rel description is $desc chars (>160)"
   fi
-  if [ "$name" = "northstar" ]; then
-    lines="$(wc -l < "$file" | tr -d ' ')"
-    if [ "$lines" -le 105 ]; then
-      :
-    else
-      bad "northstar file is $lines lines (planning budget 105, net delta 0)"
-    fi
-  elif ! within_body_budget "$file"; then
-    bad "$rel body exceeds 100 lines"
+  reason="$(check_budget "$name" "$file" "$rel")"
+  if [ -n "$reason" ]; then
+    bad "$reason"
   fi
 done
 if [ "$FAIL" -eq 0 ]; then
@@ -208,15 +214,38 @@ if within_body_budget "$SCRATCH/body-101.md"; then
   bad "a 101-line body is accepted by the body budget"
   budget_fail=1
 fi
+# A frontmatter that does not parse is reported as such, not as an over-long body.
+printf -- '---\nname: budget-fixture\nBody line 1.\n' > "$SCRATCH/unterminated.md"
+case "$(check_budget research "$SCRATCH/unterminated.md" unterminated.md)" in
+  *"frontmatter does not parse"*) : ;;
+  *) bad "an unterminated frontmatter is not reported as a frontmatter parse error"; budget_fail=1 ;;
+esac
+# The northstar whole-file count includes a last line without a trailing newline.
+for count in 105 106; do
+  python3 -B -c 'import sys; sys.stdout.write("\n".join("Line %d" % i for i in range(1, int(sys.argv[1]) + 1)))' \
+    "$count" > "$SCRATCH/northstar-$count.md"
+done
+if [ -n "$(check_budget northstar "$SCRATCH/northstar-105.md" northstar-105.md)" ]; then
+  bad "a 105-line northstar file without a trailing newline is rejected"
+  budget_fail=1
+fi
+case "$(check_budget northstar "$SCRATCH/northstar-106.md" northstar-106.md)" in
+  *"is 106 lines"*) : ;;
+  *) bad "a 106-line northstar file without a trailing newline is not counted as 106 lines"; budget_fail=1 ;;
+esac
 if [ "$budget_fail" -eq 0 ]; then
-  ok "body budget accepts 97- and 100-line bodies and rejects a 101-line body"
+  ok "budgets: 97/100-line bodies pass, 101 fails, parse errors are named, unterminated last lines count"
 fi
 
 # 5. The module names the one local document `publish <path>` takes: a
 #    hosted-only output (to-prd, to-issues) is materialized under its kind's
 #    canonical target first. Every harness or private path it cites is quoted
-#    from the frozen policy (a deny path or a native_rules glob), never a
-#    broader summary such as `.omc/**`.
+#    from the frozen policy, classified as the policy classifies it (a deny
+#    path or a native_rules glob), never a broader summary such as `.omc/**`.
+#    The module states the rules root's publisher (scripts/knowledge/publish.py)
+#    needs from a producer: write rules that never clobber or leak, undo on
+#    failure, an explicit --id, one document per producer, the outermost
+#    producer only, and placement at the canonical path.
 module_fail=0
 module_report="$(python3 -B - "$MODULE" .ai/knowledge/contract/publication-policy.json <<'PY'
 import json, re, sys
@@ -239,10 +268,88 @@ cited = [token for token in re.findall(r'`([^`\n]+)`', text) if token.startswith
 for token in cited:
     if token not in deny and token not in native:
         print(f'module cites {token!r}, which is neither a deny path nor a native_rules glob of the policy')
-if not any(token in deny and token.startswith('.omc/') for token in cited):
+
+# Classification, not just membership: a statement that speaks of deny paths
+# cites only deny paths; one that speaks of native sources cites only
+# native_rules globs. Table rows and prose sentences are separate statements.
+statements = [line for line in text.splitlines() if line.startswith('|')]
+prose = ' '.join(line.strip() for line in text.splitlines() if not line.startswith('|'))
+statements += re.split(r'(?<=\.)\s+(?=[A-Z`*])', prose)
+denied_cited, native_cited = set(), set()
+for statement in statements:
+    tokens = [token for token in re.findall(r'`([^`\n]+)`', statement) if token.startswith(harness)]
+    if re.search(r'\bdeny\b|\bdenied\b', statement, re.I):
+        denied_cited.update(tokens)
+        for token in tokens:
+            if token not in deny:
+                print(f'module cites {token!r} as a deny path, but it is not in the policy deny list')
+    elif re.search(r'\bnative\b', statement, re.I):
+        native_cited.update(tokens)
+        for token in tokens:
+            if token not in native:
+                print(f'module cites {token!r} as a native source, but it is not a native_rules glob')
+if not any(token.startswith('.omc/') for token in denied_cited):
     print('module cites no denied .omc/ subpath from the policy')
-if not any(token in native and token.startswith('.omc/') for token in cited):
+if not any(token.startswith('.omc/') for token in native_cited):
     print('module cites no native .omc/ glob from the policy')
+
+
+def section(title):
+    match = re.search(r'^## ' + re.escape(title) + r'\n(.*?)(?=^## |\Z)', text, re.M | re.S)
+    return match.group(1) if match else ''
+
+
+def items(body):
+    return re.split(r'\n(?=\d+\. |- )', body)
+
+
+def require(label, body, *cues):
+    if not body or not all(cue in body for cue in cues):
+        print(f'module does not state: {label}')
+
+
+step, write, placement = section('The step'), section('Write rules'), section('Placement')
+# M1: writing under the canonical target never clobbers, never leaks.
+require('write only to an absent path or a same-id revision (`knowledge_id: <id>`)',
+        write, 'absent', '`knowledge_id: <id>`', 'revision')
+require('refuse a path another registry entry already uses as its canonical path',
+        write, 'another `knowledge_id`', 'canonical path', '.ai/knowledge/registry.json')
+require('on refusal try `<slug>-2`, `<slug>-3`', write, '`<slug>-2`', '`<slug>-3`')
+require('create the file exclusively', write, 'exclusively')
+undo = [item for item in items(step) if '`unpublished: publish-failed`' in item]
+if not any('delete the file this step created' in item and 'restore' in item
+           and item.index('delete the file this step created') < item.index('`unpublished: publish-failed`')
+           for item in undo):
+    print('module does not state: undo the write before recording `unpublished: publish-failed`')
+# M2: one document per producer, an explicit id, only the outermost producer.
+require('always pass `--id <id>` with `<id>` = `<repo_id>:<kind>:<slug>` from the title',
+        step, '--id <id>', '`<repo_id>:<kind>:<slug>`', 'title', 'Always pass `--id`')
+require('only the outermost producer runs the step; a nested producer skips it',
+        section('Who runs the step'), 'outermost', 'on behalf of', 'skips')
+kinds = section('Declared kinds')
+if '| Producer | kind | canonical target | document |' not in kinds:
+    print('module does not state: a document column in Declared kinds')
+rows = {row.split('|')[1].strip().strip('`'): [cell.strip() for cell in row.strip().strip('|').split('|')]
+        for row in kinds.splitlines() if row.startswith('| `')}
+cues = {'northstar': ('.ai/work-intake/', '`.omc/plans/*.md`'), 'to-spec': ('written to the target',),
+        'to-prd': ('tracker reference',), 'to-issues': ('dependency order',), 'research': ('*Placement*',),
+        'handoff': ('redaction',), 'retro': ('session-log',), 'domain-modeling': ('*Placement*',),
+        'code-review': ('written to the target',)}
+for name, wanted in cues.items():
+    cells = rows.get(name, [])
+    if len(cells) != 4 or not cells[3] or not all(cue in cells[3] for cue in wanted):
+        print(f'module does not state: the one document {name} publishes ({", ".join(wanted)})')
+# M3: a non-native document is saved once, at its canonical path.
+require('a non-native document is saved at `<target><slug>.md` and published in place, never copied',
+        placement, 'not a native harness file', '`<target><slug>.md`', 'in place', 'one tracked copy', 'move')
+# L1: a native source counts only with the kind of the producer.
+require('a native source counts only when its first matching native_rules glob has the producer kind',
+        kinds, 'first `native_rules` glob', 'same kind as the producer')
+# Flat projections are not XSKP hosts; publish-failed also covers a failed write.
+require('Gemini, Auggie and Copilot are not XSKP hosts', section('Who runs the step'),
+        'Gemini', 'Auggie', 'Copilot', 'not XSKP hosts')
+require('`unpublished: publish-failed` covers a document that could not be written',
+        section('Reasons recorded as `unpublished: <reason>`'), 'could not be written')
 PY
 )" || module_report="module policy check could not run"
 if [ -n "$module_report" ]; then
@@ -250,7 +357,7 @@ if [ -n "$module_report" ]; then
   module_fail=1
 fi
 if [ "$module_fail" -eq 0 ]; then
-  ok "module selects or materializes the published document and quotes the policy's path classes"
+  ok "module states document selection, write and undo rules, placement, and the policy's path classes"
 fi
 
 # 6. Every pointer resolves to the module in the source layout (through the
