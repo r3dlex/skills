@@ -1,0 +1,90 @@
+{
+  "goal_id": "ACH-GW-DISC-01",
+  "plan_id": "ach-skills-gate-discovery-repair",
+  "generation": "2a5d7d0b8bb081e788961c4e049e6dc249c02bc66772229a5c0fa6c0e99fd449",
+  "registration": "northstar-plan-ach-skills-gate-discovery-repair",
+  "base_commit": "4ff1d933d6519f1e9ef0ebaa3944c86186d64738",
+  "base_tree": "4423388b9fd25e3cda559d529097e60c110e461c",
+  "legacy_safe_tdd": true,
+  "legacy_risk_reason": "Relevant unit-test coverage is unknown in the published plan; characterize the supplied-root discovery seam and preserve validation and runner bytes.",
+  "provenance": {
+    "recorder": "pr121/execution-base/04-validate-handoff/autobahn/tdd-evidence.sh",
+    "recorder_sha256": "132923470012fa448580627e8af8b82562c9fd7c7fcdc2983e16f9b93376804f",
+    "method": "The unchanged pinned recorder executed both full-suite legs. The identical command redirects output only; each completed log was preserved externally before the next run.",
+    "execution_state": "Both legs ran with HEAD at base_commit and explicitly uncommitted changes. No red or source-only intermediate commit was created.",
+    "red_patch": "../discovery-evidence/test-first.patch",
+    "red_patch_sha256": "f636d30ba6b8abc5a2b270a02341bd6e50a406a3d534c597d368e2adcf3be816",
+    "green_patch": "../discovery-evidence/green-2-source.patch",
+    "green_patch_sha256": "8ef18954187bd6dcec2e8f95e045194a15b4ab270229ae9c82cdc9d79a35b737",
+    "head_binding": "The containing delivery commit binds this evidence and the final source digests below; its exact commit/tree are recorded in external discovery-evidence/delivery.json after commit. These runs do not claim committed-head certification."
+  },
+  "green": {
+    "command": "bash tests/run-tests.sh > ../discovery-evidence/full-suite.log 2>&1",
+    "exit_code": 0,
+    "started_at": "2026-10-08T05:48:57.683225+00:00",
+    "finished_at": "2026-10-08T06:03:48.878052+00:00",
+    "elapsed_seconds": 891.188,
+    "timeout_seconds": 3600,
+    "timed_out": false,
+    "log": "../discovery-evidence/full-green-2.log",
+    "log_sha256": "0493c8f279a7737c0292d044bf38b47232624a549ed50dc87d5b0edfb12d12ab",
+    "shell_results": "PASS=242 FAIL=0 SKIP=0",
+    "skill_results": "PASS=184 FAIL=0 WARN=0 SKIP=0",
+    "overall": "PASSED"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh > ../discovery-evidence/full-suite.log 2>&1",
+    "exit_code": 1,
+    "started_at": "2026-10-08T05:14:05.627911+00:00",
+    "finished_at": "2026-10-08T05:28:36.268681+00:00",
+    "elapsed_seconds": 870.636,
+    "timeout_seconds": 3600,
+    "timed_out": false,
+    "log": "../discovery-evidence/full-red.log",
+    "log_sha256": "300af2213b209e5b522688ee42bcaebd01ef8b589dbb92a97037aa4fe59e51e2",
+    "source_sha256": "566222d433b7b77f64a971903e0b8283faffc157d0b96122ece244dc6fdd7d49",
+    "cause": "The appended regression expected the same four passing assertions under an enclosing .omc root; original discovery instead reported WARNING: No SKILL.md files found.",
+    "overall": "FAILED"
+  },
+  "intervening_failed_run": {
+    "exit_code": 1,
+    "elapsed_seconds": 840.345,
+    "timed_out": false,
+    "log": "../discovery-evidence/full-green.log",
+    "log_sha256": "921c10535852d8e4be9bcb07c0c7e5f6b3a00884208d7021a5f30369d504799d",
+    "cause": "The existing root-discovery guard rejected the collapsed one-line find command. Restoring the original multiline traversal form preserved its accepted source shape; the guard and all negative controls remain unchanged.",
+    "recorder_outcome": "No green leg recorded for this failed run."
+  },
+  "focused": {
+    "command": "bash tests/test-skills-validator_test.sh",
+    "red_exit_code": 1,
+    "red_log": "../discovery-evidence/focused-red.log",
+    "red_log_sha256": "7ad3bb09b715c4578b00c1751c5dd3efa2caabc35b735abf1d1d822386d81c98",
+    "green_exit_code": 0,
+    "green_log": "../discovery-evidence/focused-green-2.log",
+    "green_log_sha256": "e1543d71c7bf718416d82bce788537556f85c758cfe858127ad09d0323257846",
+    "characterization": "The original and corrected discovery both validate file symlinks by their original names, do not traverse internal/external directory symlinks, and report zero skills for a supplied-root symlink."
+  },
+  "final_source_sha256": {
+    "tests/test-skills.sh": "133b1a968efa01d2b421cae5e14a7ea9f104d1ea7d4aa8d56606d98232b8156d",
+    "tests/test-skills-validator_test.sh": "d3fedd602339db2247c78317801d58e8519680fce284b02bd0480fd293c8cda6",
+    ".ai/ci/local-ci.json": "dc4ba40b76c87268df6d01d9ba1c3042c545775ada6bc60ad95a1063d2cafa96"
+  },
+  "preserved_invariants": [
+    "Earlier regression cases and assertions are byte-identical; only appended sections were added.",
+    "Validation functions, limits, exception lookup and the validation loop are byte-identical.",
+    "tests/run-tests.sh, tests/test-scripts.sh, discovery guards and their negative controls are unchanged.",
+    "local-ci/1 workflows, verification inventory and all unrelated source pins are unchanged.",
+    "The regression bytes are identical across the failing and passing full-suite legs."
+  ],
+  "ac5_clarification": {
+    "path": "../discovery-evidence/AC5-owner-clarification.json",
+    "sha256": "ea8f21124cd63810dfb93bb05e0b47a6fd8fcdfb00bcc43572d36ee1efc02624",
+    "meaning": "Applicable ordinary host policy plus independent exact-head signed review and certificate; no extra GitHub APPROVED event when freshly observed required review count is zero. This reference is not gate evidence."
+  },
+  "remaining_delivery": [
+    "Independent exact-head code/security review and signed review record.",
+    "Actual unchanged-base observer certification in its .omc workspace with nonzero skill assertions, full local/hosted gates and a signed exact-head certificate.",
+    "Fresh applicable ordinary host policy/authority and matched-head ordinary merge by the parent."
+  ]
+}

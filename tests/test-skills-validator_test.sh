@@ -211,3 +211,171 @@ fi
 assert_contains "$catalog_body_max" "body length 181 exceeds maximum 180"
 
 printf 'test-skills validator regression tests passed\n'
+
+# Discovery controls exercise the public supplied-root interface. All fixtures
+# remain under the cleanup-bound external TMP_ROOT; production suites are intact.
+assert_equal() {
+    if [ "$1" != "$2" ]; then
+        printf 'Expected %s:\n%s\nActual:\n%s\n' "$3" "$2" "$1" >&2
+        exit 1
+    fi
+}
+
+capture_discovery() {
+    if discovery_output=$(SKILLS_REPO_ROOT="$1" bash "$TEST_SCRIPT" 2>&1); then
+        discovery_exit=0
+    else
+        discovery_exit=$?
+    fi
+}
+
+zero_output=$(cat <<'TEXT'
+Skill Structure Tests
+=====================
+
+WARNING: No SKILL.md files found.
+TEXT
+)
+
+# Characterize default find behavior: file links are candidates, directory links
+# (including a supplied-root link) are not traversed. Keep the link's own name.
+link_root="$TMP_ROOT/link-tree"
+write_skill "$link_root/real" 100
+write_skill "$TMP_ROOT/external-file" 100
+mkdir -p "$link_root/file-link" "$TMP_ROOT/external-directory"
+printf 'invalid external skill\n' > "$TMP_ROOT/external-directory/SKILL.md"
+ln -s "$TMP_ROOT/external-file/SKILL.md" "$link_root/file-link/SKILL.md"
+ln -s real "$link_root/internal-directory-link"
+ln -s "$TMP_ROOT/external-directory" "$link_root/external-directory-link"
+capture_discovery "$link_root"
+assert_equal "$discovery_exit" 0 'symlink candidate exit'
+assert_equal "$(grep '^\[ ' <<< "$discovery_output" | LC_ALL=C sort)" \
+    $'[ file-link/SKILL.md ]\n[ real/SKILL.md ]' 'original symlink candidate names'
+assert_contains "$discovery_output" 'Results: PASS=8  FAIL=0  WARN=0  SKIP=0'
+printf 'Default find symlink characterization:\n%s\n' "$discovery_output"
+ln -s "$link_root" "$TMP_ROOT/supplied-root-link"
+capture_discovery "$TMP_ROOT/supplied-root-link"
+assert_equal "$discovery_exit" 0 'supplied symlink root exit'
+assert_equal "$discovery_output" "$zero_output" 'supplied symlink root no-follow output'
+printf 'Supplied symlink root characterization:\n%s\n' "$discovery_output"
+
+# Literal root-prefix removal and line reads must preserve whitespace, backslashes
+# and glob characters. Newline filenames retain the existing line-oriented limit.
+special_root="$TMP_ROOT/"$'root space\tand\\backslash[?]*'
+special_skill=$'skill space\tand\\backslash'
+write_skill "$special_root/$special_skill" 100
+capture_discovery "$special_root"
+assert_equal "$discovery_exit" 0 'special-path valid exit'
+assert_equal "$(grep '^\[ ' <<< "$discovery_output")" \
+    "[ $special_skill/SKILL.md ]" 'literal special-path skill name'
+assert_contains "$discovery_output" 'Results: PASS=4  FAIL=0  WARN=0  SKIP=0'
+write_skill "$special_root/$special_skill" 101
+capture_discovery "$special_root"
+assert_equal "$discovery_exit" 1 'special-path invalid exit'
+assert_equal "$(grep '^\[ ' <<< "$discovery_output")" \
+    "[ $special_skill/SKILL.md ]" 'literal invalid special-path skill name'
+assert_contains "$discovery_output" 'body has 101 lines (target: 100); not in exception manifest'
+assert_contains "$discovery_output" 'Results: PASS=3  FAIL=1  WARN=0  SKIP=0'
+printf 'Space/tab/backslash/glob path controls passed\n'
+
+# Only the three internal namespaces are excluded, at any depth. Other hidden
+# directories stay visible and differently cased filenames remain undiscovered.
+internal_root="$TMP_ROOT/internal-namespaces"
+write_skill "$internal_root/ordinary" 100
+write_skill "$internal_root/.visible/skill" 100
+printf 'invalid differently cased filename\n' > "$internal_root/skill.md"
+for namespace in .omc .git .claude; do
+    mkdir -p "$internal_root/$namespace" "$internal_root/nested/$namespace/deeper"
+    printf 'invalid internal skill\n' > "$internal_root/$namespace/SKILL.md"
+    printf 'invalid nested skill\n' > "$internal_root/nested/$namespace/deeper/SKILL.md"
+done
+capture_discovery "$internal_root"
+assert_equal "$discovery_exit" 0 'internal exclusions exit'
+assert_equal "$(grep '^\[ ' <<< "$discovery_output" | LC_ALL=C sort)" \
+    $'[ .visible/skill/SKILL.md ]\n[ ordinary/SKILL.md ]' 'only visible candidate names'
+assert_contains "$discovery_output" 'Results: PASS=8  FAIL=0  WARN=0  SKIP=0'
+rm -rf "$internal_root/ordinary" "$internal_root/.visible"
+empty_root="$TMP_ROOT/empty-tree"
+mkdir -p "$empty_root"
+
+# AC4's isolated positive shell-suite stand-in belongs only to this disposable
+# unchanged runner copy. The real full suite still executes every production test.
+runner_root="$TMP_ROOT/zero-runner"
+mkdir -p "$runner_root/tests"
+cp "$REPO_ROOT/tests/run-tests.sh" "$runner_root/tests/run-tests.sh"
+cp "$TEST_SCRIPT" "$runner_root/tests/test-skills.sh"
+printf '#!/bin/bash\nprintf "Results: PASS=1  FAIL=0  SKIP=0\\n"\n' \
+    > "$runner_root/tests/test-scripts.sh"
+for zero_root in "$empty_root" "$internal_root"; do
+    capture_discovery "$zero_root"
+    assert_equal "$discovery_exit" 0 'zero-skill direct exit'
+    assert_equal "$discovery_output" "$zero_output" 'zero-skill direct warning'
+    if runner_output=$(SKILLS_REPO_ROOT="$zero_root" bash "$runner_root/tests/run-tests.sh" 2>&1); then
+        runner_exit=0
+    else
+        runner_exit=$?
+    fi
+    assert_equal "$runner_exit" 1 'zero-skill full-runner exit'
+    assert_contains "$runner_output" 'PASSED: Shell Script Tests'
+    assert_contains "$runner_output" 'FAILED: Skill Structure Tests (zero assertions reported)'
+    assert_contains "$runner_output" 'OVERALL: FAILED'
+done
+printf 'Internal/nested exclusions and empty/internal-only fail-closed controls passed\n'
+
+# Ordinary and enclosing-namespace roots contain identical valid/exception trees.
+# Compare complete output, including relative names, diagnostics and exact counts.
+valid_root="$TMP_ROOT/discovery-valid"
+write_skill "$valid_root/fixture" 100
+capture_discovery "$valid_root"
+assert_equal "$discovery_exit" 0 'ordinary valid exit'
+valid_output="$discovery_output"
+assert_contains "$valid_output" '[ fixture/SKILL.md ]'
+assert_contains "$valid_output" 'line count 100 (under 100)'
+assert_contains "$valid_output" 'description length 45 (within target 160)'
+assert_contains "$valid_output" 'Results: PASS=4  FAIL=0  WARN=0  SKIP=0'
+assert_contains "$valid_output" 'RESULT: PASSED'
+
+excepted_root="$TMP_ROOT/discovery-excepted"
+write_skill "$excepted_root/fixture" 180
+python3 - "$excepted_root/fixture/SKILL.md" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+path.write_text(path.read_text().replace(
+    'description: Fixture skill for validator regression tests.',
+    'description: ' + 'x' * 161,
+))
+PY
+mkdir -p "$excepted_root/.ai/skills"
+for manifest in description-exceptions body-line-exceptions; do
+    printf '%s\n' '{"schema_version":"1.0","exceptions":[{"skill":"fixture","owner":"test","reason":"discovery control","expires":"2099-01-01"}]}' \
+        > "$excepted_root/.ai/skills/$manifest.json"
+done
+capture_discovery "$excepted_root"
+assert_equal "$discovery_exit" 0 'ordinary excepted exit'
+excepted_output="$discovery_output"
+assert_contains "$excepted_output" '[ fixture/SKILL.md ]'
+assert_contains "$excepted_output" 'line count 180 (audited exception; maximum 180)'
+assert_contains "$excepted_output" 'description length 161 over target but audited (maximum 180)'
+assert_contains "$excepted_output" 'Results: PASS=4  FAIL=0  WARN=0  SKIP=0'
+assert_contains "$excepted_output" 'RESULT: PASSED'
+
+for namespace in ordinary .omc .git .claude; do
+    ancestor_root="$TMP_ROOT/$namespace/ai-catapult/gate-workspaces"
+    mkdir -p "$ancestor_root"
+    cp -R "$valid_root" "$ancestor_root/valid"
+    capture_discovery "$ancestor_root/valid"
+    assert_equal "$discovery_exit" 0 "$namespace ancestor valid exit"
+    assert_equal "$discovery_output" "$valid_output" "$namespace ancestor exact valid output"
+    cp -R "$excepted_root" "$ancestor_root/excepted"
+    capture_discovery "$ancestor_root/excepted"
+    assert_equal "$discovery_exit" 0 "$namespace ancestor excepted exit"
+    assert_equal "$discovery_output" "$excepted_output" "$namespace ancestor exact excepted output"
+    cp -R "$over_limit" "$ancestor_root/invalid"
+    capture_discovery "$ancestor_root/invalid"
+    assert_equal "$discovery_exit" "$over_exit" "$namespace ancestor invalid exit"
+    assert_equal "$discovery_output" "$over_output" "$namespace ancestor exact invalid diagnostic"
+    printf 'Root-relative %s ancestor: exact valid/exception outputs and invalid exit/diagnostic passed\n' "$namespace"
+done
+
+printf 'test-skills root-discovery regression tests passed\n'

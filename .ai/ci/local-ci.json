@@ -8,7 +8,8 @@
   "sources": {
     "tests/run-tests.sh": "88dbbab43bd958d545320497c7decaccb5974bb85ab325b0823c4ad7e6ba2f93",
     "tests/test-scripts.sh": "cf6f872b5070e4f8bfe1dc3d4b69d269357ee8b50cb0b45979c58b9bc409d7ed",
-    "tests/test-skills.sh": "566222d433b7b77f64a971903e0b8283faffc157d0b96122ece244dc6fdd7d49",
+    "tests/test-skills.sh": "133b1a968efa01d2b421cae5e14a7ea9f104d1ea7d4aa8d56606d98232b8156d",
+    "tests/test-skills-validator_test.sh": "d3fedd602339db2247c78317801d58e8519680fce284b02bd0480fd293c8cda6",
     "tests/local_lint.sh": "a49a9fa3806714f90c7ef3b4e52b902f40bb78aa57fc1e603c90b4f9f4d56415",
     "tests/local_security_scan.sh": "43c0f4e4cc32b6609c1ba687a82171979c7b18e827a83882bb138db8548fbdc3",
     "scripts/scan-secret-material.py": "32c6edb4b5bebab36d4b83ea934c7d0052cb06f055aa808de72f3dde3849d16e",
