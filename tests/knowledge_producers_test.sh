@@ -372,7 +372,7 @@ cues = {'northstar': ('`.ai/work-intake/` record', 'source record', '`.omc/plans
         'to-issues': ('dependency order', '`.scratch/`'), 'research': ('*Placement*',),
         'handoff': ('*Private content*', 'redaction'), 'retro': ('*Private content*', 'session-log'),
         'domain-modeling': ('`<NNNN>-<slug>.md`', 'highest existing number', '*Placement*'),
-        'code-review': ('written to the target',)}
+        'code-review': ('*Private content*', 'written to the target')}
 for name, wanted in cues.items():
     cells = rows.get(name, [])
     if len(cells) != 4 or not cells[3] or not all(cue in cells[3] for cue in wanted):
@@ -395,9 +395,10 @@ require('`unpublished: needs-adoption` is a recorded reason',
 require('source records stay where they are and the registry copy is derived', section('Source records'),
         'A source record stays where it is', 'never move, copy or rewrite it',
         '`.scratch/<feature-slug>/PRD.md`', '`.ai/work-intake/`', '`derived_from`')
-# Private content: handoff and retro never write deny-listed content or local identities.
-require('handoff and retro cite deny-listed files by name only, scrub, and redact before the write',
-        section('Private content'), 'cite such a file by name only',
+# Private content: handoff, retro and code-review never write deny-listed content or local identities.
+require('handoff, retro and code-review cite deny-listed files by name only, scrub, and redact before the write',
+        section('Private content'), '`handoff`, `retro` and `code-review` write only what is safe to track',
+        'A UUID is replaced only in a session path', 'cite such a file by name only',
         'replace home-directory paths with `<home>` and session ids with `<session>`',
         '`handoff` runs its redaction step before the write', '`~/**`', '`.memory/**`',
         '`.omc/project-memory.json`', '`.omx/notepad.md`')
@@ -488,8 +489,11 @@ if [ "$install_fail" -eq 0 ]; then
 fi
 
 # 7. The module's scrub patterns (the `knowledge-scrub` block under *Private
-#    content*) run: they replace home-directory paths and session ids in a
-#    handoff/retro sample and leave repository paths, digests and PR numbers.
+#    content*) run on samples with exact expected outputs: every home-directory
+#    form (plain, encoded Claude Code project and scratchpad dirs, Windows,
+#    /root, $HOME, file URLs) and session ids in session paths (any case) are
+#    replaced; repository paths, URLs, REST paths and UUIDs outside session
+#    paths stay unchanged.
 scrub_report="$(python3 -B - "$MODULE" <<'PY'
 import re, sys
 from pathlib import Path
@@ -505,24 +509,56 @@ for line in (block.group(1).splitlines() if block else []):
 if len(rules) < 4:
     print('module has no knowledge-scrub block with home-path and session-id patterns')
     raise SystemExit
-sample = ('Read /Users/alice/Ws/repo/notes.md, /home/bob/.codex/AGENTS.md and ~/.claude/CLAUDE.md.\n'
-          'Session ses_ef2d3983cffefdKkTRHokBHkRq and 94f42008-9018-42b5-b61e-b0edc80d9a34.\n'
-          'Keep docs/plans/x.md, sha 777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6, PR #118.\n')
-for pattern, replacement in rules:
-    sample = pattern.sub(replacement, sample)
-for leaked in ('/Users/alice', '/home/bob', '~/', 'ses_ef2d3983', '94f42008-9018'):
-    if leaked in sample:
-        print(f'scrub patterns leave {leaked!r} in a handoff/retro sample')
-for kept in ('<home>/Ws/repo/notes.md', '<home>/.claude/CLAUDE.md', '<session>', 'docs/plans/x.md',
-             '777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6', 'PR #118'):
-    if kept not in sample:
-        print(f'scrub patterns do not yield {kept!r} in a handoff/retro sample')
+uuid, upper = '94f42008-9018-42b5-b61e-b0edc80d9a34', '94F42008-9018-42B5-B61E-B0EDC80D9A34'
+back = chr(92)
+replaced = [
+    ('Read /Users/alice/Ws/repo/notes.md', 'Read <home>/Ws/repo/notes.md'),
+    ('/home/bob/.codex/AGENTS.md', '<home>/.codex/AGENTS.md'),
+    ('see ~/.claude/CLAUDE.md', 'see <home>/.claude/CLAUDE.md'),
+    ('file:///Users/alice/x.md', 'file://<home>/x.md'),
+    ('~/.claude/projects/-Users-alice-Ws-repo/' + uuid + '.jsonl',
+     '<home>/.claude/projects/-<home>-Ws-repo/<session>.jsonl'),
+    ('/private/tmp/claude-502/-Users-alice-Ws-repo/' + uuid + '/scratchpad/x.md',
+     '/private/tmp/claude-502/-<home>-Ws-repo/<session>/scratchpad/x.md'),
+    ('/tmp/claude-0/-home-bob_smith2-src/x.md', '/tmp/claude-0/-<home>-src/x.md'),
+    ('C:' + back + 'Users' + back + 'alice' + back + 'repo', '<home>' + back + 'repo'),
+    ('/root/.codex/AGENTS.md', '<home>/.codex/AGENTS.md'),
+    ('$HOME/.codex/AGENTS.md', '<home>/.codex/AGENTS.md'),
+    ('~/.claude/projects/-Users-alice-Ws-repo/' + upper + '.jsonl',
+     '<home>/.claude/projects/-<home>-Ws-repo/<session>.jsonl'),
+    ('.omc/sessions/' + upper + '/state.json', '.omc/sessions/<session>/state.json'),
+    ('~/.codex/sessions/2026/10/08/rollout-2026-10-08T01-02-03-0199a7c4-1b2c-7d3e-8f40-123456789abc.jsonl',
+     '<home>/.codex/sessions/2026/10/08/rollout-2026-10-08T01-02-03-<session>.jsonl'),
+    ('opencode ses_ef2d3983cffefdKkTRHokBHkRq', 'opencode <session>'),
+]
+unchanged = [
+    'GET /scim/v2/Users/2819c223-7f76-453a-919d-413861904646',
+    'see https://example.com/home/docs and https://github.com/Users/x',
+    'edit src/home/page.md and lib/root/x.py',
+    'Azure DevOps project 6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c, build ' + upper,
+    'run tool --home-dir x',
+    'Keep docs/plans/x.md, sha 777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6, PR #118',
+]
+
+
+def scrub(value):
+    for pattern, replacement in rules:
+        value = pattern.sub(replacement, value)
+    return value
+
+
+for given, wanted in replaced:
+    if scrub(given) != wanted:
+        print(f'scrub patterns turn {given!r} into {scrub(given)!r}, not {wanted!r}')
+for given in unchanged:
+    if scrub(given) != given:
+        print(f'scrub patterns change {given!r} into {scrub(given)!r}; it must stay unchanged')
 PY
 )" || scrub_report="scrub pattern check could not run"
 if [ -n "$scrub_report" ]; then
   while IFS= read -r line; do bad "$line"; done <<< "$scrub_report"
 else
-  ok "module scrub patterns remove home paths and session ids and keep repository facts"
+  ok "module scrub patterns replace every home-path form and session-path ids, and leave other paths and UUIDs"
 fi
 
 echo ""
