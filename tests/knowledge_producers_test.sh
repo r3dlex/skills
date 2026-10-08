@@ -259,9 +259,12 @@ fi
 #    from the frozen policy, classified as the policy classifies it (a deny
 #    path or a native_rules glob), never a broader summary such as `.omc/**`.
 #    The module states the rules root's publisher (scripts/knowledge/publish.py)
-#    needs from a producer: write rules that never clobber or leak, undo on
-#    failure, an explicit --id, one document per producer, the outermost
-#    producer only, and placement at the canonical path.
+#    needs from a producer, each as an exact rule sentence: write rules that
+#    never clobber, leak or misjudge a revision; an undo that deletes only the
+#    step's own copy; an explicit --id from the repo profile; one document per
+#    producer; source records left in place; placement that copies, publishes
+#    and removes an original only on success; and private-content rules for
+#    handoff and retro.
 module_fail=0
 module_report="$(python3 -B - "$MODULE" .ai/knowledge/contract/publication-policy.json <<'PY'
 import json, re, sys
@@ -288,8 +291,9 @@ for token in cited:
 # Classification, not just membership: a statement that speaks of deny paths
 # cites only deny paths; one that speaks of native sources cites only
 # native_rules globs. Table rows and prose sentences are separate statements.
-statements = [line for line in text.splitlines() if line.startswith('|')]
-prose = ' '.join(line.strip() for line in text.splitlines() if not line.startswith('|'))
+unfenced = re.sub(r'^```.*?^```[^\n]*$', '', text, flags=re.M | re.S)  # code blocks are not statements
+statements = [line for line in unfenced.splitlines() if line.startswith('|')]
+prose = ' '.join(line.strip() for line in unfenced.splitlines() if not line.startswith('|'))
 statements += re.split(r'(?<=\.)\s+(?=[A-Z`*])', prose)
 denied_cited, native_cited = set(), set()
 for statement in statements:
@@ -329,39 +333,74 @@ def require(label, body, *cues):
 
 
 step, write, placement = section('The step'), section('Write rules'), section('Placement')
-# M1: writing under the canonical target never clobbers, never leaks.
-require('write only to an absent path or a same-id revision (`knowledge_id: <id>`)',
-        write, 'absent', '`knowledge_id: <id>`', 'revision')
-require('refuse a path another registry entry already uses as its canonical path',
-        write, 'another `knowledge_id`', 'canonical path', '.ai/knowledge/registry.json')
-require('on refusal try `<slug>-2`, `<slug>-3`', write, '`<slug>-2`', '`<slug>-3`')
-require('create the file exclusively', write, 'exclusively')
+# Cues are exact rule sentences, so a reversed rule fails (a topic word would not).
+# Write rules: never clobber, never leak, never misjudge a revision.
+require('refuse a path another registry entry already uses as its canonical path', write,
+        'Refuse the path if an entry in `.ai/knowledge/registry.json` with another `knowledge_id` '
+        'already uses it as its canonical path')
+require('a revision needs a same-id file, a run that revises it, and a source that is the entry '
+        'canonical path or one of its `derived_from` paths', write,
+        'A run is a revision only when', '`knowledge_id: <id>`', 'this run revises that document',
+        'the source is the canonical path of the entry or a `derived_from` path of one of its revisions',
+        'Refuse a registered `<id>` for any other run')
+require('on refusal try `<slug>-2`, `<slug>-3`, capped at `<slug>-99`', write,
+        'try `<slug>-2`, then `<slug>-3`, up to `<slug>-99`',
+        'If every candidate is refused, record `unpublished: publish-failed`')
+require('create the file exclusively', write, 'Create a new file exclusively')
 undo = [flat(item) for item in items(step) if '`unpublished: publish-failed`' in flat(item)]
-if not any('delete the file this step created' in item and 'restore' in item
-           and item.index('delete the file this step created') < item.index('`unpublished: publish-failed`')
+if not any('delete only the copy this step made' in item and 'restore the bytes it replaced' in item
+           and 'Never delete or move the producer' in item
+           and item.index('delete only the copy this step made') < item.index('`unpublished: publish-failed`')
            for item in undo):
-    print('module does not state: undo the write before recording `unpublished: publish-failed`')
-# M2: one document per producer, an explicit id, only the outermost producer.
+    print('module does not state: undo deletes only the copy this step made, never the producer document, '
+          'before recording `unpublished: publish-failed`')
+# One document per producer, an explicit id from the repo profile, only the outermost producer.
 require('always pass `--id <id>` with `<id>` = `<repo_id>:<kind>:<slug>` from the title',
-        step, '--id <id>', '`<repo_id>:<kind>:<slug>`', 'title', 'Always pass `--id`')
-require('only the outermost producer runs the step; a nested producer skips it',
-        section('Who runs the step'), 'outermost', 'on behalf of', 'skips')
+        step, '--id <id>', '`<repo_id>:<kind>:<slug>`', 'document title', 'Always pass `--id`')
+require('`<repo_id>` comes from `.ai/init/repo-profile.json`, the value the publisher validates', step,
+        '`<repo_id>` is the `repo_id` of `.ai/init/repo-profile.json`')
+require('only the outermost producer runs the step; a nested producer skips it', section('Who runs the step'),
+        'Only the outermost producer runs the step.', 'skips it and records nothing')
 kinds = section('Declared kinds')
 if '| Producer | kind | canonical target | document |' not in kinds:
     print('module does not state: a document column in Declared kinds')
 rows = {row.split('|')[1].strip().strip('`'): [cell.strip() for cell in row.strip().strip('|').split('|')]
         for row in kinds.splitlines() if row.startswith('| `')}
-cues = {'northstar': ('.ai/work-intake/', '`.omc/plans/*.md`'), 'to-spec': ('written to the target',),
-        'to-prd': ('tracker reference',), 'to-issues': ('dependency order',), 'research': ('*Placement*',),
-        'handoff': ('redaction',), 'retro': ('session-log',), 'domain-modeling': ('*Placement*',),
+cues = {'northstar': ('`.ai/work-intake/` record', 'source record', '`.omc/plans/*.md`'),
+        'to-spec': ('written to the target',),
+        'to-prd': ('`.scratch/<feature-slug>/PRD.md`', 'source record', 'tracker reference'),
+        'to-issues': ('dependency order', '`.scratch/`'), 'research': ('*Placement*',),
+        'handoff': ('*Private content*', 'redaction'), 'retro': ('*Private content*', 'session-log'),
+        'domain-modeling': ('`<NNNN>-<slug>.md`', 'highest existing number', '*Placement*'),
         'code-review': ('written to the target',)}
 for name, wanted in cues.items():
     cells = rows.get(name, [])
     if len(cells) != 4 or not cells[3] or not all(cue in cells[3] for cue in wanted):
         print(f'module does not state: the one document {name} publishes ({", ".join(wanted)})')
-# M3: a non-native document is saved once, at its canonical path.
-require('a non-native document is saved at `<target><slug>.md` and published in place, never copied',
-        placement, 'not a native harness file', '`<target><slug>.md`', 'in place', 'one tracked copy', 'move')
+# Placement: a non-native document lives once, at its canonical path; an earlier
+# save is copied, published, and removed only on success; nothing pre-existing moves.
+require('a non-native document is saved at `<target><slug>.md` in the first place', placement,
+        'saves it at `<target><slug>.md` under the *Write rules* in the first place')
+require('copy, publish the copy, remove the original only after success', placement,
+        'Copy it to `<target><slug>.md` under the *Write rules* and publish the copy',
+        'Remove the original only after the publish run succeeds',
+        'update the references this run made to the new path')
+require('a failed publish keeps the original', placement,
+        'On a failure the step deletes only its copy; the original stays where the producer saved it')
+require('never move a pre-existing or linked file; record `unpublished: needs-adoption`', placement,
+        'Never move or remove a file that existed before this run', '`unpublished: needs-adoption`')
+require('`unpublished: needs-adoption` is a recorded reason',
+        section('Reasons recorded as `unpublished: <reason>`'), '`unpublished: needs-adoption`')
+# Source records stay; the registry copy is derived from them.
+require('source records stay where they are and the registry copy is derived', section('Source records'),
+        'A source record stays where it is', 'never move, copy or rewrite it',
+        '`.scratch/<feature-slug>/PRD.md`', '`.ai/work-intake/`', '`derived_from`')
+# Private content: handoff and retro never write deny-listed content or local identities.
+require('handoff and retro cite deny-listed files by name only, scrub, and redact before the write',
+        section('Private content'), 'cite such a file by name only',
+        'replace home-directory paths with `<home>` and session ids with `<session>`',
+        '`handoff` runs its redaction step before the write', '`~/**`', '`.memory/**`',
+        '`.omc/project-memory.json`', '`.omx/notepad.md`')
 # L1: a native source counts only with the kind of the producer.
 require('a native source counts only when its first matching native_rules glob has the producer kind',
         kinds, 'first `native_rules` glob', 'same kind as the producer')
@@ -446,6 +485,44 @@ if [ -n "$resolve_report" ]; then
 fi
 if [ "$install_fail" -eq 0 ]; then
   ok "every pointer resolves to the module in the source and Claude Code/Codex installed layouts; flat projections drop it"
+fi
+
+# 7. The module's scrub patterns (the `knowledge-scrub` block under *Private
+#    content*) run: they replace home-directory paths and session ids in a
+#    handoff/retro sample and leave repository paths, digests and PR numbers.
+scrub_report="$(python3 -B - "$MODULE" <<'PY'
+import re, sys
+from pathlib import Path
+
+module = Path(sys.argv[1])
+text = module.read_text(encoding='utf-8') if module.is_file() else ''
+block = re.search(r'^```knowledge-scrub\n(.*?)^```', text, re.M | re.S)
+rules = []
+for line in (block.group(1).splitlines() if block else []):
+    if line.strip():
+        pattern, _, replacement = line.rpartition(' -> ')
+        rules.append((re.compile(pattern.strip()), replacement.strip()))
+if len(rules) < 4:
+    print('module has no knowledge-scrub block with home-path and session-id patterns')
+    raise SystemExit
+sample = ('Read /Users/alice/Ws/repo/notes.md, /home/bob/.codex/AGENTS.md and ~/.claude/CLAUDE.md.\n'
+          'Session ses_ef2d3983cffefdKkTRHokBHkRq and 94f42008-9018-42b5-b61e-b0edc80d9a34.\n'
+          'Keep docs/plans/x.md, sha 777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6, PR #118.\n')
+for pattern, replacement in rules:
+    sample = pattern.sub(replacement, sample)
+for leaked in ('/Users/alice', '/home/bob', '~/', 'ses_ef2d3983', '94f42008-9018'):
+    if leaked in sample:
+        print(f'scrub patterns leave {leaked!r} in a handoff/retro sample')
+for kept in ('<home>/Ws/repo/notes.md', '<home>/.claude/CLAUDE.md', '<session>', 'docs/plans/x.md',
+             '777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6', 'PR #118'):
+    if kept not in sample:
+        print(f'scrub patterns do not yield {kept!r} in a handoff/retro sample')
+PY
+)" || scrub_report="scrub pattern check could not run"
+if [ -n "$scrub_report" ]; then
+  while IFS= read -r line; do bad "$line"; done <<< "$scrub_report"
+else
+  ok "module scrub patterns remove home paths and session ids and keep repository facts"
 fi
 
 echo ""
