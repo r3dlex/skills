@@ -47,20 +47,20 @@ Validation fails when any manifest phase lacks a matching status file or when an
 
 ## `local_ci` declaration
 
-`local_ci` declares what "local CI is green" means for this repository so that a consumer never has to probe for a command. Its shape is exactly a list of surfaces with per-surface hermeticity plus a truth claim:
+`local_ci` declares what "local CI is green" means for this repository so that a consumer never has to probe for a command. Its shape is exactly a list of surfaces with per-surface hermeticity plus a truth claim. Illustrative example only — a hypothetical repository that carries no `.ai/ci/local-ci.json`, not any real repository's declaration:
 
 ```json
 "local_ci": {
   "surfaces": [
     {
-      "cmd": "bash tools/ci-engine/root_validation.sh",
+      "cmd": "bash tests/run-tests.sh",
       "hermetic": true,
-      "covers": "root validation: tests, lint and fixture gates"
+      "covers": "unit tests, lint and fixture gates"
     },
     {
-      "cmd": "moon run :ci",
+      "cmd": "bash tests/integration_test.sh",
       "hermetic": false,
-      "covers": "the task-runner ci deps that do not route through root validation"
+      "covers": "integration tests that need hosted tooling"
     }
   ],
   "sole_source_of_truth": true
@@ -73,6 +73,20 @@ Validation fails when any manifest phase lacks a matching status file or when an
   - `covers`: non-empty string naming what the surface covers, so a completeness check can see what the declaration omits.
 - `sole_source_of_truth`: boolean — `true` only when the listed surfaces are the repository's complete definition of local CI and a drift guard holds them honest; `false` while the list is provisional or partial. `true` over zero surfaces is malformed.
 
-A flat command string or list (`"local_ci": "bash …"`, `"local_ci": ["bash …"]`) is **not** a valid declaration: one command cannot express a multi-surface definition of green with per-surface hermeticity and declared non-hermetic exemptions. Validation rejects a malformed declaration and names the offending JSON path (for example `local_ci.surfaces[0].hermetic`); the declaration is never repaired, defaulted, or replaced by a guess.
+A flat command string or list (`"local_ci": "bash …"`, `"local_ci": ["bash …"]`) is **not** a valid declaration: one command cannot express a multi-surface definition of green with per-surface hermeticity and declared non-hermetic surfaces. Validation rejects a malformed declaration and names the offending JSON path (for example `local_ci.surfaces[0].hermetic`); the declaration is never repaired, defaulted, or replaced by a guess.
 
 **An absent or empty `local_ci` declaration means the consumer parks**: it never verifies, never merges, and never probes the repository for a command. The same park rule applies to a declaration whose `sole_source_of_truth` is `false` and to any malformed declaration (fail closed). The scaffold emits an empty declaration (`"surfaces": []`, `"sole_source_of_truth": false`) so a freshly initialized repository starts parked until its owner derives the declaration from that repository's real CI surfaces — a template default is never treated as a derived declaration.
+
+A `local_ci` is **declared** only when `surfaces` is non-empty and `sole_source_of_truth` is `true`; every other state parks. The parked starter (`"surfaces": []`, `"sole_source_of_truth": false`) is neither a declaration nor an exemption: it waives no gate and certifies nothing.
+
+### Execution semantics
+
+A consumer runs every declared surface regardless of `hermetic`: `hermetic: false` only declares that the surface needs network or hosted tooling, and never exempts it from the clean pass. Surfaces run sequentially in list order, and the first non-zero exit ends the run as not green. Each `cmd` is split into shell words and executed as argv without a shell, matching ADR-0015 (`.ai/ci/local-ci.json`); a compound command (`&&`, a pipe, a redirection) belongs in a script that the surface names.
+
+### Relationship to `.ai/ci/local-ci.json`
+
+`local_ci` is the declaration read by the af-06 `local_ci` consumer (ai-factory's verification gate and the root guard), and its `sole_source_of_truth` claim is scoped to that consumer's gate. `.ai/ci/local-ci.json` (`local-ci/1`, later `local-ci/2`) stays the autobahn contract defined by ADR-0015. The two are distinct contracts; neither is derived from or substitutes for the other. Until a reconciliation rule exists (owned by af-06b or tci-meta-af06), a repository that carries `.ai/ci/local-ci.json` **MUST NOT** declare `sole_source_of_truth: true`: it keeps the parked starter or declares `false`.
+
+### Adoption
+
+The field is not retroactive. An existing repository never receives it from the scaffold, because a present `repo-workflow.json` is `present-not-overwritten`; its owner adds `local_ci` deliberately. `ai-catapult init --force` replaces `repo-workflow.json` with the template and therefore resets a derived declaration to the parked starter.

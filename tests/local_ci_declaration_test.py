@@ -143,7 +143,8 @@ def fixture_surfaces(variant):
 
 
 def run_surfaces(root, surfaces):
-    """Run each declared surface from root, offline, as a consumer would."""
+    """Run each declared surface from root, offline, as a consumer would: cmd
+    split into shell words and executed as argv without a shell (workflow.md)."""
     env = {"PATH": os.environ["PATH"], "PYTHONDONTWRITEBYTECODE": "1"}
     return [subprocess.run(shlex.split(s["cmd"]), cwd=root, env=env,
                            capture_output=True, text=True)
@@ -166,6 +167,34 @@ def break_input(root, path, old, new):
     if old not in text:
         raise AssertionError(f"defect would be a no-op: {old!r} not in {path}")
     target.write_text(text.replace(old, new))
+
+
+def undeclared_tests(root, surfaces):
+    """Fixture test scripts anywhere under tests/ that no declared surface runs."""
+    declared = {shlex.split(s["cmd"])[-1] for s in surfaces}
+    scripts = {p.relative_to(root).as_posix() for p in (root / "tests").rglob("*_test.*")}
+    return sorted(scripts - declared)
+
+
+# Normative statements the schema doc must make; each is a load-bearing rule.
+SCHEMA_DOC_ANCHORS = (
+    "absent or empty", "park", "never probe", "flat",
+    "surfaces", "sole_source_of_truth", "hermetic", "covers",
+    "is neither a declaration nor an exemption",
+    "runs every declared surface regardless of `hermetic`",
+    "never exempts it from the clean pass",
+    "sequentially in list order",
+    "the first non-zero exit ends the run as not green",
+    "executed as argv without a shell",
+    "are distinct contracts",
+    "**MUST NOT** declare `sole_source_of_truth: true`",
+    "`present-not-overwritten`",
+    "resets a derived declaration to the parked starter",
+)
+
+
+def missing_anchors(text):
+    return [anchor for anchor in SCHEMA_DOC_ANCHORS if anchor not in text]
 
 
 def make_surface(cmd="bash tests/run-tests.sh", hermetic=True, covers="test suite"):
@@ -312,22 +341,31 @@ class ScaffoldAndFixtures(unittest.TestCase):
         # whole local CI, so every fixture test script must be declared.
         for variant in FIXTURES:
             root = FIXTURE_ROOT / variant
-            declared = {shlex.split(s["cmd"])[-1] for s in fixture_surfaces(variant)}
-            scripts = {p.relative_to(root).as_posix()
-                       for p in (root / "tests").glob("*_test.*")}
             with self.subTest(variant=variant):
-                self.assertTrue(scripts)
-                self.assertLessEqual(scripts, declared,
-                                     f"{variant}: undeclared local CI scripts")
+                self.assertTrue(list((root / "tests").rglob("*_test.*")))
+                self.assertEqual(undeclared_tests(root, fixture_surfaces(variant)), [],
+                                 f"{variant}: undeclared local CI scripts")
+
+    def test_completeness_guard_catches_a_nested_undeclared_test(self):
+        # Defect-negative: a test script nested below tests/ is local CI too.
+        for variant in FIXTURES:
+            with tempfile.TemporaryDirectory() as tmp, self.subTest(variant=variant):
+                root = pathlib.Path(tmp) / variant
+                shutil.copytree(FIXTURE_ROOT / variant, root)
+                nested = root / "tests/nested/extra_test.sh"
+                nested.parent.mkdir()
+                nested.write_text("#!/bin/sh\nexit 0\n")
+                self.assertEqual(undeclared_tests(root, fixture_surfaces(variant)),
+                                 ["tests/nested/extra_test.sh"])
 
     def test_schema_doc_states_park_rule_and_shape(self):
         doc = SCHEMA_DOC.read_text()
-        self.assertIn("absent or empty", doc)
-        self.assertIn("park", doc)
-        self.assertIn("never probe", doc)
-        self.assertIn("flat", doc)
-        for token in ("surfaces", "sole_source_of_truth", "hermetic", "covers"):
-            self.assertIn(token, doc, f"schema doc must define {token}")
+        self.assertEqual(missing_anchors(doc), [],
+                         "schema doc must state every normative anchor")
+        # Mutation check: deleting any one anchor from the doc is detected.
+        for anchor in SCHEMA_DOC_ANCHORS:
+            with self.subTest(removed=anchor):
+                self.assertIn(anchor, missing_anchors(doc.replace(anchor, "")))
 
 
 class FixtureSurfacesRun(unittest.TestCase):

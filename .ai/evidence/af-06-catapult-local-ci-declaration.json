@@ -40,6 +40,19 @@
       "scope": "r3dlex/skills#105 review round 2 (M1 vacuous pass on non-object JSON, L1 defect path named, L2 link rules default to required, L4 non-object phase entry and validation named)",
       "test_sha256": "af49409a8f56708c9960eef601f0254e00e8c38925fdd9d7adfda8cb28371664"
     },
+    "review_round_2b": {
+      "green_method": "modules/workflow.md gains the normative declared/parked definition, execution semantics, the relationship to .ai/ci/local-ci.json and adoption; the example is relabelled illustrative; the completeness helper undeclared_tests switches glob to rglob",
+      "green_result": "14 tests passed",
+      "green_test_sha256": "f6aa97797f23b7727bfc6460b2c6b7ca8ee808f8385f1666340a0405561a975d",
+      "green_workflow_md_sha256": "a0efe2e9a0fd87b20633e6f2261b2754123a87d7e8c8b63ddd9dfc859307438e",
+      "observed_at": "2026-10-08T20:05:21Z",
+      "recorder": "autobahn tdd-evidence.sh --record-red then --record-green in the worktree, for the identical command; the guard under test lives in the test file, so the test file changes between the legs (glob to rglob) and nothing else does",
+      "red_method": "add the schema-doc anchors with a per-anchor mutation check and a nested undeclared tests/nested/extra_test.sh defect-negative case, with workflow.md unchanged and the completeness helper still using glob",
+      "red_result": "14 tests; failures=3 (schema doc lacks the new normative anchors; the nested undeclared test is missed in both fixture variants)",
+      "red_test_sha256": "31e375b2715ce56dba3433a6f4882fed2f53c901b6bc4bd4b93c37682d6db2e5",
+      "red_workflow_md_sha256": "b8231bf117e5c6d6961406463e7f91d3442886e3af9b9a44c4614b3e987eab40",
+      "scope": "r3dlex/skills#105 review round 2 critic lane (MEDIUM-1 relationship to .ai/ci/local-ci.json, MEDIUM-2 execution semantics, L3 declared defined, L4 non-retroactivity, L5 nested completeness)"
+    },
     "scope": "r3dlex/skills#105 review corrections (fixture surfaces, defect-negative and completeness guard); the original af-06 PR 1 authoring chronology is not reconstructed; original_goal records an observed red/green of the PR 1 tests against the pre-change product"
   },
   "red": {
