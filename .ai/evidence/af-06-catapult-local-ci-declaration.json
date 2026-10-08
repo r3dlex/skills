@@ -28,6 +28,18 @@
     "red_result": "13 tests; failures=14 (7 covered-input defects x 2 fixture variants still exited 0)",
     "red_test_sha256": "9f770dce13bfe1c4df31570a84b0a0af946aa92ce9ad8018d5e13bb44515a4e2",
     "refactor": "validate_local_ci split into check_fields and validate_surface, malformed cases moved to MALFORMED_CASES; 90,024 generated declarations gave identical results, paths and messages under the 3166ae0 and refactored validators; green re-observed afterwards",
+    "review_round_2": {
+      "green_fixture_script_sha256": "e3d44c0a59883b8dbef5eb322aae42499fb7b1afc038c019d1d21c191f960958",
+      "green_method": "both fixture-root tests/workflow-fixtures_test.sh: read() rejects JSON that is not an object, naming the path; a non-object phases[i] or validation is a named defect; an absent entry-surface link rule is required",
+      "green_result": "13 tests passed",
+      "observed_at": "2026-10-08T19:48:26Z",
+      "recorder": "autobahn tdd-evidence.sh --record-red then --record-green in the worktree, for the identical command, the test file byte-identical between the legs",
+      "red_fixture_script_sha256": "e49f5035a8d757e2acc2d2180ce099a89e65e7daa7958873f817735617b97099",
+      "red_method": "add the defect rows (manifest JSON null, phase status JSON null, manifest phase entry not an object, manifest validation not an object) and require each failing surface to name the defective path, with the fixture scripts still at 528d528",
+      "red_result": "13 tests; failures=8 (4 new defects x 2 fixture variants exited 0 or failed without naming the input)",
+      "scope": "r3dlex/skills#105 review round 2 (M1 vacuous pass on non-object JSON, L1 defect path named, L2 link rules default to required, L4 non-object phase entry and validation named)",
+      "test_sha256": "af49409a8f56708c9960eef601f0254e00e8c38925fdd9d7adfda8cb28371664"
+    },
     "scope": "r3dlex/skills#105 review corrections (fixture surfaces, defect-negative and completeness guard); the original af-06 PR 1 authoring chronology is not reconstructed; original_goal records an observed red/green of the PR 1 tests against the pre-change product"
   },
   "red": {

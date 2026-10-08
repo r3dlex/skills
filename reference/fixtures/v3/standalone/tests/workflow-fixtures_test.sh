@@ -21,16 +21,17 @@ def read(path, as_json=False):
         return None
     try:
         text = Path(path).read_text(encoding="utf-8")
-        return json.loads(text) if as_json else text
+        value = json.loads(text) if as_json else text
     except (OSError, ValueError) as error:
         failures.append(f"{path}: {error}")
         return None
+    if as_json and not isinstance(value, dict):
+        failures.append(f"{path}: must be a JSON object")
+        return None
+    return value
 
 
 manifest = read(MANIFEST, as_json=True)
-if manifest is not None and not isinstance(manifest, dict):
-    failures.append(f"{MANIFEST}: must be a JSON object")
-    manifest = None
 if manifest is not None:
     if manifest.get("manifest") != MANIFEST:
         failures.append(f"{MANIFEST}: manifest must name {MANIFEST}")
@@ -43,9 +44,12 @@ if manifest is not None:
     if not isinstance(phases, list) or not phases:
         failures.append(f"{MANIFEST}: phases must be a non-empty list")
         phases = []
-    for phase in phases:
+    for index, phase in enumerate(phases):
+        if not isinstance(phase, dict):
+            failures.append(f"{MANIFEST}: phases[{index}] must be a JSON object")
+            continue
         status = read(phase.get("status_path"), as_json=True)
-        if not isinstance(status, dict):
+        if status is None:
             continue
         for key, expected in (("workflow_id", manifest.get("workflow_id")),
                               ("phase_id", phase.get("id")),
@@ -53,14 +57,18 @@ if manifest is not None:
             if status.get(key) != expected:
                 failures.append(f"{phase['status_path']}: {key} must be {expected!r}")
     rules = manifest.get("validation", {})
+    if not isinstance(rules, dict):
+        failures.append(f"{MANIFEST}: validation must be a JSON object")
+        rules = {}
     surfaces = manifest.get("entry_surfaces")
     if not isinstance(surfaces, list) or not surfaces:
         failures.append(f"{MANIFEST}: entry_surfaces must be a non-empty list")
         surfaces = []
     for surface in surfaces:
         body = read(surface)
-        links = ((rules.get("entry_surfaces_must_link_doc"), doc_path),
-                 (rules.get("entry_surfaces_must_link_manifest"), MANIFEST))
+        # An absent link rule is required: only an explicit false relaxes it.
+        links = ((rules.get("entry_surfaces_must_link_doc", True), doc_path),
+                 (rules.get("entry_surfaces_must_link_manifest", True), MANIFEST))
         for required, link in links:
             if body is not None and required and isinstance(link, str) and link not in body:
                 failures.append(f"{surface}: must link {link}")

@@ -34,12 +34,19 @@ DECL_KEYS = ("surfaces", "sole_source_of_truth")
 SURFACE_KEYS = ("cmd", "hermetic", "covers")
 
 # Inputs the v3 fixture declarations claim to cover, each broken one at a time:
-# (label, fixture-relative path, text to replace or None to delete, replacement).
+# (label, fixture-relative path, text to replace or None for the whole file,
+# replacement or None to delete).
 COVERED_INPUT_DEFECTS = (
     ("workflow doc removed", ".ai/workflows/repo-workflow.md", None, None),
+    ("manifest is JSON null", ".ai/workflows/repo-workflow.json", None, "null\n"),
+    ("phase status is JSON null", ".ai/phases/02-govern-plan/status.json", None, "null\n"),
     ("workflow doc loses its mandatory steps", ".ai/workflows/repo-workflow.md",
      "## Mandatory steps", "## Steps"),
     ("manifest removed", ".ai/workflows/repo-workflow.json", None, None),
+    ("manifest phase entry is not an object", ".ai/workflows/repo-workflow.json",
+     '"phases": [', '"phases": ["not-an-object",'),
+    ("manifest validation is not an object", ".ai/workflows/repo-workflow.json",
+     '"validation": {', '"validation": [], "validation_was": {'),
     ("phase status removed", ".ai/phases/02-govern-plan/status.json", None, None),
     ("phase status names another phase", ".ai/phases/03-configure-generate/status.json",
      '"phase_id": "03-configure-generate"', '"phase_id": "02-govern-plan"'),
@@ -139,15 +146,21 @@ def run_surfaces(root, surfaces):
     """Run each declared surface from root, offline, as a consumer would."""
     env = {"PATH": os.environ["PATH"], "PYTHONDONTWRITEBYTECODE": "1"}
     return [subprocess.run(shlex.split(s["cmd"]), cwd=root, env=env,
-                           capture_output=True, text=True).returncode
+                           capture_output=True, text=True)
             for s in surfaces]
 
 
 def break_input(root, path, old, new):
-    """Delete root/path, or replace old with new in it (never a no-op)."""
+    """Delete root/path, overwrite it with new, or replace old with new in it
+    (never a no-op)."""
     target = root / path
-    if old is None:
+    if old is None and new is None:
         target.unlink()
+        return
+    if old is None:
+        if target.read_text() == new:
+            raise AssertionError(f"defect would be a no-op: {path} is already {new!r}")
+        target.write_text(new)
         return
     text = target.read_text()
     if old not in text:
@@ -325,12 +338,13 @@ class FixtureSurfacesRun(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp, self.subTest(variant=variant):
                 root = pathlib.Path(tmp) / variant
                 shutil.copytree(FIXTURE_ROOT / variant, root)
-                codes = run_surfaces(root, fixture_surfaces(variant))
+                codes = [r.returncode for r in run_surfaces(root, fixture_surfaces(variant))]
                 self.assertEqual(codes, [0] * len(codes))
 
     def test_declared_surfaces_fail_on_each_covered_input_defect(self):
         # Defect-negative: a surface that still exits 0 after one of its
-        # covered inputs is removed or corrupted validates nothing.
+        # covered inputs is removed or corrupted validates nothing, and one
+        # that fails without naming the input does not say what to fix.
         for variant in FIXTURES:
             for label, path, old, new in COVERED_INPUT_DEFECTS:
                 with tempfile.TemporaryDirectory() as tmp, \
@@ -338,9 +352,13 @@ class FixtureSurfacesRun(unittest.TestCase):
                     root = pathlib.Path(tmp) / variant
                     shutil.copytree(FIXTURE_ROOT / variant, root)
                     break_input(root, path, old, new)
-                    codes = run_surfaces(root, fixture_surfaces(variant))
-                    self.assertTrue(codes)
-                    self.assertNotIn(0, codes, f"{variant}: {label} still exits 0")
+                    runs = run_surfaces(root, fixture_surfaces(variant))
+                    self.assertTrue(runs)
+                    for run in runs:
+                        self.assertNotEqual(run.returncode, 0,
+                                            f"{variant}: {label} still exits 0")
+                        self.assertIn(path, run.stderr,
+                                      f"{variant}: {label} does not name {path}")
 
 
 if __name__ == "__main__":
