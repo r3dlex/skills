@@ -11,8 +11,21 @@ the frozen contract pack at `.ai/knowledge/contract/` (pack version 1:
 
 ## When to read
 
-At the end of a producer skill, after the produced document is final. Never as
-a substitute for the document itself.
+When `.ai/knowledge/registry.json` exists, read it before the producer saves
+its document (see *Placement*), and run the step at the end of the producer
+skill, once that document is final. Never as a substitute for the document
+itself.
+
+## Who runs the step
+
+Only the outermost producer runs the step. A producer running on behalf of
+another producer (`to-issues` delegated from `to-spec` or `northstar`, for
+example) skips it and records nothing; the outermost skill publishes its own
+document.
+
+Hosts publish through a descriptor: `omc` (Claude Code), `omx` (Codex) and
+`opencode` (OpenCode). Gemini, Auggie and Copilot are not XSKP hosts: their
+flat projections drop the pointer to this module and never run the step.
 
 ## The step
 
@@ -23,38 +36,56 @@ a substitute for the document itself.
    (`omc` for Claude Code, `omx` for Codex, `opencode` for OpenCode). If the
    host's descriptor is missing or unreadable, record
    `unpublished: no-descriptor` and return SUCCESS.
-3. Select the one local document to publish, materializing a hosted-only
-   output first (see *Which document is published*).
-4. Run publication from the repository root: the descriptor's `argv` array
-   followed by `publish <path> --kind <kind> --producer <skill>` (verb grammar
-   `publish <path> [--id] [--kind] [--title] [--producer]`). If no local
-   document could be written, or the run exits non-zero, record
-   `unpublished: publish-failed` and return SUCCESS. Publication is
-   best-effort by contract.
-5. On success, report the canonical `sha256` and entry id the tool prints in
+3. Name the entry `<id>` = `<repo_id>:<kind>:<slug>`. `<repo_id>` is the
+   `repo_id` of `.ai/knowledge/registry.json`. `<slug>` comes from the
+   document title: lowercase, each run of other characters replaced by one
+   `-`, no leading or trailing `-`, matching `[a-z0-9][a-z0-9.-]*`. The
+   *Write rules* may turn it into `<slug>-2`.
+4. Take the producer's one document from *Declared kinds*. A native source is
+   passed where it is. Every other document, including a hosted-only `to-prd`
+   or `to-issues` output (materialize its exact published text), is written
+   to `<target><slug>.md`, where `<target>` is the kind's entry in
+   `canonical_targets` of `publication-policy.json`, under the *Write rules*.
+5. Run, from the repository root, the descriptor's `argv` followed by
+   `publish <path> --id <id> --kind <kind> --title <title> --producer <skill>`.
+   Always pass `--id`: without it the publisher derives the id from the file
+   name, which collides or is invalid for names such as `handoff.md` or
+   `PRD.md`.
+6. If the document could not be written, or the publish run exits non-zero,
+   first undo this step's write: delete the file this step created, or
+   restore the bytes it replaced. Then record `unpublished: publish-failed`
+   and return SUCCESS. Publication is best-effort by contract.
+7. On success, report the canonical `sha256` and entry id the tool prints in
    the skill's final report.
 
-## Which document is published
+## Write rules
 
-`<path>` is one repository-relative Markdown file this run produced, never a
-URL, an issue number or text held only in the conversation.
+They apply to `<target><slug>.md` before this step writes it, and before a
+native source is published (the publisher then writes that path itself):
 
-- Local output: the file the skill wrote, such as a research note, a spec or
-  a plan. A native harness document matching a `native_rules` glob of
-  `publication-policy.json` (for example `.omc/plans/*.md` or
-  `.omx/plans/**/*.md`) is passed where it is; the publisher copies it to the
-  kind's canonical target and leaves the native file untouched.
-- Hosted-only output (`to-prd`, `to-issues`, or `to-spec` when it only raised
-  an issue): materialize it first. Write the exact text the run published,
-  preceded by its tracker reference(s), to `<target><slug>.md`, where
-  `<target>` is the declared kind's entry in `canonical_targets` of
-  `publication-policy.json` (`prd` → `docs/specifications/ACTIVE/`, `plan` →
-  `docs/plans/`) and `<slug>` is the title in lowercase hyphenated form
-  (`[a-z0-9][a-z0-9.-]*`). `to-issues` writes one file per run with every
-  slice it published, in dependency order. The publisher keeps a file that
-  is already under its kind's canonical target in place.
-- Never overwrite a file that holds a different document; choose a distinct
-  slug instead.
+1. Refuse the path if an entry in `.ai/knowledge/registry.json` with another
+   `knowledge_id` already uses it as its canonical path (`path`).
+2. Write only if the path is absent, or if the existing file's first
+   frontmatter block carries `knowledge_id: <id>` and this run revises that
+   document (a revision of the same entry). Refuse any other existing file,
+   and refuse `<id>` when it is registered for a document this run does not
+   revise.
+3. On a refusal, try `<slug>-2`, then `<slug>-3`, and so on; `<id>` follows
+   the slug.
+4. Create a new file exclusively: fail if the path appeared meanwhile, never
+   truncate it. For a revision, keep the previous bytes until the publish run
+   succeeds.
+5. Never write a path the policy lists under `deny` or `immutable`, and never
+   write inside a harness directory.
+
+## Placement
+
+When `.ai/knowledge/registry.json` exists, a producer whose document is not a
+native harness file saves it at `<target><slug>.md` under the *Write rules*
+in the first place, instead of a location its own body suggests (a notes
+folder, `docs/adr/`). The publisher then registers it in place, and the repo
+keeps one tracked copy. If this run already saved it elsewhere, move it
+there; never copy it.
 
 ## Reasons recorded as `unpublished: <reason>`
 
@@ -62,25 +93,31 @@ URL, an issue number or text held only in the conversation.
   document still counts as delivered.
 - `unpublished: no-descriptor` — a registry exists but the host has no
   `knowledge.json` descriptor.
-- `unpublished: publish-failed` — a descriptor exists and the publish run
-  exited non-zero.
+- `unpublished: publish-failed` — a descriptor exists, but the document could
+  not be written or the publish run exited non-zero; this step's write was
+  undone first.
 
 A publish that did not run (or failed) never invalidates the document the
 skill produced, and never marks the skill's own checks as failed.
 
 ## Declared kinds
 
-| Producer | kind | canonical target |
-| --- | --- | --- |
-| `northstar` | `plan` | `docs/plans/` |
-| `to-spec` | `spec` | `docs/specifications/ACTIVE/` |
-| `to-prd` | `prd` | `docs/specifications/ACTIVE/` |
-| `to-issues` | `plan` | `docs/plans/` |
-| `research` | `research` | `.ai/research/` |
-| `handoff` | `handoff` | `.ai/handoff/` |
-| `retro` | `learning` | `docs/learning/` |
-| `domain-modeling` | `adr` | `docs/architecture/adr/` |
-| `code-review` | `review` | `.ai/reviews/` |
+| Producer | kind | canonical target | document |
+| --- | --- | --- | --- |
+| `northstar` | `plan` | `docs/plans/` | the ralplan plan this run produced when it is a native `plan` source (`.omc/plans/*.md`, `.omo/plans/*.md`, `.omx/plans/**/*.md`); otherwise the text of its `.ai/work-intake/` record, written to the target |
+| `to-spec` | `spec` | `docs/specifications/ACTIVE/` | the spec text, written to the target |
+| `to-prd` | `prd` | `docs/specifications/ACTIVE/` | the PRD text it raised, preceded by its tracker reference, written to the target |
+| `to-issues` | `plan` | `docs/plans/` | one file with every slice it raised, in dependency order, each with its tracker reference and body, written to the target |
+| `research` | `research` | `.ai/research/` | the findings file, saved at the target (*Placement*); a native `.omc/research/**/*.md` file is passed where it is |
+| `handoff` | `handoff` | `.ai/handoff/` | the handoff document after its redaction step, written to the target; the OS temp-directory copy is not published |
+| `retro` | `learning` | `docs/learning/` | the retro findings, written to the target without session-log or transcript content |
+| `domain-modeling` | `adr` | `docs/architecture/adr/` | the ADR it wrote, saved at the target (*Placement*); `CONTEXT.md` is not published |
+| `code-review` | `review` | `.ai/reviews/` | the `## Standards` and `## Spec` report, written to the target |
+
+A native source counts only when the first `native_rules` glob that matches
+its path has the same kind as the producer: a Codex plan under
+`.omx/plans/small-work-reviews/**/*.md` matches `review` first, so it is never
+a `northstar` source.
 
 `to-issues` publishes as `plan`: the kinds enum in
 `knowledge-entry.schema.json` has no `issues` kind, and broken-down

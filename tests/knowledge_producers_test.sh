@@ -42,32 +42,48 @@ bad() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 SCRATCH="$(mktemp -d)"
 trap 'rm -rf "$SCRATCH"' EXIT
 
-# Body-line budget for non-northstar producers: <=100 lines after the closing
-# frontmatter delimiter, counted by the catalog validator's own parser.
-within_body_budget() {
-  local lines
-  lines="$(python3 -B - "$1" <<'PY'
+# line_counts <file>: "<file lines> <body lines>". File lines count a last line
+# without a trailing newline; body lines follow the closing frontmatter
+# delimiter, counted by the catalog validator's own parser, or "-" when the
+# frontmatter does not parse.
+line_counts() {
+  python3 -B - "$1" 2>/dev/null <<'PY'
 import importlib.util, sys
 from pathlib import Path
 sys.path.insert(0, 'scripts')
 spec = importlib.util.spec_from_file_location('validate_skill_catalog', 'scripts/validate-skill-catalog.py')
 validator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validator)
-print(len(validator.frontmatter(Path(sys.argv[1]))[1]))
+path = Path(sys.argv[1])
+try:
+    body = str(len(validator.frontmatter(path)[1]))
+except AssertionError:
+    body = '-'
+print(len(path.read_text(encoding='utf-8').splitlines()), body)
 PY
-)" || return 1
-  [ "$lines" -le 100 ]
+}
+
+# Body-line budget for non-northstar producers: <=100 lines; a frontmatter that
+# does not parse fails it.
+within_body_budget() {
+  local counts
+  counts="$(line_counts "$1")" || return 1
+  [ "${counts#* }" != "-" ] && [ "${counts#* }" -le 100 ]
 }
 
 # check_budget <producer> <file> <label>: prints the failure reason, nothing
-# when the file keeps its budget.
+# when the file keeps its budget. Northstar keeps its 105-line whole-file
+# budget; every other producer keeps a body of at most 100 lines.
 check_budget() {
-  local lines
-  if [ "$1" = "northstar" ]; then
-    lines="$(wc -l < "$2" | tr -d ' ')"
-    [ "$lines" -le 105 ] || echo "$3 is $lines lines (northstar planning budget 105, net delta 0)"
-  elif ! within_body_budget "$2"; then
-    echo "$3 body exceeds 100 lines"
+  local counts
+  if ! counts="$(line_counts "$2")"; then
+    echo "$3 could not be read"
+  elif [ "$1" = "northstar" ]; then
+    [ "${counts% *}" -le 105 ] || echo "$3 is ${counts% *} lines (northstar planning budget 105, net delta 0)"
+  elif [ "${counts#* }" = "-" ]; then
+    echo "$3 frontmatter does not parse"
+  elif [ "${counts#* }" -gt 100 ]; then
+    echo "$3 body is ${counts#* } lines (>100)"
   fi
 }
 
@@ -303,8 +319,12 @@ def items(body):
     return re.split(r'\n(?=\d+\. |- )', body)
 
 
+def flat(body):
+    return ' '.join(body.split())  # markdown line wrapping never hides a cue
+
+
 def require(label, body, *cues):
-    if not body or not all(cue in body for cue in cues):
+    if not body or not all(cue in flat(body) for cue in cues):
         print(f'module does not state: {label}')
 
 
@@ -316,7 +336,7 @@ require('refuse a path another registry entry already uses as its canonical path
         write, 'another `knowledge_id`', 'canonical path', '.ai/knowledge/registry.json')
 require('on refusal try `<slug>-2`, `<slug>-3`', write, '`<slug>-2`', '`<slug>-3`')
 require('create the file exclusively', write, 'exclusively')
-undo = [item for item in items(step) if '`unpublished: publish-failed`' in item]
+undo = [flat(item) for item in items(step) if '`unpublished: publish-failed`' in flat(item)]
 if not any('delete the file this step created' in item and 'restore' in item
            and item.index('delete the file this step created') < item.index('`unpublished: publish-failed`')
            for item in undo):
