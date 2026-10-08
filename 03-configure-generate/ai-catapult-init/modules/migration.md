@@ -95,6 +95,10 @@ Every migration run appends one JSON object per line to `.ai/drift/migration-aud
 
 Re-running the migration against a target that already has v3 paths is a no-op. The validator emits a `present-not-overwritten` audit entry for any v3 path that already exists and skips the write. The migration manifest is regenerated with `status: skipped` for the affected actions.
 
+## Knowledge surface
+
+The v3 layout includes a knowledge surface at `.ai/knowledge/`: `registry.json` plus `entries/` for per-document records, emitted from the `dot-ai/knowledge/` templates. The registry's shape is fixed by the `knowledge-registry/1` contract (the contract pack lives at `.ai/knowledge/contract/`). Adopting the surface is the `ai-catapult adopt` engine's job — migration references both the contract and the engine by name only and has no runtime dependency on either. A pre-existing `.ai/knowledge/registry.json` and entries directory are `present-not-overwritten`: migration skips the write, which preserves the publisher-managed entry lifecycle and tombstones.
+
 ## Rollback
 
 A full migration run can be rolled back from `.ai/drift/migration-manifest.json` plus `.ai/drift/backups/<timestamp>/` when the destructive actions are limited to `migrate`. `deprecate` and `supersede` are content-preserving and do not need rollback. `copy` does not remove the source path, so rollback is also unnecessary.
