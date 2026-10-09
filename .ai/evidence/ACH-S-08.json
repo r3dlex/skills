@@ -236,7 +236,7 @@
       "conflict": "The evidence committed at the merge (1973436) recorded AC8 as UNSATISFIED with null exit codes and a blockers[] entry, while the merged PR body #125 claimed the ai-catapult/ai-factory scratch runs were produced with specific numbers. The two directly contradicted; no commit after 48b30c74 added any AC8 evidence, and 48b30c74's message ends \"AC8 stays blocked (needs the network).\"",
       "decision": "Re-executed the runs from primary evidence in read-only detached worktrees of ai-catapult a87c912 and ai-factory 69ed795. Every command reproduced the PR body's numbers exactly, so AC8 is satisfied: the PR body was accurate and the committed evidence was stale. AC8 now carries the real exit codes and output sha256s (runs[]), the criterion is restored to the goal's true text, and blockers[] is emptied.",
       "convention": "ACH-S-08 states the AC8 runs are 'supporting evidence, not a CI test, because it needs the network'; the PR body is the artifact the AC names and .ai/evidence/ACH-S-08.json is its durable mirror. This reconciliation makes the mirror match the artifact it mirrors rather than the artifact it contradicted.",
-      "follow_on": "The independent review of #125 claimed in the PR body was never persisted: only two unfilled reviewer prompts and an interrupted run (RC=130, no verdict) existed. A durable independent-review artifact is added alongside this file."
+      "follow_on": "The independent review of #125 claimed in the PR body was never persisted: only two unfilled reviewer prompts and an interrupted run (RC=130, no verdict) existed. A durable independent-review artifact is added alongside this file at .ai/reviews/ach-skills-gate-workspace-ACH-S-08-pr125.md."
     }
   ],
   "blockers": [],
