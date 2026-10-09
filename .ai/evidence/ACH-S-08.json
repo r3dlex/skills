@@ -1,0 +1,172 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[Declaration, local-ci/2] lib/local_ci_contract.py accepts schema local-ci/2: the local-ci/1 fields plus a required workspace object with exactly bootstrap, dependencies and outputs; each bootstrap entry one of the three allowlisted forms; dependencies and outputs unique, normalized, repository-relative literals that never equal, contain or lie inside another; local-ci/1 unchanged.",
+      "green": {
+        "at": "2026-10-09T08:29:00Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": 0,
+        "output_sha256": "6a7fda7865c5d648fa4d19e5206a74a37250ccead503a2d40990c2a2e268fae8"
+      },
+      "red": {
+        "at": "2026-10-09T08:28:00Z",
+        "exit_code": 1,
+        "output_sha256": "7248664c6ea71d6a55aba1b9cb84529de9f77c3a4733397f1dca5f51957ad4b7"
+      },
+      "test_command": "python3 -I -B tests/local_ci_contract_v2_test.py DeclarationTests"
+    },
+    {
+      "ac": 2,
+      "criterion": "[Declaration, observed at the head] The observer reads .ai/ci/local-ci.json from the workspace/head tree, validates it with the pinned lib, and refuses a declared dependency or output tracked at the head, containing a tracked path, or not ignored by the head, each as gate_workspace_declaration_invalid:<reason>. local-ci/1 or no contract declares nothing (ACH-S-07 strict).",
+      "green": {
+        "at": "2026-10-09T08:29:02Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": 0,
+        "output_sha256": "9ad56700bbe9c8269b6ae91031ffb04223dd39671bba564950017ddf30c37d5f"
+      },
+      "red": {
+        "at": "2026-10-09T08:28:02Z",
+        "exit_code": 1,
+        "output_sha256": "99935f55e3aec7bd583458f3ff8fc5bb5836f500320736ace095fd0e4f05c565"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_bootstrap_test.py DeclarationTests"
+    },
+    {
+      "ac": 3,
+      "criterion": "[Bootstrap, network and credential policy] Bootstrap commands run in order and before the gates, argv with shell=False and stdin closed, with GIT_CONFIG_NOSYSTEM=1, GIT_CONFIG_GLOBAL=/dev/null, GIT_TERMINAL_PROMPT=0, npm_config_userconfig=/dev/null and a private npm_config_cache; non-zero refuses gate_workspace_bootstrap_failed:<command> with no gate run; tracked files stay at the head and only declared dependencies may gain untracked paths.",
+      "green": {
+        "at": "2026-10-09T08:29:04Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": 0,
+        "output_sha256": "021bff61da43d416ed857f628429d56fc9c00eed86d75a0b9615aaadf271b88d"
+      },
+      "red": {
+        "at": "2026-10-09T08:28:04Z",
+        "exit_code": 1,
+        "output_sha256": "b089cc7524a2fa1ecd4ce0814e99178541dcfaab0c4ab43e36ac3e927de6ec64"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_bootstrap_test.py BootstrapTests"
+    },
+    {
+      "ac": 4,
+      "criterion": "[Outputs] Untracked paths are allowed only under dependencies and outputs; tracked paths stay checked after every gate; a declaration never relaxes the observed-root checks. An undeclared output refuses gate_workspace_undeclared_output:<path>.",
+      "green": {
+        "at": "2026-10-09T08:29:06Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": 0,
+        "output_sha256": "d5d4a918e16d13ece0513ae64329a8b9bf22b1187954cd340e68a20f93ab35ec"
+      },
+      "red": {
+        "at": "2026-10-09T08:28:06Z",
+        "exit_code": 1,
+        "output_sha256": "6ed1e5d1e86e7623347e7b70992bc2711a7bedecfd046e7706cd8938320b3f4e"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_bootstrap_test.py OutputsTests"
+    },
+    {
+      "ac": 5,
+      "criterion": "[Provenance] Every certify-v2 and merge-v2 derivation writes one gate-workspace/1 record (head and tree, local-ci.json sha256 and schema, each bootstrap command with executable path, version, exit and duration, pinned source sha256s, streaming digests of each dependency path, outputs present after the gates, network: bootstrap, workspace path); the results and driver log carry its path and sha256.",
+      "green": {
+        "at": "2026-10-09T08:29:08Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": 0,
+        "output_sha256": "fed550d6aa346ee052eed24e31be1567b9313a8a8faab2f4f22735c94489da8d"
+      },
+      "red": {
+        "at": "2026-10-09T08:28:08Z",
+        "exit_code": 1,
+        "output_sha256": "7fc4144236e6bc98d7d763a627ac69d62c81e2088ffad448d7fd62c01a50e277"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_bootstrap_test.py ProvenanceTests"
+    },
+    {
+      "ac": 6,
+      "criterion": "[Compatibility] A repository with local-ci/1 or no contract behaves exactly as after ACH-S-07, skills' own .ai/ci/local-ci.json stays local-ci/1, and the listed tests pass unmodified. BLOCKED: tests/readiness_v2_gate_shadowing_test.py byte-pins lib/local_ci_contract.py to its origin/main bytes and cannot pass while AC1 edits that file; it is outside this goal's scope and AC6 lists it as pass-unmodified.",
+      "green": {
+        "at": "2026-10-09T08:31:00Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": 1,
+        "output_sha256": "c4f00539e30b5dc2e78a08acfde3bfe0504a6e015d0bed992c19688df8ab05cc"
+      },
+      "red": {
+        "at": "2026-10-09T08:28:10Z",
+        "exit_code": 1,
+        "output_sha256": "968329ec9b4482ee3e89c8d54fde24f08a82910f550f337a297b2901fd7277ce"
+      },
+      "test_command": "bash tests/run-tests.sh"
+    },
+    {
+      "ac": 7,
+      "criterion": "[Documentation, consumers] modules/ci-gate.md documents local-ci/2 with the ai-catapult and ai-factory consumer shapes; modules/readiness-v2.md and ADR 0017 add the declaration, the network and credential policy, the provenance record and the codes gate_workspace_declaration_invalid and gate_workspace_bootstrap_failed; the new tests assert each is documented.",
+      "green": {
+        "at": "2026-10-09T08:29:10Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": 0,
+        "output_sha256": "dfc87db55c8065d16d042976e8647db1e3f9d959a9f3423e725cf9aedf3e9dda"
+      },
+      "red": {
+        "at": "2026-10-09T08:28:10Z",
+        "exit_code": 1,
+        "output_sha256": "73a68cf52343619caf79953c0fdf44ab6ee24c37f2b3b4dcba719046957951b6"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_gate_bootstrap_test.py DocumentationTests"
+    },
+    {
+      "ac": 8,
+      "criterion": "[Evidence] The PR body records a scratch run of the bootstrap and gate commands of ai-catapult a87c912 and ai-factory 69ed795 under the bootstrap and gate environments. UNSATISFIED: needs the network and the two sibling repositories, and no PR was opened under this task (do-not-merge instruction).",
+      "green": {
+        "at": "2026-10-09T08:31:35Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": null,
+        "output_sha256": null
+      },
+      "red": {
+        "at": null,
+        "exit_code": null,
+        "output_sha256": null
+      },
+      "test_command": "pr-body scratch run (not a CI test; requires the network)"
+    },
+    {
+      "ac": 9,
+      "criterion": "[Hygiene] Both readiness-dependency-v2.json copies and .ai/ci/local-ci.json are re-pinned (local-ci.json also pins the new test files); this file carries the red and green legs; work happens in a linked worktree from origin/main; autobahn and northstar SKILL.md are unchanged.",
+      "green": {
+        "at": "2026-10-09T08:31:00Z",
+        "commit": "dc9b95cb41bbbda94b3d217304748938cc5bf196",
+        "exit_code": 1,
+        "output_sha256": "c4f00539e30b5dc2e78a08acfde3bfe0504a6e015d0bed992c19688df8ab05cc"
+      },
+      "red": {
+        "at": "2026-10-09T08:28:10Z",
+        "exit_code": 1,
+        "output_sha256": "968329ec9b4482ee3e89c8d54fde24f08a82910f550f337a297b2901fd7277ce"
+      },
+      "test_command": "bash tests/run-tests.sh"
+    }
+  ],
+  "blockers": [
+    {
+      "ac": 6,
+      "detail": "tests/readiness_v2_gate_shadowing_test.py::test_local_ci_contract_runs_through_runpy_from_the_pinned_lib asserts sha256(lib/local_ci_contract.py) == LOCAL_CI_CONTRACT_SHA256 (1e57533c... = the origin/main bytes). AC1 requires editing that file, so the pin goes stale. The file is outside the goal's declared scope and AC6 lists it as pass-unmodified, so it was not re-pinned. Forced re-pin: set LOCAL_CI_CONTRACT_SHA256 to 5ba151b8ca09d8a1bb6fd28a8c8d6c0f45a2605fdb9bd060269092498e7b4e45 (documented codebase convention: a byte pin over a changed file re-pins in the same PR)."
+    },
+    {
+      "ac": 8,
+      "detail": "The ai-catapult a87c912 / ai-factory 69ed795 scratch runs need the network and the sibling repositories, and this task forbids opening or merging a PR, so the required PR-body record could not be produced."
+    }
+  ],
+  "goal_id": "ACH-S-08",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  },
+  "provenance": {
+    "green_method": "each AC command run in the goal worktree at the committed head dc9b95cb; AC6/AC9 run bash tests/run-tests.sh",
+    "red_commit": "809006bf84c918b2e4198a0b1169f4772478a9ae",
+    "red_method": "disposable worktree at origin/main (809006bf) with the final test files copied in; each AC command ran against the pre-implementation production code"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  }
+}
