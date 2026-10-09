@@ -225,6 +225,16 @@
       ]
     },
     {
+      "name": "evolution-rollout",
+      "source_path": "02-govern-plan/evolution-rollout",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan"
+      ],
+      "lifecycle": "experimental",
+      "supported_hosts": []
+    },
+    {
       "name": "grill-me",
       "source_path": "02-govern-plan/grill-me",
       "owner_phase": "02-govern-plan",
@@ -368,6 +378,23 @@
       ]
     },
     {
+      "name": "pr",
+      "source_path": "04-validate-handoff/pr",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini",
+        "opencode"
+      ]
+    },
+    {
       "name": "prototype",
       "source_path": "03-configure-generate/prototype",
       "owner_phase": "03-configure-generate",
@@ -439,6 +466,23 @@
       ]
     },
     {
+      "name": "retro",
+      "source_path": "04-validate-handoff/retro",
+      "owner_phase": "04-validate-handoff",
+      "applies_to_phases": [
+        "04-validate-handoff"
+      ],
+      "lifecycle": "stable",
+      "supported_hosts": [
+        "auggie",
+        "claude-code",
+        "codex",
+        "copilot",
+        "gemini",
+        "opencode"
+      ]
+    },
+    {
       "name": "setup-skills",
       "source_path": "03-configure-generate/setup-skills",
       "owner_phase": "03-configure-generate",
@@ -456,6 +500,16 @@
         "gemini",
         "opencode"
       ]
+    },
+    {
+      "name": "skill-proposer",
+      "source_path": "02-govern-plan/skill-proposer",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan"
+      ],
+      "lifecycle": "experimental",
+      "supported_hosts": []
     },
     {
       "name": "tdd",
@@ -600,6 +654,16 @@
       ]
     },
     {
+      "name": "wiki-maintainer",
+      "source_path": "02-govern-plan/wiki-maintainer",
+      "owner_phase": "02-govern-plan",
+      "applies_to_phases": [
+        "02-govern-plan"
+      ],
+      "lifecycle": "experimental",
+      "supported_hosts": []
+    },
+    {
       "name": "wizard",
       "source_path": "03-configure-generate/wizard",
       "owner_phase": "03-configure-generate",
@@ -662,40 +726,6 @@
       "applies_to_phases": [
         "01-discover-decide",
         "02-govern-plan"
-      ],
-      "lifecycle": "stable",
-      "supported_hosts": [
-        "auggie",
-        "claude-code",
-        "codex",
-        "copilot",
-        "gemini",
-        "opencode"
-      ]
-    },
-    {
-      "name": "retro",
-      "source_path": "04-validate-handoff/retro",
-      "owner_phase": "04-validate-handoff",
-      "applies_to_phases": [
-        "04-validate-handoff"
-      ],
-      "lifecycle": "stable",
-      "supported_hosts": [
-        "auggie",
-        "claude-code",
-        "codex",
-        "copilot",
-        "gemini",
-        "opencode"
-      ]
-    },
-    {
-      "name": "pr",
-      "source_path": "04-validate-handoff/pr",
-      "owner_phase": "04-validate-handoff",
-      "applies_to_phases": [
-        "04-validate-handoff"
       ],
       "lifecycle": "stable",
       "supported_hosts": [
