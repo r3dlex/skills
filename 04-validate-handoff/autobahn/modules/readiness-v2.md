@@ -220,15 +220,44 @@ from an interrupted run is never reused.
 
 Before any gate runs, `tree_state(workspace)` must equal the head tree, or the
 derivation refuses with `gate_workspace_unfaithful`; when the workspace cannot
-be built at all it refuses with `gate_workspace_unavailable`. After every gate
-the observer re-checks the workspace: HEAD, the index entries
+be built at all it refuses with `gate_workspace_unavailable`. The head's
+`.ai/ci/local-ci.json` is read from the workspace — so from the head tree — and
+validated with the pinned local CI contract lib. A `local-ci/2` declaration
+names a `bootstrap` (the allowlisted install commands), `dependencies` (written
+by the bootstrap) and `outputs` (written by the gates); each declared path must
+be untracked at the head, contain no tracked path and be ignored by the head's
+ignore rules, or the derivation refuses with
+`gate_workspace_declaration_invalid:<reason>` before any command runs. A
+`local-ci/1` contract or no contract declares nothing. The bootstrap runs in
+the workspace, in order, before the gates, as argv with `shell=False` and stdin
+closed, under the gate environment plus `GIT_CONFIG_NOSYSTEM=1`,
+`GIT_CONFIG_GLOBAL=/dev/null`, `GIT_TERMINAL_PROMPT=0`,
+`npm_config_userconfig=/dev/null` and a private `npm_config_cache` inside the
+derivation's temporary directory, so no token, keychain credential helper,
+agent socket or user configuration reaches it. Network access is permitted for
+the bootstrap step only, and recorded as such; a non-zero exit refuses with
+`gate_workspace_bootstrap_failed:<command>` and no gate runs. After the
+bootstrap and after every gate the observer re-checks the workspace: HEAD, the
+index entries
 (`git ls-files --stage`, so a stat-only index refresh is not a change) and every
 tracked path's bytes and mode must equal the head tree; a tracked change refuses
 with `worktree_changed_during_gates` plus `gate_workspace_tracked_changed:<path>`,
-and any untracked or ignored path refuses with `worktree_changed_during_gates`
-plus `gate_workspace_undeclared_output:<path>`. The observed common directory's
+and untracked paths are allowed only under the declared dependencies (after the
+bootstrap) or dependencies and outputs (after the gates); anything else refuses
+with `worktree_changed_during_gates`
+plus `gate_workspace_undeclared_output:<path>`. Every derivation writes one
+`gate-workspace/1` record to
+`<git common dir>/ai-catapult/observer/gate-workspaces/<plan>/<goal>/<pr>-<head>-<certify|merge>.json`
+holding the head and its tree, the contract's sha256 and schema, each bootstrap
+command (resolved executable, `--version` output — and of node for an npm form —
+exit code, duration), the pinned input digests, a streaming digest of each
+dependency path, the outputs present after the gates, `network: bootstrap` and
+the workspace path. The certify-v2 and merge-v2 results and the driver-log entry
+carry the record's path and sha256; the certificate's `gate_workspace` field
+binds the certify-op record. The observed common directory's
 `config`, `hooks/`, `info/` and `objects/info/alternates` are snapshotted around
-the gates and any change refuses with `git_metadata_changed_during_gates`. The
+the bootstrap and the gates and any change refuses with
+`git_metadata_changed_during_gates`. The
 target commit is resolved before the gates, and every check after them —
 `goal_reserved_refusals` included — uses that commit, never a re-read of
 `origin/<target>`. Every observed-root check is unchanged: the root's

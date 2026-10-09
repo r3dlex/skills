@@ -67,6 +67,61 @@ or hosted-CI equivalence. Review the check selection and indirect dependencies i
 source review; refresh pins only as part of that reviewed change. Execution still
 requires independent repository authority. See ADR 0015.
 
+## Declared workspace install (`local-ci/2`)
+
+A repository whose gates need dependency installs that a clean tree forbids —
+gitignored `vendor/` or `node_modules/`, or outputs the gates write — upgrades the
+same contract to schema `local-ci/2`: exactly the `local-ci/1` fields plus a
+required `workspace` object with exactly `bootstrap`, `dependencies` and
+`outputs`:
+
+```json
+{
+  "schema": "local-ci/2",
+  "workflows": {".github/workflows/ci.yml": "<sha256>"},
+  "sources": {
+    "tests/run-tests.sh": "<sha256>",
+    "setup.sh": "<sha256>",
+    "skills.lock.json": "<sha256>",
+    "package-lock.json": "<sha256>"
+  },
+  "verification": ["bash tests/run-tests.sh"],
+  "workspace": {
+    "bootstrap": ["bash setup.sh"],
+    "dependencies": ["vendor"],
+    "outputs": ["dist", "dist-snapshot"]
+  }
+}
+```
+
+- Each `bootstrap` entry is exactly `npm ci`, `npm ci --ignore-scripts` or
+  `bash <path>` with `<path>` a pinned `sources` key; an npm form requires
+  `package-lock.json` or `npm-shrinkwrap.json` to be a pinned `sources` key.
+  The pinned `sources` digests are the input pins — there is one pin map, not two.
+- `dependencies` (written by the bootstrap) and `outputs` (written by the gates)
+  are unique, normalized, repository-relative literal paths with no glob
+  character, no `..` and no `.git` component in any letter case, and no entry
+  equals, contains or lies inside another. They must be untracked at the head,
+  contain no tracked path, and be ignored by the head's ignore rules — the
+  observer refuses anything else (`gate_workspace_declaration_invalid`).
+- The bootstrap is the only step the declaration grants, and it runs under the
+  network and credential policy (see the readiness-v2 module): network access is
+  permitted for the bootstrap and recorded; no token, keychain credential helper,
+  agent socket or user configuration reaches it, and a non-zero exit refuses with
+  `gate_workspace_bootstrap_failed:<command>` before any gate runs.
+- `local-ci/1` is unchanged, and `local-ci.sh` runs the same `verification[]`
+  subset for both schemas.
+
+The two consumer shapes, recorded for reference:
+
+- **ai-catapult**: `sources` pin `setup.sh` and `skills.lock.json`; bootstrap
+  `["bash setup.sh"]`; dependencies `["vendor"]`; outputs `["dist",
+  "dist-snapshot"]`.
+- **ai-factory**: `sources` pin `package-lock.json` and the scripts; bootstrap
+  `["npm ci --ignore-scripts"]`; dependencies `["node_modules"]`; outputs `[]`.
+
+A change to a pinned lockfile or bootstrap script re-pins the contract in the same change; the pin map is reviewed code, never maintained separately.
+
 ## Layer 2 — `verification[]`
 
 Each entry is either a legacy non-empty command string, whose cwd remains `.`,

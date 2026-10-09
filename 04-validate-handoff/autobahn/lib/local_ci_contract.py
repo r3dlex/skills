@@ -46,11 +46,76 @@ def pins(root, values, label):
                 'stale source SHA256: ' + name)
 
 
-def read_contract(root):
+SCHEMAS = ('local-ci/1', 'local-ci/2')
+FIELDS = {'schema', 'workflows', 'sources', 'verification'}
+BOOTSTRAP_NPM = ('npm ci', 'npm ci --ignore-scripts')
+GLOB_CHARACTER = re.compile(r'[*?\[]')
+
+
+def declared_path(value, label):
+    """One declared dependency or output: a unique, normalized, repository-relative literal path
+    with no glob character, no `..` and no .git component in any letter case."""
+    require(isinstance(value, str) and value and '\\' not in value,
+            label + ' entries must be nonempty literal paths')
+    path = PurePosixPath(value)
+    require(not path.is_absolute() and path.as_posix() == value and not value.endswith('/')
+            and all(part not in ('', '.', '..') for part in value.split('/')),
+            label + ' paths must be normalized and repository-relative')
+    require(not GLOB_CHARACTER.search(value), label + ' path has a glob character: ' + value)
+    require(not any(part.casefold() == '.git' for part in value.split('/')),
+            label + ' path has a .git component: ' + value)
+    return value
+
+
+def validate_workspace(record):
+    """The workspace block of a local-ci/2 record: exactly bootstrap, dependencies and outputs;
+    each bootstrap entry one of the three allowlisted forms; the declared paths validated."""
+    workspace = record['workspace']
+    require(isinstance(workspace, dict) and set(workspace) == {'bootstrap', 'dependencies', 'outputs'},
+            'local-ci/2 requires a workspace object with exactly bootstrap, dependencies and outputs')
+    bootstrap = workspace['bootstrap']
+    require(isinstance(bootstrap, list), 'bootstrap must be a list of the allowlisted install commands')
+    for entry in bootstrap:
+        require(isinstance(entry, str), 'bootstrap entries must be the allowlisted command strings')
+        if entry in BOOTSTRAP_NPM:
+            require('package-lock.json' in record['sources'] or 'npm-shrinkwrap.json' in record['sources'],
+                    'an npm bootstrap requires a pinned package-lock.json or npm-shrinkwrap.json')
+        else:
+            require(entry.startswith('bash '),
+                    'bootstrap admits only npm ci, npm ci --ignore-scripts and bash <pinned source>')
+            name = entry[len('bash '):]
+            require(name and ' ' not in name, 'bash bootstrap must name exactly one pinned source path')
+            require(name in record['sources'], 'bash bootstrap path is not a pinned source: ' + name)
+    declared = []
+    for label in ('dependencies', 'outputs'):
+        values = workspace[label]
+        require(isinstance(values, list), label + ' must be a list of repository-relative paths')
+        entries = [declared_path(value, label) for value in values]
+        require(len(set(entries)) == len(entries),
+                label + ' paths must not nest or repeat: no entry may equal another')
+        declared.append([(label, value) for value in entries])
+    entries = declared[0] + declared[1]
+    for left_label, left in entries:
+        for right_label, right in entries:
+            if (left_label, left) == (right_label, right):
+                continue
+            require(left != right, 'declared paths must be unique: ' + left)
+            require(not (left.startswith(right + '/') or right.startswith(left + '/')),
+                    'declared paths must not nest: ' + left)
+    return workspace
+
+
+def read_record(root):
+    """The validated local CI contract record. local-ci/1 is exactly its four fields; local-ci/2
+    is exactly the local-ci/1 fields plus a validated workspace object."""
     record = json.loads(source(root, '.ai/ci/local-ci.json').read_text(), object_pairs_hook=unique_object)
-    require(isinstance(record, dict) and set(record) == {'schema', 'workflows', 'sources', 'verification'},
-            'local CI contract has unknown or missing fields')
-    require(record['schema'] == 'local-ci/1', 'unsupported local CI schema')
+    require(isinstance(record, dict) and record.get('schema') in SCHEMAS, 'unsupported local CI schema')
+    if record['schema'] == 'local-ci/2':
+        require(set(record) == FIELDS | {'workspace'},
+                'local-ci/2 has unknown or missing fields: it requires exactly the local-ci/1 fields plus a workspace object')
+        validate_workspace(record)
+    else:
+        require(set(record) == FIELDS, 'local CI contract has unknown or missing fields')
     discovered = set()
     github = root / '.github/workflows'
     require(not (root / '.github').is_symlink() and not github.is_symlink(), 'symlink workflow directory forbidden')
@@ -72,7 +137,18 @@ def read_contract(root):
             name = (cwd / original[1]).relative_to(root).as_posix()
             source(root, name)
             require(name in record['sources'], 'command script is not pinned: ' + name)
-    return record['verification']
+    return record
+
+
+def read_contract(root):
+    return read_record(root)['verification']
+
+
+def read_declaration(root):
+    """The validated workspace declaration of a local-ci/2 contract, or None for local-ci/1
+    (which declares nothing)."""
+    record = read_record(root)
+    return record['workspace'] if record['schema'] == 'local-ci/2' else None
 
 
 if __name__ == '__main__':

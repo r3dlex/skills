@@ -22,8 +22,10 @@ REPO = Path(__file__).resolve().parents[1]
 AUTO = REPO / '04-validate-handoff/autobahn'
 SCRIPTS = ('tdd-evidence.sh', 'tdd-mode.sh', 'lint-gate.sh', 'ci-gate.sh', 'local-ci.sh')
 SHADOWED = ('json', 'pathlib', 'hashlib', 'subprocess', 're', 'shlex', 'runpy', 'verification')
-# lib/local_ci_contract.py is run, never edited: its bytes at skills origin/main d72d7cb.
-LOCAL_CI_CONTRACT_SHA256 = '1e57533c11c5921f13e51a74aee4f87012f4c5d53ed0752f104b170fd60be9ea'
+# lib/local_ci_contract.py is run by the gates through runpy, never supplied by a PR checkout.
+# ACH-S-08 (D1-02) authorizes editing this file to accept local-ci/2, so the pin tracks its
+# current bytes; the isolation property asserted below is unchanged by the re-pin.
+LOCAL_CI_CONTRACT_SHA256 = '5ba151b8ca09d8a1bb6fd28a8c8d6c0f45a2605fdb9bd060269092498e7b4e45'
 WORKFLOW = 'jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: bash tests/check.sh\n'
 
 
