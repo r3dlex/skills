@@ -114,19 +114,99 @@
     },
     {
       "ac": 8,
-      "criterion": "[Evidence] The PR body records a scratch run of the bootstrap and gate commands of ai-catapult a87c912 and ai-factory 69ed795 under the bootstrap and gate environments. UNSATISFIED: needs the network and the two sibling repositories, which were not reachable under this task; the PR body states this plainly.",
+      "criterion": "[Evidence] The PR body records a scratch run of the bootstrap and the gate commands of ai-catapult a87c912 and ai-factory 69ed795 under the bootstrap and gate environments, with the untracked paths each creates. Planning baseline (2026-10-04): ai-catapult `bash setup.sh` then npm test, 248 of 248 pass, creating only vendor/, dist/ and dist-snapshot/; ai-factory `npm ci --ignore-scripts` then npm test (237 of 237 with the umbrella reachable), lint and typecheck, creating only node_modules/. This is supporting evidence, not a CI test, because it needs the network.",
       "green": {
-        "at": "2026-10-09T08:31:35Z",
+        "at": "2026-10-09T11:24:29Z",
         "commit": "19734366798ebf9d8832ff84d72938af7b58e1f5",
-        "exit_code": null,
-        "output_sha256": null
+        "exit_code": 0,
+        "output_sha256": "6a827c65f2c32ca0d2208dfcd9289e4ade42f5eed41a2bdf39c74c67c60c0960"
       },
       "red": {
-        "at": null,
-        "exit_code": null,
-        "output_sha256": null
+        "at": "2026-10-09T11:24:29Z",
+        "exit_code": 1,
+        "output_sha256": "cd39347ccedfd736c9b5c691a4b81d291d06cd723a52408ee3ee6234d0cc98cc"
       },
-      "test_command": "pr-body scratch run (not a CI test; requires the network)"
+      "test_command": "ai-factory 69ed795 `npm test` strict env (red, exit 1, 232/237) versus AI_FACTORY_UMBRELLA_ROOT=<umbrella> (green, exit 0, 237/237); the complete ai-catapult and ai-factory command set with its exit codes and output sha256s is in runs[]",
+      "runs": [
+        {
+          "repo": "ai-catapult",
+          "sha": "a87c91258fddad854e250f80045688da147644b7",
+          "phase": "bootstrap",
+          "argv": ["bash", "setup.sh"],
+          "exit_code": 0,
+          "output_sha256": "37358a223503588b9bd3dc8a824d6311420b6f4599066c5b7e112ef81854b226",
+          "observed": "OK: vendor/skills vendored at 26d25105b028903ea1b34aebe9fbf4595b550051 (the sha skills.lock.json pins)"
+        },
+        {
+          "repo": "ai-catapult",
+          "sha": "a87c91258fddad854e250f80045688da147644b7",
+          "phase": "gate",
+          "argv": ["npm", "test"],
+          "exit_code": 0,
+          "output_sha256": "8b4096f137fd6c6e5c83a44f367695649113b2f34fefa93541249fd28aa53bfa",
+          "observed": "tests 248 / suites 0 / pass 248 / fail 0"
+        },
+        {
+          "repo": "ai-factory",
+          "sha": "69ed795bcb8dad1733f694ed170184ad3ee6d9dd",
+          "phase": "bootstrap",
+          "argv": ["npm", "ci", "--ignore-scripts"],
+          "exit_code": 0,
+          "output_sha256": "ee84005a58adae62714727ea11f01aa058908a236216de1969a5a08a0ce010df",
+          "observed": "added 157 packages, and audited 158 packages in 3s"
+        },
+        {
+          "repo": "ai-factory",
+          "sha": "69ed795bcb8dad1733f694ed170184ad3ee6d9dd",
+          "phase": "gate",
+          "argv": ["npm", "test"],
+          "env_extra": "AI_FACTORY_UMBRELLA_ROOT unset",
+          "exit_code": 1,
+          "output_sha256": "cd39347ccedfd736c9b5c691a4b81d291d06cd723a52408ee3ee6234d0cc98cc",
+          "observed": "Test Files 1 failed | 12 passed (13); Tests 5 failed | 232 passed (237); all five failures in tests/fixture-drift.test.ts, which fail closed because no ancestor of the sibling worktree declares topology_type umbrella"
+        },
+        {
+          "repo": "ai-factory",
+          "sha": "69ed795bcb8dad1733f694ed170184ad3ee6d9dd",
+          "phase": "gate",
+          "argv": ["npm", "test"],
+          "env_extra": "AI_FACTORY_UMBRELLA_ROOT=/Users/andresilvaburgstahler/Ws/Personal/AiTool",
+          "exit_code": 0,
+          "output_sha256": "6a827c65f2c32ca0d2208dfcd9289e4ade42f5eed41a2bdf39c74c67c60c0960",
+          "observed": "Test Files 13 passed (13); Tests 237 passed (237)"
+        },
+        {
+          "repo": "ai-factory",
+          "sha": "69ed795bcb8dad1733f694ed170184ad3ee6d9dd",
+          "phase": "gate",
+          "argv": ["npm", "run", "lint"],
+          "exit_code": 0,
+          "output_sha256": "1a727dfbdd74627a4b9db703acbb9f7f154678012564dae571b5b2a51c667c62",
+          "observed": "eslint . — no findings"
+        },
+        {
+          "repo": "ai-factory",
+          "sha": "69ed795bcb8dad1733f694ed170184ad3ee6d9dd",
+          "phase": "gate",
+          "argv": ["npm", "run", "typecheck"],
+          "exit_code": 0,
+          "output_sha256": "296c0ad806f97b7c90fce88291cd33416d255153651fabd42e5c78e85fe70644",
+          "observed": "tsc --noEmit — no findings"
+        }
+      ],
+      "reproduction": {
+        "at": "2026-10-09T11:24:29Z",
+        "toolchain": "node v26.11.0, npm 11.20.0",
+        "per_command_env": "GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 npm_config_userconfig=/dev/null npm_config_cache=<fresh temp dir>",
+        "bootstrap_stdin": "closed",
+        "waiver": "AI_FACTORY_ALLOW_UNREACHABLE_UMBRELLA was NOT set",
+        "worktrees": "read-only detached git worktrees at a87c912 (ai-catapult) and 69ed795 (ai-factory); no tracked file changed; the shared checkouts were clean before and after",
+        "untracked_paths": {
+          "ai-catapult": "vendor/ (672 files), then dist/ (675) and dist-snapshot/ (675) after the gate; no non-ignored untracked path; node_modules/ absent",
+          "ai-factory": "node_modules/ only — 3476 files plus 14 symlinks (3490 entries) after the gates, 3489 after the bootstrap that preceded the gates' vitest cache; no non-ignored untracked path; dist/, coverage/ and .ai-factory/ absent"
+        }
+      },
+      "note": "REPRODUCED on 2026-10-09 by the AC8 reconciliation lane. The evidence committed at the merge (1973436) recorded AC8 as UNSATISFIED with null exit codes, while the merged PR body #125 claimed the runs were produced; the two contradicted and no later commit added any AC8 evidence. The runs were re-executed from primary evidence in read-only detached worktrees and every number in the PR body reproduced exactly — so the PR body was accurate and the committed evidence was the error. The strict-environment 232/237 is the fixture-drift guard failing closed when no ancestor of the sibling worktree is an umbrella (a reproducible isolation artifact, not a code defect); the override reads the live umbrella read-only and is the environment the planning baseline names ('with the umbrella reachable'). AC8 is a supporting record, not a CI gate: its green here is the umbrella-reachable ai-factory npm test and its red the matching strict-environment run; the ai-catapult half is fully green in runs[]."
     },
     {
       "ac": 9,
@@ -151,14 +231,15 @@
       "decision": "Re-pin LOCAL_CI_CONTRACT_SHA256 to the file's new bytes (5ba151b8ca09d8a1bb6fd28a8c8d6c0f45a2605fdb9bd060269092498e7b4e45), update only the adjacent comment, and treat tests/readiness_v2_gate_shadowing_test.py as an authorized 14th scope addition.",
       "convention": "The repo maintains its other artifact byte pins against the current artifact (POLICY_SHA256 in tests/readiness_policy_v2_test.sh, BUNDLE_SHA256 in tests/xskp_p5_readiness_policy_test.sh), and the e6 plan states: a byte pin over a ported file re-pins in the porting PR; the assertion stays. The isolation assertion itself is unchanged, so this is not a gate weakening.",
       "follow_on": "The re-pin changes the shadowing test file's own bytes, so its stale pin in .ai/ci/local-ci.json was re-pinned to 23bff26990afba2ca4a73d67b7b6a0970d7f3fb61075d81d14515fc09569b7f3."
-    }
-  ],
-  "blockers": [
+    },
     {
-      "ac": 8,
-      "detail": "The ai-catapult a87c912 / ai-factory 69ed795 scratch runs need the network and the sibling repositories, which were not reachable under this task, so the required PR-body record could not be produced; the PR body states this plainly."
+      "conflict": "The evidence committed at the merge (1973436) recorded AC8 as UNSATISFIED with null exit codes and a blockers[] entry, while the merged PR body #125 claimed the ai-catapult/ai-factory scratch runs were produced with specific numbers. The two directly contradicted; no commit after 48b30c74 added any AC8 evidence, and 48b30c74's message ends \"AC8 stays blocked (needs the network).\"",
+      "decision": "Re-executed the runs from primary evidence in read-only detached worktrees of ai-catapult a87c912 and ai-factory 69ed795. Every command reproduced the PR body's numbers exactly, so AC8 is satisfied: the PR body was accurate and the committed evidence was stale. AC8 now carries the real exit codes and output sha256s (runs[]), the criterion is restored to the goal's true text, and blockers[] is emptied.",
+      "convention": "ACH-S-08 states the AC8 runs are 'supporting evidence, not a CI test, because it needs the network'; the PR body is the artifact the AC names and .ai/evidence/ACH-S-08.json is its durable mirror. This reconciliation makes the mirror match the artifact it mirrors rather than the artifact it contradicted.",
+      "follow_on": "The independent review of #125 claimed in the PR body was never persisted: only two unfilled reviewer prompts and an interrupted run (RC=130, no verdict) existed. A durable independent-review artifact is added alongside this file."
     }
   ],
+  "blockers": [],
   "goal_id": "ACH-S-08",
   "green": {
     "command": "bash tests/run-tests.sh",
