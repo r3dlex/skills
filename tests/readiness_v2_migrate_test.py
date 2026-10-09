@@ -658,14 +658,15 @@ class ReleaseSurfaceTests(unittest.TestCase):
                        'extensions.b5_inputs', 'carries no authority', '--root "$(pwd -P)"',
                        'northstar/handoff-write.sh'):
             self.assertIn(phrase, text, phrase)
-        # Pin advanced by XSKP-P5-02 (plan xskp-p5-skill-producers): the registered
-        # knowledge-publication pointer change deliberately edits five producer SKILL.md
-        # files. The pin is a content digest over every tracked */SKILL.md (path, index
-        # mode and working-tree bytes), the same file set `git diff <commit> -- '*/SKILL.md'`
-        # compared: a commit pin breaks once a squash merge drops the branch-only commit
-        # (git exit 128), a digest holds in any clone. Per-goal re-pin, like
-        # tests/fixtures/host-default-golden.json: the next goal that edits a SKILL.md
-        # advances it (maintenance precedent: ACH goals #104..#114).
+        # Pin advanced by TSWC B2 (plan tswc-skills-lane): the goal deliberately adds three
+        # role SKILL.md files under 02-govern-plan/ (evolution-rollout, wiki-maintainer,
+        # skill-proposer), and nothing else in this file changes. The pin is a content
+        # digest over every tracked */SKILL.md (path, index mode and working-tree bytes),
+        # the same file set `git diff <commit> -- '*/SKILL.md'` compared: a commit pin
+        # breaks once a squash merge drops the branch-only commit (git exit 128), a digest
+        # holds in any clone. Per-goal re-pin, like tests/fixtures/host-default-golden.json:
+        # the next goal that edits a SKILL.md advances it (maintenance precedent: ACH goals
+        # #104..#114, XSKP-P5-02).
         listed = subprocess.run(['git', '-C', str(REPO), 'ls-files', '-s', '-z', '--', '*/SKILL.md'],
                                 capture_output=True, check=True).stdout.split(b'\0')
         files = []
@@ -677,7 +678,7 @@ class ReleaseSurfaceTests(unittest.TestCase):
         for path, mode, file_sha in sorted(files):
             digest.update(path + b'\0' + mode + b'\0' + bytes.fromhex(file_sha))
         current = '\n'.join(f'{mode.decode()} {file_sha} {os.fsdecode(path)}' for path, mode, file_sha in sorted(files))
-        self.assertEqual(digest.hexdigest(), 'ca420e6e708b8babe3f60092be3501b7c594a0c3e92b61725fbc04df78133cba',
+        self.assertEqual(digest.hexdigest(), '6914978ca4af31275310aa537d9d091da08ad3685b54183c655bec0d42eeace8',
                          'a tracked */SKILL.md changed; re-pin only for a deliberate, reviewed edit. '
                          'Current mode, sha256 and path per file:\n' + current)
 
