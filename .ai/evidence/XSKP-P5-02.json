@@ -1,0 +1,834 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "AC-1: a shared module defines the host-neutral producer step: when .ai/knowledge/registry.json exists, run the publish argv declared by .ai/commands/<host>/knowledge.json; otherwise record 'unpublished: no-registry'; on a missing descriptor or non-zero exit, record 'unpublished: <token>' (no-descriptor / publish-failed). The skill never fails because of the registry.",
+      "green": {
+        "exit_code": 0,
+        "note": "module 03-configure-generate/ai-catapult-init/modules/knowledge-publish.md (72 lines) carries the registry check, descriptor-driven publish argv, the three unpublished tokens, the never-fails guarantee and the nine-kind table; producer test \u00a71 green"
+      },
+      "red": {
+        "at": "module absent at the red-leg base; producer test FAIL: shared module missing: 03-configure-generate/ai-catapult-init/modules/knowledge-publish.md",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh \u00a71 (discovered by tests/test-scripts.sh under bash tests/run-tests.sh)"
+    },
+    {
+      "ac": 2,
+      "criterion": "AC-2: northstar, to-spec, to-prd, to-issues and research each end with a pointer of at most 3 lines to that module and declare their kind.",
+      "green": {
+        "exit_code": 0,
+        "note": "all five end with exactly 1 blank + 2 content lines (kind plan/spec/prd/plan/research per file); producer test \u00a73 green inside Results PASS=3 FAIL=0"
+      },
+      "red": {
+        "at": "pointer absent on all five: 3 producer-test FAILs each (pointer / kind / unpublished: <reason> fallback) x5 = 15",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh \u00a73 (tail -n 2 case assertions per producer)"
+    },
+    {
+      "ac": 3,
+      "criterion": "AC-3: every description stays at most 160 characters; northstar/SKILL.md (105 lines at planning) has a net line delta of 0 or less; other bodies stay at most 100 lines.",
+      "green": {
+        "exit_code": 0,
+        "note": "northstar exactly 105 lines (numstat 6/6 pure reflow, no semantic drift beyond the three planned reflows); other four +3 lines each; descriptions <=160; catalog-audit delta exactly four body_lines +3 rows (research 28->31, to-issues 76->79, to-prd 79->82, to-spec 71->74), northstar row unchanged; all budget-assertions green in the producer test"
+      },
+      "red": {
+        "at": "budget assertions were green at the red base as well (nothing over budget pre-change); red consisted of the pointer/kind/module set",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh \u00a73 length assertions + .ai/skills/catalog-audit.json regen diff"
+    },
+    {
+      "ac": 4,
+      "criterion": "AC-4: tests/knowledge_producers_test.sh asserts the pointer and kind in each skill and is discovered by tests/run-tests.sh (find tests -name '*_test.sh'); scripts/validate-skill-catalog.py, tests/codex_parity_test.sh and tests/opencode_parity_test.sh pass under run-tests.sh.",
+      "green": {
+        "exit_code": 0,
+        "note": "full suite bash tests/run-tests.sh OVERALL: PASSED (2/2 suites): test-scripts.sh and test-skills.sh green; producer test Results PASS=3 FAIL=0; codex parity Results PASS=41 FAIL=0; opencode parity Results PASS=42 FAIL=0 (identical PASS counts to the pre-change baselines); validate-skill-catalog.py: skill catalog validation passed (39 skills)"
+      },
+      "red": {
+        "at": "suite exit 1 at the red-leg base with the predicted producer-test assertion set (PASS=0 FAIL=25 = 1 module + 9 kinds + 15 pointer/kind/fallback); all other suites green",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/run-tests.sh (full suite, same command both legs)"
+    },
+    {
+      "ac": 5,
+      "criterion": "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes.",
+      "green": {
+        "exit_code": 0,
+        "note": "diff vs origin/main constrained to the 7 goal-scope files plus documented mechanical mirror maintenance and the goal's own evidence file; the worktree is a fresh cut from origin/main and the primary checkout stays untouched"
+      },
+      "red": {
+        "at": "no production paths existed at the red base; untracked state limited to the tests file recorded pre-leg",
+        "exit_code": 1
+      },
+      "test_command": "git status --porcelain + git diff origin/main...HEAD --stat (pre-commit gate and review)"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+    "assurance": "agent-self",
+    "authority": "plan-approval/1",
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root /Users/andresilvaburgstahler/Ws/Personal/worktrees/xskp-p5-02-20261005 --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation --target main --context /Users/andresilvaburgstahler/Ws/Personal/worktrees/xskp-p5-ctx-20261005/p5-02-context.json",
+    "dependency": "XSKP-P5-01 satisfied (merge commit 475a325fa4d9c29b4a2a644c76e55af5428e544e == fetched origin/main at admission)",
+    "gaps": 0,
+    "generation": "a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d",
+    "stage": "implementation"
+  },
+  "goal_id": "XSKP-P5-02",
+  "green": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "goal_record": "scratch copy of the exact bundle goal object (kept outside the repo, per ~/.config/ai-catapult/contexts precedent)",
+    "green_method": "green leg observed by tdd-evidence.sh --record-green in the same goal worktree after the byte-true module copy, five SKILL.md publish-step copies, catalog-audit regen and the mechanical mirror maintenance below; rebase on origin/main 475a325f happened before this leg; same command both legs",
+    "mirror_maintenance": "the first green attempt failed with two pre-existing mirror pins, not the goal test: (1) tests/readiness_v2_migrate_test.py ReleaseSurfaceTests pins SKILL.md bytes at ACH-S-05's red base 977ed13b (hygiene pin, never advanced) - advanced first to da45dec455a1903cd7619707ab8a7e904718a791, then RETARGETED to 7c5d932c261c3aac4c3524b8ef2966d662e67813 (the finalized production head): the amend-based evidence updates orphaned da45dec (each amend replaces its commit, so it became unreachable from fresh clone history and the hosted pin diff hit git exit 128 there - fatal unknown revision, deterministic on CI while passing locally where the reflog resolved it); the retarget keeps the same content-state semantics (last production head whose tree carries the final SKILL.md bytes) and stays reachable as the parent of the retarget commit; per-goal re-pin continues in later goals that edit SKILL.md; the py test file's sha re-pinned in .ai/ci/local-ci.json to 685078b435580363e25af2b038c3765b1550d4601ffc4cbc5a1c964da7a4fb09 (maintenance precedent: ACH commits #104/#106/#108/#110/#111/#114); (2) tests/host_default_golden_test.sh pins the flattened host installs byte-for-byte - regenerated with the sanctioned scripts/regen-host-golden.sh: gemini/northstar.md and auggie/northstar.md drift via the planned reflow, copilot-instructions.md via the same aggregated northstar body; the publish-pointer blocks are intentionally DROPPED from flat host projections by scripts/catalog-install.sh's unavailable-path policy (the module is not shipped standalone in flat installs; dir-copying hosts omc/omx do carry it - covered by codex/opencode parity inside this green leg)",
+    "red_method": "red leg observed by tdd-evidence.sh --record-red in the goal worktree at the red-leg base (test committed as f3635b0's content, production absent) on clean 423dd5c; producer test Results PASS=0 FAIL=25 (predicted set); goal test bytes unchanged since, so the recorded red matches the final test bytes"
+  },
+  "red": {
+    "command": "bash tests/run-tests.sh",
+    "exit_code": 1
+  },
+  "review": {
+    "accepted_residual": "non-blocking nits ship as-is: total-vs-body line-count basis in the producer test budget guard (latent, currently harmless), total-line label wording, missing-description 0-case (covered by test-skills.sh + catalog validator), module deny-list prose over-broad vs publication-policy.json (policy file is authoritative), pin-rationale comment is 4 lines not 5 (round-1 snapshot; superseded in present tense by the round-3 retarget comment rewrite), ACH-S-05.json's recorded red command must never be replayed as a live check (it pins 977ed13b; records are not gates), round2_record's 62/62 pin count is historical wording for the operative all-pins-match claim (58 sources + 3 workflows sha values at retargeted HEAD, all byte-match), retarget comment's first-carries phrasing is literal-first among clone-reachable commits (orphaned da45dec carried the identical bytes first), cosmetic evidence re-serialization in the retarget commit (parsed content identical); no AC affected",
+    "architect_verdict": "APPROVE (round 1 on the 8-file goal diff, zero findings; round 2 supplemental on the 3-file mirror delta, APPROVE, one cosmetic advisory; round 3 supplemental on the mirror retarget, APPROVE - retarget changes zero pinned bytes, failure mode structurally closed since the pin target is the tip's parent, so evidence-only amends cannot re-orphan it)",
+    "code_reviewer_verdict": "APPROVE (round 1, zero blocking; round 2 supplemental APPROVE, zero blocking; round 3 supplemental APPROVE, zero blocking - 58 sources + 3 workflows sha values all byte-match at retargeted HEAD; da45dec/9b3627e survive only as prose; the only hard-coded revision pin in live test code is this one, so the orphan-128 failure class is structurally eliminated)",
+    "iterations": 3,
+    "lane": "independent agent review lane",
+    "round1_record": "read-only reviewers (no artifacts, no test runs - a TDD evidence leg was recording concurrently); both verified diff confinement, module AC-1 semantics, nine-kind table vs contract pack publication-policy.json, byte-true pointer shape, verbatim northstar reflows, audit delta, descriptions <=160; goal producer test bytes unchanged through all three rounds",
+    "round2_record": "supplemental, triggered by the post-round-1 test-byte change (migration pin): ARCHITECT APPROVE (pin diff vs HEAD empty for */SKILL.md; history f3635b0 test-only -> da45dec production -> 9b3627e amend; exactly 3 golden hash changes gemini/auggie northstar.md + copilot copilot-instructions.md; single local-ci entry matches shasum; ACH precedent rows #104..#114) and CODE REVIEWER APPROVE (62/62 contract pins match bytes at HEAD; 977ed13b only in historical evidence records; golden format preserved; evidence wording accurate). First round-2 attempts stalled mid-turn without delivering verdicts and were re-run to completion (sessions ses_ef2d3983cffefdKkTRHokBHkRq, ses_ef2d3983cffd8kOfXSR3ROIF03); stalled sessions abandoned, no artifacts.",
+    "round3_record": "supplemental, triggered by the hosted-CI exit-128 incident (pin target da45dec orphaned by the amend chain - unreachable from fresh clone history, resolving only via local reflog; deterministic CI failure, local pass): ARCHITECT APPROVE (retarget to 7c5d932 changes zero pinned bytes - da45dec and 7c5d932 SKILL.md trees identical; pin target now amend-proof as the tip's parent; failure mode structurally closed; zero blocking, cosmetic re-serialization + first-carries wording advisories) and CODE REVIEWER APPROVE (58 sources + 3 workflows sha values all byte-match at retargeted HEAD; only hard-coded revision pin in live test code is this one; goal test bytes unchanged since red; zero blocking, mooted historical wording advisories). sessions ses_ef27372d9ffeUT4cc3ZWlYfCLi (architect), ses_ef27372d9ffdRb5aGpgTZeFDB4 (code reviewer)."
+  },
+  "review_corrections_round_1": {
+    "admission": {
+      "admitted": true,
+      "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+      "assurance": "agent-self",
+      "authority": "plan-approval/1",
+      "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <fix worktree> --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation --pr 118",
+      "gaps": 0,
+      "gates_pass": [
+        "own-execution",
+        "branch-target",
+        "plan-approval",
+        "tooling",
+        "catalog-validator",
+        "planning-inputs-on-main",
+        "harness-trust"
+      ],
+      "head": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+      "note": "without --pr the observer reads the local branch name of the fix worktree, which is not the goal branch, so branch-target reports branch_target_mismatch; --pr 118 observes the PR head_ref feat/xskp-p5-skill-producers-XSKP-P5-02 into main",
+      "report_sha256": "1c90239370761c066975ac7743df7682d525233d80d9ddc7ecf6037ee7acf6f2"
+    },
+    "base_update": "merge (not rebase) of origin/main 4ff1d933d6519f1e9ef0ebaa3944c86186d64738 into the reviewed head as 3d675c7e44c73161ac7f035ea617bed43a8d066e; .ai/ci/local-ci.json auto-merged, its migrate-test pin re-pinned in e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+    "full_suite": {
+      "at": "2026-10-08T00:37:21Z",
+      "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+      "exit_code": 0,
+      "note": "bash tests/run-tests.sh at the fix head: OVERALL: PASSED (2/2 suites), test-scripts PASS=184 FAIL=0",
+      "output_sha256": "f5e670e1a30f5c9c862d9545ab8366b9dbe8765e9b26f05c6d9be489f0f15e80"
+    },
+    "items": [
+      {
+        "change": "tests/readiness_v2_migrate_test.py: the */SKILL.md hygiene pin is a sha256 over every tracked */SKILL.md path and its bytes (git ls-files -z -- */SKILL.md, the file set git diff -- */SKILL.md compared) instead of the branch-only commit 7c5d932; .ai/ci/local-ci.json re-pinned",
+        "green": {
+          "at": "2026-10-08T00:02:22Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "squash of the fix (tree 5c0effe5a4b8702a699b97affe947aba2188d49c): OK; the full migrate test file also passes there (16 tests)",
+          "output_sha256": "d0178470e6d462de94749c43f76e69dcc905e810aa402ff4955f691a1a35e4c7"
+        },
+        "item": "P1 squash/cold-target pin failure",
+        "red": {
+          "at": "2026-10-07T23:21:01Z",
+          "commit": "3d675c7e44c73161ac7f035ea617bed43a8d066e",
+          "exit_code": 1,
+          "note": "squash of the reviewed head (tree e17a1ce279f913ca789b9192926b384a024fe450): AssertionError 128 != 0 (git diff against 7c5d932 fails with fatal: bad object)",
+          "output_sha256": "1377d09e3ad2d92df75d4a17a24edb993cfe1056920faebb491dbc9903f88279"
+        },
+        "strictness": {
+          "at": "2026-10-08T00:03:18Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 1,
+          "note": "in the same clone the pin fails for the pre-fix pointer bytes, one appended byte in a non-producer SKILL.md, an added tracked SKILL.md and a removed tracked SKILL.md; it passes again after restore",
+          "output_sha256": "5b0c6bba2d9b4a817a7f8d41cdfac35c16eb2fd7ff62d948668b2950b3e4b676"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py ReleaseSurfaceTests.test_migration_surface_and_pins, run in a squash-shaped clone: git clone --single-branch --branch main of origin (main 4ff1d93, full target ancestry, no feature refs, 7c5d932 and da45dec unresolvable) plus one commit applying git diff --binary 4ff1d93 <rev>"
+      },
+      {
+        "change": "the five pointer tails link [ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md), the repo cross-skill form that scripts/check-markdown-links.py validates in source (via the catalog) and installed-flat; line counts unchanged",
+        "green": {
+          "at": "2026-10-08T00:05:14Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "Results: PASS=6 FAIL=0 in the squash-shaped clone of the fix",
+          "output_sha256": "ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2"
+        },
+        "installed_layout": {
+          "at": "2026-10-08T00:05:54Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "old pointer path 03-configure-generate/... is missing under both installed roots; the new link resolves byte-equal for all five producers under Claude Code and Codex",
+          "output_sha256": "8da3938341db87a0fa6bd7ba94084730ada78339192bee683a3648c185f56282"
+        },
+        "item": "P2 installed module resolution",
+        "mutation": {
+          "at": "2026-10-07T23:45:29Z",
+          "commit": "7b57f86",
+          "exit_code": 1,
+          "note": "a source-literal link ../../03-configure-generate/... fails the Claude Code and Codex resolution checks",
+          "output_sha256": "929bbf3fde9dcf5768d4ea01bea199551202e26edab5c038f6b6034244cc628b"
+        },
+        "red": {
+          "at": "2026-10-07T23:34:14Z",
+          "commit": "10f03f7",
+          "exit_code": 1,
+          "note": "five FAILs: <producer>: pointer carries no markdown link to knowledge-publish.md (same five with the final test bytes against the pre-fix production, producers-final-red-green.log ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2)",
+          "output_sha256": "ce6917cdd70d03412012e8786b9ffe0bd07bfbe5a2361a7df44a3c1b6a165476"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 6: runs install-claude-code.sh --user, install-codex.sh --all, install-gemini.sh --all, install-auggie.sh --all and install-copilot.sh --all into a temp HOME; every pointer must resolve to the module in the source layout and to a byte-equal installed module under <skills>/<producer>/ for Claude Code and Codex; flat projections must carry no pointer. The repo ships no OpenCode installer."
+      },
+      {
+        "change": "the producer test counts body lines after the closing frontmatter delimiter with scripts/validate-skill-catalog.py frontmatter(); northstar keeps its 105-line whole-file budget",
+        "edges": [
+          {
+            "at": "2026-10-07T23:46:59Z",
+            "commit": "7b57f86",
+            "exit_code": 0,
+            "note": "research padded to 100 body lines (104 file lines) passes",
+            "output_sha256": "885da73878033b1e8db116c471fe516046667e47c4232d020db7c6ae6b377f12"
+          },
+          {
+            "at": "2026-10-07T23:47:10Z",
+            "commit": "7b57f86",
+            "exit_code": 1,
+            "note": "research padded to 101 body lines (105 file lines) fails: body exceeds 100 lines",
+            "output_sha256": "a60fa7c2192e36713c39696fc07dd142e4b491ab9e574f7d959b71ccc991578e"
+          }
+        ],
+        "green": {
+          "at": "2026-10-08T00:05:14Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "body budget accepts 97- and 100-line bodies and rejects a 101-line body",
+          "output_sha256": "ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2"
+        },
+        "item": "P3 body budget counted whole-file lines",
+        "red": {
+          "at": "2026-10-07T23:34:14Z",
+          "commit": "10f03f7",
+          "exit_code": 1,
+          "note": "two FAILs with the wc -l counter: a valid 97-line / 100-line body under a 4-line frontmatter is rejected by the body budget",
+          "output_sha256": "ce6917cdd70d03412012e8786b9ffe0bd07bfbe5a2361a7df44a3c1b6a165476"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 4: 4-line frontmatter fixtures with 97- and 100-line bodies (101 and 104 whole-file lines) must pass, a 101-line body must fail"
+      },
+      {
+        "change": "module step 3 selects the one local document; new section \"Which document is published\": a local output is passed as written (a native_rules document where it is), a hosted-only to-prd/to-issues (or issue-only to-spec) output is materialized verbatim, preceded by its tracker reference(s), to <canonical_targets[kind]><slug>.md before publish; step 4 runs <argv> publish <path> --kind <kind> --producer <skill>",
+        "green": {
+          "at": "2026-10-08T00:05:14Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "module selects or materializes the published document and quotes the policy path classes",
+          "output_sha256": "ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2"
+        },
+        "item": "AC1 gap: no local document for publish <path> from hosted-only outputs",
+        "red": {
+          "at": "2026-10-07T23:34:14Z",
+          "commit": "10f03f7",
+          "exit_code": 1,
+          "note": "two FAILs: module does not name the `publish <path>` argument it fills; module does not materialize a hosted-only to-prd/to-issues output under canonical_targets",
+          "output_sha256": "ce6917cdd70d03412012e8786b9ffe0bd07bfbe5a2361a7df44a3c1b6a165476"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (selection cues: `publish <path>`, a hosted-only block naming `to-prd`, `to-issues`, materialize and `canonical_targets`)"
+      },
+      {
+        "change": "module Rules quote the frozen publication-policy.json: deny paths (e.g. .omc/state/**, .omc/sessions/**, .omc/logs/**, .omc/project-memory.json, .omx/state/**, .omx/context/**, .omx/notepad.md, .omo/boulder.json) and publishable native_rules globs (.omc/plans/*.md, .omc/research/**/*.md, .omx/plans/**/*.md, .omo/plans/*.md)",
+        "green": {
+          "at": "2026-10-08T00:05:14Z",
+          "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+          "exit_code": 0,
+          "note": "policy-class assertions pass",
+          "output_sha256": "ccbad2f4d807e248d648e47c6f158a954ec803d16182a6e84c8534fb4ce5e5f2"
+        },
+        "item": "module deny-path summary (.omc/** / .omx/**)",
+        "mutation": {
+          "at": "2026-10-07T23:45:52Z",
+          "commit": "7b57f86",
+          "exit_code": 1,
+          "note": "widening .omc/state/** back to .omc/** fails: module cites '.omc/**'",
+          "output_sha256": "03b452035d5df2299f2b1decb001d3154d4dc1ae660ab3c8f6dbe4902feb9f60"
+        },
+        "red": {
+          "at": "2026-10-07T23:34:14Z",
+          "commit": "10f03f7",
+          "exit_code": 1,
+          "note": "four FAILs: module cites '.omc/**' and '.omx/**' (in neither list); cites no denied .omc/ subpath; cites no native .omc/ glob",
+          "output_sha256": "ce6917cdd70d03412012e8786b9ffe0bd07bfbe5a2361a7df44a3c1b6a165476"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (every harness/private path the module cites must be a deny path or a native_rules glob of .ai/knowledge/contract/publication-policy.json; at least one denied and one native .omc/ path)"
+      }
+    ],
+    "local_checks": {
+      "at": "2026-10-08T00:43:31Z",
+      "commit": "e3325b41a7a8ca64fe08fb4fc58074bcaa0e4d1b",
+      "exit_code": 0,
+      "note": "validate-skill-catalog.py --write-audit passed (39 skills, audit unchanged); scan-secret-material.py clean; git diff --check clean; check-markdown-links.py passed (45 files, source + installed-flat)",
+      "output_sha256": "3960866e44cc459722f69572ec99694968a75fb99d0d720feaeb995daf4c443a"
+    },
+    "residuals_closed": "the round-1 accepted residuals \"total-vs-body line-count basis\" and \"module deny-list prose over-broad\" are fixed by P3 and the deny-path item",
+    "review": "independent Standards + Spec/drift review of #118 at 4d71ba1501f032d7e880374d2322568ff0043ee2 against main 4ff1d933d6519f1e9ef0ebaa3944c86186d64738: P1, P2, P3, AC1 gap, module deny-path finding",
+    "unchanged": "catalog-audit.json, tests/fixtures/host-default-golden.json and every SKILL.md line count are unchanged by the corrections; northstar stays 105 lines"
+  },
+  "review_corrections_round_2": {
+    "admission": {
+      "admitted": true,
+      "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+      "assurance": "agent-self",
+      "authority": "plan-approval/1",
+      "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <fix worktree on feat/xskp-p5-skill-producers-XSKP-P5-02> --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation",
+      "gaps": 0,
+      "gates_pass": [
+        "own-execution",
+        "branch-target",
+        "plan-approval",
+        "tooling",
+        "catalog-validator",
+        "planning-inputs-on-main",
+        "harness-trust"
+      ],
+      "head": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+      "report_sha256": "057d895080626014b0ca169d77da8a6b8b9fe5beb4d626d3e8c4e68caf9ef366"
+    },
+    "full_suite_finding": {
+      "at": "2026-10-08T03:19:58Z",
+      "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+      "exit_code": 1,
+      "note": "bash tests/run-tests.sh in the squash-shaped clone of 120fc0b: tests/adr_path_test.sh (P0-3 guard) flagged the bare legacy ADR path in the new Placement example; fixed in the module by 9d4605e (guard unchanged); the green full suite is the tdd-evidence --record-green observation at the evidence head",
+      "output_sha256": "20f28be93a6b23e6af69242810529fb50a69ef025aaa16293e6602ca178b206d"
+    },
+    "items": [
+      {
+        "change": "module Write rules: refuse a path another registry entry uses as its canonical path; write only an absent path or a same-id revision (`knowledge_id: <id>` frontmatter and this run revises it); try <slug>-2, <slug>-3; create exclusively; step 6 undoes the write (delete the created file or restore the replaced bytes) before recording unpublished: publish-failed",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic M1: write-before-publish can clobber or leak",
+        "mutation": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "recording publish-failed before the undo fails the undo-order check",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAILs: write only to an absent path or a same-id revision; refuse a path another registry entry already uses; <slug>-2/<slug>-3; create exclusively; undo before publish-failed",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (Write rules cues; undo stated before publish-failed in the same step item)"
+      },
+      {
+        "change": "module step 3 names <id> = <repo_id>:<kind>:<slug> (repo_id from the registry, slug from the title) and step 5 always passes --id <id>; Declared kinds gains a document column naming ONE source for all nine producers (northstar: native ralplan plan, else its .ai/work-intake/ record text; to-prd with its tracker reference; to-issues in dependency order; research and domain-modeling via Placement; handoff after its redaction step; retro without session-log or transcript content; code-review report); Who runs the step: only the outermost producer publishes, a nested producer skips",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic M2: one document per producer, explicit --id, outermost producer only",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAILs: --id <repo_id>:<kind>:<slug>; outermost producer; document column; one document cue for each of the nine producers",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (--id cues, document column present with a cue per producer, outermost cues)"
+      },
+      {
+        "change": "module Placement: with a registry, a non-native document is saved at <target><slug>.md under the Write rules in the first place, moved there if already saved elsewhere this run, never copied, so publish registers it in place (one tracked copy, umbrella D1)",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic M3: local non-native outputs create a second copy",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAIL: a non-native document is saved at <target><slug>.md and published in place, never copied",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (Placement cues)"
+      },
+      {
+        "change": "a native source counts only when its first matching native_rules glob has the same kind as the producer (.omx/plans/small-work-reviews/**/*.md is review, never a northstar source)",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic L1: native source kind must match",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAIL: native source kind cue",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      },
+      {
+        "change": "Who runs the step: Gemini, Auggie and Copilot are not XSKP hosts; their flat projections drop the pointer",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "critic L3: flat hosts are not XSKP hosts",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAIL: Gemini, Auggie and Copilot are not XSKP hosts",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      },
+      {
+        "change": "the publish-failed reason: the document could not be written or the publish run exited non-zero; the write was undone first",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "green: Results PASS=6 FAIL=0 (squash-shaped clone of 120fc0b)",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "code-review L3: publish-failed covers a failed write",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAIL: publish-failed covers a document that could not be written",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "red_final_test": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "final test bytes against the round-1 module (squash-shaped clone): 21 FAILs, one per module cue below; then green against the round-2 module: PASS=6 FAIL=0",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      },
+      {
+        "change": "section 5 splits the module into statements (table rows, prose sentences); a statement about deny paths may cite only policy deny paths, one about native sources only native_rules globs",
+        "green": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "round-2 test fails it: module cites '.omc/state/**' as a native source; the unmutated module passes",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "item": "code-review L2: classify cited paths, not only membership",
+        "red": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "round-1 test bytes (4463c2b, membership only) pass the mutated module: PASS=6 FAIL=0",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5, under a mutation that moves the deny path .omc/state/** into the native sentence"
+      },
+      {
+        "change": "line_counts uses the catalog validator frontmatter() and Python splitlines: an unparsable frontmatter is reported as \"frontmatter does not parse\" (not an over-long body), and a northstar last line without a trailing newline is counted",
+        "green": {
+          "at": "2026-10-08T03:01:14Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "budgets: 97/100-line bodies pass, 101 fails, parse errors are named, unterminated last lines count",
+          "output_sha256": "9fc7c79ad967d18b2d0f1b62194ff209591c70b4fe620ceddf4377e1d35c8a2b"
+        },
+        "item": "code-review L6 and L7: budget messages and counts",
+        "red": {
+          "at": "2026-10-08T02:49:15Z",
+          "commit": "e1fa8cc",
+          "exit_code": 1,
+          "note": "FAILs under the old counters: an unterminated frontmatter is not reported as a parse error; a 106-line northstar file without a trailing newline is not counted as 106 lines (wc -l says 105)",
+          "output_sha256": "48469ca3e31eaee9cc1368e0847fab39af74362b693b869ca34ec3a9178f686c"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 4 fixtures (unterminated frontmatter; 105- and 106-line northstar files without a trailing newline)"
+      },
+      {
+        "change": "tests/readiness_v2_migrate_test.py: the digest covers path, index mode (git ls-files -s -z) and working-tree bytes of every tracked */SKILL.md; a mismatch prints mode, sha256 and path per file; .ai/ci/local-ci.json re-pinned",
+        "green": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 1,
+          "note": "the round-2 pin fails and lists 100755 <sha256> 02-govern-plan/to-spec/SKILL.md; restored, it passes",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "item": "code-review L1: SKILL.md pin hashes the mode and reports per file",
+        "red": {
+          "at": "2026-10-08T03:04:44Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "the round-1 digest scheme (path + bytes) still matches its pin f323f513 after the mode-only change: undetected",
+          "output_sha256": "f5f9acccef0488942b442efe1d932ce1dcdb0f733b71c4a527241de2b1122a38"
+        },
+        "squash_shaped": {
+          "at": "2026-10-08T03:00:52Z",
+          "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+          "exit_code": 0,
+          "note": "single-branch clone of main 4ff1d93 plus the squash of 120fc0b: ReleaseSurfaceTests OK",
+          "output_sha256": "fd579a2585c205ee1268997cb309a671434f9241cfb7bfd2d89c10d829982ac1"
+        },
+        "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py ReleaseSurfaceTests, in a squash-shaped clone, under git update-index --chmod=+x 02-govern-plan/to-spec/SKILL.md"
+      }
+    ],
+    "local_checks": {
+      "at": "2026-10-08T03:07:45Z",
+      "commit": "120fc0bcf19b6523da28b0ac454f9436efd79417",
+      "exit_code": 0,
+      "note": "catalog validator passed (39 skills, audit unchanged); secret scan clean; git diff --check clean; markdown links passed; prek exit 0; SKILL.md, golden and catalog-audit unchanged since round 1 (northstar 105 lines)",
+      "output_sha256": "16b01103487314d423ec8ca4cdf260eaa8bd860fe09efb14b14a104288ac60a4"
+    },
+    "review": "agent review round 1 of #118 at 4463c2bf2c40cccc41c52574e739bd1dd4e0eb4d: code-review APPROVE (7 LOW); critic REQUEST CHANGES (3 MEDIUM, probed against root scripts/knowledge/publish.py)",
+    "superseding_notes": [
+      "supersedes provenance.mirror_maintenance on the SKILL.md hygiene pin: the commit pins it describes (977ed13b, da45dec, 7c5d932) were replaced in round 1 by a content digest and in round 2 by a digest over path, index mode and bytes (expected value in tests/readiness_v2_migrate_test.py); no commit id is pinned any more",
+      "supersedes review.accepted_residual on \"total-vs-body line-count basis\" and \"module deny-list prose over-broad\": both were fixed in round 1 (P3, deny-path item) and tightened in round 2 (CR L6/L7, CR L2)",
+      "supersedes review_corrections_round_1 item P1 \"change\" on the digest inputs (path + bytes): round 2 adds the index mode"
+    ]
+  },
+  "review_corrections_round_3": {
+    "admission": {
+      "admitted": true,
+      "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+      "assurance": "agent-self",
+      "authority": "plan-approval/1",
+      "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <fix worktree on feat/xskp-p5-skill-producers-XSKP-P5-02> --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation",
+      "gaps": 0,
+      "head": "85dea303169695c90295a8dd3f645cca21518af3",
+      "report_sha256": "d192a51da3d5c8e791091c2d3693989c24354156e46c638f0f36c313cf5648e9"
+    },
+    "full_suite": {
+      "at": "2026-10-08T06:18:41Z",
+      "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+      "exit_code": 0,
+      "note": "bash tests/run-tests.sh in a squash-shaped clone of 85dea30 (main 4ff1d93 plus one squash commit, no feature refs): OVERALL: PASSED, test-scripts PASS=244 FAIL=0, skills PASS=184 FAIL=0; the worktree green leg was re-observed by tdd-evidence.sh --record-green (exit 0, bytes unchanged)",
+      "output_sha256": "05ebfa204f71067de23e7e3c3e9f74e9442611bd87423bd52c7efee2431932f4"
+    },
+    "items": [
+      {
+        "change": "Placement copies an earlier save to <target><slug>.md, publishes the copy, and removes the original only after the publish run succeeds (updating the references this run made); a failure deletes only the step copy; step 6 deletes only the copy this step made and never deletes or moves the producer document; a file that existed before the run or that a tracked file links to is never moved: unpublished: needs-adoption",
+        "green": {
+          "at": "2026-10-08T06:02:10Z",
+          "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+          "exit_code": 0,
+          "note": "Results: PASS=7 FAIL=0 in a squash-shaped clone of 85dea30",
+          "output_sha256": "c8e4c1bcfcd03afb20bf5961642139412c353a162cbbac95d2e34b84a790960a"
+        },
+        "item": "critic H1: rollback deletes the only copy after a Placement move",
+        "red": {
+          "at": "2026-10-08T04:49:16Z",
+          "commit": "8132d05",
+          "exit_code": 1,
+          "note": "FAILs: undo deletes only the copy this step made; copy, publish, remove only after success; a failed publish keeps the original; never move a pre-existing or linked file; needs-adoption reason",
+          "output_sha256": "f7a1962af1e47d44482a519fe0cdc9e5709d3ac23bd767939468e604e8f0cd65"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (exact rule sentences in The step and Placement; needs-adoption reason)"
+      },
+      {
+        "change": "new Source records section: .scratch/<feature-slug>/PRD.md (and issues/) and the .ai/work-intake/ record stay where they are, are never moved, copied or rewritten, and are published from where they are; the registry copy is derived and the publisher records the source in derived_from; the northstar and to-prd rows name them",
+        "green": {
+          "at": "2026-10-08T06:02:10Z",
+          "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+          "exit_code": 0,
+          "note": "Results: PASS=7 FAIL=0 in a squash-shaped clone of 85dea30",
+          "output_sha256": "c8e4c1bcfcd03afb20bf5961642139412c353a162cbbac95d2e34b84a790960a"
+        },
+        "item": "critic M1: source records stay where they are",
+        "red": {
+          "at": "2026-10-08T04:49:16Z",
+          "commit": "8132d05",
+          "exit_code": 1,
+          "note": "FAILs: source records stay and the registry copy is derived; northstar, to-prd and to-issues document cues",
+          "output_sha256": "f7a1962af1e47d44482a519fe0cdc9e5709d3ac23bd767939468e604e8f0cd65"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (Source records sentences; northstar, to-prd and to-issues row cues)"
+      },
+      {
+        "change": "new Private content section: never copy content read from deny paths (~/**, .memory/**, .omc/project-memory.json, .omc/sessions/**, .omc/logs/**, .omx/notepad.md), cite them by name only; replace home-directory paths with <home> and session ids with <session> using the knowledge-scrub patterns; handoff redacts before the write",
+        "green": {
+          "at": "2026-10-08T06:02:10Z",
+          "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+          "exit_code": 0,
+          "note": "Results: PASS=7 FAIL=0 in a squash-shaped clone of 85dea30",
+          "output_sha256": "c8e4c1bcfcd03afb20bf5961642139412c353a162cbbac95d2e34b84a790960a"
+        },
+        "item": "critic M2: privacy for handoff and retro",
+        "mutations": {
+          "at": "2026-10-08T06:00:56Z",
+          "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+          "exit_code": 1,
+          "note": "a broken UUID pattern leaves the session id; a /home-only home pattern leaves /Users/alice",
+          "output_sha256": "bd972b5702a9115ef05c17b9a4bd4c5916c520949c1f8b59d7bb9517177f7f80"
+        },
+        "red": {
+          "at": "2026-10-08T04:49:16Z",
+          "commit": "8132d05",
+          "exit_code": 1,
+          "note": "FAILs: Private content sentences; handoff and retro row cues; no knowledge-scrub block",
+          "output_sha256": "f7a1962af1e47d44482a519fe0cdc9e5709d3ac23bd767939468e604e8f0cd65"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5 (Private content sentences) and section 7 (executes the knowledge-scrub patterns on a handoff/retro sample)"
+      },
+      {
+        "change": "Write rule 2: a revision needs a registered <id>, a same-id file, a run that revises it, and a source that is the canonical path of the entry or a derived_from path of one of its revisions (--id skips the publisher check); rule 3 stops at <slug>-99 then publish-failed; ADRs are <NNNN>-<slug>.md numbered after the highest existing number in the target",
+        "green": {
+          "at": "2026-10-08T06:02:10Z",
+          "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+          "exit_code": 0,
+          "note": "Results: PASS=7 FAIL=0 in a squash-shaped clone of 85dea30",
+          "output_sha256": "c8e4c1bcfcd03afb20bf5961642139412c353a162cbbac95d2e34b84a790960a"
+        },
+        "item": "critic L1-L3: revision binding, -99 cap, ADR numbering",
+        "red": {
+          "at": "2026-10-08T04:49:16Z",
+          "commit": "8132d05",
+          "exit_code": 1,
+          "note": "FAILs: revision binding; -99 cap; domain-modeling document cue",
+          "output_sha256": "f7a1962af1e47d44482a519fe0cdc9e5709d3ac23bd767939468e604e8f0cd65"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      },
+      {
+        "change": "section 5 cues are exact rule sentences; step 3 takes <repo_id> from .ai/init/repo-profile.json, the value the publisher validates",
+        "green": {
+          "at": "2026-10-08T06:02:10Z",
+          "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+          "exit_code": 0,
+          "note": "Results: PASS=7 FAIL=0 in a squash-shaped clone of 85dea30",
+          "output_sha256": "c8e4c1bcfcd03afb20bf5961642139412c353a162cbbac95d2e34b84a790960a"
+        },
+        "item": "code-review 1 and 2: exact rule sentences; repo_id source",
+        "mutations": {
+          "at": "2026-10-08T06:00:56Z",
+          "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+          "exit_code": 1,
+          "note": "each of 13 reversed rule sentences fails the round-3 test; the round-2 test bytes pass three reversed round-2 sentences (outermost, Refuse the path, move/copy)",
+          "output_sha256": "bd972b5702a9115ef05c17b9a4bd4c5916c520949c1f8b59d7bb9517177f7f80"
+        },
+        "red": {
+          "at": "2026-10-08T04:49:16Z",
+          "commit": "8132d05",
+          "exit_code": 1,
+          "note": "FAIL: repo_id from .ai/init/repo-profile.json",
+          "output_sha256": "f7a1962af1e47d44482a519fe0cdc9e5709d3ac23bd767939468e604e8f0cd65"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      }
+    ],
+    "local_checks": {
+      "at": "2026-10-08T06:07:17Z",
+      "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+      "exit_code": 0,
+      "note": "catalog validator passed (39 skills, audit unchanged); secret scan clean; git diff --check clean; markdown links passed; prek exit 0; SKILL.md, golden, catalog-audit, the migrate pin and local-ci unchanged since round 2; northstar 105 lines",
+      "output_sha256": "3863ff37a203ff3026291c7471abe7d6822e19d4af966e99cec9d8d8a7d9300a"
+    },
+    "probes": {
+      "after": {
+        "at": "2026-10-08T06:12:36Z",
+        "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+        "exit_code": 0,
+        "note": "H-frontmatter/secret/locked/no-profile: unpublished: publish-failed, original note intact, no step copy left, 0 entries; H-preexisting: unpublished: needs-adoption, nothing moved; I-id-bypass: y refused (rule2-id) and published as gateway-plan-2, docs/plans/gateway-plan.md keeps Plan X, x revises itself; D: .scratch PRD and .ai/work-intake records stay, derived_from points at them; G: ADR 0013-use-sqlite-for-quotas.md numbered after 0012, research original removed only after success; E: handoff/retro copies carry no home path or session id; A/B/C/F unchanged from before",
+        "output_sha256": "b8313c54140de1d42d82b5655677b1a982c140e6634de5f0df46f078003bd279"
+      },
+      "before": {
+        "at": "2026-10-08T06:12:36Z",
+        "commit": "fa561734756d7d68481c960717dde55b2432b1d3",
+        "exit_code": 0,
+        "note": "H-move-rollback: invalid_frontmatter, note exists anywhere: False (data loss); I-id-bypass: a second plan with the same --id replaced docs/plans/gateway-plan.md (\"Unrelated plan Y.\")",
+        "output_sha256": "bab021eecac6fc0bdcc49c4feb1f511a1cbf671454e2051468b08e3c05cbb480"
+      },
+      "before_h_variants": {
+        "at": "2026-10-08T06:12:36Z",
+        "commit": "fa561734756d7d68481c960717dde55b2432b1d3",
+        "exit_code": 0,
+        "note": "round-2 move + literal rollback loses the note for secret_detected, locked and a missing repo-profile too",
+        "output_sha256": "505082415f22edecde392dcbefdd73f8a4836519798f6c8cdf7f27e7844e2156"
+      },
+      "executable_check": "the skills repo ships no knowledge publisher: .ai/knowledge/contract/ (from #116) holds only the frozen schemas, policy, conformance cases and fixtures, and no scripts/ai-knowledge or publish implementation exists here, so no executable rollback fixture runs in skills; root code is not vendored; the probe evidence above stands in for it",
+      "harness_after": {
+        "at": "2026-10-08T06:12:36Z",
+        "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+        "exit_code": 0,
+        "note": "the same cases with the round-3 rules applied literally, plus the H variants, a pre-existing note, ADR numbering and the scrub",
+        "output_sha256": "74b4066fa810071b0fa5eed7737b385f77008332492cf17c6cba66534299a208"
+      },
+      "harness_before": {
+        "at": "2026-10-08T06:12:36Z",
+        "commit": "fa561734756d7d68481c960717dde55b2432b1d3",
+        "exit_code": 0,
+        "note": "the critic probe pr118r2/probe.py: round-2 rules applied literally",
+        "output_sha256": "3e5f1c801c5e041aee6f25d334a503b3fa3d0b9a8c3871bc2bf721164d106b37"
+      },
+      "publisher": "root ai-tool-workspace main 575d3edf702996d0df367700ab1ea117539ce32f (scratch clone; scripts/knowledge/publish.py)"
+    },
+    "review": "agent review round 2 of #118 at fa561734756d7d68481c960717dde55b2432b1d3: critic REQUEST CHANGES (H1 HIGH, M1, M2, L1-L3; probes against root publish.py); code-review APPROVE with 5 LOW (1-4 folded in, 5 informational)",
+    "squash_shaped": {
+      "at": "2026-10-08T05:43:44Z",
+      "commit": "85dea303169695c90295a8dd3f645cca21518af3",
+      "exit_code": 0,
+      "note": "single-branch clone of main 4ff1d93 plus the squash of 85dea30: ReleaseSurfaceTests OK",
+      "output_sha256": "576a160f8795f1f71785b3b58f6f0799590a7b24db137fe928ac5642f2fefc36"
+    },
+    "superseding_notes": [
+      "supersedes provenance.red_method (\"goal test bytes unchanged since, so the recorded red matches the final test bytes\"): tests/knowledge_producers_test.sh changed in correction rounds 1, 2 and 3; each round recorded its own red at a test-only commit (10f03f7, e1fa8cc, 8132d05) and its own green",
+      "supersedes review_corrections_round_2 M1 and M3 wording on undo and Placement (\"delete the file this step created\", \"move it there; never copy it\"): round 3 deletes only the copy this step made and copies, publishes, then removes the original only after success",
+      "supersedes review_corrections_round_2 M2 on the registry repo_id: <repo_id> comes from .ai/init/repo-profile.json"
+    ]
+  },
+  "review_corrections_round_4": {
+    "admission": {
+      "admitted": true,
+      "approval_digest": "777d12eabe93d24219007d417365674c83363446dee03ad89aa81fc3851994d6",
+      "assurance": "agent-self",
+      "authority": "plan-approval/1",
+      "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <durable worktree on feat/xskp-p5-skill-producers-XSKP-P5-02> --handoff northstar-plan-xskp-p5-skill-producers --goal-id XSKP-P5-02 --stage implementation",
+      "gaps": 0,
+      "head": "4662eafce470ac695443d5ae738661c10523d990",
+      "report_sha256": "91490b4ab20b32537df8b2af78da9dbc7a7bd04d0defe49f00c9b4a6b5f190cd"
+    },
+    "base_update": "the coordinator merged origin/main de949f9 (#123) into the goal branch as 02154d1; this lane merged origin/main 7863e64 (#121, XSKP-P5-04) as 4662eafce470ac695443d5ae738661c10523d990 (merge, not rebase; no conflicts; no #118 file touched by either); the P5-04 registry template (repo_id \"{{REPO_ID}}\") agrees with the module, which takes repo_id from .ai/init/repo-profile.json written from the same REPO_ID",
+    "follow_ups": [
+      "crash case J: publish the original from where it is (derived_from = original), remove only after success",
+      "link detection: specify \"a tracked file links to it\" (git grep -lF <basename>, resolve each hit)",
+      "ADR numbering across the legacy and canonical ADR dirs",
+      "encoded usernames containing \"-\" keep their later parts (Claude Code directory encoding is not invertible)"
+    ],
+    "items": [
+      {
+        "change": "knowledge-scrub block: encoded Claude Code project/scratchpad dirs (-Users-<name>-, -home-<name>-) -> -<home>; C:\\Users\\<name>, /root, $HOME, ~ and file:// home paths -> <home>, anchored with (?<![\\w.~-]) so src/home/, /scim/v2/Users/ and URLs stay intact; a UUID is replaced only in a session path (sessions/, projects/<dir>/, rollout-, /scratchpad), case-insensitively; ses_ ids unchanged",
+        "green": {
+          "at": "2026-10-08T19:03:14Z",
+          "commit": "4662eafce470ac695443d5ae738661c10523d990",
+          "exit_code": 0,
+          "note": "full suite at the merged head: OVERALL: PASSED, test-scripts PASS=244 FAIL=0, skills PASS=184 FAIL=0; producer test PASS=7 FAIL=0",
+          "output_sha256": "e3b09f3e8fdda852a6884476b7486402e2d21fdd90d15a7cfdb6e990da27d39b"
+        },
+        "item": "critic M1 + L1: privacy scrub misses encoded, Windows, /root and $HOME home paths and uppercase UUIDs; over-strips REST paths, URLs and non-session UUIDs",
+        "mutations": {
+          "at": "2026-10-08T18:53:22Z",
+          "commit": "b0b8f52",
+          "exit_code": 0,
+          "note": "dropping each of the 9 rules, unanchoring the home or /root rule, making the session UUID rule context-free or case-sensitive, or narrowing the encoded-username class each fails section 7; the restored module passes",
+          "output_sha256": "6adf02b6116883f2005d6702189deae151a0a3597bb90dff6e7c4728e84cb71a"
+        },
+        "probe_after": {
+          "at": "2026-10-08T18:22:34Z",
+          "commit": "b0b8f52",
+          "exit_code": 0,
+          "note": "critic scrub_probe.py on the round-4 module: all encoded/Windows/root/$HOME/session-path samples replaced; SCIM path, /home URL and non-session UUID unchanged; a standalone uppercase GUID stays by design (UUIDs only in session paths)",
+          "output_sha256": "1ecd8b598726012463f0adbae4690c0e370b15c6e4381036afdb7d7c12bc5d32"
+        },
+        "probe_before": {
+          "at": "2026-10-08T18:17:57Z",
+          "commit": "02154d1",
+          "exit_code": 0,
+          "note": "critic scrub_probe.py on the round-3 module: 6 UNDER (leaks) and 3 OVER (over-strips)",
+          "output_sha256": "e47fdf5f1fa76f7a8929fbb02d0571e067cba07ec55536cfa100914e3fdbfc5c"
+        },
+        "red": {
+          "at": "2026-10-08T18:16:52Z",
+          "commit": "047fcef",
+          "exit_code": 1,
+          "note": "14 FAILs against the round-3 module: 12 scrub samples (8 leaks, 4 over-strips) plus the 2 code-review scope cues",
+          "output_sha256": "1cfd45055b572d21e9c98b07f4710e23f662900eae995bb1bd97c1b73db8b28b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 7 (14 must-replace samples and 6 must-stay-unchanged samples, exact outputs)"
+      },
+      {
+        "change": "Private content covers handoff, retro and code-review; the code-review row names it",
+        "green": {
+          "at": "2026-10-08T19:03:14Z",
+          "commit": "4662eafce470ac695443d5ae738661c10523d990",
+          "exit_code": 0,
+          "note": "producer test PASS=7 FAIL=0 within the full suite",
+          "output_sha256": "e3b09f3e8fdda852a6884476b7486402e2d21fdd90d15a7cfdb6e990da27d39b"
+        },
+        "item": "item 4: Private content for code-review",
+        "red": {
+          "at": "2026-10-08T18:16:52Z",
+          "commit": "047fcef",
+          "exit_code": 1,
+          "note": "FAILs: code-review document cue; handoff, retro and code-review Private content cue",
+          "output_sha256": "1cfd45055b572d21e9c98b07f4710e23f662900eae995bb1bd97c1b73db8b28b"
+        },
+        "test_command": "bash tests/knowledge_producers_test.sh section 5"
+      }
+    ],
+    "local_checks": {
+      "at": "2026-10-08T19:04:04Z",
+      "commit": "4662eafce470ac695443d5ae738661c10523d990",
+      "exit_code": 0,
+      "note": "catalog validator passed (39 skills, audit unchanged); secret scan clean; git diff --check clean; markdown links passed; prek exit 0; migrate pin OK; SKILL.md, golden and migrate pin unchanged since round 3",
+      "output_sha256": "3f956c1d0a09a02c2aa327106e9796f0381f420044954091b15b5e60666fabce"
+    },
+    "notes": "needs-adoption now names ai-catapult adopt as a planned follow-up (plan P4), not yet on ai-catapult main",
+    "review": "agent review round 3 of #118 at 02154d195a042ea0e38606fa115eed7ed7ff2bd7: code-review APPROVE; critic REQUEST CHANGES with one MEDIUM (M1, privacy scrub); needs-adoption accepted as an AC1 extension"
+  }
+}

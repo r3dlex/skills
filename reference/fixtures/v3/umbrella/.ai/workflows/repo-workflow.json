@@ -95,6 +95,16 @@
     "entry_surfaces_must_link_manifest": true,
     "phase_status_required": true
   },
+  "local_ci": {
+    "surfaces": [
+      {
+        "cmd": "bash tests/workflow-fixtures_test.sh",
+        "hermetic": true,
+        "covers": "workflow docs, manifest, phase-status and entry-surface fixture validation"
+      }
+    ],
+    "sole_source_of_truth": true
+  },
   "cascade": {
     "plan": ".ai/cascade/cascade-plan.json",
     "audit": ".ai/cascade/audit.jsonl",
