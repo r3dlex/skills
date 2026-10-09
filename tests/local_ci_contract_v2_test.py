@@ -24,7 +24,10 @@ class DeclarationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = pathlib.Path(self.temp.name)
+        # Resolve the disposable root: on macOS a TemporaryDirectory lives under /var (a symlink
+        # to /private/var), and the contract lib's containment check compares resolved paths, so
+        # read_declaration is called with the same canonical root local-ci.sh derives.
+        self.root = pathlib.Path(self.temp.name).resolve()
         for directory in ('.ai/ci', '.github/workflows', 'tests'):
             (self.root / directory).mkdir(parents=True)
         (self.root / '.github/workflows/ci.yml').write_text('name: ci\n')

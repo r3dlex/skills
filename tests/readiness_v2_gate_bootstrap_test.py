@@ -263,7 +263,9 @@ class OutputsTests(GateWorkspaceTests):
         dist = next(o for o in data['outputs'] if o['path'] == 'dist')
         self.assertEqual(dist['rows'][1][0], 'dist/out.txt')
         self.assertEqual(dist['rows'][1][2], hashlib.sha256(b'o1\n').hexdigest())
-        c = BootstrapFixture(self.base, outputs=('dist',), check_text=check)
+        base = self.base / 'undeclared'
+        base.mkdir()
+        c = BootstrapFixture(base, outputs=('dist',), check_text=check)
         exit_code, result = c.certify()
         self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
         self.assertIn('gate_workspace_undeclared_output:dist-snapshot',

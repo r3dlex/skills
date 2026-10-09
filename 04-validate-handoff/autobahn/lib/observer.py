@@ -1604,7 +1604,7 @@ def build_gate_workspace(root, plan_id, goal_id, pr, head):
     return path
 
 
-def workspace_violations(path, head, declared=()):
+def workspace_violations(path, head, declared=(), home=None):
     """Workspace integrity at the head: HEAD, the index entries (ls-files --stage, so a
     stat-only index refresh is not a change) and every tracked path's bytes and mode must equal
     the head tree, and no untracked or ignored path may exist outside the declared dependency
@@ -1638,15 +1638,29 @@ def workspace_violations(path, head, declared=()):
         disk.update(Path(directory, n).relative_to(path).as_posix() for n in names)
         disk.update(Path(directory, d).relative_to(path).as_posix() for d in directories)
     # A directory holding tracked files is part of the head tree, not an untracked path; the
-    # untracked set is everything else, and an untracked entry is reported only at its root
-    # (no untracked ancestor), so a gate writing dist-snapshot/x reports dist-snapshot.
+    # untracked set is everything else. An undeclared untracked path is reported by its shallowest
+    # ignored ancestor when it has one (an output-shaped location, so a gate writing
+    # dist-snapshot/x reports dist-snapshot), and otherwise by the file itself (a stray,
+    # non-ignored directory is named by the file it holds: stray/extra.txt, not stray).
     tracked_dirs = {name for name in disk - set(tree) if any(tracked.startswith(name + '/') for tracked in tree)}
     untracked = disk - set(tree) - tracked_dirs
-    undeclared = sorted(name for name in untracked
-                        if not any(name.startswith(p + '/') for p in untracked)
-                        and not any(name == d or name.startswith(d + '/') for d in declared))
-    if undeclared:
-        return ['gate_workspace_undeclared_output:%s' % name for name in undeclared]
+    undeclared = {name for name in untracked
+                  if not any(name == d or name.startswith(d + '/') for d in declared)}
+    ignored_dirs = {name for name in undeclared
+                    if home is not None and Path(path, name).is_dir() and ignored_at_head(path, name, home)}
+    reported = set()
+    for name in undeclared:
+        parts = name.split('/')
+        outer = next(('/'.join(parts[:i]) for i in range(1, len(parts) + 1)
+                      if '/'.join(parts[:i]) in ignored_dirs), None)
+        if outer is not None:
+            reported.add(outer)
+        elif not Path(path, name).is_dir():
+            reported.add(name)
+        elif not any(other != name and other.startswith(name + '/') for other in undeclared):
+            reported.add(name)
+    if reported:
+        return ['gate_workspace_undeclared_output:%s' % name for name in sorted(reported)]
     violations = []
     for name in sorted(set(tree) - disk):
         violations.append('gate_workspace_tracked_changed:%s' % name)
@@ -1733,17 +1747,26 @@ def ignored_at_head(workspace, name, home):
 
 def declaration_refusals(workspace, head, declaration, home):
     """Every declared dependency and output must be untracked at the head, contain no tracked
-    path and be ignored by the head's ignore rules, checked before any command runs. Each
-    violation refuses as gate_workspace_declaration_invalid:<reason>."""
+    path and be ignored by the head's ignore rules, checked before any command runs. A path the
+    head does not ignore is ordinary head content: when tracked content also lives there it is
+    'tracked at the head', otherwise it is 'not ignored by the head'. A path the head ignores is
+    an output-shaped location, so tracked content underneath it means the declaration would
+    treat committed files as disposable: 'contains a tracked path'. Each violation refuses as
+    gate_workspace_declaration_invalid:<reason>."""
     tracked = {os.fsdecode(entry.split(b'\t', 1)[1]) for entry in git(workspace, 'ls-tree', '-r', '-z', head).stdout.split(b'\0') if entry}
     refusals = []
     for kind in ('dependencies', 'outputs'):
         for name in declaration[kind]:
             if name in tracked:
                 refusals.append('gate_workspace_declaration_invalid:tracked at the head: ' + name)
-            elif any(other.startswith(name + '/') for other in tracked):
+                continue
+            nested = any(other.startswith(name + '/') for other in tracked)
+            ignored = ignored_at_head(workspace, name, home)
+            if nested and not ignored:
+                refusals.append('gate_workspace_declaration_invalid:tracked at the head: ' + name)
+            elif nested:
                 refusals.append('gate_workspace_declaration_invalid:contains a tracked path: ' + name)
-            elif not ignored_at_head(workspace, name, home):
+            elif not ignored:
                 refusals.append('gate_workspace_declaration_invalid:not ignored by the head: ' + name)
     return refusals
 
@@ -1822,13 +1845,22 @@ def bootstrap_inputs(root, head, declaration):
 
 
 def declared_path_rows(root, name):
-    """Every entry under a declared dependency or output: [path, mode, sha256] for a regular file
-    (streamed, never whole-file), [path, 'directory', mode] or [path, 'symlink', target]. Nested
-    .git directories are excluded from the digest and listed."""
+    """The declared path and every entry under it: [path, mode, sha256] for a regular file
+    (streamed, never whole-file), [path, 'directory', mode], [path, 'symlink', target] or
+    [path, 'nonregular', mode]. Nested .git directories are excluded from the digest and listed."""
     rows, git_dirs = [], []
     path = Path(root, name)
-    if path.is_symlink() or not path.exists():
+    try:
+        info = path.lstat()
+    except (FileNotFoundError, NotADirectoryError):
         return rows, git_dirs
+    if stat.S_ISLNK(info.st_mode):
+        return [[name, 'symlink', os.readlink(path)]], git_dirs
+    if stat.S_ISREG(info.st_mode):
+        return [[name, stat.S_IMODE(info.st_mode), streamed_sha256(path)]], git_dirs
+    if not stat.S_ISDIR(info.st_mode):
+        return [[name, 'nonregular', stat.S_IFMT(info.st_mode)]], git_dirs
+    rows.append([name, 'directory', stat.S_IMODE(info.st_mode)])
     for directory, directories, files in os.walk(path):
         git_dirs += sorted(Path(directory, d).relative_to(root).as_posix()
                            for d in directories if d == '.git')
@@ -1933,7 +1965,7 @@ def run_gates_in_workspace(root, gen, goal, pr, head, op):
             if not workspace_identity_ok(workspace, identity):
                 refusals.append('gate_workspace_unavailable')
                 return gates, refusals, provenance
-            for violation in workspace_violations(workspace, head, declared=declaration['dependencies']):
+            for violation in workspace_violations(workspace, head, declared=declaration['dependencies'], home=home):
                 refusals += ['worktree_changed_during_gates', violation]
             if refusals:
                 write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op, bootstrap, [], [], [])
@@ -1944,18 +1976,20 @@ def run_gates_in_workspace(root, gen, goal, pr, head, op):
                     refusals.append('gate_workspace_unavailable')
                     break
                 for violation in workspace_violations(workspace, head,
-                                                      declared=declaration['dependencies'] + declaration['outputs']):
+                                                      declared=declaration['dependencies'] + declaration['outputs'],
+                                                      home=home):
                     refusals += ['worktree_changed_during_gates', violation]
             if git_metadata_snapshot(root) != metadata:
                 refusals.append('git_metadata_changed_during_gates')
             inputs = [{'path': name, 'sha256': digest}
                       for name, digest in sorted(bootstrap_inputs(root, head, declaration).items())]
-            dependencies = [{'path': name, 'rows': declared_path_rows(workspace, name)[0],
-                             'git_dirs': declared_path_rows(workspace, name)[1]}
-                            for name in declaration['dependencies']]
-            outputs = [{'path': name, 'rows': declared_path_rows(workspace, name)[0],
-                        'git_dirs': declared_path_rows(workspace, name)[1]}
-                       for name in declaration['outputs']]
+
+            def path_rows(name):
+                rows, git_dirs = declared_path_rows(workspace, name)
+                return {'path': name, 'rows': rows, 'git_dirs': git_dirs}
+
+            dependencies = [path_rows(name) for name in declaration['dependencies']]
+            outputs = [path_rows(name) for name in declaration['outputs']]
             path, digest = write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op,
                                                        bootstrap, inputs, dependencies, outputs)
             bound_path = gate_workspace_record_path(root, plan_id, goal_id, pr, head, 'certify')

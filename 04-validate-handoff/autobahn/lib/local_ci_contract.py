@@ -90,11 +90,17 @@ def validate_workspace(record):
     for label in ('dependencies', 'outputs'):
         values = workspace[label]
         require(isinstance(values, list), label + ' must be a list of repository-relative paths')
-        declared += [declared_path(value, label) for value in values]
-    require(len(set(declared)) == len(declared), 'declared paths must be unique')
-    for left in declared:
-        for right in declared:
-            require(not (left != right and (left.startswith(right + '/') or right.startswith(left + '/'))),
+        entries = [declared_path(value, label) for value in values]
+        require(len(set(entries)) == len(entries),
+                label + ' paths must not nest or repeat: no entry may equal another')
+        declared.append([(label, value) for value in entries])
+    entries = declared[0] + declared[1]
+    for left_label, left in entries:
+        for right_label, right in entries:
+            if (left_label, left) == (right_label, right):
+                continue
+            require(left != right, 'declared paths must be unique: ' + left)
+            require(not (left.startswith(right + '/') or right.startswith(left + '/')),
                     'declared paths must not nest: ' + left)
     return workspace
 
