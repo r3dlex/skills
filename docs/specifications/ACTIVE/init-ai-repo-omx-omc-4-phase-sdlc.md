@@ -152,7 +152,7 @@ Required outputs:
 
 Generation policy:
 
-- Always generate canonical scripts under `.ai/bin/`.
+- Generate canonical strict-TS source under `.ai/bin/` with reviewed TypeScript build configuration; host commands invoke only attributable compiled Node artifacts. The bound TSF-01..08 contract covers generated repo helpers, tests, hooks, CI and install/build paths: no project-owned Python/handwritten JS/shell or Python-required tool. Makefile/justfile remain declarative Node invocations, never hidden alternate-language implementation. Proposed sources/commands require introducing PR qualification before admission.
 - Document OMX and OMC command equivalents regardless of whether optional wrappers are generated.
 - Do not add heavyweight dependencies by default.
 - Do not overwrite existing human-maintained workflow files without a managed block or explicit migration step.
@@ -317,7 +317,7 @@ The implementation should add or update tests that verify:
 - Required files are generated.
 - OMX and OMC command directories are generated.
 - Local fallback reconciliation status is represented.
-- Existing scaffold generation remains idempotent.
+- Existing scaffold generation remains idempotent. Proposed strict-TS renderer/template suites retain all original assertions and prove canonical replay, owned-file preservation and drift refusal. A3/TCI own canonical renderer/template generation; C owns lock/vendor/stage/package consumption and R/F their adopted consumers. Build, full tests/local AND hosted CI, package/install and supported-host smoke must pass with Python unavailable/no fallback; planted-file/interpreter/package controls fail. Governed retirement migrates legacy callers/policy fixtures before removing active bridges, preserving immutable history. Missing consumer, bootstrap or release receipts blocks final acceptance.
 
 Manual validation should include:
 
@@ -331,3 +331,9 @@ Manual validation should include:
 - Repos without hosted tracker credentials need a clear local fallback path, but final PR merge must still record reconciliation status.
 - Optional Makefile and justfile support should remain opt-in or compatibility-detected to avoid forcing a build style.
 - OMC alias/runtime docs should avoid duplicating OMX semantics; they should point to the same artifact contract.
+
+## TypeScript requirement binding
+
+- Preparation: `r3dlex/ai-tool-workspace:.omc/handoffs/ach-20261004/artifacts/consolidation-20261005/typescript-only-plan-alignment-20261008/FINAL-STATE.md` — 6603 bytes; SHA256 `3ec2814054f690631a8145ff9f6baebbf8c4c2a354c507be2ddfa3043af453e2`.
+- Proposed canonical home: `r3dlex/ai-tool-workspace:docs/specifications/ACTIVE/typescript-only-final-state.md`. Adoption is pending. Canonical publication must bind its actual reviewed revision or retain this unresolved adoption dependency.
+- Historical observations retain their original epoch. Proposed TypeScript sources and commands require their separately governed introducing deliveries; this working-plan correction supplies no implementation admission.
