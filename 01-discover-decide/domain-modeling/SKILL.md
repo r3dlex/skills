@@ -52,3 +52,6 @@ Only offer to create an ADR when all three are true:
 3. **The result of a real trade-off**: there were genuine alternatives and you picked one for specific reasons
 
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](ADR-FORMAT.md), which also lists what qualifies.
+
+End by declaring knowledge kind `adr`, then reading
+[ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md) and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.
