@@ -12,6 +12,7 @@
       "note": "the retargeted pin test fails at the red-first commit (live policy still 58bcd9e7 and no registry entry yet: five checks red) and passes at the head (live bytes equal the amendment candidate d48f7f67: seventeen checks green, tdd-evidence.sh observed both legs)",
       "red": {
         "at": "2026-10-10T15:26:10Z",
+        "commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875",
         "exit_code": 1,
         "output_sha256": "bb03472362e9b6a61cb1eb562d701fe971617c77463bce57f58ed63c7bcb9a8c"
       },
@@ -29,6 +30,7 @@
       "note": "characterization: the branch_pattern_change_refused mechanism guard exists since S-06 and is green at the base; the published candidate keeps the live branch_pattern byte-identical, which validate_amendment enforces at publication, so the guard is green on both legs",
       "red": {
         "at": "2026-10-10T15:26:11Z",
+        "commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875",
         "exit_code": 0,
         "output_sha256": "6b8f1d47ad2285b1aacc1d514b45d783837e135cce6ef9e13cf166f0f7d7545b"
       },
@@ -46,6 +48,7 @@
       "note": "characterization: the amendment_base_moved mechanism guard exists since S-06 and is green at the base; the registry entry this PR publishes records amends_policy_sha256 58bcd9e7 and the retargeted pin test binds it at the head",
       "red": {
         "at": "2026-10-10T15:26:15Z",
+        "commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875",
         "exit_code": 0,
         "output_sha256": "dbd447c0c090c11553c561d525007f6c7fe34925dc321bf8d87f7bd48fc35e9f"
       },
@@ -63,6 +66,7 @@
       "note": "characterization: the rule-(d) reporting guard exists since S-06 and is green at the base; this PR mints no approval, so the real rule-(d) proof remains the amendment approval minted in the later chain lane, which if agent-self emits agent_self_policy_change and is recorded as agent-self, never upgraded to a human label",
       "red": {
         "at": "2026-10-10T15:26:26Z",
+        "commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875",
         "exit_code": 0,
         "output_sha256": "8ffe0f5bb03e2bdf240df09f0d0979037f7d25debe41efc48d21856eecaa68d8"
       },
@@ -80,6 +84,7 @@
       "note": "the flips\u2019 assertNotEqual is the void observable: at the red-first commit the live bytes still equal P5\u2019s registered policy_sha256 58bcd9e7, so the assertEqual passes and the assertNotEqual fails; at the head the live digest has moved to the candidate and the byte-equal replay is pinned to the policy P5 was published with (the ach-skills-agent-mode candidate bytes)",
       "red": {
         "at": "2026-10-10T15:26:26Z",
+        "commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875",
         "exit_code": 1,
         "output_sha256": "84792244db8893ab70dad3bdf6e08f1f700a17a5f5a1f74015e615cdb22483ea"
       },
@@ -97,6 +102,7 @@
       "note": "same command, state and run as AC 1 (the pin test carries the D4 flip bytes): AC 1\u2019s output records are AC 6\u2019s. The .ai/ci/local-ci.json re-pins of the two edited sources land in the same publication (precedents #111 773bfde and the P5 republish 4fee2ef); the local-ci declaration test is green on both legs because it does not gate the two source pins \u2014 the re-pin is the ACH-AM-01 collateral convention, not a declared gate",
       "red": {
         "at": "2026-10-10T15:26:10Z",
+        "commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875",
         "exit_code": 1,
         "output_sha256": "bb03472362e9b6a61cb1eb562d701fe971617c77463bce57f58ed63c7bcb9a8c"
       },
@@ -114,6 +120,7 @@
       "note": "record check, not a unit test: the o8_disposition attachment resolves the o8_gate name to f5e338b by coordinator record and re-observed git ancestry (exit 0 on both legs); the amendment merges after O8 and mints no approval of its own \u2014 the e6-skills-legacy-ts generation keeps its identity and its approval is minted only before goal 00\u2019s admission, re-signed when fewer than 7 days of the 14-day window remain",
       "red": {
         "at": "2026-10-10T15:26:28Z",
+        "commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875",
         "exit_code": 0,
         "output_sha256": "1bb347b21fbfbb28ec66c0d9297158ab710e2eccb48ba4a2821eac3c22dbb4df"
       },
@@ -130,7 +137,7 @@
     "h1_replay": "tests/readiness_v2_migrate_test.py PublishedP5Tests.test_offline_replay_is_byte_equal: red (exit 1) at the red-first commit on the re-added assertNotEqual, green (exit 0) at the head with the replay pinned to the policy P5 was published with",
     "red_first_commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875 (test(readiness): retargets tests/readiness_policy_v2_test.sh and tests/readiness_v2_migrate_test.py to pin the amendment candidate before any production change); the red leg was observed by tdd-evidence.sh --record-red in a detached worktree at that commit",
     "red_method": "at the red-first commit worktree: live policy 58bcd9e7, registry without e6-skills-node-npm, local-ci pins unre-baselined; the pin test fails five checks, the migrate replay fails on the assertNotEqual, the three rule guards are green",
-    "run_tests_legs": "bash tests/run-tests.sh exits 1 on both legs for a reason outside this goal: tests/readiness_v2_gate_workspace_test.py RunGatesBytecodeTests and WorktreeSnapshotTests fail on the clean base 600f615 as well (verified 2026-10-10 by stash-run) because the fixtures\u2019 plan-a approval expires_at 2026-10-10T11:00:00Z (Fixture.record default days=7 over NOW=2026-10-03T12:00Z) is crossed by the wall clock in the real-time run-gates subprocess path; the head run\u2019s unique FAILs are exactly that pre-existing pair (approval_expired:2026-10-10T11:00:00Z). Disclosed, not waived: the red suite additionally carried the five designed pin-test reds and the migrate designed red, which disappear at the head. The merge lane cannot claim a green Test Suite until the fixture time-bomb is repaired by its owner lane"
+    "run_tests_legs": "bash tests/run-tests.sh exits 1 on both legs for a reason outside this goal: the RunGatesBytecodeTests class in tests/readiness_v2_gate_workspace_test.py and the WorktreeSnapshotTests class in tests/readiness_v2_identity_test.py fail on the clean base 600f615 as well (verified 2026-10-10 by stash-run) because the fixtures\u2019 plan-a approval expires_at 2026-10-10T11:00:00Z (Fixture.record default days=7 over NOW=2026-10-03T12:00Z) is crossed by the wall clock in the real-time run-gates subprocess path; the head run\u2019s unique FAILs are exactly that pre-existing pair (approval_expired:2026-10-10T11:00:00Z). Disclosed, not waived: the red suite additionally carried the five designed pin-test reds and the migrate designed red, which disappear at the head. The merge lane cannot claim a green Test Suite until the fixture time-bomb is repaired by its owner lane"
   },
   "red": {
     "command": "bash tests/readiness_policy_v2_test.sh",
