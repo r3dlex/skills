@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { run } from "./proc.mjs";
+import { run, text } from "./proc.mjs";
 import { CLASSES, OWNERS } from "./freeze-types.mjs";
 const PY_CMD = /(?:^|[^A-Za-z0-9_./-])python3?(?=$|[^A-Za-z0-9_])/;
 const INLINE = /(?:^|[^A-Za-z0-9_./-])python3?(?:\s+-[A-Za-z0-9]+)*\s+-c\b/;
@@ -42,7 +42,7 @@ export function tracked(root) {
     if (listed.status !== 0) {
         throw new Error("git ls-files failed");
     }
-    return listed.stdout.split("\0").filter((path) => path !== "").sort();
+    return text(listed.stdout).split("\0").filter((path) => path !== "").sort();
 }
 export function inventoryPaths(root, baseline) {
     const found = [];
@@ -118,24 +118,47 @@ export function compareInventory(present, entries) {
 export function classOf(entries, path) {
     return entries.find((entry) => entry.path === path)?.class;
 }
+const FIXED = new Set(["scaffold-template", "kept-language", "test-wrapper"]);
+function addedProblem(entry) {
+    if (entry.in_flight !== undefined || entry.class === "compat-shim") {
+        return null;
+    }
+    return `growth: ${entry.class} ${entry.path}`;
+}
 function priorProblems(entry, prior, present) {
     if (prior === undefined) {
-        return entry.class === "eligible" ? [`growth: eligible ${entry.path}`] : [];
+        const added = addedProblem(entry);
+        return added === null ? [] : [added];
     }
     if (prior.class === entry.class) {
         return [];
     }
     const problems = [`reclassified: ${entry.path}`];
-    if (prior.class === "kept-language") {
-        problems.push(`kept-language left its class: ${entry.path}`);
+    if (prior.class === "kept-language" || FIXED.has(prior.class)) {
+        problems.push(`${prior.class} left its class: ${entry.path}`);
     }
     if (entry.in_flight !== undefined && present.has(entry.path)) {
         problems.push(`in-flight class differs: ${entry.path}`);
     }
     return problems;
 }
+function removedProblems(previous, current) {
+    const now = new Set(current.map((entry) => entry.path));
+    return previous.flatMap((entry) => {
+        if (now.has(entry.path) || entry.in_flight !== undefined) {
+            return [];
+        }
+        if (entry.class === "eligible") {
+            return [];
+        }
+        return [`removed: ${entry.class} ${entry.path}`];
+    });
+}
 export function classChanges(previous, current, present) {
     const before = new Map(previous.map((entry) => [entry.path, entry]));
-    return current.flatMap((entry) => priorProblems(entry, before.get(entry.path), present));
+    return [
+        ...current.flatMap((entry) => priorProblems(entry, before.get(entry.path), present)),
+        ...removedProblems(previous, current),
+    ];
 }
 //# sourceMappingURL=freeze-inventory.mjs.map

@@ -9,6 +9,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 python3 -I -B - "$REPO_ROOT/04-validate-handoff/autobahn/lib" <<'PYTEST'
 import copy
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -203,23 +206,22 @@ try:
            'policy': {'sha256': rc.digest(policy_path), 'revision': 'simulated', 'issuer': 'simulated'},
            'sources': copy.deepcopy(policy.get('sources')), 'authority': {}, 'results': [], 'completed_goals': [],
            'worktree': observed}
-    ledger = ROOT / '.ai/rules/legacy-freeze-baseline.json'
-    hidden = ROOT / '.legacy-freeze-baseline.json.aside'
-    if ledger.is_file():
-        ledger.rename(hidden)
-    try:
-        for stage in ('implementation', 'merge'):
-            gaps = rc.policy_admit(ROOT, bundle, [GOAL], sim, stage, 'simulated', worktree=observed)
-            codes = {g['code'] for g in gaps}
-            check(stage + ': contract accepts the policy shape (no policy_context_invalid)', 'policy_context_invalid' not in codes)
-            failed = {g['source']['gate'] for g in gaps if g['code'] == 'gate_failed'}
-            stage_gates = {gid for gid, g in gates.items() if g.get('stage') == stage} - {'tool-catalog-validator'}
-            check(stage + ': every evidence-bound gate stays unproven without receipts', bool(stage_gates) and stage_gates == failed)
-            check(stage + ': authority blocker remains and the goal itself is ready',
-                  'authority_unavailable' in codes and 'goal_not_ready' not in codes)
-    finally:
-        if hidden.is_file():
-            hidden.rename(ledger)
+    fix = Path(tempfile.mkdtemp()).resolve()
+    subprocess.run(['rsync', '-a', '--exclude', 'node_modules', '--exclude', 'legacy-freeze-baseline.json',
+                    str(ROOT) + '/', str(fix) + '/'], check=True)
+    live = rc.policy_admit(ROOT, bundle, [GOAL], sim, 'implementation', 'simulated', worktree=observed)
+    check('live v1 admission rejects the ledger as a policy source',
+          any(g['code'] == 'policy_context_invalid' and g.get('detail') == 'policy_source_set_incomplete' for g in live))
+    for stage in ('implementation', 'merge'):
+        gaps = rc.policy_admit(fix, bundle, [GOAL], sim, stage, 'simulated', worktree=observed)
+        codes = {g['code'] for g in gaps}
+        check(stage + ': contract accepts the policy shape (no policy_context_invalid)', 'policy_context_invalid' not in codes)
+        failed = {g['source']['gate'] for g in gaps if g['code'] == 'gate_failed'}
+        stage_gates = {gid for gid, g in gates.items() if g.get('stage') == stage} - {'tool-catalog-validator'}
+        check(stage + ': every evidence-bound gate stays unproven without receipts', bool(stage_gates) and stage_gates == failed)
+        check(stage + ': authority blocker remains and the goal itself is ready',
+              'authority_unavailable' in codes and 'goal_not_ready' not in codes)
+    shutil.rmtree(fix)
     branch_gate = gates.get('branch-ach-s-01', {})
     check('full-ref binding matches the observed branch (fails only for missing evidence)',
           bool(branch_gate) and raised(lambda: rc.typed_gate(ROOT, bundle, branch_gate, sim, worktree=observed)) == 'typed_evidence_missing_or_ambiguous')

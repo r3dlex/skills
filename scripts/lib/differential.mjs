@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assertNodeVersion, EXIT_NODE_UNAVAILABLE, EXIT_NODE_VERSION_UNSUPPORTED, NODE_UNAVAILABLE, NODE_VERSION_UNSUPPORTED } from "./node-version.mjs";
 import { invokedDirectly } from "./invoked.mjs";
-import { run } from "./proc.mjs";
+import { replaceJsonString } from "./json-span.mjs";
+import { run, text } from "./proc.mjs";
 assertNodeVersion();
 export class DifferentialError extends Error {
     constructor(message) {
@@ -17,7 +18,7 @@ function sha256(bytes) {
 }
 export function materialize(root, anchor) {
     const spec = `${anchor.commit}:${anchor.path}`;
-    const blob = run("git", ["rev-parse", spec], root).stdout.trim();
+    const blob = text(run("git", ["rev-parse", spec], root).stdout).trim();
     if (blob !== anchor.blob) {
         throw new DifferentialError(`anchor blob mismatch: ${blob} != ${anchor.blob}`);
     }
@@ -25,7 +26,7 @@ export function materialize(root, anchor) {
     if (raw.status !== 0) {
         throw new DifferentialError("anchor blob unreadable");
     }
-    const bytes = Buffer.from(raw.stdout, "utf8");
+    const bytes = raw.stdout;
     if (sha256(bytes) !== anchor.sha256) {
         throw new DifferentialError("anchor sha256 mismatch");
     }
@@ -82,26 +83,13 @@ function applyPrefixMask(text, site, mask) {
     }
     return out;
 }
-function applyJsonMask(text, pointer, mask) {
-    const value = JSON.parse(text);
-    const parts = pointer.split("/").slice(1);
-    let cursor = value;
-    for (const part of parts.slice(0, -1)) {
-        if (typeof cursor !== "object" || cursor === null) {
-            throw new DifferentialError("mask site not located");
-        }
-        cursor = cursor[part];
+function applyJsonMask(body, pointer, mask) {
+    try {
+        return replaceJsonString(body, pointer, mask);
     }
-    const leaf = parts[parts.length - 1];
-    if (typeof cursor !== "object" || cursor === null || leaf === undefined) {
-        throw new DifferentialError("mask site not located");
+    catch (error) {
+        throw new DifferentialError(error instanceof Error ? error.message : "mask site not located");
     }
-    const record = cursor;
-    if (typeof record[leaf] !== "string") {
-        throw new DifferentialError("mask site not located");
-    }
-    record[leaf] = mask;
-    return JSON.stringify(value);
 }
 export function normalize(text, classes, stream) {
     let out = text;
@@ -121,21 +109,28 @@ export function normalize(text, classes, stream) {
     return out;
 }
 function refusal(status, stderr) {
-    if (status === EXIT_NODE_UNAVAILABLE && stderr === `${NODE_UNAVAILABLE}\n`) {
+    if (status === EXIT_NODE_UNAVAILABLE && stderr.equals(Buffer.from(`${NODE_UNAVAILABLE}\n`))) {
         return NODE_UNAVAILABLE;
     }
-    if (status === EXIT_NODE_VERSION_UNSUPPORTED && stderr === `${NODE_VERSION_UNSUPPORTED}\n`) {
+    if (status === EXIT_NODE_VERSION_UNSUPPORTED && stderr.equals(Buffer.from(`${NODE_VERSION_UNSUPPORTED}\n`))) {
         return NODE_VERSION_UNSUPPORTED;
     }
     return null;
 }
 export function outputsEqual(left, right) {
-    return left.status === right.status && left.stdout === right.stdout && left.stderr === right.stderr;
+    return left.status === right.status && left.stdout.equals(right.stdout) && left.stderr.equals(right.stderr);
 }
-function readTree(dir) {
+function readTree(dir, prefix = "") {
     const out = {};
-    for (const name of readdirSync(dir)) {
-        out[name] = readFileSync(join(dir, name), "utf8");
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+            Object.assign(out, readTree(full, relative));
+        }
+        else if (entry.isFile()) {
+            out[relative] = readFileSync(full);
+        }
     }
     return out;
 }
@@ -148,14 +143,14 @@ function seed(dir, files) {
 function masked(result, classes) {
     return {
         ...result,
-        stdout: normalize(result.stdout, classes, "stdout"),
-        stderr: normalize(result.stderr, classes, "stderr"),
+        stdout: Buffer.from(normalize(text(result.stdout), classes, "stdout")),
+        stderr: Buffer.from(normalize(text(result.stderr), classes, "stderr")),
     };
 }
 function sameFiles(left, right) {
     const names = new Set([...Object.keys(left), ...Object.keys(right)]);
     for (const name of names) {
-        if (left[name] !== right[name]) {
+        if (!left[name]?.equals(right[name] ?? Buffer.alloc(0))) {
             return false;
         }
     }
@@ -167,8 +162,8 @@ export function compareCase(reference, candidate, corpus) {
         throw new DifferentialError(`candidate ended in ${blocked}`);
     }
     for (const span of corpus.applyMasks ?? []) {
-        const text = span.stream === "stdout" ? candidate.stdout : candidate.stderr;
-        assertSpan(text, span, corpus);
+        const body = text(span.stream === "stdout" ? candidate.stdout : candidate.stderr);
+        assertSpan(body, span, corpus);
     }
     const classes = corpus.normalizations ?? [];
     const left = masked(reference, classes);
@@ -188,12 +183,13 @@ export function runAnchored(root, corpus) {
         const candDir = join(base, `${item.id}-cand`);
         seed(refDir, item.files);
         seed(candDir, item.files);
-        const ref = run(referencePath, item.args, refDir);
+        const stdin = Buffer.from(item.stdin ?? "");
+        const ref = run(referencePath, item.args, refDir, undefined, stdin);
         const [cmd, ...args] = corpus.candidate;
         if (cmd === undefined) {
             throw new DifferentialError("candidate command missing");
         }
-        const cand = run(cmd, [...args, ...item.args], candDir);
+        const cand = run(cmd, [...args, ...item.args], candDir, undefined, stdin);
         compareCase({ ...ref, files: readTree(refDir) }, { ...cand, files: readTree(candDir) }, corpus);
     }
 }

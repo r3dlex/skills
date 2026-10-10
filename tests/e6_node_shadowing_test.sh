@@ -45,6 +45,7 @@ probe() {
 preload="$(mktemp).cjs"
 printf '%s\n' 'process.stdout.write("preloaded\\n");' >"$preload"
 probe "NODE_OPTIONS --require" env NODE_OPTIONS="--require $preload" ./run.sh
+probe "NODE_OPTIONS invalid" env NODE_OPTIONS=--definitely-invalid ./run.sh
 probe "NODE_DEBUG" env NODE_DEBUG=module ./run.sh
 mkdir -p "$work/hostile"
 printf '%s\n' '{}' >"$work/hostile/package.json"

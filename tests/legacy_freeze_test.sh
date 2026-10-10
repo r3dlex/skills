@@ -93,6 +93,16 @@ if (name === "in-flight-mismatch") {
   spawnSync("git", ["add", "scripts/flight.py"], { cwd: dir });
   spawnSync("git", ["commit", "-q", "-m", "flight"], { cwd: dir });
 }
+if (name === "kept-delete") {
+  previousEntries[0] = { path: "scripts/ok.py", class: "kept-language", consumers: ["consumer"] };
+  entries.pop();
+}
+if (name === "scaffold-add") {
+  writeFileSync(dir + "/scripts/extra.sh", "#!/usr/bin/env bash\\necho ok\\n");
+  spawnSync("git", ["add", "scripts/extra.sh"], { cwd: dir });
+  spawnSync("git", ["commit", "-q", "-m", "scaffold"], { cwd: dir });
+  entries.push({ path: "scripts/extra.sh", class: "scaffold-template" });
+}
 if (name === "in-flight-absent") {
   const absent = { path: "scripts/missing.py", class: "eligible", owner: "e6-sk-05-test-harness", in_flight: 105 };
   entries.push(absent);
@@ -130,6 +140,8 @@ fixture reclass fail
 fixture kept-leave fail
 fixture in-flight-mismatch fail
 fixture in-flight-absent pass
+fixture kept-delete fail
+fixture scaffold-add fail
 
 after="$(git status --porcelain --ignored)"
 printf '%s\n' "$before" >/tmp/e6-before

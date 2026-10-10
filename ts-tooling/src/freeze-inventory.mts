@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { run } from "./proc.mjs";
+import { run, text } from "./proc.mjs";
 import { CLASSES, OWNERS, type Baseline, type LedgerClass, type LedgerEntry } from "./freeze-types.mjs";
 
 const PY_CMD = /(?:^|[^A-Za-z0-9_./-])python3?(?=$|[^A-Za-z0-9_])/;
@@ -49,7 +49,7 @@ export function tracked(root: string): string[] {
   if (listed.status !== 0) {
     throw new Error("git ls-files failed");
   }
-  return listed.stdout.split("\0").filter((path) => path !== "").sort();
+  return text(listed.stdout).split("\0").filter((path) => path !== "").sort();
 }
 
 export function inventoryPaths(root: string, baseline: Baseline): string[] {
@@ -132,16 +132,26 @@ export function classOf(entries: readonly LedgerEntry[], path: string): LedgerCl
   return entries.find((entry) => entry.path === path)?.class;
 }
 
+const FIXED = new Set<LedgerClass>(["scaffold-template", "kept-language", "test-wrapper"]);
+
+function addedProblem(entry: LedgerEntry): string | null {
+  if (entry.in_flight !== undefined || entry.class === "compat-shim") {
+    return null;
+  }
+  return `growth: ${entry.class} ${entry.path}`;
+}
+
 function priorProblems(entry: LedgerEntry, prior: LedgerEntry | undefined, present: ReadonlySet<string>): string[] {
   if (prior === undefined) {
-    return entry.class === "eligible" ? [`growth: eligible ${entry.path}`] : [];
+    const added = addedProblem(entry);
+    return added === null ? [] : [added];
   }
   if (prior.class === entry.class) {
     return [];
   }
   const problems = [`reclassified: ${entry.path}`];
-  if (prior.class === "kept-language") {
-    problems.push(`kept-language left its class: ${entry.path}`);
+  if (prior.class === "kept-language" || FIXED.has(prior.class)) {
+    problems.push(`${prior.class} left its class: ${entry.path}`);
   }
   if (entry.in_flight !== undefined && present.has(entry.path)) {
     problems.push(`in-flight class differs: ${entry.path}`);
@@ -149,7 +159,23 @@ function priorProblems(entry: LedgerEntry, prior: LedgerEntry | undefined, prese
   return problems;
 }
 
+function removedProblems(previous: readonly LedgerEntry[], current: readonly LedgerEntry[]): string[] {
+  const now = new Set(current.map((entry) => entry.path));
+  return previous.flatMap((entry) => {
+    if (now.has(entry.path) || entry.in_flight !== undefined) {
+      return [];
+    }
+    if (entry.class === "eligible") {
+      return [];
+    }
+    return [`removed: ${entry.class} ${entry.path}`];
+  });
+}
+
 export function classChanges(previous: readonly LedgerEntry[], current: readonly LedgerEntry[], present: ReadonlySet<string>): string[] {
   const before = new Map(previous.map((entry) => [entry.path, entry]));
-  return current.flatMap((entry) => priorProblems(entry, before.get(entry.path), present));
+  return [
+    ...current.flatMap((entry) => priorProblems(entry, before.get(entry.path), present)),
+    ...removedProblems(previous, current),
+  ];
 }

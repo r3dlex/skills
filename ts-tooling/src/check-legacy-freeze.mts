@@ -4,6 +4,7 @@ import { invokedDirectly } from "./invoked.mjs";
 import { compareMeasured } from "./freeze-compare.mjs";
 import { classChanges, compareInventory, excluded, inventoryPaths, tracked } from "./freeze-inventory.mjs";
 import { measure } from "./freeze-measure.mjs";
+import { run, text } from "./proc.mjs";
 import type { Baseline } from "./freeze-types.mjs";
 
 assertNodeVersion();
@@ -12,6 +13,14 @@ const BASELINE = ".ai/rules/legacy-freeze-baseline.json";
 
 export function loadBaseline(root: string, path = BASELINE): Baseline {
   return JSON.parse(readFileSync(`${root}/${path}`, "utf8")) as Baseline;
+}
+
+export function originBaseline(root: string): Baseline | undefined {
+  const shown = run("git", ["show", `origin/main:${BASELINE}`], root);
+  if (shown.status !== 0) {
+    return undefined;
+  }
+  return JSON.parse(text(shown.stdout)) as Baseline;
 }
 
 function shellFiles(root: string, baseline: Baseline): string[] {
@@ -44,7 +53,7 @@ export function main(argv: readonly string[]): number {
     return 0;
   }
   const root = argv[0] ?? process.cwd();
-  const previous = argv[1] === undefined ? undefined : loadBaseline(root, argv[1]);
+  const previous = argv[1] === undefined ? originBaseline(root) : loadBaseline(root, argv[1]);
   try {
     const problems = check(root, loadBaseline(root), previous);
     if (problems.length === 0) {

@@ -9,6 +9,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 python3 -I -B - "$REPO_ROOT/04-validate-handoff/autobahn/lib" <<'PYTEST'
 import copy
+import shutil
+import tempfile
 from pathlib import Path
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -167,15 +169,18 @@ try:
     sim = {'schema': 'readiness-context/1', 'repository': bundle['repository'],
            'policy': {'sha256': rc.digest(policy_path), 'revision': 'simulated', 'issuer': 'simulated'},
            'sources': copy.deepcopy(policy['sources']), 'authority': {}, 'results': [], 'completed_goals': []}
-    ledger = ROOT / '.ai/rules/legacy-freeze-baseline.json'
-    hidden = ROOT / '.legacy-freeze-baseline.json.aside'
-    if ledger.is_file():
-        ledger.rename(hidden)
-    try:
-        gaps = rc.policy_admit(ROOT, bundle, sorted(GOALS), sim, 'implementation', 'simulated')
-    finally:
-        if hidden.is_file():
-            hidden.rename(ledger)
+    fix = Path(tempfile.mkdtemp()).resolve()
+    for rel in retained_sources:
+        dest = fix / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / rel, dest)
+    (fix / rc.POLICY).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ROOT / rc.POLICY, fix / rc.POLICY)
+    live = rc.policy_admit(ROOT, bundle, sorted(GOALS), sim, 'implementation', 'simulated')
+    check('live v1 admission rejects the ledger as a policy source',
+          any(g['code'] == 'policy_context_invalid' and g.get('detail') == 'policy_source_set_incomplete' for g in live))
+    gaps = rc.policy_admit(fix, bundle, sorted(GOALS), sim, 'implementation', 'simulated')
+    shutil.rmtree(fix)
     codes = {g['code'] for g in gaps}
     check('contract accepts the policy shape (no policy_context_invalid)', 'policy_context_invalid' not in codes)
     failed = {g['source']['gate'] for g in gaps if g['code'] == 'gate_failed'}

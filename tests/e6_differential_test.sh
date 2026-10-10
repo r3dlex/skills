@@ -66,6 +66,33 @@ run_case "mask outside sites" fail "$repo/reference.sh" "$blob" "$sha" '{"normal
 run_case "node_unavailable is never a pass" fail "$repo/refuse.sh" "$blob" "$sha" '{}'
 rm -rf "$repo"
 
+json_repo="$(mktemp -d)"
+git -C "$json_repo" init -q
+git -C "$json_repo" config user.email fixture@example.com
+git -C "$json_repo" config user.name fixture
+node -e '
+const fs = require("fs");
+const dir = process.argv[1];
+const write = (name, body) => fs.writeFileSync(dir + "/" + name, "#!/bin/sh\nprintf %s " + JSON.stringify(body) + "\n", {mode: 0o755});
+write("reference.sh", "{\"error\": \"boom\"} ");
+write("masked.sh", "{\"error\": \"other\"} ");
+write("trimmed.sh", "{\"error\": \"boom\"}");
+' "$json_repo"
+git -C "$json_repo" add reference.sh
+git -C "$json_repo" commit -q -m json
+jblob="$(git -C "$json_repo" rev-parse HEAD:reference.sh)"
+jsha="$(git -C "$json_repo" cat-file blob "$jblob" | shasum -a 256 | awk '{print $1}')"
+run_json() {
+	local name="$1" expect="$2" candidate="$3"
+	run_case "$name" "$expect" "$candidate" "$jblob" "$jsha" '{"normalizations":[{"name":"interpreter-diagnostic","mask":"<interpreter-diagnostic>","sites":[{"stream":"stdout","jsonPointer":"/error"}]}]}'
+}
+# run_case uses $repo. Point it at the json repo for these two calls.
+repo="$json_repo"
+commit="$(git -C "$json_repo" rev-parse HEAD)"
+run_json "json mask keeps surrounding bytes" pass "$json_repo/masked.sh"
+run_json "json mask does not hide outside bytes" fail "$json_repo/trimmed.sh"
+rm -rf "$json_repo"
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]

@@ -12,7 +12,18 @@ if [[ -z "$node_bin" ]]; then
 	printf 'node_unavailable\n' >&2
 	exit 127
 fi
-if ! version="$("$node_bin" --version 2>/dev/null)"; then
+env_args=()
+if [[ "${PATH+x}" == x ]]; then env_args+=("PATH=$PATH"); fi
+if [[ "${HOME+x}" == x ]]; then env_args+=("HOME=$HOME"); fi
+if [[ "${LANG+x}" == x ]]; then env_args+=("LANG=$LANG"); fi
+if [[ "${LC_ALL+x}" == x ]]; then env_args+=("LC_ALL=$LC_ALL"); fi
+if [[ "${TMPDIR+x}" == x ]]; then env_args+=("TMPDIR=$TMPDIR"); fi
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	version="$(/usr/bin/env -i "${env_args[@]}" "$node_bin" --version 2>/dev/null)" || version=""
+else
+	version="$(/usr/bin/env -i "$node_bin" --version 2>/dev/null)" || version=""
+fi
+if [[ -z "$version" ]]; then
 	printf 'node_unavailable\n' >&2
 	exit 127
 fi
@@ -24,12 +35,6 @@ v26.*)
 	exit 126
 	;;
 esac
-env_args=()
-if [[ "${PATH+x}" == x ]]; then env_args+=("PATH=$PATH"); fi
-if [[ "${HOME+x}" == x ]]; then env_args+=("HOME=$HOME"); fi
-if [[ "${LANG+x}" == x ]]; then env_args+=("LANG=$LANG"); fi
-if [[ "${LC_ALL+x}" == x ]]; then env_args+=("LC_ALL=$LC_ALL"); fi
-if [[ "${TMPDIR+x}" == x ]]; then env_args+=("TMPDIR=$TMPDIR"); fi
 if [[ ${#env_args[@]} -gt 0 ]]; then
 	exec /usr/bin/env -i "${env_args[@]}" "$node_bin" --disable-proto=throw "$entry" "$@"
 fi

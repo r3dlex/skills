@@ -38,13 +38,13 @@ export declare class DifferentialError extends Error {
 }
 export declare function materialize(root: string, anchor: Anchor): Buffer;
 export declare function normalize(text: string, classes: readonly NormalizationClass[], stream: "stdout" | "stderr"): string;
-export declare function outputsEqual(left: ProcResult, right: ProcResult): boolean;
-export interface ProcResult {
+export declare function outputsEqual(left: CaseResult, right: CaseResult): boolean;
+export interface CaseResult {
     status: number;
-    stdout: string;
-    stderr: string;
-    files: Record<string, string>;
+    stdout: Buffer;
+    stderr: Buffer;
+    files: Record<string, Buffer>;
 }
-export declare function compareCase(reference: ProcResult, candidate: ProcResult, corpus: Corpus): void;
+export declare function compareCase(reference: CaseResult, candidate: CaseResult, corpus: Corpus): void;
 export declare function runAnchored(root: string, corpus: Corpus): void;
 export declare function main(argv: readonly string[]): number;

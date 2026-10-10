@@ -39,7 +39,14 @@ export function renderBash(entrypoint, names) {
         "\tprintf 'node_unavailable\\n' >&2",
         "\texit 127",
         "fi",
-        'if ! version="$("$node_bin" --version 2>/dev/null)"; then',
+        "env_args=()",
+        ...allowLines(allows),
+        'if [[ ${#env_args[@]} -gt 0 ]]; then',
+        '\tversion="$(/usr/bin/env -i "${env_args[@]}" "$node_bin" --version 2>/dev/null)" || version=""',
+        "else",
+        '\tversion="$(/usr/bin/env -i "$node_bin" --version 2>/dev/null)" || version=""',
+        "fi",
+        'if [[ -z "$version" ]]; then',
         "\tprintf 'node_unavailable\\n' >&2",
         "\texit 127",
         "fi",
@@ -51,8 +58,6 @@ export function renderBash(entrypoint, names) {
         "\texit 126",
         "\t;;",
         "esac",
-        "env_args=()",
-        ...allowLines(allows),
         'if [[ ${#env_args[@]} -gt 0 ]]; then',
         '\texec /usr/bin/env -i "${env_args[@]}" "$node_bin" --disable-proto=throw "$entry" "$@"',
         "fi",
@@ -93,12 +98,12 @@ if not os.path.isfile(entry):
 node_bin = shutil.which("node")
 if not node_bin:
     refuse("node_unavailable", 127)
-probed = subprocess.run([node_bin, "--version"], check=False, capture_output=True, text=True)
+env = {name: os.environ[name] for name in ALLOW if name in os.environ}
+probed = subprocess.run([node_bin, "--version"], check=False, capture_output=True, text=True, env=env)
 if probed.returncode != 0:
     refuse("node_unavailable", 127)
 if not probed.stdout.strip().startswith("v26."):
     refuse("node_version_unsupported", 126)
-env = {name: os.environ[name] for name in ALLOW if name in os.environ}
 os.execve(node_bin, [node_bin, "--disable-proto=throw", entry, *sys.argv[1:]], env)
 `;
 }

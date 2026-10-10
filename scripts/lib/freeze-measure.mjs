@@ -1,9 +1,9 @@
-import { run } from "./proc.mjs";
+import { run, text } from "./proc.mjs";
 import { RANK } from "./freeze-types.mjs";
 const TOOL_ENV = { ...process.env, PYTHONDONTWRITEBYTECODE: "1" };
 function requireTool(name) {
     const found = run("bash", ["-c", `command -v ${name}`], process.cwd(), TOOL_ENV);
-    if (found.status !== 0 || found.stdout.trim() === "") {
+    if (found.status !== 0 || text(found.stdout).trim() === "") {
         throw new Error(`tool_missing:${name}`);
     }
 }
@@ -44,7 +44,7 @@ export function measureC901(root, files) {
     const result = run("ruff", [
         "check", "--no-cache", "--config", "ruff.toml", "--output-format", "json", ...files,
     ], root, TOOL_ENV);
-    const parsed = JSON.parse(result.stdout || "[]");
+    const parsed = JSON.parse(text(result.stdout) || "[]");
     const rows = parsed.map((item) => {
         const match = /\((\d+)\s*>/.exec(item.message);
         return { path: relative(root, item.filename), complexity: match ? Number(match[1]) : 0 };
@@ -57,10 +57,10 @@ export function measureXenon(root, files) {
         return { blocks: [], averageOk: true };
     }
     const result = run("xenon", ["--max-absolute", "B", "--max-average", "A", ...files], root, TOOL_ENV);
-    const text = `${result.stdout}\n${result.stderr}`;
-    const averageOk = !text.includes("average complexity");
+    const report = `${text(result.stdout)}\n${text(result.stderr)}`;
+    const averageOk = !report.includes("average complexity");
     const rows = [];
-    for (const line of text.split("\n")) {
+    for (const line of report.split("\n")) {
         const match = /block "([^:]+):\d+ [^"]+" has a rank of ([A-F])/.exec(line);
         if (match?.[1] !== undefined && match[2] !== undefined) {
             rows.push({ path: match[1], rank: match[2] });
@@ -77,7 +77,7 @@ export function measureMypy(root, files) {
         "--strict", "--cache-dir=/dev/null", "--no-error-summary", "--show-error-codes", ...files,
     ], root, TOOL_ENV);
     const counts = new Map();
-    for (const line of result.stdout.split("\n")) {
+    for (const line of text(result.stdout).split("\n")) {
         if (!line.includes(": error:")) {
             continue;
         }
@@ -96,7 +96,7 @@ export function measureShellcheck(root, files) {
         if (result.status === 0) {
             continue;
         }
-        const parsed = JSON.parse(result.stdout || "[]");
+        const parsed = JSON.parse(text(result.stdout) || "[]");
         if (parsed.length > 0) {
             counts.set(path, parsed.length);
         }

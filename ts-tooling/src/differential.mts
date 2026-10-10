@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assertNodeVersion, EXIT_NODE_UNAVAILABLE, EXIT_NODE_VERSION_UNSUPPORTED, NODE_UNAVAILABLE, NODE_VERSION_UNSUPPORTED } from "./node-version.mjs";
 import { invokedDirectly } from "./invoked.mjs";
-import { run } from "./proc.mjs";
+import { replaceJsonString } from "./json-span.mjs";
+import { run, text } from "./proc.mjs";
 
 assertNodeVersion();
 
@@ -62,7 +63,7 @@ function sha256(bytes: Buffer): string {
 
 export function materialize(root: string, anchor: Anchor): Buffer {
   const spec = `${anchor.commit}:${anchor.path}`;
-  const blob = run("git", ["rev-parse", spec], root).stdout.trim();
+  const blob = text(run("git", ["rev-parse", spec], root).stdout).trim();
   if (blob !== anchor.blob) {
     throw new DifferentialError(`anchor blob mismatch: ${blob} != ${anchor.blob}`);
   }
@@ -70,7 +71,7 @@ export function materialize(root: string, anchor: Anchor): Buffer {
   if (raw.status !== 0) {
     throw new DifferentialError("anchor blob unreadable");
   }
-  const bytes = Buffer.from(raw.stdout, "utf8");
+  const bytes = raw.stdout;
   if (sha256(bytes) !== anchor.sha256) {
     throw new DifferentialError("anchor sha256 mismatch");
   }
@@ -132,26 +133,12 @@ function applyPrefixMask(text: string, site: Site, mask: string): string {
   return out;
 }
 
-function applyJsonMask(text: string, pointer: string, mask: string): string {
-  const value = JSON.parse(text) as unknown;
-  const parts = pointer.split("/").slice(1);
-  let cursor: unknown = value;
-  for (const part of parts.slice(0, -1)) {
-    if (typeof cursor !== "object" || cursor === null) {
-      throw new DifferentialError("mask site not located");
-    }
-    cursor = (cursor as Record<string, unknown>)[part];
+function applyJsonMask(body: string, pointer: string, mask: string): string {
+  try {
+    return replaceJsonString(body, pointer, mask);
+  } catch (error) {
+    throw new DifferentialError(error instanceof Error ? error.message : "mask site not located");
   }
-  const leaf = parts[parts.length - 1];
-  if (typeof cursor !== "object" || cursor === null || leaf === undefined) {
-    throw new DifferentialError("mask site not located");
-  }
-  const record = cursor as Record<string, unknown>;
-  if (typeof record[leaf] !== "string") {
-    throw new DifferentialError("mask site not located");
-  }
-  record[leaf] = mask;
-  return JSON.stringify(value);
 }
 
 export function normalize(text: string, classes: readonly NormalizationClass[], stream: "stdout" | "stderr"): string {
@@ -172,31 +159,37 @@ export function normalize(text: string, classes: readonly NormalizationClass[], 
   return out;
 }
 
-function refusal(status: number, stderr: string): string | null {
-  if (status === EXIT_NODE_UNAVAILABLE && stderr === `${NODE_UNAVAILABLE}\n`) {
+function refusal(status: number, stderr: Buffer): string | null {
+  if (status === EXIT_NODE_UNAVAILABLE && stderr.equals(Buffer.from(`${NODE_UNAVAILABLE}\n`))) {
     return NODE_UNAVAILABLE;
   }
-  if (status === EXIT_NODE_VERSION_UNSUPPORTED && stderr === `${NODE_VERSION_UNSUPPORTED}\n`) {
+  if (status === EXIT_NODE_VERSION_UNSUPPORTED && stderr.equals(Buffer.from(`${NODE_VERSION_UNSUPPORTED}\n`))) {
     return NODE_VERSION_UNSUPPORTED;
   }
   return null;
 }
 
-export function outputsEqual(left: ProcResult, right: ProcResult): boolean {
-  return left.status === right.status && left.stdout === right.stdout && left.stderr === right.stderr;
+export function outputsEqual(left: CaseResult, right: CaseResult): boolean {
+  return left.status === right.status && left.stdout.equals(right.stdout) && left.stderr.equals(right.stderr);
 }
 
-export interface ProcResult {
+export interface CaseResult {
   status: number;
-  stdout: string;
-  stderr: string;
-  files: Record<string, string>;
+  stdout: Buffer;
+  stderr: Buffer;
+  files: Record<string, Buffer>;
 }
 
-function readTree(dir: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const name of readdirSync(dir)) {
-    out[name] = readFileSync(join(dir, name), "utf8");
+function readTree(dir: string, prefix = ""): Record<string, Buffer> {
+  const out: Record<string, Buffer> = {};
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      Object.assign(out, readTree(full, relative));
+    } else if (entry.isFile()) {
+      out[relative] = readFileSync(full);
+    }
   }
   return out;
 }
@@ -208,32 +201,32 @@ function seed(dir: string, files: Record<string, string> | undefined): void {
   }
 }
 
-function masked(result: ProcResult, classes: readonly NormalizationClass[]): ProcResult {
+function masked(result: CaseResult, classes: readonly NormalizationClass[]): CaseResult {
   return {
     ...result,
-    stdout: normalize(result.stdout, classes, "stdout"),
-    stderr: normalize(result.stderr, classes, "stderr"),
+    stdout: Buffer.from(normalize(text(result.stdout), classes, "stdout")),
+    stderr: Buffer.from(normalize(text(result.stderr), classes, "stderr")),
   };
 }
 
-function sameFiles(left: Record<string, string>, right: Record<string, string>): boolean {
+function sameFiles(left: Record<string, Buffer>, right: Record<string, Buffer>): boolean {
   const names = new Set([...Object.keys(left), ...Object.keys(right)]);
   for (const name of names) {
-    if (left[name] !== right[name]) {
+    if (!left[name]?.equals(right[name] ?? Buffer.alloc(0))) {
       return false;
     }
   }
   return true;
 }
 
-export function compareCase(reference: ProcResult, candidate: ProcResult, corpus: Corpus): void {
+export function compareCase(reference: CaseResult, candidate: CaseResult, corpus: Corpus): void {
   const blocked = refusal(candidate.status, candidate.stderr);
   if (blocked !== null) {
     throw new DifferentialError(`candidate ended in ${blocked}`);
   }
   for (const span of corpus.applyMasks ?? []) {
-    const text = span.stream === "stdout" ? candidate.stdout : candidate.stderr;
-    assertSpan(text, span, corpus);
+    const body = text(span.stream === "stdout" ? candidate.stdout : candidate.stderr);
+    assertSpan(body, span, corpus);
   }
   const classes = corpus.normalizations ?? [];
   const left = masked(reference, classes);
@@ -254,12 +247,13 @@ export function runAnchored(root: string, corpus: Corpus): void {
     const candDir = join(base, `${item.id}-cand`);
     seed(refDir, item.files);
     seed(candDir, item.files);
-    const ref = run(referencePath, item.args, refDir);
+    const stdin = Buffer.from(item.stdin ?? "");
+    const ref = run(referencePath, item.args, refDir, undefined, stdin);
     const [cmd, ...args] = corpus.candidate;
     if (cmd === undefined) {
       throw new DifferentialError("candidate command missing");
     }
-    const cand = run(cmd, [...args, ...item.args], candDir);
+    const cand = run(cmd, [...args, ...item.args], candDir, undefined, stdin);
     compareCase(
       { ...ref, files: readTree(refDir) },
       { ...cand, files: readTree(candDir) },
