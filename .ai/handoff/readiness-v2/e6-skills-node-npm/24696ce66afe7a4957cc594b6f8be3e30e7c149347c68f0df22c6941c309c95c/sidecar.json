@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "E6-AM-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Changes only the live .ai/policies/readiness-policy.json (tools[] gains node and npm; every other byte unchanged). The live policy file is read by the v2 admission path in every repository that uses the skills source lane, so a defect here would admit or refuse approvals everywhere; tests/readiness_policy_v2_test.sh pins the exact candidate bytes this amendment publishes, tests/readiness_v2_policy_amend_test.py pins the rule-(d) scenario this amendment follows, and the pin suite (bash tests/run-tests.sh) must come back green outside the two D4-mandated test flips.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e6-skills-node-npm",
+  "schema": "readiness-sidecar/1"
+}
