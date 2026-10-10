@@ -38,3 +38,6 @@ This means the review agent should be responsible for imposing coding standards,
 - Docs: reference files pointed to by other files. Look for existing docs before writing new ones.
 - Skills: the right home for reusable workflows, since the frontmatter description enters the agent's context. Follow `write-a-skill`.
 - Glossary: use the repo's `CONTEXT.md` (or `GLOSSARY.md` when the upstream rename has landed) vocabulary exactly.
+
+End by declaring knowledge kind `learning`, then reading
+[ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md) and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.

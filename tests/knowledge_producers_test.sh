@@ -163,7 +163,7 @@ fi
 
 # 3. Each covered producer skill ends with a <=3-line pointer to the module,
 #    declares its kind, and keeps the catalog limits.
-for name in northstar to-spec to-prd to-issues research; do
+for name in northstar to-spec to-prd to-issues research handoff retro domain-modeling code-review; do
   file="$(skill_file "$name")"
   kind="$(want_kind "$name")"
   rel="${file#"$REPO_ROOT"/}"
@@ -202,7 +202,7 @@ PY
   fi
 done
 if [ "$FAIL" -eq 0 ]; then
-  ok "all five producers end with the kind-declaring pointer and keep catalog limits"
+  ok "all nine producers end with the kind-declaring pointer and keep catalog limits"
 fi
 
 # 4. The body budget counts body lines, not whole-file lines: a 4-line

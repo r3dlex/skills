@@ -1,0 +1,107 @@
+{
+  "goal_id": "XSKP-P5D-01",
+  "plan_id": "xskp-p5d-skill-producers",
+  "generation": "cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+  "observed_head": "0620130d8bc805c2e9f36765d81f05297488a09e",
+  "receipt_directory": "AiTool/.omc/plans/receipts-p5d01-20261010/",
+  "coverage_status": "unknown",
+  "legacy_safe_tdd": true,
+  "legacy_risk_reason": "Unmeasured SKILL.md, shell and catalog coverage; four shipped producer bodies and their catalog/no-growth controls change. Both red-first pairs were observed in this fresh goal worktree; no predecessor execution evidence is reused.",
+  "foreground": true,
+  "red": {
+    "command": "bash tests/knowledge_producers_test.sh",
+    "exit_code": 1,
+    "tree": "c85da0debe4b9b4602235a1f1a99ec5815cf8cd3",
+    "receipt": "producers-red.json",
+    "receipt_sha256": "16ab41c2eb11ef202dc0708f7d8de823e88bea02f38da3a1c48e1c2bc0f36656",
+    "log_sha256": "55a7bacf2624f38c83fb8c99376a1d086a4e5123948536cc7a25092ab6724f23",
+    "reason": "Section 3 extended to nine producers before the four pointers: 12 missing-pointer/kind/fallback assertions fail, PASS=6 FAIL=12."
+  },
+  "green": {
+    "command": "bash tests/knowledge_producers_test.sh",
+    "exit_code": 0,
+    "tree": "4ba8e70c85fe57b41ba9b8701cc5d0582ec6e937",
+    "receipt": "producers-green.json",
+    "receipt_sha256": "546f4ab9d419f15a5538f0145a3eb2027c3ab78d90fc37d5235e530e013eb692",
+    "log_sha256": "ee4016a57c3a3015d0726476942ee1c987b9cfa2c1eb495cdafff45069497f09",
+    "reason": "After the four byte-identical pointer edits from pinned PR #129 head: PASS=7 FAIL=0."
+  },
+  "catalog_pair": {
+    "red": {
+      "command": "bash tests/skill-catalog_test.sh",
+      "exit_code": 1,
+      "tree": "4ba8e70c85fe57b41ba9b8701cc5d0582ec6e937",
+      "receipt": "catalog-red.json",
+      "receipt_sha256": "e439db03bc66fd2c2dbfa4b311c07fed7b78b24c21ca12bdd59dde705ed5f8c0",
+      "log_sha256": "c8b91c51c29dfddab595068ef9b4662a66c0dad34dd978fefd6f05a98e4257c2",
+      "reason": "Four pointer blocks applied, audit still stale: AssertionError: catalog audit artifact drift at skills."
+    },
+    "green": {
+      "command": "bash tests/skill-catalog_test.sh",
+      "exit_code": 0,
+      "tree": "61957c4786b107be054f447e1a78960b3b77d134",
+      "receipt": "catalog-green.json",
+      "receipt_sha256": "3f5a59810af046d232f2827ad6871c8ac75bb7b5540b42644c8afda6273c1edd",
+      "log_sha256": "c02e8bd77a5e2a4fcf34e7223a3e4f5013b63e965fd7e07fbf3215ef99cd7474",
+      "reason": "Only body_lines updated: code-review 78 to 81, domain-modeling 50 to 53, handoff 10 to 13, retro 36 to 39."
+    }
+  },
+  "no_growth_repin": {
+    "old_digest": "6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4",
+    "new_digest": "17b7f557f3cf4fc058da41586657881eec670704eaec81ebcaf00a5bb6ac34b7",
+    "red": {
+      "command": "bash tests/readiness_v2_migrate_test.sh",
+      "exit_code": 1,
+      "tree": "4ba8e70c85fe57b41ba9b8701cc5d0582ec6e937",
+      "receipt": "no-growth-red.json",
+      "receipt_sha256": "f76d5b1a30cf92f0c204b15761c3c57145f26bb6764e588944a34f5990ce46fe",
+      "reason": "The SKILL.md multiset guard reports the actual new digest versus the stale pin; 16 tests, one failure."
+    },
+    "green": {
+      "command": "bash tests/readiness_v2_migrate_test.sh",
+      "exit_code": 0,
+      "tree": "3cc0710f16492cf5c2014965188f972b2cac8b74",
+      "receipt": "no-growth-green.json",
+      "receipt_sha256": "e26095ddf39d31f23b074c25a13722b5922eb139d35e1f976a29dcc2a5f7514a",
+      "reason": "After only the deliberate digest re-pin and its existing local-CI source hash update: 16 tests OK."
+    }
+  },
+  "host_golden": {
+    "command": "bash scripts/regen-host-golden.sh",
+    "exit_code": 0,
+    "receipt": "regen-host-golden.json",
+    "receipt_sha256": "39f3c2ad1df838946a1befdbd0ad389a0ecf9d1280bb095781e5fcf1bb6cdb23",
+    "delta_bytes": 0,
+    "fixture_sha256": "4d3606759745267f2658190539b5a4f0b11c885906be42acd8f015bb63a65400",
+    "verification_command": "bash tests/host_default_golden_test.sh",
+    "verification_exit_code": 0,
+    "verification_receipt": "golden-after-regen.json",
+    "verification_receipt_sha256": "aa2811556c10c3c45a8297313bbe9f2110f77a35c53cc9dcc11a74b92ee31b08",
+    "reason": "Golden test was already green after pointers and before regeneration; fixture bytes remain unchanged. No golden red leg is claimed. An earlier concurrent receipt-capture index.lock race prevented one invocation from starting; it was not a test failure."
+  },
+  "source_tree_verification": {
+    "tree": "3cc0710f16492cf5c2014965188f972b2cac8b74",
+    "commands": [
+      {
+        "command": "bash tests/run-tests.sh",
+        "exit_code": 0,
+        "result": "OVERALL: PASSED",
+        "receipt": "suite-source-tree.json",
+        "receipt_sha256": "8c397d5620b643107b124d414b2a1dfa6a481f82f743f1015d6fe365e77197fd"
+      },
+      {
+        "command": "prek run --all-files",
+        "exit_code": 0,
+        "receipt": "prek-source-tree.json",
+        "receipt_sha256": "c29a141df81c7925b1263af0e33da3be6ced5b018891da9b2a9180d8afa7a029"
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "receipt": "diff-source-tree.json",
+        "receipt_sha256": "a0d21a48571f2d3f6e31ac8e74942b93965fa516f0c2a0e718e306922be0ff24"
+      }
+    ]
+  },
+  "final_head_binding": "This file records actual pre-commit source-tree runs, not a final-head success claim. The final committed head cannot be embedded in its own evidence without changing that head. Separate final-head-* receipts in this goal's receipt directory must record fresh foreground full-suite, prek and diff checks at the eventual PR head; exact-head independent APPROVE, hosted SUCCESS and live merge admission remain required."
+}
