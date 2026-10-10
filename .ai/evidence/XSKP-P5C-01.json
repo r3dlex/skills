@@ -1,0 +1,145 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "AC-1: handoff (kind handoff), retro (kind learning), domain-modeling (kind adr, target docs/architecture/adr/) and code-review (kind review) each end with a pointer of at most 3 lines to the shared producer module 03-configure-generate/ai-catapult-init/modules/knowledge-publish.md, extending the exact pattern XSKP-P5-02 established for northstar, to-spec, to-prd, to-issues and research.",
+      "green": {
+        "at": "committed pointer-block head 36571047a9e8220218b7d35ffd26ed98eafe74ba: all four end with 1 blank + 2 content lines (kinds handoff/learning/adr/review); each closing pointer line diffed byte-identical to northstar's XSKP-P5-02 pointer line, including the em dash",
+        "exit_code": 0
+      },
+      "red": {
+        "at": "committed test-extension tree 50932ac80f051a4aa9ec63ec10ddbd1ac96ae95b: extended nine-name loop runs against four skills still lacking the pointer - 12 FAILs (3 per skill: pointer / knowledge kind / unpublished: <reason> fallback)",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh section 3 (tail -n 2 case assertions per producer)"
+    },
+    {
+      "ac": 2,
+      "criterion": "AC-2: Catalog limits hold with no new exception entry: description at most 160 characters, body at most 100 lines for every touched skill, and Codex/OpenCode parity (tests/codex_parity_test.sh, tests/opencode_parity_test.sh) passes under tests/run-tests.sh.",
+      "green": {
+        "at": "producer section green at the production head (PASS=7 FAIL=0 with all nine within budget); parity legs recorded in the verification block at the committed final head",
+        "exit_code": 0
+      },
+      "red": {
+        "at": "red tree: budgets were within range before the change (nothing over budget); the suite leg reds at the section 3 producer assertions before parity is reached",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh section 3 budget assertions; bash tests/run-tests.sh parity suites at the final head (recorded under verification)"
+    },
+    {
+      "ac": 3,
+      "criterion": "AC-3: tests/knowledge_producers_test.sh section 3 extends its loop from the five producers (northstar, to-spec, to-prd, to-issues, research) to all nine (adding handoff, retro, domain-modeling, code-review), and its closing assertion reports all nine producers ending with the kind-declaring pointer and keeping catalog limits.",
+      "green": {
+        "at": "commit 36571047a9e8220218b7d35ffd26ed98eafe74ba: Results: PASS=7 FAIL=0 including 'all nine producers end with the kind-declaring pointer and keep catalog limits'",
+        "exit_code": 0
+      },
+      "red": {
+        "at": "commit 50932ac80f051a4aa9ec63ec10ddbd1ac96ae95b extends the loop to nine names and the closing line to 'all nine producers ...'; against the unchanged skills it yields Results: PASS=6 FAIL=12, exit 1",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/knowledge_producers_test.sh"
+    },
+    {
+      "ac": 4,
+      "criterion": "AC-4: The SKILL.md no-growth guard in tests/readiness_v2_migrate_test.py (the multi-set digest over every tracked */SKILL.md path, index mode and content sha, sorted) advances from 6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4 to the post-edit value, and the re-pin covers exactly the four deliberate pointer-block edits; every other assertion in the test is unchanged. .ai/ci/local-ci.json changes only the existing tests/readiness_v2_migrate_test.py sources hash value.",
+      "green": {
+        "at": "post re-pin to 17b7f557f3cf4fc058da41586657881eec670704eaec81ebcaf00a5bb6ac34b7 (pin line 681 + per-goal comment trail, nothing else in the file): Ran 16 tests OK, exit 0; .ai/ci/local-ci.json diff is exactly one value (aee2152e... -> faff0acf...)",
+        "exit_code": 0
+      },
+      "red": {
+        "at": "pre-re-pin tree: Ran 16 tests, failures=1 - AssertionError: '17b7f557f3cf4fc058da41586657881eec670704eaec81ebcaf00a5bb6ac34b7' != '6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4' with the 're-pin only for a deliberate, reviewed edit' message (receipt digest-red-migrate-test.txt)",
+        "exit_code": 1
+      },
+      "test_command": "bash tests/readiness_v2_migrate_test.sh (python3 -I -B unittest runner)"
+    },
+    {
+      "ac": 5,
+      "criterion": "AC-5: tests/fixtures/host-default-golden.json is regenerated with scripts/regen-host-golden.sh in the same change set so bash tests/host_default_golden_test.sh is green, and the regeneration propagates only the four pointer-block edits.",
+      "green": {
+        "at": "scripts/regen-host-golden.sh exits 0 at the production tree (regenerated: gemini=36 files, auggie=36 files, copilot=1 files) with git diff over tests/fixtures/host-default-golden.json EMPTY - the four pointer blocks propagate zero bytes into every golden-covered flat projection, so the 'only the four pointer-block edits' clause holds with an empty propagation set; bash tests/host_default_golden_test.sh exit 0 before and after",
+        "exit_code": 0
+      },
+      "red": {
+        "at": "no golden-side red exists: the golden test was green at the red tree too, because flat projections drop producer pointer blocks by the unavailable-path policy (XSKP-P5-02 provenance documents the same drop for the five P5-02 blocks); the change's red leg lives in the producer/suite commands",
+        "exit_code": 1
+      },
+      "test_command": "bash scripts/regen-host-golden.sh; bash tests/host_default_golden_test.sh"
+    },
+    {
+      "ac": 6,
+      "criterion": "AC-6: Evidence: the observed same-command red-then-green run is recorded in .ai/evidence/XSKP-P5C-01.json, with the red leg at the base tree (the four pointer blocks missing) and the green leg at the goal's committed head.",
+      "green": {
+        "at": "recorded by tdd-evidence.sh --record-green at the committed goal head 36571047a9e8220218b7d35ffd26ed98eafe74ba; same command both legs; verified by the tdd-evidence --verify gate in the pre-commit phase",
+        "exit_code": 0
+      },
+      "red": {
+        "at": "recorded by tdd-evidence.sh --record-red at the committed tree 50932ac80f051a4aa9ec63ec10ddbd1ac96ae95b, where the four pointer blocks are missing relative to the extended assertions",
+        "exit_code": 1
+      },
+      "test_command": "bash 04-validate-handoff/autobahn/tdd-evidence.sh --record-red / --record-green / --verify (observation, not argument)"
+    },
+    {
+      "ac": 7,
+      "criterion": "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes.",
+      "green": {
+        "at": "the committed tree is clean; the scope leg at the final head (verification block) enumerates every changed file and each is a scope entry; the worktree is a fresh cut from origin/main 656d64e1... and the primary checkout stays untouched",
+        "exit_code": 0
+      },
+      "red": {
+        "at": "red tree carried only the goal's own committed test extension; the sole untracked path was the goal's own evidence file being recorded",
+        "exit_code": 1
+      },
+      "test_command": "git status --porcelain (per leg) + git diff <base>..<head> --name-only (scope leg in the verification block)"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval": {
+      "assurance": "agent-self",
+      "digest": "c43eb2af51d4ad07eab002cadcb7a20d99c6a1088edf22af7cf2d62754d3cb89",
+      "expires_at": "2026-10-24T05:33:06Z",
+      "principal": "agent@autobahn",
+      "tag": "approval/xskp-p5c-skill-producers/14f98166c8a4"
+    },
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-xskp-p5c-skill-producers --goal-id XSKP-P5C-01 --stage implementation --target main",
+    "gaps": 0,
+    "gates_pass": [
+      "own-execution",
+      "branch-target",
+      "plan-approval",
+      "tooling",
+      "catalog-validator",
+      "planning-inputs-on-main",
+      "harness-trust"
+    ],
+    "generation": "14f98166c8a42bbebf74d4af2aa961cdf68fc1c5d7efe5931e8d608f68f8fed4",
+    "provenance": "base-copy",
+    "recorded_at": "2026-10-10T05:47:08Z",
+    "schema": "readiness-context/2",
+    "stage": "implementation",
+    "target": [
+      "refs/remotes/origin/main",
+      "656d64e1759a27f97248d50bf613e8d31839fde5"
+    ]
+  },
+  "criteria_source": "criterion texts are the goals.json acceptance_criteria verbatim; the bundle at .ai/handoff/readiness-v2/xskp-p5c-skill-producers/14f98166c8a42bbebf74d4af2aa961cdf68fc1c5d7efe5931e8d608f68f8fed4/goals.json is authoritative",
+  "goal_id": "XSKP-P5C-01",
+  "green": {
+    "command": "bash tests/knowledge_producers_test.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "digest_pin": "6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4 -> 17b7f557f3cf4fc058da41586657881eec670704eaec81ebcaf00a5bb6ac34b7 (pre-re-pin guard red: 16 tests, failures=1, receipt digest-red-migrate-test.txt; post-re-pin: 16 tests OK). Only the pin value and the per-goal comment trail line changed in tests/readiness_v2_migrate_test.py",
+    "evidence_note": "final-head verification legs (verification commands run on the committed tree) are appended into the verification block by a follow-up evidence commit, the tswc-sk-b2 precedent",
+    "golden_regen_zero_delta": "scripts/regen-host-golden.sh exit 0 at the production tree; the golden fixture is byte-identical before and after (empty git diff) because flat projections drop producer pointer blocks per the unavailable-path policy - the same behavior XSKP-P5-02's maintenance record documents; bash tests/host_default_golden_test.sh exit 0 at both legs",
+    "green_method": "green leg observed by tdd-evidence.sh --record-green at the committed pointer-block head 36571047a9e8220218b7d35ffd26ed98eafe74ba; Results: PASS=7 FAIL=0",
+    "local_ci": "tests/readiness_v2_migrate_test.py file sha256 aee2152e2bfbf8407743d01df59968318b045ec80517771353b18441791c147d -> faff0acf1de399600493c63a9bdef3d08075d5f44a7af7d861a881020abcc9c3 re-pinned as its sources value in .ai/ci/local-ci.json (git diff of the file is exactly that one line)",
+    "red_first_commit": "50932ac80f051a4aa9ec63ec10ddbd1ac96ae95b (the section-3 extension only, skills unchanged)",
+    "red_method": "red leg observed by tdd-evidence.sh --record-red in the goal worktree at the committed test-extension tree; the same command produces exit 1 there and exit 0 at the production head",
+    "worktree": "fresh worktree of origin/main 656d64e1759a27f97248d50bf613e8d31839fde5 (PR #128 squash, approval tag peeled commit) on branch feat/xskp-p5c-skill-producers-XSKP-P5C-01; the primary checkout stays untouched and read-only"
+  },
+  "red": {
+    "command": "bash tests/knowledge_producers_test.sh",
+    "exit_code": 1
+  }
+}
