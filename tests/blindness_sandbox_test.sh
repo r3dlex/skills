@@ -247,9 +247,14 @@ fi
 #     export's parent must all be refused, so every hop of a read stays inside
 #     the export (the seed commits workload/leak ->
 #     ../../../source/evolve/wiki/logs.md, which survives the archive and
-#     points out of the export, and outside -> ../.., which the archive places
-#     at the export root, resolving to the export's parent, where return hops
-#     straight back into the export's own workload tree);
+#     points out of the export, outside -> ../.., which the archive places
+#     at the export root (resolving to the export's parent, where return hops
+#     straight back into the export's own workload tree), alias ->
+#     outside/return — a SINGLE component whose symlink chain leaves the
+#     export and re-enters it, so containment after a collapsed `cd` never
+#     sees the escape — and a literal `..` component whose hop stays inside
+#     the export; every expansion step must be refused, not just the end
+#     state of a collapsed resolution;
 #   export guard: an EXPORT equal to SOURCE must fail the block and preserve
 #     the source wiki byte for byte (the old `test -d && test ! -e && mkdir`
 #     chain does not abort under bash -e, so the snapshot ran against the repo
@@ -276,6 +281,14 @@ ln -s "$WORK/export-real/03-configure-generate/workload" "$WORK/return"
 "$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" "outside/return/SKILL.md" \
   >"$WORK/read-outback.out" 2>&1
 outback_rc=$?
+ln -s "$WORK/return" "$EXPORT_REAL/alias"
+"$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" "alias/SKILL.md" \
+  >"$WORK/read-chain.out" 2>&1
+chain_rc=$?
+"$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" \
+  "03-configure-generate/workload/../workload/SKILL.md" \
+  >"$WORK/read-dotdot.out" 2>&1
+dotdot_rc=$?
 run_export "$BLOCK" nested "$SRC/nested-export-check"
 nested_rc=$?
 nested_check_exists="$([ -e "$SRC/nested-export-check" ] && echo yes || echo no)"
@@ -301,6 +314,16 @@ if [ "$outback_rc" -ne 0 ] && ! grep -q 'Run this\.' "$WORK/read-outback.out"; t
   ok "the rollout reader refuses an out-and-back symlink hop through the export's parent"
 else
   bad "the rollout reader refuses an out-and-back symlink hop through the export's parent (exit $outback_rc)"
+fi
+if [ "$chain_rc" -ne 0 ] && ! grep -q 'Run this\.' "$WORK/read-chain.out"; then
+  ok "the rollout reader refuses a single-component symlink chain that leaves and re-enters the export"
+else
+  bad "the rollout reader refuses a single-component symlink chain that leaves and re-enters the export (exit $chain_rc)"
+fi
+if [ "$dotdot_rc" -ne 0 ] && ! grep -q 'Run this\.' "$WORK/read-dotdot.out"; then
+  ok "the rollout reader refuses a literal .. component even when its hop stays inside the export"
+else
+  bad "the rollout reader refuses a literal .. component even when its hop stays inside the export (exit $dotdot_rc)"
 fi
 if [ "$nested_rc" -ne 0 ] && [ "$nested_check_exists" = "no" ] \
    && [ -z "$nested_dirty" ] && [ "$wiki_sum_nested" = "$wiki_sum" ]; then
