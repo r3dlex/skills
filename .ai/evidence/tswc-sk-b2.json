@@ -423,5 +423,124 @@
       "result": "fails only tests/blindness_sandbox_test.sh, Results: PASS=11 FAIL=4: the equal EXPORT deletes the wiki, an EXPORT nested inside SOURCE reaches the wiki through the ancestor .git via git show, and the reader prints the wiki through a mid-path traversal and a committed symlink; every other suite passes",
       "tree": "committed red tree: the four new guard tests on the pre-fix block"
     }
+  },
+  "round_2_closure": {
+    "at": "2026-10-10T01:29:17Z",
+    "purpose": "round-2 review findings (2.1 masking by restore-before-assert in the destructive guards; 2.2 one-shot dirname reader serving an out-and-back hop with exit 0) closed red-first: the guards capture filesystem state (nested-export existence, git dirty state, wiki checksum) before any restore and assert against the captures, and the reader resolves its target one component at a time with containment re-checked after every resolution step and denies the empty target",
+    "red": {
+      "at": "2026-10-10T01:29:17Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "2736ff023aad4fa8f747348385eaba4278eee409",
+      "exit_code": 1,
+      "output_sha256": "6a7345ca1d0ec7ac6f5e1f7d69d37b0ccd8885fd828faf887dd07e755cff633c",
+      "result": "fails only tests/blindness_sandbox_test.sh — Results: PASS=15 FAIL=1 (+ its unit-test wrapper FAIL): the fifth guard (out-and-back symlink hop — committed seed outside -> .., then a planted symlink return back into the export, read outside/return/SKILL.md) is served with exit 0 by the pre-fix one-shot dirname reader, reproducing finding 2.2; the two destructive guards fail closed and the capture-based detection leg red on the mutant block (scratch legs below) closes finding 2.1",
+      "tree": "committed red-2 tree (clean worktree skills-s2-fix-20261010); full-suite receipt headered, raw sha as recorded"
+    },
+    "green": {
+      "at": "2026-10-10T01:29:17Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "bea0c3d35a422f789248b8d0c7959f8809a3f755",
+      "exit_code": 0,
+      "output_sha256": "5509bba3da204e21406189116e106a27e3d227445d145d64259aed66e10cce55",
+      "tree": "committed fix head (clean worktree skills-s2-fix-20261010 before and after the run)",
+      "result": "OVERALL: PASSED; blindness unit Results: PASS=16 FAIL=0 — all five guards green, the out-and-back hop denied with exit 3, the empty target denied with exit 3",
+      "sub_legs": {
+        "prek": {
+          "command": "prek run --all-files",
+          "exit_code": 0,
+          "output_sha256": "dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae",
+          "note": "byte-identical to the round-1 prek receipt (dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae) — the round-2 diff adds no hook-triggered surface changes"
+        },
+        "diff_check": {
+          "command": "git diff --check",
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    "scratch_legs": {
+      "note": "scratch probes on the committed red-2 tree, never committed; receipts held outside the branch under .omc/plans/receipts-lane-s2-20261010/",
+      "mutant_block_receipt_sha256": "3e8a81cd564feaa986ea2185e2c53ad59689eee967f7a2c5f616c9c2cfe56463",
+      "masking_old_order": {
+        "receipt_sha256": "9e417ff4df748327c9a35a9f87cb0950d72b6ef52515c2cf5d8567e000f449e1",
+        "result": "mutant block + old restore-before-assert ordering: Results: PASS=15 FAIL=0 with scratch-probe-at-refusal: nested_export_present=yes; dirty_lines=1; wiki_present=no — the old ordering masks the destructive writes"
+      },
+      "detection_new_order": {
+        "receipt_sha256": "543a3898e29715fbdd39a09dbccb6d3651d65a01915cd1e3365eff5b8d91f64d",
+        "result": "same mutant block, new capture-before-restore ordering: Results: PASS=13 FAIL=3 and the same probes — the destructive writes are detected, not masked"
+      },
+      "detection_fixed_reader_green": {
+        "receipt_sha256": "1805484e9209b6fc43156a0768762f2e3599d6085da7e62bf93d337181a2b38b",
+        "result": "with the committed per-hop reader: Results: PASS=14 FAIL=2 — the hop no longer reds (it is denied by the reader) while the destructive detection still holds"
+      }
+    },
+    "digest_pin": {
+      "recomputation_at_head": "python3 -I -B recomputation at bea0c3d35a422f789248b8d0c7959f8809a3f755 reproduces 31ee6a800ccdf298eb3d5be267b0944b7f62fc869969357153599bfaf90b6892 over 49 tracked */SKILL.md files (path, index mode, working-tree bytes, sha256-per-file, path\\0mode\\0file-sha in sorted order), the value re-pinned at tests/readiness_v2_migrate_test.py:681",
+      "advance": "5d0e2f1cb2d82d2d87386f3ed31a7f3a6351d0cf9e2327f98d246b678011addf -> 31ee6a800ccdf298eb3d5be267b0944b7f62fc869969357153599bfaf90b6892 (deliberate, reviewed SKILL.md edit: per-hop reader block)",
+      "local_ci": "tests/readiness_v2_migrate_test.py file sha256 a17e88a245032abac1dae64ee0fb84e2ea8abae0f50e1ca081fa1100163a6eb9 re-pinned as its sources value in .ai/ci/local-ci.json",
+      "audit": "python3 scripts/validate-skill-catalog.py --write-audit net-unchanged at body_lines exactly 100"
+    },
+    "per_ac_round_2_green": {
+      "note": "every recorded AC test_command re-run at bea0c3d35a422f789248b8d0c7959f8809a3f755; exit_code and sha256 of combined output recorded per AC",
+      "ac1_note": "AC1 exits 1 legitimately at a branch head: its scope check reports the evidence file itself (.ai/evidence/tswc-sk-b2.json) as an out-of-scope addition relative to its recorded baseline — the authoritative scope leg is the base->head diff below",
+      "results": {
+        "1": {
+          "exit_code": 1,
+          "output_sha256": "24d23d4e261367b14672184da4976a486a93bd8f0ecd1e547b731d32165e2584"
+        },
+        "2": {
+          "exit_code": 0,
+          "output_sha256": "ee4e88ddcbea289986df63217f96215484ceec0c684a943abcfb12e9936fdb23"
+        },
+        "3": {
+          "exit_code": 0,
+          "output_sha256": "1b096f126311ad4a4c73172b6b9cb739c7e71f242b41c3b3c596527c66f08ac1"
+        },
+        "4": {
+          "exit_code": 0,
+          "output_sha256": "a042f38410ee784486458be1e5776f12d8863ff359295eef20c55c35f3894b1e"
+        },
+        "5": {
+          "exit_code": 0,
+          "output_sha256": "cdc938e0fa61f1ac05a8341d320a949ef8299f7904b82bb8a0c26144b36f756f"
+        },
+        "6": {
+          "exit_code": 0,
+          "output_sha256": "1fcba88e18ec7a0354612dbdc66906b6baabb4e2f254202a51723b4d89c21eea"
+        },
+        "7": {
+          "exit_code": 0,
+          "output_sha256": "aae611c6c76b7df777d2aa23a7148af7a3e8930812eaaf0607416a145fd9ec02"
+        },
+        "8": {
+          "exit_code": 0,
+          "output_sha256": "1bd25e1e0b93fe668c4e75588a961de3cbfd17e5c9bb027be873a1372ac223d4"
+        },
+        "9": {
+          "exit_code": 0,
+          "output_sha256": "d6b423d672078d7da23b255f39b4da769f77d7dfc58bd82b3f2684de247ed3f5"
+        },
+        "10": {
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "11": {
+          "exit_code": 0,
+          "output_sha256": "932a82e9b96ba68c3035af9499461add05445bbde871e45141112b7c87bdc0e0"
+        },
+        "12": {
+          "exit_code": 0,
+          "output_sha256": "15ac4e778ee85dac7a64417a065193925c5b41597128870c1545a75896dbf42d"
+        },
+        "13": {
+          "exit_code": 0,
+          "output_sha256": "f7606d006de5793d5ecb514fdba7dc2770e5c2ad0ddb1cbd136445be7c532153"
+        }
+      }
+    },
+    "scope_leg": {
+      "command": "git diff --name-only 0663e292855f5aadcc9e39a5e94a6e0215b122fc..bea0c3d35a422f789248b8d0c7959f8809a3f755 — 17 changed files",
+      "result": "each changed file is inside a goals.json scope entry, and every scope entry has a diff; no outside-scope file"
+    }
   }
 }
