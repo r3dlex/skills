@@ -46,16 +46,16 @@ set -euo pipefail
 root="${1:?usage: rollout-read <root> <relative-path>}"; target="${2-}"
 d3() { echo "denied: $1" >&2; exit 3; }
 case "$target" in /*|'') d3 "$target" ;; esac
-base="$(cd -- "$root" 2>/dev/null && pwd -P)" || d3 "missing root: $root"
+IFS= read -r -d '' base < <(cd -- "$root" 2>/dev/null && pwd -P && printf '\0') || d3 "missing root: $root"; base="${base%$'\n'}"
 case "$target" in */*) dir="${target%/*}"; file="${target##*/}" ;; *) dir=""; file="$target" ;; esac
 pend="$dir" hop="$base" hops=0
 while [ -n "$pend" ]; do
   hops=$((hops + 1)); if [ "$hops" -gt 64 ]; then d3 "hop limit: $target"; fi
   case "$pend" in */*) c="${pend%%/*}"; pend="${pend#*/}" ;; *) c="$pend"; pend="" ;; esac
   case "$c" in ''|.) continue ;; ..) d3 "$target" ;; esac
-  if [ -L "$hop/$c" ]; then t="$(readlink -- "$hop/$c")" || d3 "$target"; case "$t" in /*|'') d3 "$target" ;; esac; if [ -n "$pend" ]; then pend="$t/$pend"; else pend="$t"; fi
+  if [ -L "$hop/$c" ]; then IFS= read -r -d '' t < <(perl -e 'my $t = readlink($ARGV[0]); $t = "" unless defined $t; print $t' "$hop/$c" && printf '\0') || d3 "$target"; case "$t" in /*|'') d3 "$target" ;; esac; if [ -n "$pend" ]; then pend="$t/$pend"; else pend="$t"; fi
   else
-    if ! hop="$(cd -- "$hop/$c" 2>/dev/null && pwd -P)"; then d3 "$target"; fi
+    IFS= read -r -d '' hop < <(cd -- "$hop/$c" 2>/dev/null && pwd -P && printf '\0') || d3 "$target"; hop="${hop%$'\n'}"
     case "$hop" in "$base"|"$base"/*) ;; *) d3 "$target escapes the export" ;; esac
   fi
 done
