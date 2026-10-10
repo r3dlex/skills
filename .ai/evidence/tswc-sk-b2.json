@@ -660,5 +660,124 @@
       "command": "git diff --name-only 0663e292855f5aadcc9e39a5e94a6e0215b122fc..f6daa06a2d6635b363797ad2a176073277650325 — 17 changed files",
       "result": "each changed file is inside a goals.json scope entry, and every scope entry has a diff; no outside-scope file"
     }
+  },
+  "review_round_4": {
+    "at": "2026-10-10T03:42:08Z",
+    "reviewer": "codex cross-vendor independent review (omc ask codex), read-only at the review worktree",
+    "head_reviewed": "7b2da7fc9f6b6b98c68cbed0e6064025a5059417",
+    "verdict": "REQUEST_CHANGES",
+    "blocking": [
+      "finding 2.6: the reader consumed link targets through a command substitution, which strips the newline readlink terminates its output with along with any newline the target itself ends in - so a dangling link alias -> the literal target \"workload\\n\" was served as the stripped plain name with exit 0 (a root-level decoy's payload), and a valid link to a newline-named directory was redirected to the stripped-name decoy's file"
+    ],
+    "non_blocking": [
+      "finding 2.7: the round-3 chain guard planted its alias link ABSOLUTE (alias -> $WORK/return), so the guard exercised the absolute-target refusal instead of the relative-target queue expansion the collapsed-cd defect it guards against depends on; the reviewer demonstrated a collapsed-cd mutant that passes all 18 asserts at the absolute fixture but fails at the relative one"
+    ],
+    "artifact_receipt": "review-round4-artifact.md (plus review-round4-brief.md); verdict recorded verbatim at 7b2da7f"
+  },
+  "round_4_closure": {
+    "at": "2026-10-10T03:42:08Z",
+    "purpose": "round-4 review findings 2.6 (newline byte loss in link-target reads redirecting a dangling link to a plain-name decoy) and 2.7 (the chain guard fixture planted absolute) closed red-first; the reader now consumes byte-exact values at all three sites where a command substitution previously stripped the trailing newline: link targets come from an os-level readlink via perl (BSD readlink emits only one trailing newline whether or not the target itself ends in one - readlink(1) output is inherently ambiguous on macOS, GNU readlink appends an unconditional terminator - perl readlink returns the kernel's exact target bytes on both), and the base anchor plus each physical cd hop are read through a NUL-delimited IFS= read -r -d '' < <(cd ... && pwd -P && printf '\\0') with exactly one terminator newline stripped afterward (pwd -P always appends exactly one trailing newline regardless of the directory name's own trailing newline, verified on both BSD and GNU pwd behavior), no strip after the perl readlink",
+    "platform_fact": "development-time probes established: on macOS bash 3.2.57, readlink output for kernel targets \"nldir\\n\" and \"nldir\" is byte-identical (6 bytes \"nldir\\n\", os.readlink shows the kernel values differ) while perl readlink returns the exact kernel bytes (6 vs 5); pwd -P emits the path plus exactly one trailing newline for a directory named \"nl\\n\" (2 total) and one for a plain name (1 total); read -r -d '' with a process-substitution NUL preserves bytes exactly on bash 3.2.57; the stripped hop redirected the walk into the plain-name decoy (served the decoy payload), the byte-exact hop resolves it into the true newline-named directory",
+    "red": {
+      "at": "2026-10-10T03:42:08Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "a66dd6e9a4f2357150a8f6758dd9c5fff1061d0b",
+      "exit_code": 1,
+      "output_sha256": "66178e92aca96de6ca51473ae5aaf4adbee7cf386fa61039a8df6cbb0555fd56",
+      "result": "fails only tests/blindness_sandbox_test.sh - Results: PASS=18 FAIL=2 (+ its unit wrapper): the ninth guard (valid link wlnk -> the literal target \"nldir\\n\" must serve its own \"Exact bytes.\" file, not the plain-name decoy nldir with \"Wrong bytes.\") is served the decoy with exit 0 by the pre-fix reader, and the tenth guard (dangling link nlnk -> \"nlw\\n\" read against the root-level plain-name decoy nlw must be refused, not served) serves the decoy with exit 0; the same red commit also corrects the chain-guard fixture to the relative form outside/return (finding 2.7), which still passes at the then-head; all eighteen prior asserts stay green",
+      "tree": "committed red-4 tree (clean worktree skills-s2-fix-20261010); test-file-only commit, no reader change yet"
+    },
+    "green": {
+      "at": "2026-10-10T03:42:08Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "b31f0d36a7ebbe29b9d70d07449cedd783a94192",
+      "exit_code": 0,
+      "output_sha256": "0d7cb9c359c5dd751d88f7faf10af2a66179aa95983fbd281d0d966476d89781",
+      "tree": "committed fix head 3 (clean worktree skills-s2-fix-20261010 before and after the run)",
+      "result": "OVERALL: PASSED; blindness unit Results: PASS=20 FAIL=0 - both new guards now pass (the valid newline target serves \"Exact bytes.\", the dangling newline target is refused with no decoy payload), the corrected relative-form chain guard and every other prior assert unchanged (no over-deny), the plain workload read and the in-tree intermediate symlink hop still pass",
+      "sub_legs": {
+        "prek": {
+          "command": "prek run --all-files",
+          "exit_code": 0,
+          "output_sha256": "dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae",
+          "note": "byte-identical to every prior round's prek receipt - run at the fix content"
+        },
+        "diff_check": {
+          "command": "git diff --check",
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "empty at the committed tree"
+        }
+      }
+    },
+    "digest_pin": {
+      "recomputation_at_head": "recomputation at b31f0d36a7ebbe29b9d70d07449cedd783a94192 gives 6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4 over 49 tracked */SKILL.md files (sha256 per file over working-tree bytes, sha256 over path\\0mode\\0file-sha in sorted order) and the re-pinned tests/readiness_v2_migrate_test.py passes (16 tests OK) after the local-ci sources sha below is updated",
+      "advance": "56566dc9e0bdbdc90de1648ff5c7ceacdc781a1b57dc3f62de0fad9f4b57b8af -> 6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4 (deliberate, reviewed SKILL.md edit: the three sites now consume byte-exact values)",
+      "local_ci": "tests/readiness_v2_migrate_test.py file sha256 02a57e51d4419a793a5c92f32d9e54ec50762e87535a97282d2459de6c420b11 -> aee2152e2bfbf8407743d01df59968318b045ec80517771353b18441791c147d re-pinned as its sources value in .ai/ci/local-ci.json",
+      "audit": "python3 scripts/validate-skill-catalog.py --write-audit exit 0, net-unchanged (42 skills), body_lines exactly 100"
+    },
+    "per_ac_round_4_green": {
+      "note": "every recorded AC test_command re-run at b31f0d36a7ebbe29b9d70d07449cedd783a94192; exit_code and sha256 of combined output recorded per AC",
+      "ac1_note": "AC1 exits 1 legitimately at a branch head: its scope check reports the evidence file itself as an out-of-scope addition relative to its recorded baseline - the authoritative scope leg is the base->head diff below",
+      "results": {
+        "1": {
+          "exit_code": 1,
+          "output_sha256": "24d23d4e261367b14672184da4976a486a93bd8f0ecd1e547b731d32165e2584"
+        },
+        "2": {
+          "exit_code": 0,
+          "output_sha256": "ee4e88ddcbea289986df63217f96215484ceec0c684a943abcfb12e9936fdb23"
+        },
+        "3": {
+          "exit_code": 0,
+          "output_sha256": "1b096f126311ad4a4c73172b6b9cb739c7e71f242b41c3b3c596527c66f08ac1"
+        },
+        "4": {
+          "exit_code": 0,
+          "output_sha256": "a042f38410ee784486458be1e5776f12d8863ff359295eef20c55c35f3894b1e"
+        },
+        "5": {
+          "exit_code": 0,
+          "output_sha256": "cdc938e0fa61f1ac05a8341d320a949ef8299f7904b82bb8a0c26144b36f756f"
+        },
+        "6": {
+          "exit_code": 0,
+          "output_sha256": "1fcba88e18ec7a0354612dbdc66906b6baabb4e2f254202a51723b4d89c21eea"
+        },
+        "7": {
+          "exit_code": 0,
+          "output_sha256": "2580c6130f22b39388e2f7589f086a782f8ffb35f963756db2cefa186b9609bb"
+        },
+        "8": {
+          "exit_code": 0,
+          "output_sha256": "1bd25e1e0b93fe668c4e75588a961de3cbfd17e5c9bb027be873a1372ac223d4"
+        },
+        "9": {
+          "exit_code": 0,
+          "output_sha256": "d6b423d672078d7da23b255f39b4da769f77d7dfc58bd82b3f2684de247ed3f5"
+        },
+        "10": {
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "11": {
+          "exit_code": 0,
+          "output_sha256": "707a9659f1d766e9fd2c2dee858aeaedeb1fb1512e9799da895e4f4e0ae35be4"
+        },
+        "12": {
+          "exit_code": 0,
+          "output_sha256": "15ac4e778ee85dac7a64417a065193925c5b41597128870c1545a75896dbf42d"
+        },
+        "13": {
+          "exit_code": 0,
+          "output_sha256": "23413df8a6fec2851bff3f0b08480996d0c7c601c8ba9120d8b57fe1c2b02788"
+        }
+      }
+    },
+    "scope_leg": {
+      "command": "git diff --name-only 0663e292855f5aadcc9e39a5e94a6e0215b122fc..b31f0d36a7ebbe29b9d70d07449cedd783a94192 - 17 changed files",
+      "result": "each changed file is inside a goals.json scope entry (entries compared as directory prefixes) and every scope entry has a diff; no outside-scope file"
+    },
+    "finding_4_note": "git diff 549fe77a356d22b2204d8b819ad1b6d2b7410bbe..b31f0d36a7ebbe29b9d70d07449cedd783a94192 over tests/xskp_p5_readiness_policy_test.sh and tests/ach_s01_readiness_policy_test.sh is EMPTY (0 bytes) - the retained-policy shim rejection stands unmodified"
   }
 }
