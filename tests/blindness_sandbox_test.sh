@@ -22,8 +22,9 @@
 #
 # Beyond the original proof, the environment-enforced refusals are asserted:
 # an EXPORT equal to SOURCE or nested inside SOURCE is refused before any
-# write (the source wiki stays byte-identical), the reader refuses mid-path
-# traversal, and it refuses a symlink escape committed into the workload tree.
+# write (the source wiki stays byte-identical), and the reader refuses mid-path
+# traversal, a committed symlink escape, and an out-and-back hop through the
+# export's parent, so every hop a read takes stays inside the export.
 #
 # Plain bash only: no embedded Python or other interpreter program.
 #
@@ -84,6 +85,11 @@ printf 'purpose\n' > "$SRC/evolve/proposals/demo/PURPOSE.md"
 # A committed symlink may point out of the tree the export will get: the
 # export's reader must refuse the hop, never follow it.
 ln -s ../../../source/evolve/wiki/logs.md "$SRC/03-configure-generate/workload/leak"
+# And a committed out-and-back hop: outside sits at the repo root, so the
+# archived copy resolves to the export's parent — one hop out through it, then
+# (through a return symlink planted beside the export) straight back into the
+# export's own workload tree.
+ln -s .. "$SRC/outside"
 if git -C "$SRC" init -q 2>/dev/null \
    && git -C "$SRC" config user.email blindness@example.invalid \
    && git -C "$SRC" config user.name blindness \
@@ -235,11 +241,15 @@ else
 fi
 
 # --- sandbox breach guards ----------------------------------------------------
-# Three refusals beyond the anchored prefix policy, each environment-enforced:
-#   reader: a mid-path traversal under a non-denied prefix and a symlink escape
-#     must be refused (the seed commits
-#     workload/leak -> ../../../source/evolve/wiki/logs.md, which survives the
-#     archive and points out of the export);
+# Refusals beyond the anchored prefix policy, each environment-enforced:
+#   reader: a mid-path traversal under a non-denied prefix, a symlink escape
+#     committed into the workload tree, and an out-and-back hop through the
+#     export's parent must all be refused, so every hop of a read stays inside
+#     the export (the seed commits workload/leak ->
+#     ../../../source/evolve/wiki/logs.md, which survives the archive and
+#     points out of the export, and outside -> ../.., which the archive places
+#     at the export root, resolving to the export's parent, where return hops
+#     straight back into the export's own workload tree);
 #   export guard: an EXPORT equal to SOURCE must fail the block and preserve
 #     the source wiki byte for byte (the old `test -d && test ! -e && mkdir`
 #     chain does not abort under bash -e, so the snapshot ran against the repo
@@ -247,6 +257,10 @@ fi
 #     inside SOURCE must be refused before anything is written, because a
 #     sandbox under the repo would resolve the ancestor .git and leave the wiki
 #     reachable through `git show`.
+# Each refusal is measured as the refused run left the tree, BEFORE
+# restore_src repairs it: a block that damages the source and then exits
+# non-zero must fail its guard outright, not pass because the damage was
+# silently undone first.
 
 WIKI_SENTINEL='run 1 accepted'
 wiki_sum="$(cksum "$SRC/evolve/wiki/logs.md" "$SRC/evolve/wiki/skill-impact.md")"
@@ -258,11 +272,19 @@ traverse_rc=$?
 "$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" "03-configure-generate/workload/leak" \
   >"$WORK/read-symlink.out" 2>&1
 symlink_rc=$?
+ln -s "$WORK/export-real/03-configure-generate/workload" "$WORK/return"
+"$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" "outside/return/SKILL.md" \
+  >"$WORK/read-outback.out" 2>&1
+outback_rc=$?
 run_export "$BLOCK" nested "$SRC/nested-export-check"
 nested_rc=$?
+nested_check_exists="$([ -e "$SRC/nested-export-check" ] && echo yes || echo no)"
+nested_dirty="$(git -C "$SRC" status --porcelain)"
+wiki_sum_nested="$(cksum "$SRC/evolve/wiki/logs.md" "$SRC/evolve/wiki/skill-impact.md")"
 restore_src
 run_export "$BLOCK" eq-source "$SRC"
 eq_rc=$?
+wiki_sum_eq="$(cksum "$SRC/evolve/wiki/logs.md" "$SRC/evolve/wiki/skill-impact.md")"
 restore_src
 
 if [ "$traverse_rc" -ne 0 ] && ! grep -q "$WIKI_SENTINEL" "$WORK/read-traverse.out"; then
@@ -275,14 +297,18 @@ if [ "$symlink_rc" -ne 0 ] && ! grep -q "$WIKI_SENTINEL" "$WORK/read-symlink.out
 else
   bad "the rollout reader refuses a symlink escape out of the export (exit $symlink_rc)"
 fi
-if [ "$nested_rc" -ne 0 ] && ! [ -e "$SRC/nested-export-check" ] \
-   && [ -z "$(git -C "$SRC" status --porcelain)" ]; then
+if [ "$outback_rc" -ne 0 ] && ! grep -q 'Run this\.' "$WORK/read-outback.out"; then
+  ok "the rollout reader refuses an out-and-back symlink hop through the export's parent"
+else
+  bad "the rollout reader refuses an out-and-back symlink hop through the export's parent (exit $outback_rc)"
+fi
+if [ "$nested_rc" -ne 0 ] && [ "$nested_check_exists" = "no" ] \
+   && [ -z "$nested_dirty" ] && [ "$wiki_sum_nested" = "$wiki_sum" ]; then
   ok "an EXPORT nested inside SOURCE is refused before anything is written"
 else
   bad "an EXPORT nested inside SOURCE is refused before anything is written (exit $nested_rc)"
 fi
-if [ "$eq_rc" -ne 0 ] \
-   && [ "$(cksum "$SRC/evolve/wiki/logs.md" "$SRC/evolve/wiki/skill-impact.md")" = "$wiki_sum" ]; then
+if [ "$eq_rc" -ne 0 ] && [ "$wiki_sum_eq" = "$wiki_sum" ]; then
   ok "an EXPORT equal to SOURCE fails the block and preserves the source wiki"
 else
   bad "an EXPORT equal to SOURCE fails the block and preserves the source wiki (exit $eq_rc)"
