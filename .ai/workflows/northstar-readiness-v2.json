@@ -264,6 +264,38 @@
         "sha256": "59ffcbba33e2e17629adf1674ac93a1b28c36b4dfc456dba2e08a36b8a68f11e"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/goals.json",
+          "sha256": "861cbd5319ab54f40ff6a2dbcb80ada9cad3711036fceca60b8b7207844f9a35"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/graph.json",
+          "sha256": "c54e1099ce71a904e496b63db6429f76aadb07d82bd0787fc3d97c1f94ba6a81"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/handoff.md",
+          "sha256": "599c91f82fa3067e0fba66512ce7f5d4f141d786e17723c1a58da851d5acf851"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/sidecar.json"
+        }
+      },
+      "generation": "cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "handoff_path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/handoff.md",
+      "id": "northstar-plan-xskp-p5d-skill-producers",
+      "mode": "live",
+      "plan_id": "xskp-p5d-skill-producers",
+      "policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5d-skill-producers.md",
+        "sha256": "adf0a70e7d8cfe56a8b334a9cb07f9fcb6b7008c8a6c9f24b670aabf9298bd64"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [

@@ -1,0 +1,57 @@
+{
+  "attachments": {
+    "contract_pack_lock": "docs/specifications/ACTIVE/cross-surface-knowledge-publication.contract/contract.lock.json sha256 9f5d7edfc17554c383b06aa4726dfffe564ecc8d657b16baa89ce72098d5e102",
+    "independence": "One goal with no dependency on a goal in another plan or repository; this plan is callable only by a separate explicitly dispatched Autobahn run after exact-generation admission.",
+    "predecessor_generation": "xskp-p5c-skill-producers generation 14f98166c8a42bbebf74d4af2aa961cdf68fc1c5d7efe5931e8d608f68f8fed4, goal XSKP-P5C-01, publication PR #128 squash 656d64e1759a27f97248d50bf613e8d31839fde5. Implementation PR #129 OPEN at 2ce69ca67000aae0ff446fe220b03271f665591d is RED and scope-blocked; diagnosis AiTool/.omc/plans/receipts-p5c01-20261010/checkpoint-scope-hold.md identifies the required unscoped .ai/skills/catalog-audit.json body_lines update. This fresh plan adds that path and its own evidence identity without altering the predecessor registration, generation, evidence or PR. No authority is borrowed from the predecessor.",
+    "publication_posture": "Born readiness-contract/2, live mode, on ACH-20261002 authorities (r3dlex/ai-tool-workspace docs/specifications/ACTIVE/admission-complete-handoffs.md sha256 2d9a247ace71f21b6b72fb9b852f53b6721f862161791ddc658ec9b9e54337dd): R1 new plans publish v2, R4 skills' scoped ACH-S-01 bootstrap rollover followed by the remaining goals' v2 republish path; skills ADR-0016 records the frozen v1 bytes/outputs. Published through the independently hash-verified O8 clone's 02-govern-plan/northstar/handoff-write.sh v2 dispatch with planning admission. Planning publication grants no implementation authority. Current live policy and approve.sh must themselves authorize any exact-generation agent-self tag, disclosed as no human approved it; refusal stops, never improvises an approval.",
+    "reference_pointer_bytes": "The four SKILL.md pointer-block diffs are defined by refs/pull/129/head at 2ce69ca67000aae0ff446fe220b03271f665591d against base 656d64e1759a27f97248d50bf613e8d31839fde5 (full reference diff sha256 7722a6f93cddbe28192a1e35af8992c0ffec6cb62670956d6bc0dd861d20ec29). The scratch recipe worktrees/xskp-p5-ctx-20261005/p5-03-draft.md is reference only: branch bytes govern pointer spelling, and the current no-growth guard is a multiset digest, not a branch-only commit pin.",
+    "umbrella_spec": "r3dlex/ai-tool-workspace docs/specifications/ACTIVE/cross-surface-knowledge-publication.md sha256 d50488d9b480fdfdea6c2fa2b7265a507d98fdae97758c3b1d2f501951415586"
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "AC-1: Apply exactly PR #129 head 2ce69ca67000aae0ff446fe220b03271f665591d's four SKILL.md pointer-block diffs: handoff kind handoff, retro kind learning, domain-modeling kind adr (target docs/architecture/adr/) and code-review kind review. Preserve the branch's relative Markdown links, the blank plus two content-line shape, and retro newline completion; each ends with the shared knowledge-publish.md producer step and honest unpublished fallback.",
+        "AC-2: Description at most 160 characters and body at most 100 lines for each touched skill; no description changes or new budget exceptions. Codex/OpenCode parity tests pass under tests/run-tests.sh.",
+        "AC-3: tests/knowledge_producers_test.sh section 3 extends the existing loop from northstar to-spec to-prd to-issues research to all nine by adding handoff retro domain-modeling code-review, and its closing assertion reports all nine producers ending with the kind-declaring pointer and keeping catalog limits. Other sections stay unchanged.",
+        "AC-4: The tracked SKILL.md multiset no-growth pin in tests/readiness_v2_migrate_test.py advances from 6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4 to the recomputed post-edit digest of paths, index modes and content hashes, covering exactly the four intentional pointer-block diffs. Every other assertion is unchanged. .ai/ci/local-ci.json changes only the existing tests/readiness_v2_migrate_test.py sources hash value; no pin, gate or policy is weakened.",
+        "AC-5: Run bash scripts/regen-host-golden.sh and record its actual delta. Change tests/fixtures/host-default-golden.json only if the four pointer edits propagate, and only by that regeneration; otherwise preserve its bytes and record zero delta. bash tests/host_default_golden_test.sh passes; no golden red leg is invented when already green.",
+        "AC-6: .ai/skills/catalog-audit.json changes only body_lines for code-review 78 to 81, domain-modeling 50 to 53, handoff 10 to 13 and retro 36 to 39. All other audit fields, descriptions and exception entries remain unchanged. Honest same-command red-first evidence: with the four pointer blocks applied and the stale audit, bash tests/skill-catalog_test.sh exits nonzero with AssertionError: catalog audit artifact drift at skills; after only these audit updates the same command exits 0.",
+        "AC-7: .ai/evidence/XSKP-P5D-01.json records actual command, tree/head, exit code and receipt digest for both red-then-green pairs: the nine-producer test before/after pointer edits, and the stale-audit catalog test before/after the four body_lines updates. Record the applicable no-growth re-pin failure and final verification honestly; do not copy predecessor evidence as this goal's execution, relabel unrelated failures, or invent a red leg. Full foreground bash tests/run-tests.sh OVERALL: PASSED, prek run --all-files green and git diff --check clean are required at the final committed head.",
+        "AC-8: Preserve PR #129 and every predecessor generation, registration and evidence byte; frozen v1, retained policies, 04-validate-handoff/autobahn/**, native/reference-only and pre-existing dirty/untracked paths are untouched. Only this goal's literal scope paths change; no generated-file exemption, policy/signer change or gate weakening. Merge requires independent APPROVE and all three hosted checks SUCCESS at the exact head, ordinary merge only."
+      ],
+      "dependencies": [],
+      "id": "XSKP-P5D-01",
+      "issue_ref": "issue:skills:xskp-p5d-skill-producers",
+      "scope": [
+        "01-discover-decide/domain-modeling/SKILL.md",
+        "04-validate-handoff/code-review/SKILL.md",
+        "04-validate-handoff/handoff/SKILL.md",
+        "04-validate-handoff/retro/SKILL.md",
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/XSKP-P5D-01.json",
+        ".ai/skills/catalog-audit.json",
+        "tests/fixtures/host-default-golden.json",
+        "tests/knowledge_producers_test.sh",
+        "tests/readiness_v2_migrate_test.py"
+      ],
+      "verification": [
+        "bash tests/knowledge_producers_test.sh",
+        "bash tests/skill-catalog_test.sh",
+        "bash tests/run-tests.sh",
+        "bash tests/host_default_golden_test.sh",
+        "bash tests/readiness_v2_migrate_test.sh",
+        "prek run --all-files",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "xskp-p5d-skill-producers",
+  "issue_ref": "issue:skills:xskp-p5d-skill-producers",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5d-skill-producers.md"
+  }
+}

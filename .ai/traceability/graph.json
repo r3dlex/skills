@@ -256,6 +256,21 @@
       "source": "handoff:skills:xskp-p5c-skill-producers:14f98166c8a42bbebf74d4af2aa961cdf68fc1c5d7efe5931e8d608f68f8fed4",
       "target": "plan:skills:xskp-p5c-skill-producers:XSKP-P5C-01:14f98166c8a42bbebf74d4af2aa961cdf68fc1c5d7efe5931e8d608f68f8fed4",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:xskp-p5d-skill-producers",
+      "target": "prd:skills:xskp-p5d-skill-producers",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:xskp-p5d-skill-producers",
+      "target": "handoff:skills:xskp-p5d-skill-producers:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:xskp-p5d-skill-producers:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "target": "plan:skills:xskp-p5d-skill-producers:XSKP-P5D-01:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -973,6 +988,55 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "XSKP-P5C-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:xskp-p5d-skill-producers",
+        "handoff:skills:xskp-p5d-skill-producers:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995"
+      ],
+      "id": "prd:skills:xskp-p5d-skill-producers",
+      "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5d-skill-producers.md",
+      "repo_id": "skills",
+      "sha256": "adf0a70e7d8cfe56a8b334a9cb07f9fcb6b7008c8a6c9f24b670aabf9298bd64",
+      "status": "active",
+      "title": "P5d \u2014 Corrected-scope skills producer pointers (`skills`, plan `xskp-p5d-skill-producers`) \u2014 plan-scoped planning specification",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:xskp-p5d-skill-producers"
+      ],
+      "id": "issue:skills:xskp-p5d-skill-producers",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/xskp-p5d-skill-producers.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "P5d \u2014 Corrected-scope skills producer pointers \u2014 local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:xskp-p5d-skill-producers",
+        "plan:skills:xskp-p5d-skill-producers:XSKP-P5D-01:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995"
+      ],
+      "id": "handoff:skills:xskp-p5d-skill-producers:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "xskp-p5d-skill-producers",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:xskp-p5d-skill-producers:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995"
+      ],
+      "goal_revision": "4868c260886bf7001e86b84b176ffc8d3b8087f9ffaeab4032bca3a474ea12aa",
+      "id": "plan:skills:xskp-p5d-skill-producers:XSKP-P5D-01:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "XSKP-P5D-01",
       "type": "plan"
     }
   ],

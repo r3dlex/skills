@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:xskp-p5d-skill-producers:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "target": "plan:skills:xskp-p5d-skill-producers:XSKP-P5D-01:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "type": "plans"
+    }
+  ],
+  "generation": "cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+  "goal_ids": [
+    "XSKP-P5D-01"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:xskp-p5d-skill-producers:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "4868c260886bf7001e86b84b176ffc8d3b8087f9ffaeab4032bca3a474ea12aa",
+      "id": "plan:skills:xskp-p5d-skill-producers:XSKP-P5D-01:cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995",
+      "path": ".ai/handoff/readiness-v2/xskp-p5d-skill-producers/cfd583e1ffe9d9e0fad32ef553032f142cef0347feef86ed0f081a9997d33995/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "xskp-p5d-skill-producers",
+  "schema_version": "1.1"
+}
