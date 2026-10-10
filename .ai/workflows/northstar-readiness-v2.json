@@ -296,6 +296,38 @@
         "sha256": "adf0a70e7d8cfe56a8b334a9cb07f9fcb6b7008c8a6c9f24b670aabf9298bd64"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/goals.json",
+          "sha256": "952d5d27885d9205b9bc28272bfe907a28506dcf24c74ad5a2a5eeaedbfbb3a1"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/graph.json",
+          "sha256": "489e7747af8287312da39dbc72bfcef3fadae694aaffdc789bbe5cd57d25021f"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/handoff.md",
+          "sha256": "cfbbc0c86da494b5c71aba28c083540322481773d7fe0e6e02e1fa65d3564224"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/sidecar.json"
+        }
+      },
+      "generation": "98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186",
+      "handoff_path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/handoff.md",
+      "id": "northstar-plan-xskp-p5c-02-catalog-audit-sync",
+      "mode": "live",
+      "plan_id": "xskp-p5c-02-catalog-audit-sync",
+      "policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5c-02-catalog-audit-sync.md",
+        "sha256": "d1714fbf80fc21b8c58d7c21a276478e36215319de8c06a094b7f50e4d2e010b"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [
