@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "XSKP-P5D-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: no line-coverage tooling for SKILL.md, shell and catalog content; legacy-safe TDD is required. Observe the nine-producer test red before the four pointers and green afterward. Also observe bash tests/skill-catalog_test.sh red with those pointers and the stale audit (catalog audit artifact drift at skills), then green after only four body_lines updates. Record actual legs in .ai/evidence/XSKP-P5D-01.json. Blast radius: four shipped skill bodies, producer assertions, the catalog audit, no-growth multiset pin, its local-CI hash and conditional host golden regeneration. Unknown readiness is not execution authority; a separate explicit Autobahn dispatch must re-observe exact-generation admission. Historical PR #129 and predecessor bytes remain preserved.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "xskp-p5d-skill-producers",
+  "schema": "readiness-sidecar/1"
+}
