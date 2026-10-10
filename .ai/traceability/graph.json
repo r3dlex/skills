@@ -286,6 +286,21 @@
       "source": "handoff:skills:xskp-p5c-02-catalog-audit-sync:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
       "target": "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:e6-skills-node-npm",
+      "target": "prd:skills:e6-skills-node-npm",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:e6-skills-node-npm",
+      "target": "handoff:skills:e6-skills-node-npm:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:e6-skills-node-npm:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c",
+      "target": "plan:skills:e6-skills-node-npm:E6-AM-01:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -1101,6 +1116,55 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "XSKP-P5C-02",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:e6-skills-node-npm",
+        "handoff:skills:e6-skills-node-npm:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c"
+      ],
+      "id": "prd:skills:e6-skills-node-npm",
+      "path": "docs/specifications/ACTIVE/e6-skills-legacy-ts-conversion.md",
+      "repo_id": "skills",
+      "sha256": "981f1f80182180c02837d9eabba4f15f6383725bab89e67d713fc69dc4e01834",
+      "status": "active",
+      "title": "E6 \u2014 skills tooling to TypeScript (`skills`, plan `e6-skills-legacy-ts`) \u2014 the conversion specification bound by the node/npm policy amendment (`e6-skills-node-npm`)",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e6-skills-node-npm"
+      ],
+      "id": "issue:skills:e6-skills-node-npm",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/e6-skills-node-npm.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "E6 \u2014 node/npm readiness policy prerequisite (`skills`, plan `e6-skills-node-npm`) \u2014 local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e6-skills-node-npm",
+        "plan:skills:e6-skills-node-npm:E6-AM-01:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c"
+      ],
+      "id": "handoff:skills:e6-skills-node-npm:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c",
+      "path": ".ai/handoff/readiness-v2/e6-skills-node-npm/24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "e6-skills-node-npm",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:e6-skills-node-npm:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c"
+      ],
+      "goal_revision": "970204bec452630773743f7e0d8c7bbd38baa251505e02726703e1462f13a365",
+      "id": "plan:skills:e6-skills-node-npm:E6-AM-01:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c",
+      "path": ".ai/handoff/readiness-v2/e6-skills-node-npm/24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "E6-AM-01",
       "type": "plan"
     }
   ],

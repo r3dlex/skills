@@ -328,6 +328,43 @@
         "sha256": "8ec6a0bfb0ac7ea420f3537e5a1172dcac162a35a02c548ef9faa539aeca3f83"
       },
       "status": "active"
+    },
+    {
+      "amends_policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a",
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-node-npm/24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c/goals.json",
+          "sha256": "a24b4fdb430eab3a0668bba83a6952abd20dd07ef77e401ce462da2e990fa7e6"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-node-npm/24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c/graph.json",
+          "sha256": "182d07d317fe120ac2d44a7d13e86753244e4e6cff268af98185e42968351576"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-node-npm/24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c/handoff.md",
+          "sha256": "ff03b4582738331e2267d8ce4cc676a459c1656ed56ce4720de8f04ac451aab8"
+        },
+        "policy_candidate": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-node-npm/24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c/policy-candidate.json",
+          "sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-node-npm/24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c/sidecar.json"
+        }
+      },
+      "generation": "24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c",
+      "handoff_path": ".ai/handoff/readiness-v2/e6-skills-node-npm/24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c/handoff.md",
+      "id": "northstar-plan-e6-skills-node-npm",
+      "mode": "policy-amendment",
+      "plan_id": "e6-skills-node-npm",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/e6-skills-legacy-ts-conversion.md",
+        "sha256": "981f1f80182180c02837d9eabba4f15f6383725bab89e67d713fc69dc4e01834"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [

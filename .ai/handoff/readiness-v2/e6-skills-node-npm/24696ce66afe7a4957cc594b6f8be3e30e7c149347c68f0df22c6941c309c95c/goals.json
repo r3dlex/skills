@@ -1,0 +1,40 @@
+{
+  "attachments": {
+    "consensus_plan": "aitool-root .omc/plans/mega-plan-continuation-20261010.md dispatch 2026-10-10T14:52Z and .omc/plans/mega-plan-wave2-inputs-20261010.md section 3 item 3 (local, non-authoritative)",
+    "generation_scope": "One policy-amendment goal (E6-AM-01) scoping only .ai/policies/readiness-policy.json: tools[] gains node and npm; D4 of docs/specifications/ACTIVE/e6-skills-legacy-ts-conversion.md (section 'node and npm as tools') and the e6-skills-legacy-ts attachment policy_tools_prerequisite",
+    "o8_disposition": "The o8_gate attachment's 'today ACH-S-08 of plan ach-skills-s08-gate-workspace-repair' resolves by record, not name (e6-skills-legacy-ts-conversion.md section 'Dispatch gate (O8)'): the D1 coordinator records O8 as commit f5e338b92bb754c2bfffdf542b498530258fdbc0, the PR #125 merge of branch feat/ach-skills-gate-workspace-ACH-S-08 (first parent 829e5d3e5d4cb41e71581f7cab714eea7ca175ba, 2026-10-09T10:55:25Z), re-observed by git ancestry as an ancestor of origin/main 600f615803c318786df8fe9dc472b366068a33af at publication. The successor merged under the held plan ach-skills-gate-workspace's branch prefix and holds no registry entry; the held original generation 22d460b273ba never merged and is never O8. Sources: ai-tool-workspace .omc/plans/factory-candidate-fresh-20261010/goals.candidate.json (verbatim pin), skills .ai/evidence/ACH-S-08.json, skills .ai/reviews/ach-skills-gate-workspace-ACH-S-08-pr125.md.",
+    "owner": "not in the bundle or sidecar: owner and reviewer lane are recorded once in plan-approval/1"
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "[D4] The merged .ai/policies/readiness-policy.json bytes equal the generation's policy-candidate.json: the live readiness-policy/2 (sha256 58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a) with exactly one edit \u2014 tools becomes [\"bash\", \"python3\", \"git\", \"prek\", \"ssh-keygen\", \"gh\", \"node\", \"npm\"] \u2014 and every other byte unchanged (approval.accept [agent-self, ssh-tag, in-session] with default_mode agent, anchor_sha256 8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1 and max_age_days 14, identity_model single, required_checks, skippable_checks, sources, gates, branch_pattern, target).",
+        "[M4] The candidate keeps the live branch_pattern ^(feat|fix|chore)/<plan_id>-<goal_id>$ byte-identical; routing reads the live pattern, and any candidate that changes it is refused with branch_pattern_change_refused.",
+        "[M1] The registry entry records amends_policy_sha256 = 58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a and the generation id binds it; if any other policy change lands before this amendment merges, admission refuses amendment_base_moved and the amendment must be republished against the new live bytes.",
+        "[rule (d)] This amendment's approval is agent-self approvable only while agent-self stays in the candidate's own approval.accept (the candidate's and the live policy's whole form rule both govern, and the candidate's own default_mode never governs its own approval); an agent-self approval of a policy change emits agent_self_policy_change, is recorded as agent-self and never upgraded to a human label.",
+        "[K3b] After this merge, node and npm are required tools of readiness-policy/2 and the tooling gate checks them for later skills generations; every plan approval in the repository binds the pre-amendment live digest and is voided, P5's approval/xskp-p5-skill-producers/a1fd96194619 included; each plan recovers by re-signing, and a live-mode generation keeps its identity.",
+        "[flips] The publication flips the E6-spec D4 tests, red then green: tests/readiness_policy_v2_test.sh pins the new candidate digest (25), the amends record and the exact tools list (51-53 and the tools check); tests/readiness_v2_migrate_test.py (425-426) points the P5 H1 replay at the policy its generation was published with (the ach-skills-agent-mode candidate bytes) and asserts the live digest has moved on; .ai/ci/local-ci.json re-pins every edited source; precedents #111 (773bfde) and the P5 republish (4fee2ef).",
+        "[O8 first] The e6-skills-legacy-ts chain condition: this amendment merges after O8 (the o8_disposition attachment records the re-observed commit). The amendment's own approval is not minted by its publication: the e6-skills-legacy-ts generation 3f81925f38377c3e90d6df19f75796c5652b1eb379161b1dc638dbcd38dd6c35 keeps its identity, its plan approval is minted only after O8 and the amendment have merged, immediately before goal 00's admission, and is re-signed before certification when fewer than 7 days of the 14-day window remain, because merge-v2 re-verifies it at merge time."
+      ],
+      "dependencies": [],
+      "id": "E6-AM-01",
+      "issue_ref": "issue:skills:e6-skills-node-npm",
+      "scope": [
+        ".ai/policies/readiness-policy.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "e6-skills-node-npm",
+  "issue_ref": "issue:skills:e6-skills-node-npm",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/e6-skills-legacy-ts-conversion.md"
+  }
+}
