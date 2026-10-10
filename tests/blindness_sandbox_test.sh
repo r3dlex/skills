@@ -254,7 +254,11 @@ fi
 #     export and re-enters it, so containment after a collapsed `cd` never
 #     sees the escape — and a literal `..` component whose hop stays inside
 #     the export; every expansion step must be refused, not just the end
-#     state of a collapsed resolution;
+#     state of a collapsed resolution. The alias link targets outside/return
+#     RELATIVELY, so the walk exercises the target queue rather than the
+#     absolute-target refusal; and a link target that ends in a newline byte
+#     must resolve byte-exactly (a stripping reader serves the stripped-name
+#     decoy and reads a dangling link as if it existed);
 #   export guard: an EXPORT equal to SOURCE must fail the block and preserve
 #     the source wiki byte for byte (the old `test -d && test ! -e && mkdir`
 #     chain does not abort under bash -e, so the snapshot ran against the repo
@@ -281,7 +285,7 @@ ln -s "$WORK/export-real/03-configure-generate/workload" "$WORK/return"
 "$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" "outside/return/SKILL.md" \
   >"$WORK/read-outback.out" 2>&1
 outback_rc=$?
-ln -s "$WORK/return" "$EXPORT_REAL/alias"
+ln -s "outside/return" "$EXPORT_REAL/alias"
 "$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" "alias/SKILL.md" \
   >"$WORK/read-chain.out" 2>&1
 chain_rc=$?
@@ -289,6 +293,25 @@ chain_rc=$?
   "03-configure-generate/workload/../workload/SKILL.md" \
   >"$WORK/read-dotdot.out" 2>&1
 dotdot_rc=$?
+# Link targets must resolve byte-exactly: readlink terminates its output with
+# a newline, and a command substitution strips it along with any the target
+# actually ends in — so a stripping reader confuses $'nldir\n' with nldir.
+# The dangling probe is read against a plain-name DECOY at the export root so
+# a stripping reader serves the decoy's file from a link that dangles.
+mkdir "$EXPORT_REAL/nldir"
+printf 'Wrong bytes.\n' > "$EXPORT_REAL/nldir/SKILL.md"
+mkdir "$EXPORT_REAL/nldir"$'\n'
+printf 'Exact bytes.\n' > "$EXPORT_REAL/nldir"$'\n'/SKILL.md
+ln -s $'nldir\n' "$EXPORT_REAL/wlnk"
+"$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" "wlnk/SKILL.md" \
+  >"$WORK/read-nl-valid.out" 2>&1
+nlvalid_rc=$?
+mkdir "$EXPORT_REAL/nlw"
+printf 'Decoy payload.\n' > "$EXPORT_REAL/nlw/SKILL.md"
+ln -s $'nlw\n' "$EXPORT_REAL/nlnk"
+"$EXPORT_REAL/bin/rollout-read" "$EXPORT_REAL" "nlnk/SKILL.md" \
+  >"$WORK/read-nl-dangling.out" 2>&1
+nldang_rc=$?
 run_export "$BLOCK" nested "$SRC/nested-export-check"
 nested_rc=$?
 nested_check_exists="$([ -e "$SRC/nested-export-check" ] && echo yes || echo no)"
@@ -324,6 +347,17 @@ if [ "$dotdot_rc" -ne 0 ] && ! grep -q 'Run this\.' "$WORK/read-dotdot.out"; the
   ok "the rollout reader refuses a literal .. component even when its hop stays inside the export"
 else
   bad "the rollout reader refuses a literal .. component even when its hop stays inside the export (exit $dotdot_rc)"
+fi
+if [ "$nlvalid_rc" -eq 0 ] && grep -q 'Exact bytes\.' "$WORK/read-nl-valid.out" \
+   && ! grep -q 'Wrong bytes\.' "$WORK/read-nl-valid.out"; then
+  ok "the rollout reader resolves a link whose target endswith a newline byte-exactly"
+else
+  bad "the rollout reader resolves a link whose target endswith a newline byte-exactly (exit $nlvalid_rc)"
+fi
+if [ "$nldang_rc" -ne 0 ] && ! grep -q 'Decoy payload\.' "$WORK/read-nl-dangling.out"; then
+  ok "the rollout reader refuses a dangling link whose target ends in a newline byte"
+else
+  bad "the rollout reader refuses a dangling link whose target ends in a newline byte (exit $nldang_rc)"
 fi
 if [ "$nested_rc" -ne 0 ] && [ "$nested_check_exists" = "no" ] \
    && [ -z "$nested_dirty" ] && [ "$wiki_sum_nested" = "$wiki_sum" ]; then
