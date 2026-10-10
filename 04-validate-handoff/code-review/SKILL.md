@@ -80,3 +80,6 @@ A change can pass one and fail the other:
   Standards fail.**
 
 Reporting them separately stops one axis from masking the other.
+
+End by declaring knowledge kind `review`, then reading
+[ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md) and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.

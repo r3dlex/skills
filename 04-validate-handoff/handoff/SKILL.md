@@ -13,3 +13,6 @@ Do not duplicate content already captured in other artifacts (PRDs, plans, ADRs,
 Redact any sensitive information, such as API keys, passwords, or personally identifiable information.
 
 If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.
+
+End by declaring knowledge kind `handoff`, then reading
+[ai-catapult-init/modules/knowledge-publish.md](../ai-catapult-init/modules/knowledge-publish.md) and running its host-neutral producer step — publish when a registry exists, otherwise record `unpublished: <reason>`; never fail the skill because of the registry.
