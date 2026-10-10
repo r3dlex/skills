@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:xskp-p5c-02-catalog-audit-sync:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+      "target": "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+      "type": "plans"
+    }
+  ],
+  "generation": "a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+  "goal_ids": [
+    "XSKP-P5C-02"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:xskp-p5c-02-catalog-audit-sync:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+      "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "6035acabc51b914d2f122e832b7d2e0a73686b81b4e06d09923ac8603d603468",
+      "id": "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+      "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "xskp-p5c-02-catalog-audit-sync",
+  "schema_version": "1.1"
+}

@@ -301,23 +301,23 @@
       "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
       "artifacts": {
         "bundle": {
-          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/goals.json",
-          "sha256": "952d5d27885d9205b9bc28272bfe907a28506dcf24c74ad5a2a5eeaedbfbb3a1"
+          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/goals.json",
+          "sha256": "5fcc469df59defd8e29b1d2e25c499e7a5eb0d873351e753f30d3d4d9c209381"
         },
         "graph": {
-          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/graph.json",
-          "sha256": "489e7747af8287312da39dbc72bfcef3fadae694aaffdc789bbe5cd57d25021f"
+          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/graph.json",
+          "sha256": "5fdc463109dfeb3bcb5052c2818ad8d44df99bd8e622438d4502d8444355027f"
         },
         "handoff": {
-          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/handoff.md",
-          "sha256": "cfbbc0c86da494b5c71aba28c083540322481773d7fe0e6e02e1fa65d3564224"
+          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/handoff.md",
+          "sha256": "9f3b5a3153ff1cad3c28be363b3c2fb4651a1d8b11058d68f45068521f3c98a5"
         },
         "sidecar": {
-          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/sidecar.json"
+          "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/sidecar.json"
         }
       },
-      "generation": "98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186",
-      "handoff_path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/handoff.md",
+      "generation": "a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+      "handoff_path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/handoff.md",
       "id": "northstar-plan-xskp-p5c-02-catalog-audit-sync",
       "mode": "live",
       "plan_id": "xskp-p5c-02-catalog-audit-sync",
@@ -325,7 +325,7 @@
       "schema": "readiness-contract/2",
       "spec": {
         "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5c-02-catalog-audit-sync.md",
-        "sha256": "d1714fbf80fc21b8c58d7c21a276478e36215319de8c06a094b7f50e4d2e010b"
+        "sha256": "8ec6a0bfb0ac7ea420f3537e5a1172dcac162a35a02c548ef9faa539aeca3f83"
       },
       "status": "active"
     }

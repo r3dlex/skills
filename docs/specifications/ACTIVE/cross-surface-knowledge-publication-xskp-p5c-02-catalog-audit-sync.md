@@ -36,28 +36,51 @@ The predecessor plan `xskp-p5c-skill-producers` (live generation
 `.ai/workflows/northstar-readiness-v2.json`, published by PR #128 squash
 `656d64e1759a27f97248d50bf613e8d31839fde5`) defined goal `XSKP-P5C-01`: the four
 remaining producer pointers — `handoff`, `retro`, `domain-modeling` and `code-review`
-— plus the generated surfaces that follow in the same change set. Its implementation
-PR #129 (branch head `2ce69ca67000aae0ff446fe220b03271f665591d`) applies the four
-pointer blocks and their test/golden follow-on surfaces, and its committed tree leaves
-`.ai/skills/catalog-audit.json` stale: `bash tests/skill-catalog_test.sh` is red with
-`AssertionError: catalog audit artifact drift at skills` because the tracked audit
-still records the pre-pointer body_lines values. The audit regeneration was outside
-the registered goal's scope, so #129 is red and scope-blocked on that file.
+— plus the generated surfaces that follow in the same change set. Its implementation PR #129 (`feat/xskp-p5c-skill-producers-XSKP-P5C-01`) applies the
+four pointer blocks and their test/golden follow-on surfaces. The tree this plan and
+its published bundle snapshot is that PR at its historical pre-fixer branch basis
+`2ce69ca67000aae0ff446fe220b03271f665591d`; at that basis the committed tree left
+`.ai/skills/catalog-audit.json` stale — `bash tests/skill-catalog_test.sh` failed
+with `AssertionError: catalog audit artifact drift at skills` because the tracked
+audit still recorded the pre-pointer body_lines values, and the audit regeneration
+was outside the registered goal's scope, so the remainder was red and scope-blocked
+on that file.
 
-This plan restates that remainder at the corrected scope under a fresh plan id: the
+PR #129 is still open and its thread moved after this branch was snapped. After a
+coordinator takeover notice (`br4vesirrobin`, 2026-10-10T07:46:54Z), fixer commit
+`d73f2e9d617a63d15e1664f6546125703d1aaf5e` — the current `refs/pull/129/head` —
+regenerates the audit through `python3 scripts/validate-skill-catalog.py
+--write-audit`, touching only that file; the result is byte-identical to this plan's
+regeneration. The same thread records (2026-10-10T08:51:06Z) that this fix sits
+outside XSKP-P5C-01's declared scope and names the parallel corrected-scope successor
+`xskp-p5d-skill-producers` (`XSKP-P5D-01`; published by PR #130 and squashed as this
+plan's base `0620130d8bc805c2e9f36765d81f05297488a09e`, implemented by open PR #131).
+
+What neither open PR delivers is this registration: the audit regeneration stays
+outside the registered XSKP-P5C-01 scope before and after that fixer, #129 defines
+no planning publication registering `XSKP-P5C-02` and carries no red-to-green record
+for the audit sync. The P5D-01 registration and this one overlap on the regenerated
+audit file and the four producer skills; duplicate-delivery resolution between this
+PR and open PR #131 is a merge-order coordination concern outside this publication.
+PR #129 is never edited by this plan — the take-over of the audit-sync remainder
+into this publication is disclosed here.
+
+This plan restates the remainder at the corrected scope under a fresh plan id: the
 readiness-v2 registry replaces same-id entries on republish, so the fresh id is what
 keeps this planning registration distinct from the predecessor generation. The
-predecessor generation's registration, evidence and PR are unchanged; this plan
-supersedes only the undispatched remainder — the validator-only audit sync and the
-publishable lane record for it.
+predecessor generation's registration, evidence and PR are unchanged.
 
 ## Plan
 
 ### P5c-02 — sync the catalog audit with the four producer pointers
 
-The four producer skills carry their pointer blocks at `refs/pull/129/head`
-(`2ce69ca67000aae0ff446fe220b03271f665591d`); the tracked audit is stale by exactly
-four `body_lines` values. This plan registers the completion: regenerate
+The four producer skills carry their pointer blocks inherited from
+`refs/pull/129/head`: defined at its historical pre-fixer basis
+`2ce69ca67000aae0ff446fe220b03271f665591d` against base
+`656d64e1759a27f97248d50bf613e8d31839fde5`, and byte-identical at the current
+`refs/pull/129/head` `d73f2e9d617a63d15e1664f6546125703d1aaf5e`, whose fixer commit
+touches only the audit file. At the inherited basis the tracked audit was stale by
+exactly four `body_lines` values. This plan registers the completion: regenerate
 `.ai/skills/catalog-audit.json` only through
 `python3 scripts/validate-skill-catalog.py --write-audit` (code-review 78 to 81,
 domain-modeling 50 to 53, handoff 10 to 13, retro 36 to 39; every other field and

@@ -279,12 +279,12 @@
     },
     {
       "source": "prd:skills:xskp-p5c-02-catalog-audit-sync",
-      "target": "handoff:skills:xskp-p5c-02-catalog-audit-sync:98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186",
+      "target": "handoff:skills:xskp-p5c-02-catalog-audit-sync:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
       "type": "plans"
     },
     {
-      "source": "handoff:skills:xskp-p5c-02-catalog-audit-sync:98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186",
-      "target": "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186",
+      "source": "handoff:skills:xskp-p5c-02-catalog-audit-sync:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+      "target": "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
       "type": "plans"
     }
   ],
@@ -1057,12 +1057,12 @@
     {
       "backlinks": [
         "issue:skills:xskp-p5c-02-catalog-audit-sync",
-        "handoff:skills:xskp-p5c-02-catalog-audit-sync:98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186"
+        "handoff:skills:xskp-p5c-02-catalog-audit-sync:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0"
       ],
       "id": "prd:skills:xskp-p5c-02-catalog-audit-sync",
       "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5c-02-catalog-audit-sync.md",
       "repo_id": "skills",
-      "sha256": "d1714fbf80fc21b8c58d7c21a276478e36215319de8c06a094b7f50e4d2e010b",
+      "sha256": "8ec6a0bfb0ac7ea420f3537e5a1172dcac162a35a02c548ef9faa539aeca3f83",
       "status": "active",
       "title": "P5c-02 \u2014 Skills catalog audit sync (`skills`, plan `xskp-p5c-02-catalog-audit-sync`) \u2014 plan-scoped planning specification",
       "type": "prd"
@@ -1082,10 +1082,10 @@
     {
       "backlinks": [
         "prd:skills:xskp-p5c-02-catalog-audit-sync",
-        "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186"
+        "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0"
       ],
-      "id": "handoff:skills:xskp-p5c-02-catalog-audit-sync:98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186",
-      "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/handoff.md",
+      "id": "handoff:skills:xskp-p5c-02-catalog-audit-sync:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+      "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/handoff.md",
       "repo_id": "skills",
       "status": "active",
       "title": "xskp-p5c-02-catalog-audit-sync",
@@ -1093,11 +1093,11 @@
     },
     {
       "backlinks": [
-        "handoff:skills:xskp-p5c-02-catalog-audit-sync:98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186"
+        "handoff:skills:xskp-p5c-02-catalog-audit-sync:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0"
       ],
       "goal_revision": "6035acabc51b914d2f122e832b7d2e0a73686b81b4e06d09923ac8603d603468",
-      "id": "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186",
-      "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/98a7eab2c71bac6b4596ff2ecc4d24d3af95e5d2ad3e2944b27c747c96580186/goals.json",
+      "id": "plan:skills:xskp-p5c-02-catalog-audit-sync:XSKP-P5C-02:a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0",
+      "path": ".ai/handoff/readiness-v2/xskp-p5c-02-catalog-audit-sync/a7f8f8da9dc94ed88146bb8730618783b60943d318dcfabe41422b7732387fa0/goals.json",
       "repo_id": "skills",
       "status": "planned",
       "title": "XSKP-P5C-02",

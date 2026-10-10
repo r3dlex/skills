@@ -10,9 +10,20 @@
 - **Delivery posture:** one readiness-contract/2 generation
   (`xskp-p5c-02-catalog-audit-sync`) with one goal, `XSKP-P5C-02`, in one PR. It
   completes the audit-regeneration remainder of the predecessor plan
-  `xskp-p5c-skill-producers` (`XSKP-P5C-01` planning merged as #128; its
-  implementation PR #129 applies the four SKILL.md pointer blocks but leaves
-  `.ai/skills/catalog-audit.json` stale and red). The audit delta is produced only by
+  `xskp-p5c-skill-producers` (`XSKP-P5C-01` planning merged as #128). The carried
+  implementation PR #129 applies the four SKILL.md pointer blocks; at its historical
+  pre-fixer basis `2ce69ca67000aae0ff446fe220b03271f665591d` the tracked
+  `.ai/skills/catalog-audit.json` was stale and the catalog test red. PR #129 is
+  open at `d73f2e9d617a63d15e1664f6546125703d1aaf5e`, whose fixer commit (after a
+  coordinator takeover notice, 2026-10-10T07:46:54Z) regenerates the audit through
+  the validator, touching only that file, byte-identical to this plan's
+  regeneration; its thread records (2026-10-10T08:51:06Z) that the fix sits outside
+  the declared P5C-01 scope and names the parallel corrected-scope successor
+  `xskp-p5d-skill-producers` (PR #130 merged as this publication's base, open
+  implementation PR #131). #129 defines no planning publication registering
+  `XSKP-P5C-02` and carries no red-to-green record for the audit sync; #129 is
+  never edited by this plan, so the take-over of the audit-sync remainder is
+  disclosed here. The audit delta is produced only by
   `python3 scripts/validate-skill-catalog.py --write-audit`. Planning complete is not
   implementation readiness; implementation needs one verified plan approval for this
   generation.
