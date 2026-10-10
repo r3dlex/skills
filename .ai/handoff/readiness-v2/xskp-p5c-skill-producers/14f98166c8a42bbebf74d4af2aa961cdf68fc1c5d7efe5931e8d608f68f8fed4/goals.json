@@ -1,0 +1,52 @@
+{
+  "attachments": {
+    "contract_pack_lock": "docs/specifications/ACTIVE/cross-surface-knowledge-publication.contract/contract.lock.json sha256 9f5d7edfc17554c383b06aa4726dfffe564ecc8d657b16baa89ce72098d5e102",
+    "independence": "No goal depends on a goal in another plan; this plan is callable by its own autobahn run.",
+    "predecessor_generation": "xskp-p5-skill-producers generation a1fd9619461935776451a8c7c130dc9c7aed305cd58b61d21c2c6e4193c8343d (registered on main, approval tag approval/xskp-p5-skill-producers/a1fd96194619, tag object e4136d16cd92d2601bc91d0cbf97895a3af1c8a2, target 4fee2ef8769e40ae298493df8a92441a82c04713): XSKP-P5-01 (#116), XSKP-P5-02 (#118) and XSKP-P5-04 (#121) merged; the XSKP-P5-03 slice was never dispatched. This plan restates that slice at corrected scope (adds tests/readiness_v2_migrate_test.py, .ai/ci/local-ci.json, tests/fixtures/host-default-golden.json and .ai/evidence/XSKP-P5C-01.json) under a fresh plan id, because the readiness-v2 registry replaces same-id entries on republish.",
+    "publication_posture": "Born readiness-contract/2, live mode, on the ACH-20261002 contract-version authorities (r3dlex/ai-tool-workspace docs/specifications/ACTIVE/admission-complete-handoffs.md sha256 2d9a247ace71f21b6b72fb9b852f53b6721f862161791ddc658ec9b9e54337dd): R1 new plans publish v2, and R4 displaced skills' v1 policy at the scoped ACH-S-01 bootstrap rollover and put the remaining skills goals on the v2 republish path; skills ADR-0016 (docs/architecture/adr/0016-git-native-plan-approval.md) records that v1 is unchanged and its bytes and outputs are frozen. Published by 02-govern-plan/northstar/handoff-write.sh v2 dispatch (contract-run.sh publish-v2 --admit-planning). The v1 registry, every readiness-v1 payload and the retained policy files stay byte-identical to main. Publication grants no authority; implementation needs one verified plan approval for this generation.",
+    "umbrella_spec": "r3dlex/ai-tool-workspace docs/specifications/ACTIVE/cross-surface-knowledge-publication.md sha256 d50488d9b480fdfdea6c2fa2b7265a507d98fdae97758c3b1d2f501951415586"
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "AC-1: handoff (kind handoff), retro (kind learning), domain-modeling (kind adr, target docs/architecture/adr/) and code-review (kind review) each end with a pointer of at most 3 lines to the shared producer module 03-configure-generate/ai-catapult-init/modules/knowledge-publish.md, extending the exact pattern XSKP-P5-02 established for northstar, to-spec, to-prd, to-issues and research.",
+        "AC-2: Catalog limits hold with no new exception entry: description at most 160 characters, body at most 100 lines for every touched skill, and Codex/OpenCode parity (tests/codex_parity_test.sh, tests/opencode_parity_test.sh) passes under tests/run-tests.sh.",
+        "AC-3: tests/knowledge_producers_test.sh section 3 extends its loop from the five producers (northstar, to-spec, to-prd, to-issues, research) to all nine (adding handoff, retro, domain-modeling, code-review), and its closing assertion reports all nine producers ending with the kind-declaring pointer and keeping catalog limits.",
+        "AC-4: The SKILL.md no-growth guard in tests/readiness_v2_migrate_test.py (the multi-set digest over every tracked */SKILL.md path, index mode and content sha, sorted) advances from 6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4 to the post-edit value, and the re-pin covers exactly the four deliberate pointer-block edits; every other assertion in the test is unchanged. .ai/ci/local-ci.json changes only the existing tests/readiness_v2_migrate_test.py sources hash value.",
+        "AC-5: tests/fixtures/host-default-golden.json is regenerated with scripts/regen-host-golden.sh in the same change set so bash tests/host_default_golden_test.sh is green, and the regeneration propagates only the four pointer-block edits.",
+        "AC-6: Evidence: the observed same-command red-then-green run is recorded in .ai/evidence/XSKP-P5C-01.json, with the red leg at the base tree (the four pointer blocks missing) and the green leg at the goal's committed head.",
+        "AC-7: no native, immutable, reference-only or pre-existing dirty/untracked path changes."
+      ],
+      "dependencies": [],
+      "id": "XSKP-P5C-01",
+      "issue_ref": "issue:skills:xskp-p5c-skill-producers",
+      "scope": [
+        "01-discover-decide/domain-modeling/SKILL.md",
+        "04-validate-handoff/code-review/SKILL.md",
+        "04-validate-handoff/handoff/SKILL.md",
+        "04-validate-handoff/retro/SKILL.md",
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/XSKP-P5C-01.json",
+        "tests/fixtures/host-default-golden.json",
+        "tests/knowledge_producers_test.sh",
+        "tests/readiness_v2_migrate_test.py"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "bash tests/host_default_golden_test.sh",
+        "bash tests/readiness_v2_migrate_test.sh",
+        "prek run --all-files",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "xskp-p5c-skill-producers",
+  "issue_ref": "issue:skills:xskp-p5c-skill-producers",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/cross-surface-knowledge-publication-xskp-p5c-skill-producers.md"
+  }
+}
