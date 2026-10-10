@@ -678,7 +678,7 @@ class ReleaseSurfaceTests(unittest.TestCase):
         for path, mode, file_sha in sorted(files):
             digest.update(path + b'\0' + mode + b'\0' + bytes.fromhex(file_sha))
         current = '\n'.join(f'{mode.decode()} {file_sha} {os.fsdecode(path)}' for path, mode, file_sha in sorted(files))
-        self.assertEqual(digest.hexdigest(), '5d0e2f1cb2d82d2d87386f3ed31a7f3a6351d0cf9e2327f98d246b678011addf',
+        self.assertEqual(digest.hexdigest(), '31ee6a800ccdf298eb3d5be267b0944b7f62fc869969357153599bfaf90b6892',
                          'a tracked */SKILL.md changed; re-pin only for a deliberate, reviewed edit. '
                          'Current mode, sha256 and path per file:\n' + current)
 

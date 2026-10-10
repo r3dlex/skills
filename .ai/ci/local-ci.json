@@ -60,7 +60,7 @@
     "tests/readiness_v2_context_test.sh": "61b96a82565a40f9f680fddf4889f850bbc50eefc09166eb525b340fc95f1774",
     "tests/northstar_v2_publish_test.py": "60650a713d9b699922d751a2a346d2df7205e05c025a8514b118c0ba65444dbf",
     "tests/northstar_v2_publish_test.sh": "3987c2c10baa3e49dc1755d7d2cc20b1e8995656f9d36f5549fb6f09d011aec4",
-    "tests/readiness_v2_migrate_test.py": "09b374e38a21e23fcb21427a6a248514edca63bf01476011c6bc25a18e6caec0",
+    "tests/readiness_v2_migrate_test.py": "a17e88a245032abac1dae64ee0fb84e2ea8abae0f50e1ca081fa1100163a6eb9",
     "tests/readiness_v2_migrate_test.sh": "274a42ef5c6b3da1398f0fdd56d2f9abcc874e2b79395faa0c4ae4645d9bfc5f",
     "tests/readiness_v2_fixture.py": "39dc27e825c43763679b18f9f1d0bbe2bcceceb2f7ae1652a3e496aa25d98643",
     "tests/readiness_v2_e2e_test.py": "6a96c84e3ff22360ac64079bf049f4648f6f6dcc0c994ec4686fca12ff3225f9",

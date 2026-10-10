@@ -18,16 +18,12 @@ wiki is made unreachable by the environment, never by asking the agent to look a
 
 ## The blindness sandbox
 
-A grep over the prompt proves nothing: the rollout can still read `evolve/wiki/` at
-runtime. Blindness is an environment property: the export below has no `evolve/` and
-no git history, so the wiki is unreachable even through `git log` or `git show`;
-the block is the whole procedure, and the blindness test runs it exactly.
+A grep over the prompt proves nothing: the rollout can still read `evolve/wiki/` at runtime.
+Blindness is an environment property: the export below has no `evolve/` and no git history,
+so the wiki is unreachable even through `git log` or `git show`; the block is the whole procedure, and the blindness test runs it exactly.
 
 ```bash blindness-sandbox
-# SOURCE is the repo under rollout, EXPORT a fresh directory the rollout owns.
-# The guard fails closed before any write: an EXPORT that exists, overlaps
-# SOURCE, or sits inside a git work tree — on physical paths — is refused, so
-# the wiki is never touched and its history never reachable.
+# Fail closed before any write: an EXPORT that exists, overlaps SOURCE, or sits inside a git work tree — on physical paths — is refused, so the wiki is never touched and its history never reachable.
 SOURCE="${SOURCE:?set SOURCE to the repository under rollout}"
 EXPORT="${EXPORT:?set EXPORT to a disposable directory}"
 if ! [ -d "$SOURCE" ]; then echo "refused: SOURCE is not a directory" >&2; exit 1; fi
@@ -43,19 +39,24 @@ git -C "$SOURCE" archive HEAD | tar -x -C "$EXPORT"   # blindness-sandbox:snapsh
 # Path denial: no wiki path survives, tracked or not.
 rm -rf "$EXPORT/evolve"                               # blindness-sandbox:denial
 printf 'deny evolve/\ndeny .git/\n' > "$EXPORT/.blindness-policy"
-# The export's only reader walks the path physically: traversal and symlink hops that leave the export are refused.
+# The export's only reader resolves the target one hop at a time; every hop, traversal or symlink, that leaves the export is refused.
 mkdir -p "$EXPORT/bin"
 cat > "$EXPORT/bin/rollout-read" <<'ROLLOUT_READ'
 #!/bin/bash
 set -euo pipefail
-root="${1:?usage: rollout-read <root> <relative-path>}"; target="${2:?}"
-case "$target" in /*|'') echo "denied: $target" >&2; exit 3 ;; esac
-base="$(cd -- "$root" && pwd -P)" || { echo "denied: missing root: $root" >&2; exit 3; }
-dest="$(cd -- "$base/$(dirname -- "${target#./}")" 2>/dev/null && pwd -P)" || { echo "denied: $target" >&2; exit 3; }
-case "$dest" in "$base"|"$base"/*) ;; *) echo "denied: $target escapes the export" >&2; exit 3 ;; esac
-file="${target##*/}"
-if [ -L "$dest/$file" ] || ! [ -f "$dest/$file" ]; then echo "denied: $target" >&2; exit 3; fi
-cat "$dest/$file"
+root="${1:?usage: rollout-read <root> <relative-path>}"; target="${2-}"
+d3() { echo "denied: $1" >&2; exit 3; }
+case "$target" in /*|'') d3 "$target" ;; esac
+base="$(cd -- "$root" 2>/dev/null && pwd -P)" || d3 "missing root: $root"
+case "$target" in */*) dir="${target%/*}"; file="${target##*/}" ;; *) dir=""; file="$target" ;; esac
+hop="$base" rest="$dir"
+while [ -n "$rest" ]; do
+  case "$rest" in */*) c="${rest%%/*}"; rest="${rest#*/}" ;; *) c="$rest"; rest="" ;; esac
+  if ! hop="$(cd -- "$hop/$c" 2>/dev/null && pwd -P)"; then d3 "$target"; fi
+  case "$hop" in "$base"|"$base"/*) ;; *) d3 "$target escapes the export" ;; esac
+done
+if [ -L "$hop/$file" ] || ! [ -f "$hop/$file" ]; then d3 "$target"; fi
+cat "$hop/$file"
 ROLLOUT_READ
 chmod +x "$EXPORT/bin/rollout-read"
 ```
@@ -100,5 +101,4 @@ complexity, lint, type or coverage threshold; never cite it for one.
 
 ## Related
 
-`wiki-maintainer` folds these traces into the wiki; `skill-proposer` turns an accepted
-pattern into one overlay; `eval-a-skill` owns the judge contract this procedure binds its records to.
+`wiki-maintainer` folds these traces into the wiki; `skill-proposer` turns an accepted pattern into one overlay; `eval-a-skill` owns the judge contract this procedure binds its records to.
