@@ -418,12 +418,17 @@ class PublishedP5Tests(unittest.TestCase):
         entry = entries[0]
         prefix = '.ai/handoff/readiness-v2/xskp-p5-skill-producers/' + entry['generation']
         base = Path(tempfile.mkdtemp()).resolve()
-        # P5 was republished against the amended live policy (the republish ACH-AM-01 mandated),
-        # so the committed generation binds the live bytes and its byte-for-byte H1 replay runs
-        # under them. A later policy change moves the live digest again and would force another
-        # republish plus the same collateral re-pin ACH-AM-01 made here.
-        published_policy = REPO / POLICY
+        # The E6 prerequisite policy amendment (E6-AM-01) changed the live policy digest after
+        # P5 was republished, so the byte-for-byte H1 replay of the committed generation runs
+        # under the policy it was published with (the registered policy_sha256, the post-S-06
+        # amendment candidate bytes), never under the amended live bytes: the replay under the
+        # live policy is the later mandated republish, not this generation.
+        published_policy = (REPO / '.ai/handoff/readiness-v2/ach-skills-agent-mode'
+                            '/696b8811e97f491bb8fa367dbe5ccfaf537166516d184cd12304e029b1e54ff2'
+                            '/policy-candidate.json')
         self.assertEqual(sha(published_policy), entry['policy_sha256'])
+        self.assertNotEqual(sha(REPO / POLICY), entry['policy_sha256'],
+                            'the live policy has moved on; the P5 republish against it is a later effort')
         for relative in (REGISTRY, entry['spec']['path'], 'tests/run-tests.sh'):
             source, target = REPO / relative, base / relative
             target.parent.mkdir(parents=True, exist_ok=True)
