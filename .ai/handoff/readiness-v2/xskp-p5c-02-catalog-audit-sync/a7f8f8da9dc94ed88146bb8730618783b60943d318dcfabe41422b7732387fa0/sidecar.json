@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "XSKP-P5C-02": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: no line-coverage tooling for SKILL.md, shell and catalog content; legacy-safe TDD is required. Observe bash tests/skill-catalog_test.sh red with the branch's four SKILL.md pointer blocks and the stale committed audit (catalog audit artifact drift at skills), then green after only python3 scripts/validate-skill-catalog.py --write-audit updates the four body_lines values; record the actual legs honestly as goal evidence. Blast radius: the four shipped skill bodies are carried unchanged from refs/pull/129/head and the goal's only new byte change is the catalog audit artifact; the lane's planning publication separately authors the generation directory, the registry entry, the traceability graph nodes and the work-intake doc outside goal scope. Unknown readiness is not execution authority; a separate explicit Autobahn dispatch must re-observe exact-generation admission. Historical PR #129 and predecessor bytes remain preserved.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "xskp-p5c-02-catalog-audit-sync",
+  "schema": "readiness-sidecar/1"
+}
