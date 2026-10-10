@@ -542,5 +542,123 @@
       "command": "git diff --name-only 0663e292855f5aadcc9e39a5e94a6e0215b122fc..bea0c3d35a422f789248b8d0c7959f8809a3f755 — 17 changed files",
       "result": "each changed file is inside a goals.json scope entry, and every scope entry has a diff; no outside-scope file"
     }
+  },
+  "review_round_3": {
+    "at": "2026-10-10T02:30:51Z",
+    "reviewer": "codex cross-vendor independent review (omc ask codex), read-only at the review worktree",
+    "head_reviewed": "9bb1fb333f12a51b5db6dbec9604d1b844b85584",
+    "verdict": "REQUEST_CHANGES",
+    "blocking": [
+      "finding 2.4: the per-component reader resolves a component with one collapsed cd, so a symlink chain that leaves the export and re-enters it inside a SINGLE component (alias -> outside/return, return -> the workload dir, path alias/SKILL.md) is served with exit 0 — containment after the collapsed cd only sees the landing path"
+    ],
+    "non_blocking": [
+      "finding 2.5: a literal .. component whose hop stays inside the export is served with exit 0, contradicting the closure contract which claims a pre-cd component refusal"
+    ],
+    "artifact_receipt": "review-round3-artifact.md (plus review-round3-brief.md); verdict recorded verbatim at 9bb1fb3"
+  },
+  "round_3_closure": {
+    "at": "2026-10-10T02:30:51Z",
+    "purpose": "round-3 review findings 2.4 (single-component out-and-back symlink chain bypass) and 2.5 (literal .. component served) closed red-first: the reader now expands every component in place before entering it — a symlink component is re-read one link step at a time with its target re-entering the component queue, absolute and empty link targets refuse, a literal .. component refuses as a component anywhere in the walk, expansion is budget-capped, cd is anchored at the resolved physical hop, and in-tree symlink reads still pass",
+    "red": {
+      "at": "2026-10-10T02:30:51Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "914c956cb2d9b9221ba60f7eed4901e7d7b4cb8b",
+      "exit_code": 1,
+      "output_sha256": "87491a1d8f230a99a028107a2152d73b95917c06a48de360a96478b070d0fb03",
+      "result": "fails only tests/blindness_sandbox_test.sh — Results: PASS=16 FAIL=2 (+ its unit-test wrapper FAIL): the new seventh guard (single-component chain alias/b through return -> the workload dir) is served with exit 0 by the pre-fix reader, reproducing finding 2.4, and the eighth guard (path containing a literal .. component whose hop stays inside) is served with exit 0, reproducing finding 2.5; all sixteen round-1/round-2 asserts stay green",
+      "tree": "committed red-3 tree (clean worktree skills-s2-fix-20261010); test-file-only commit, no reader change yet"
+    },
+    "green": {
+      "at": "2026-10-10T02:30:51Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "f6daa06a2d6635b363797ad2a176073277650325",
+      "exit_code": 0,
+      "output_sha256": "e953fb09cbe5b86cecb2d75a628051172cf4657d42bf1f52a585f233f513a623",
+      "tree": "committed fix head 2 (clean worktree skills-s2-fix-20261010 before and after the run)",
+      "result": "OVERALL: PASSED; blindness unit Results: PASS=18 FAIL=0 — all eighteen asserts green: the two new guards now exit 3 (chain and .. denials), every round-1/round-2 assert unchanged, the plain workload read still passes, and an in-tree intermediate symlink hop still passes (no over-deny)",
+      "sub_legs": {
+        "prek": {
+          "command": "prek run --all-files",
+          "exit_code": 0,
+          "output_sha256": "dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae",
+          "note": "byte-identical to the round-1, round-2 and round-3-admission prek receipts — re-run at the committed fix head f6daa06"
+        },
+        "diff_check": {
+          "command": "git diff --check",
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "empty output at the committed tree"
+        }
+      }
+    },
+    "reader_probe_semantics": "development-time scratch probes against the extracted committed block (never committed): chain alias/SKILL.md exit 3; literal-.. path exit 3; in-tree intermediate symlink hop (03-configure-generate/inlink/SKILL.md with inlink -> workload) exit 0 with the payload served (no over-deny); nested inside link (inlink2 -> 03-configure-generate/inlink) exit 0; self-referential . target link (selfref -> .) exit 0; final-dir symlink target (dirlink -> a directory) exit 3 refusal preserved per the round-2 contract; empty target exit 3; absolute target exit 3; directory-as-file target exit 3; missing/unreadable root argument still exit 1 via :? (unchanged); expansion budget backstop (64) never reached by any legit walk",
+    "digest_pin": {
+      "recomputation_at_head": "python3 -I -B recomputation at f6daa06a2d6635b363797ad2a176073277650325 reproduces 56566dc9e0bdbdc90de1648ff5c7ceacdc781a1b57dc3f62de0fad9f4b57b8af over 49 tracked */SKILL.md files (path, index mode, working-tree bytes, sha256-per-file, path\\0mode\\0file-sha in sorted order), the value re-pinned at tests/readiness_v2_migrate_test.py:681",
+      "advance": "31ee6a800ccdf298eb3d5be267b0944b7f62fc869969357153599bfaf90b6892 -> 56566dc9e0bdbdc90de1648ff5c7ceacdc781a1b57dc3f62de0fad9f4b57b8af (deliberate, reviewed SKILL.md edit: per-component reader expansion block)",
+      "local_ci": "tests/readiness_v2_migrate_test.py file sha256 a17e88a245032abac1dae64ee0fb84e2ea8abae0f50e1ca081fa1100163a6eb9 -> 02a57e51d4419a793a5c92f32d9e54ec50762e87535a97282d2459de6c420b11 re-pinned as its sources value in .ai/ci/local-ci.json",
+      "audit": "python3 scripts/validate-skill-catalog.py --write-audit net-unchanged at body_lines exactly 100 (42 skills)"
+    },
+    "per_ac_round_3_green": {
+      "note": "every recorded AC test_command re-run at f6daa06a2d6635b363797ad2a176073277650325; exit_code and sha256 of combined output recorded per AC",
+      "ac1_note": "AC1 exits 1 legitimately at a branch head: its scope check reports the evidence file itself (.ai/evidence/tswc-sk-b2.json) as an out-of-scope addition relative to its recorded baseline — the authoritative scope leg is the base->head diff below",
+      "results": {
+        "1": {
+          "exit_code": 1,
+          "output_sha256": "24d23d4e261367b14672184da4976a486a93bd8f0ecd1e547b731d32165e2584"
+        },
+        "2": {
+          "exit_code": 0,
+          "output_sha256": "ee4e88ddcbea289986df63217f96215484ceec0c684a943abcfb12e9936fdb23"
+        },
+        "3": {
+          "exit_code": 0,
+          "output_sha256": "1b096f126311ad4a4c73172b6b9cb739c7e71f242b41c3b3c596527c66f08ac1"
+        },
+        "4": {
+          "exit_code": 0,
+          "output_sha256": "a042f38410ee784486458be1e5776f12d8863ff359295eef20c55c35f3894b1e"
+        },
+        "5": {
+          "exit_code": 0,
+          "output_sha256": "cdc938e0fa61f1ac05a8341d320a949ef8299f7904b82bb8a0c26144b36f756f"
+        },
+        "6": {
+          "exit_code": 0,
+          "output_sha256": "1fcba88e18ec7a0354612dbdc66906b6baabb4e2f254202a51723b4d89c21eea"
+        },
+        "7": {
+          "exit_code": 0,
+          "output_sha256": "7969f8445d5b45f27ef1ada79d369c8b6d64b14bca5efedd3b2ed3a5122a508d"
+        },
+        "8": {
+          "exit_code": 0,
+          "output_sha256": "1bd25e1e0b93fe668c4e75588a961de3cbfd17e5c9bb027be873a1372ac223d4"
+        },
+        "9": {
+          "exit_code": 0,
+          "output_sha256": "d6b423d672078d7da23b255f39b4da769f77d7dfc58bd82b3f2684de247ed3f5"
+        },
+        "10": {
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "11": {
+          "exit_code": 0,
+          "output_sha256": "b7e8ed587996312616686840264b66b20dc83714933d4e265bb8bbcef108d6ca"
+        },
+        "12": {
+          "exit_code": 0,
+          "output_sha256": "15ac4e778ee85dac7a64417a065193925c5b41597128870c1545a75896dbf42d"
+        },
+        "13": {
+          "exit_code": 0,
+          "output_sha256": "2a1756b9762df5e44877db39d081aae852b534332c59bd82750a805e541d97a9"
+        }
+      }
+    },
+    "scope_leg": {
+      "command": "git diff --name-only 0663e292855f5aadcc9e39a5e94a6e0215b122fc..f6daa06a2d6635b363797ad2a176073277650325 — 17 changed files",
+      "result": "each changed file is inside a goals.json scope entry, and every scope entry has a diff; no outside-scope file"
+    }
   }
 }
