@@ -7,7 +7,7 @@
     "max_body_lines_with_exception": 180,
     "catalog_scope": "first-class skill directories plus ai-sdlc-init shim; excludes .agents, reference fixtures, golden outputs, hidden/runtime dirs"
   },
-  "skill_count": 39,
+  "skill_count": 42,
   "warnings": [],
   "failures": [],
   "skills": [
@@ -138,6 +138,17 @@
       "description_chars": 149,
       "description_status": "target",
       "body_lines": 75,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "evolution-rollout",
+      "path": "02-govern-plan/evolution-rollout/SKILL.md",
+      "description_chars": 142,
+      "description_status": "target",
+      "body_lines": 100,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,
@@ -309,6 +320,17 @@
       "status": "pass"
     },
     {
+      "name": "skill-proposer",
+      "path": "02-govern-plan/skill-proposer/SKILL.md",
+      "description_chars": 160,
+      "description_status": "target",
+      "body_lines": 71,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
       "name": "tdd",
       "path": "03-configure-generate/tdd/SKILL.md",
       "description_chars": 127,
@@ -391,6 +413,17 @@
       "description_chars": 150,
       "description_status": "target",
       "body_lines": 100,
+      "body_status": "target",
+      "cross_skill_links": "not-required",
+      "ai_sdlc_compatible": true,
+      "status": "pass"
+    },
+    {
+      "name": "wiki-maintainer",
+      "path": "02-govern-plan/wiki-maintainer/SKILL.md",
+      "description_chars": 130,
+      "description_status": "target",
+      "body_lines": 72,
       "body_status": "target",
       "cross_skill_links": "not-required",
       "ai_sdlc_compatible": true,

@@ -10,17 +10,20 @@
 
 - **`codebase-design`** — Shared vocabulary for designing deep modules. Use when shaping an interface, placing a seam, finding deepening opportunities, or when another skill needs it.
 - **`design-an-api-or-interface`** — Design APIs/interfaces with Design It Twice: create alternatives, compare tradeoffs, choose one. Use when designing an API, module, class, or boundary.
+- **`evolution-rollout`** — Run one blind rollout of a skill under test in a wiki-stripped export, then record its trace. Use when the evolution loop executes a proposal.
 - **`grill-me`** — Interview the user to stress-test a plan or design until decisions are clear. Use when the user wants to be grilled or challenge a plan.
 - **`grill-with-docs`** — Stress-test a plan against repo docs and update decisions inline. Use when challenging a design against documented language, ADRs, or CONTEXT.md.
 - **`grilling`** — Interview relentlessly to stress-test a plan, decision, or idea. Use when thinking needs challenging before it hardens into work.
 - **`improve-codebase-architecture`** — Find deepening opportunities from CONTEXT.md and ADRs. Use when refactoring shallow modules, boundaries, coupling, or testability.
 - **`northstar`** — Planning-only intake: turn intent into a tracked, sliced plan and A→B handoff; never implement product changes. Use before autobahn execution.
+- **`skill-proposer`** — Turn a wiki-supported pattern into one atomic single-skill proposal overlay. Use when the loop has evidence for a change and must not edit the catalog in place.
 - **`to-issues`** — Break a plan, spec, or PRD into traceable implementation issues. Use when converting requirements into tickets or agent-ready work.
 - **`to-prd`** — Turn the current conversation context into a PRD and publish it to the project issue tracker. Use when user wants to create a PRD from the current context.
 - **`to-spec`** — Turn the current conversation into a spec and raise it as an issue. Use after a design discussion — no interview, just synthesis of what was already decided.
 - **`to-tickets`** — Break a plan, spec, or conversation into tracer-bullet tickets, each declaring its blocking edges. Use when turning a plan into agent-grabbable slices.
 - **`triage`** — Triage issues through canonical state labels and ownership roles. Use when creating, reviewing, prioritizing, or preparing issues for agents.
 - **`wayfinder`** — Chart work too big for one agent session as a map of decision tickets, resolved one at a time. Use when the way to the destination is not yet visible.
+- **`wiki-maintainer`** — Consolidate rollout traces into an append-only wiki of logs and skill impact. Use when the evolution loop has new runs to fold in.
 
 ## 03-configure-generate
 

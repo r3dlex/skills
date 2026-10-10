@@ -11,8 +11,14 @@ cd "$(dirname "$0")/.."
 die() { echo "FAIL: $1" >&2; exit 1; }
 
 python3 scripts/catalog-query.py --host codex > /tmp/catalog.default
-actual="$(wc -l < /tmp/catalog.default | tr -d ' ')"
-[[ "$actual" -eq 36 ]] || die "default catalog count is $actual, expected 36"
+# The default-view size is derived from data, never a literal: the codex default
+# view must be nonempty and name each skill exactly once. The per-host assertion
+# below pins it to catalog.json's stable/compatibility membership, so the two
+# together fix the count from the catalog — and promoting a skill (listing its
+# hosts) never edits this test again.
+[[ -s /tmp/catalog.default ]] || die "codex default view is empty"
+duplicates="$(cut -f1 /tmp/catalog.default | sort | uniq -d)"
+[[ -z "$duplicates" ]] || die "codex default view names a skill more than once: $duplicates"
 # The catalog is host-independent: every host sees the same skills. Assert that
 # against the *extended* query, not the default one — the two stopped being
 # identical when lifecycle gating landed, which is the whole point of a

@@ -1,0 +1,783 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "Sequencing and scope: no dispatch gate applies and this goal has no dependency. It converts nothing E6 converts and adds no non-test executable (user decision 2026-10-07: everything new is TypeScript); the change set is the three Markdown role skills, the plain-bash test and the single tests/readiness_v2_migrate_test.py value in .ai/ci/local-ci.json. Any change outside this scope, including tests/fixtures/host-default-golden.json, any other .ai/ci/local-ci.json value or the retained policy JSON files, requires a reviewed scope successor before it is made.",
+      "green": {
+        "at": "2026-10-09T13:15:11Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "bdd8e94309b6b619a0bba6df3475bdff74bfa3b547d7e48dc164df00b1fff0c5"
+      },
+      "note": "same command, red then green. Red: a clone of the goal repository checked out at the base commit 0663e29, where the goal is not implemented and the command reports the missing entries. Green: the goal worktree at 549fe77a356d22b2204d8b819ad1b6d2b7410bbe.",
+      "red": {
+        "at": "2026-10-09T13:18:34Z",
+        "exit_code": 1,
+        "output_sha256": "4a967be05508d6a102705a64e62a813b031c43bbeca562de6369558c604b57b9",
+        "tree": "clone at 0663e29"
+      },
+      "round_2": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 1,
+        "note": "same literal command re-run at the committed fix head; it exits 1 for exactly one addition, the goal's own evidence file .ai/evidence/tswc-sk-b2.json, which AC13 mandates and which did not exist when the round-1 green leg ran at 549fe77a. The authoritative goals.json scope list covers it as its last entry; the complementary scope leg below is green.",
+        "output_sha256": "24d23d4e261367b14672184da4976a486a93bd8f0ecd1e547b731d32165e2584",
+        "scope_leg": {
+          "at": "2026-10-09T23:52:45Z",
+          "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+          "exit_code": 0,
+          "output_sha256": "e66bdf732c1628311cb8d421efb7711620e523ba85f8e93b5c508efcddb4dd71",
+          "result": "changed files: 17; out-of-scope: none; every path changed since base 0663e292855f5aadcc9e39a5e94a6e0215b122fc, and the five added files, are inside the tswc-sk-b2 goals.json scope list"
+        }
+      },
+      "test_command": "#!/bin/bash\n# AC1: the change is exactly the allowlisted scope; no non-test executable added.\nset -u\nbase=${BASE:-0663e29}\nadded=\"$(git diff --diff-filter=A --name-only \"$base\"..HEAD)\"\nchanged=\"$(git diff --name-only \"$base\"..HEAD)\"\nprintf 'added:\\n%s\\n' \"$added\"\nprintf 'changed files: %s\\n' \"$(printf '%s\\n' \"$changed\" | grep -c .)\"\nout=\"$(printf '%s\\n' \"$added\" | grep -vE '^(02-govern-plan/(evolution-rollout|wiki-maintainer|skill-proposer)/SKILL\\.md|tests/blindness_sandbox_test\\.sh)$' || true)\"\nprintf 'out-of-scope additions: %s\\n' \"${out:-none}\"\n[ -n \"$added\" ] && [ -z \"$out\" ]"
+    },
+    {
+      "ac": 2,
+      "criterion": "Three role skills, evolution-rollout, wiki-maintainer and skill-proposer, exist under 02-govern-plan/ with catalog.json entries: owner_phase 02-govern-plan, lifecycle experimental and supported_hosts [], so they resolve into no host bundle. python3 scripts/catalog-query.py lists none of the three for any host, even with --include-lifecycle experimental, and --skill <name> exits 2 for each of them on every host. Default installs, the default catalog view and tests/fixtures/host-default-golden.json stay unchanged. Promotion belongs to a later goal.",
+      "green": {
+        "at": "2026-10-09T13:15:12Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "ee4e88ddcbea289986df63217f96215484ceec0c684a943abcfb12e9936fdb23"
+      },
+      "note": "same command, red then green. Red: a clone of the goal repository checked out at the base commit 0663e29, where the goal is not implemented and the command reports the missing entries. Green: the goal worktree at 549fe77a356d22b2204d8b819ad1b6d2b7410bbe.",
+      "red": {
+        "at": "2026-10-09T13:18:36Z",
+        "exit_code": 1,
+        "output_sha256": "bda41489a87b294b4cdf2b88ebbfab54b28cd798df8ff47f57beca3dab1712fd",
+        "tree": "clone at 0663e29"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "ee4e88ddcbea289986df63217f96215484ceec0c684a943abcfb12e9936fdb23"
+      },
+      "test_command": "#!/bin/bash\n# AC2: the three role skills are catalogued as experimental with no supported hosts,\n# so they resolve into no host bundle on any of the six hosts.\nset -u\nfail=0\nchk() { if [ \"$2\" -eq 0 ]; then echo \"  PASS: $1\"; else echo \"  FAIL: $1\"; fail=1; fi; }\npython3 -I -B - <<'PY'\nimport json, sys\nwant = {'evolution-rollout', 'wiki-maintainer', 'skill-proposer'}\ngot = {s['name']: s for s in json.load(open('catalog.json'))['skills'] if s['name'] in want}\nmissing = sorted(want - set(got))\nif missing:\n    print('  FAIL: catalog entries missing: ' + ', '.join(missing))\n    sys.exit(1)\nfor name in sorted(want):\n    e = got[name]\n    assert e['owner_phase'] == '02-govern-plan', name\n    assert e['applies_to_phases'] == ['02-govern-plan'], name\n    assert e['lifecycle'] == 'experimental', name\n    assert e['supported_hosts'] == [], name\nprint('  PASS: three entries: owner_phase 02-govern-plan, lifecycle experimental, supported_hosts []')\nPY\nchk \"catalog entries carry the declared lifecycle and empty supported_hosts\" $?\nleaks=0; exits=0; other=\"\"\nfor h in codex claude-code gemini copilot auggie opencode; do\n  view=\"$(python3 scripts/catalog-query.py --host \"$h\" --include-lifecycle experimental | cut -f1)\"\n  for s in evolution-rollout wiki-maintainer skill-proposer; do\n    printf '%s\\n' \"$view\" | grep -qx \"$s\" && leaks=$((leaks + 1))\n    python3 scripts/catalog-query.py --host \"$h\" --skill \"$s\" >/dev/null 2>&1\n    if [ $? -eq 2 ]; then exits=$((exits + 1)); else other=\"$other $h/$s\"; fi\n  done\ndone\nchk \"no host view lists them, even with --include-lifecycle experimental (leaks=$leaks)\" $((leaks == 0 ? 0 : 1))\nchk \"--skill <name> exits 2 for all 18 host/skill pairs (got $exits)${other:+; not 2:$other}\" $((exits == 18 ? 0 : 1))\necho \"AC2 fails=$fail\"\n[ \"$fail\" -eq 0 ]"
+    },
+    {
+      "ac": 3,
+      "criterion": "Generated surfaces are regenerated in the same change set: README.md, AGENTS.md, 01-discover-decide/ask-ai-catapult/CATALOG.md and 02-govern-plan/README.md with the catalog doc generator, and .ai/skills/catalog-audit.json and .ai/skills/modernization-report.md with the catalog validator's --write-audit mode. The generator's --check mode, the validator, bash tests/skill-catalog_test.sh and bash tests/agents_index_test.sh pass.",
+      "green": {
+        "at": "2026-10-09T13:18:10Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "1b096f126311ad4a4c73172b6b9cb739c7e71f242b41c3b3c596527c66f08ac1"
+      },
+      "note": "same command, red then green. Red: a clone of the goal repository checked out at the base commit 0663e29, where the goal is not implemented and the command reports the missing entries. Green: the goal worktree at 549fe77a356d22b2204d8b819ad1b6d2b7410bbe.",
+      "red": {
+        "at": "2026-10-09T13:18:36Z",
+        "exit_code": 1,
+        "output_sha256": "1488008769e0c7e123fe0f223166798e74b9dcffff103aae566b83769e38a3fc",
+        "tree": "clone at 0663e29"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "1b096f126311ad4a4c73172b6b9cb739c7e71f242b41c3b3c596527c66f08ac1"
+      },
+      "test_command": "#!/bin/bash\n# AC3: generated surfaces are regenerated in the same change set and the three new\n# skills are listed in every generated surface.\nset -u\nfail=0\nchk() { if [ \"$2\" -eq 0 ]; then echo \"  PASS: $1\"; else echo \"  FAIL: $1\"; fail=1; fi; }\npython3 scripts/generate-skill-docs.py --check; chk \"catalog doc generator --check is clean\" $?\npython3 scripts/validate-skill-catalog.py > /tmp/ac3-validator.log 2>&1; chk \"$(tail -1 /tmp/ac3-validator.log)\" $?\nbash tests/skill-catalog_test.sh > /tmp/ac3-catalog.log 2>&1; chk \"skill-catalog test: $(tail -1 /tmp/ac3-catalog.log)\" $?\nbash tests/agents_index_test.sh > /tmp/ac3-agents.log 2>&1; chk \"agents index test: $(tail -1 /tmp/ac3-agents.log)\" $?\nfor f in README.md AGENTS.md 01-discover-decide/ask-ai-catapult/CATALOG.md 02-govern-plan/README.md; do\n  n=$(grep -c 'evolution-rollout\\|wiki-maintainer\\|skill-proposer' \"$f\")\n  chk \"$f lists the three role skills ($n mentions)\" $((n >= 3 ? 0 : 1))\ndone\npython3 -I -B -c \"\nimport json\na = json.load(open('.ai/skills/catalog-audit.json'))\nassert a['status'] == 'pass' and not a['failures'], a['failures']\nassert a['skill_count'] == 42, a['skill_count']\nprint('  PASS: catalog-audit.json status pass, skill_count 42')\n\"; chk \"catalog audit regenerated at 42 skills\" $?\ngrep -q 'skill_count: `42`' .ai/skills/modernization-report.md; chk \"modernization report regenerated at 42 skills\" $?\necho \"AC3 fails=$fail\"\n[ \"$fail\" -eq 0 ]"
+    },
+    {
+      "ac": 4,
+      "criterion": "The role bodies follow the repo conventions: description at most 160 characters and SKILL.md body at most 100 lines with no new description or body-line exception entry, Quick Start first, progressive disclosure, CONTEXT.md vocabulary, and Codex/OpenCode parity (bash tests/codex_parity_test.sh and bash tests/opencode_parity_test.sh pass).",
+      "green": {
+        "at": "2026-10-09T13:15:46Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "af83fa0542011dc56fe9be98338fe3c326f8546f57de1381823fc6abffd35b22"
+      },
+      "note": "same command, red then green. Red: a clone of the goal repository checked out at the base commit 0663e29, where the goal is not implemented and the command reports the missing entries. Green: the goal worktree at 549fe77a356d22b2204d8b819ad1b6d2b7410bbe.",
+      "red": {
+        "at": "2026-10-09T13:19:09Z",
+        "exit_code": 1,
+        "output_sha256": "ae461020f17c3c8f6477edd13f2421d445a5c5dc873e4c5b8809fac209b0646e",
+        "tree": "clone at 0663e29"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "a042f38410ee784486458be1e5776f12d8863ff359295eef20c55c35f3894b1e"
+      },
+      "test_command": "#!/bin/bash\n# AC4: the role bodies follow the repo conventions (description <= 160 chars, body\n# <= 100 lines, no exception entry) and keep Codex/OpenCode parity.\nset -u\nfail=0\nchk() { if [ \"$2\" -eq 0 ]; then echo \"  PASS: $1\"; else echo \"  FAIL: $1\"; fail=1; fi; }\nbash tests/codex_parity_test.sh > /tmp/ac4-codex.log 2>&1; chk \"codex parity: $(tail -1 /tmp/ac4-codex.log)\" $?\nbash tests/opencode_parity_test.sh > /tmp/ac4-opencode.log 2>&1; chk \"opencode parity: $(tail -1 /tmp/ac4-opencode.log)\" $?\npython3 -I -B - <<'PY'\nimport json\naudit = json.load(open('.ai/skills/catalog-audit.json'))\nwant = {'evolution-rollout', 'wiki-maintainer', 'skill-proposer'}\nrows = {s['name']: s for s in audit['skills'] if s['name'] in want}\nassert sorted(rows) == sorted(want), sorted(rows)\nfor name, row in sorted(rows.items()):\n    assert row['description_status'] == 'target', (name, row['description_status'])\n    assert row['description_chars'] <= 160, (name, row['description_chars'])\n    assert row['body_lines'] <= 100, (name, row['body_lines'])\n    print('  PASS: %s description %d/160 %s, body %d/100'\n          % (name, row['description_chars'], row['description_status'], row['body_lines']))\nPY\nchk \"each role is inside the description and body budgets with no exception entry\" $?\npython3 -I -B -c \"\nimport json\nfor f in ('.ai/skills/description-exceptions.json', '.ai/skills/body-line-exceptions.json'):\n    names = {e['skill'] for e in json.load(open(f))['exceptions']}\n    bad = names & {'evolution-rollout', 'wiki-maintainer', 'skill-proposer'}\n    assert not bad, (f, bad)\nprint('  PASS: no new description or body-line exception entry')\n\"; chk \"no new exception entry was added for the roles\" $?\necho \"AC4 fails=$fail\"\n[ \"$fail\" -eq 0 ]"
+    },
+    {
+      "ac": 5,
+      "criterion": "The role bodies speak B1's evolve/ vocabulary exactly: raw/<run-id>/ write-once traces, wiki/ with append-only logs.md and skill-impact.md, proposals/ overlays, PURPOSE.md, the audit-entry schema and the judgment-record schema (judgment_id, run_id, candidate_overlay_sha256, skill_under_test, task_set_id, task_set_version, judge_model, rubric_sha256, per_criterion_scores[], weighted_aggregate, verdict, cost_usd, recorded_at, recorder). The proposer is atomic single-skill, the wiki stays append-only even on reject, and in-place skill mutation is forbidden.",
+      "green": {
+        "at": "2026-10-09T13:20:15Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "cdc938e0fa61f1ac05a8341d320a949ef8299f7904b82bb8a0c26144b36f756f"
+      },
+      "note": "same command, red then green. Red: a clone of the goal repository checked out at the base commit 0663e29, where the goal is not implemented and the command reports the missing entries. Green: the goal worktree at 549fe77a356d22b2204d8b819ad1b6d2b7410bbe.",
+      "red": {
+        "at": "2026-10-09T13:20:14Z",
+        "exit_code": 1,
+        "output_sha256": "eaeefe27b4c37d5fde0d943579597e6951d7b39dff00bfa8e73965aef9dc0abc",
+        "tree": "clone at 0663e29"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "cdc938e0fa61f1ac05a8341d320a949ef8299f7904b82bb8a0c26144b36f756f"
+      },
+      "test_command": "#!/bin/bash\n# AC5: the three role bodies speak B1's evolve/ vocabulary exactly.\nset -u\ncd \"$(pwd)\" || exit 1\nFILES=\"02-govern-plan/evolution-rollout/SKILL.md 02-govern-plan/wiki-maintainer/SKILL.md 02-govern-plan/skill-proposer/SKILL.md\"\nALL=\"$(cat $FILES)\"\nfail=0\nneed() { # need <label> <literal>\n  if printf '%s' \"$ALL\" | grep -qF \"$2\"; then echo \"  PASS: $1\"; else echo \"  FAIL: $1\"; fail=1; fi\n}\nneed 'raw/<run-id>/ write-once traces' 'raw/<run-id>/'\nneed 'wiki logs.md append-only' 'logs.md'\nneed 'wiki skill-impact.md' 'skill-impact.md'\nneed 'proposals/ overlays' 'proposals/'\nneed 'PURPOSE.md' 'PURPOSE.md'\nneed 'atomic single-skill proposer' 'atomic'\nneed 'in-place skill mutation forbidden' 'in place'\nneed 'append-only even on reject' 'append-only'\nfor field in judgment_id run_id candidate_overlay_sha256 skill_under_test task_set_id \\\n             task_set_version judge_model rubric_sha256 per_criterion_scores weighted_aggregate \\\n             verdict cost_usd recorded_at recorder; do\n  need \"judgment-record field: $field\" \"$field\"\ndone\necho \"AC5 fails=$fail\"\n[ \"$fail\" -eq 0 ]"
+    },
+    {
+      "ac": 6,
+      "criterion": "Blindness is enforced by the environment, never by a prompt check (master F3, section 6-B2): the evolution-rollout procedure builds a wiki-stripped export with path denial (no evolve/ and no git history, so wiki files are unreachable, including through history), and its SKILL.md carries the export commands in exactly one fenced block with the info string bash blindness-sandbox. Every record states that the prompt-grep gate is a cheap pre-check only.",
+      "green": {
+        "at": "2026-10-09T13:20:15Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "1fcba88e18ec7a0354612dbdc66906b6baabb4e2f254202a51723b4d89c21eea"
+      },
+      "note": "same command, red then green. Red: a clone of the goal repository checked out at the base commit 0663e29, where the goal is not implemented and the command reports the missing entries. Green: the goal worktree at 549fe77a356d22b2204d8b819ad1b6d2b7410bbe.",
+      "red": {
+        "at": "2026-10-09T13:20:14Z",
+        "exit_code": 1,
+        "output_sha256": "2677f1ec16a85bd3ee7238b0380e175e0aadf20459bb579cca36a1cc2eb99988",
+        "tree": "clone at 0663e29"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "1fcba88e18ec7a0354612dbdc66906b6baabb4e2f254202a51723b4d89c21eea"
+      },
+      "test_command": "#!/bin/bash\n# AC6: blindness is enforced by the environment, never by a prompt check.\nset -u\ncd \"$(pwd)\" || exit 1\nS=02-govern-plan/evolution-rollout/SKILL.md\nfail=0\nchk() { if [ \"$2\" = 0 ]; then echo \"  PASS: $1\"; else echo \"  FAIL: $1\"; fail=1; fi; }\nhas() { printf '%s' \"$1\" | grep -qE \"$2\"; }\n\nn=$(grep -c '^```bash blindness-sandbox$' \"$S\"); [ \"$n\" = 1 ]; chk \"exactly one fenced block with info string 'bash blindness-sandbox' (found $n)\" $?\n\nblk=$(awk '/^```bash blindness-sandbox$/{i=1;next} i&&/^```$/{i=0;next} i' \"$S\")\nhas \"$blk\" 'archive HEAD'; chk \"the block snapshots HEAD with git archive (no .git, so history is unreachable)\" $?\nhas \"$blk\" 'rm -rf \"\\$EXPORT/evolve\"'; chk \"the block denies the evolve/ path in the export\" $?\nhas \"$blk\" 'deny evolve/'; chk \"the block writes a blindness policy denying evolve/\" $?\nhas \"$blk\" 'denied:'; chk \"the block ships a reader that refuses a denied prefix before opening it\" $?\nif has \"$blk\" 'cp -R|rsync|tar -c|cp -a'; then chk \"no working-tree copy in the block (which would carry .git)\" 1; else chk \"no working-tree copy in the block (which would carry .git)\" 0; fi\n\ngrep -qF 'The prompt-grep gate is a cheap pre-check before the export' \"$S\"; chk \"the record states the prompt-grep gate is a cheap pre-check only\" $?\ngrep -qi 'environment' \"$S\"; chk \"the record attributes enforcement to the environment\" $?\necho \"AC6 fails=$fail\"\n[ \"$fail\" -eq 0 ]"
+    },
+    {
+      "ac": 7,
+      "criterion": "Red leg (section 4.7): the new tests/blindness_sandbox_test.sh is plain bash with no embedded Python or other interpreter program. It extracts the bash blindness-sandbox block from the evolution-rollout SKILL.md and runs exactly those commands against a seeded source repository in a cleanup-bound temporary directory, so the test and the procedure cannot drift. It proves the workload is exported while a direct read of evolve/wiki/ and a read through git history both fail; it is red when the block is missing; and its negative fixtures are red.",
+      "green": {
+        "at": "2026-10-09T13:05:43Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "daac8e780ad0ba784ebe803ed002819ab771f49d71a0aee1a09dd12d03ae054c"
+      },
+      "note": "same command, red then green. Red tree: an export of 0663e29 with only the final tests/blindness_sandbox_test.sh copied in, so the block under test is absent. The test reports Results: PASS=1 FAIL=4 there (missing block, nothing to execute, both marked negative fixtures unusable) and Results: PASS=11 FAIL=0 at the goal head. The two negative fixtures rewrite the extracted text itself: removing the marked path-denial line leaves a tracked wiki file in the snapshot and the direct read succeeds; replacing the marked snapshot line with a history-preserving copy leaves the wiki out of the tree but git show returns it.",
+      "red": {
+        "at": "2026-10-09T13:06:47Z",
+        "exit_code": 1,
+        "output_sha256": "e0a09ffa9f22820efc090459516bf4f4439f91f806b38b4cad595c9985c21c89",
+        "tree": "export of 0663e29 + final tests/blindness_sandbox_test.sh"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "2024ecb775332ce3d98d4a29d3783346b87d588797eadc4b27159c922c80c518"
+      },
+      "test_command": "bash tests/blindness_sandbox_test.sh"
+    },
+    {
+      "ac": 8,
+      "criterion": "The roles carry the locked loop economics: the $100 per cycle ceiling (user 2026-10-04; section 5.5 pre-reject before spend plus gate accounting), human out-of-band judges (section 4.4), and no citation of the WikiSkill paper for any threshold value (section 3a).",
+      "green": {
+        "at": "2026-10-09T13:20:15Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "1bd25e1e0b93fe668c4e75588a961de3cbfd17e5c9bb027be873a1372ac223d4"
+      },
+      "note": "same command, red then green. Red: a clone of the goal repository checked out at the base commit 0663e29, where the goal is not implemented and the command reports the missing entries. Green: the goal worktree at 549fe77a356d22b2204d8b819ad1b6d2b7410bbe.",
+      "red": {
+        "at": "2026-10-09T13:20:14Z",
+        "exit_code": 1,
+        "output_sha256": "1fd2425cc2a91de091cea65127225a3a3d1993b3dd8048336cb6719d860c3328",
+        "tree": "clone at 0663e29"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "1bd25e1e0b93fe668c4e75588a961de3cbfd17e5c9bb027be873a1372ac223d4"
+      },
+      "test_command": "#!/bin/bash\n# AC8: locked loop economics — $100 ceiling, human out-of-band judges, no\n# WikiSkill-paper threshold.\nset -u\ncd \"$(pwd)\" || exit 1\nfail=0\nchk() { if [ \"$2\" = 0 ]; then echo \"  PASS: $1\"; else echo \"  FAIL: $1\"; fail=1; fi; }\nfor f in 02-govern-plan/evolution-rollout/SKILL.md 02-govern-plan/wiki-maintainer/SKILL.md 02-govern-plan/skill-proposer/SKILL.md; do\n  grep -qF '$100 per cycle' \"$f\"; chk \"$f states the \\$100 per cycle ceiling\" $?\n  grep -qF 'Judges are human and out-of-band' \"$f\"; chk \"$f states human out-of-band judges\" $?\n  grep -qF 'WikiSkill paper' \"$f\"; chk \"$f denies the WikiSkill paper a threshold role\" $?\ndone\ngrep -qF 'cycle_budget_exhausted' 02-govern-plan/evolution-rollout/SKILL.md; chk \"the gate accounting name cycle_budget_exhausted is used\" $?\necho \"AC8 fails=$fail\"\n[ \"$fail\" -eq 0 ]"
+    },
+    {
+      "ac": 9,
+      "criterion": "Retained-policy narrowing (coordinator decision 2026-10-08): tests/xskp_p5_readiness_policy_test.sh and tests/ach_s01_readiness_policy_test.sh keep asserting that .ai/handoff/xskp-p5-readiness-policy.retained.json and .ai/handoff/ach-skills-contract-v2/s01-readiness-policy-v1.retained.json equal their pinned digests, unchanged. Retained snapshots are historical evidence, not live claims: each 'every source digest is current' assertion becomes a well-formedness assertion over the retained source digests, and each contract-acceptance simulation relaxes only source-digest currency for the retained policy's own source entries. Every other assertion and expected gap stays unchanged, and the retained JSON files are never edited.",
+      "green": {
+        "at": "2026-10-09T13:05:43Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "c9e1cfff7ea21ca3301a3b5ed447d418c5056deb1674584eefa2f22345a23013"
+      },
+      "note": "same command, red then green. Red tree: an export of the goal head with the two test files replaced by their 0663e29 versions. There the pre-narrowing \"every source digest is current\" assertion fails against the regenerated AGENTS.md and, because policy_admit hashes every source inside the try that raises policy_context_invalid, the four (xskp) and seven (ach_s01) dependent checks fail with it: PASS=35 FAIL=4 and PASS=41 FAIL=7 against PASS=39 FAIL=0 and PASS=48 FAIL=0 at the head. The retained policy JSON files are never edited; both tests still pin their exact digests.",
+      "red": {
+        "at": "2026-10-09T13:06:31Z",
+        "exit_code": 1,
+        "output_sha256": "5ed11a8dd3c0ddd781cdc1b78527e3f979b082fa8897fcc4f8072b8b2336d063",
+        "tree": "goal head + 0663e29 test files"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "d6b423d672078d7da23b255f39b4da769f77d7dfc58bd82b3f2684de247ed3f5"
+      },
+      "test_command": "bash tests/xskp_p5_readiness_policy_test.sh && bash tests/ach_s01_readiness_policy_test.sh"
+    },
+    {
+      "ac": 10,
+      "criterion": "tests/catalog_contract_test.sh no longer hard-codes the default count (-eq 36). The literal is replaced in plain bash: the codex default view must be nonempty and name each skill once. The existing per-host assertion that each default view equals catalog.json's stable/compatibility membership stays, so together they fix the count from data. With supported_hosts [] the codex default view stays 36, so this change keeps promotion from editing the test again. No other assertion is weakened.",
+      "green": {
+        "at": "2026-10-09T13:02:30Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "note": "same command, red then green, on the fixture the criterion is about. Fixture: an export of the goal head with evolution-rollout fully promoted (lifecycle stable, all six hosts listed) and the generated surfaces regenerated, which is what a later promotion does. The literal form dies there (FAIL: default catalog count is 37, expected 36, exit 1) and the data-driven form passes, so promotion does not have to edit the test again. Unedited at the goal head the codex default view is still 36.",
+      "red": {
+        "at": "2026-10-09T13:02:30Z",
+        "exit_code": 1,
+        "output_sha256": "399053e12020097d84d0c51ce4ae4a93118f8a012b330c87bce97d3d0a3dbd17",
+        "tree": "0663e29 test file on the promoted fixture"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "test_command": "bash tests/catalog_contract_test.sh"
+    },
+    {
+      "ac": 11,
+      "criterion": "SKILL.md no-growth guard: the assertion at tests/readiness_v2_migrate_test.py:661-682 fails once the three new SKILL.md files are committed, and with it bash tests/run-tests.sh. It is re-pinned in #118's digest form: sha256 over every tracked */SKILL.md path, index mode and working-tree bytes, sorted. The re-pin covers exactly the deliberate addition of the three role SKILL.md files, and every other assertion in the test is unchanged. .ai/ci/local-ci.json changes only the existing tests/readiness_v2_migrate_test.py sources hash value: no other key, value, command, workflow, tier or format changes.",
+      "green": {
+        "at": "2026-10-09T13:05:49Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "4a59c91e8c8c5a7d09fabf9be0145d1a01244d814a4a664445444f46c9ae7cbf"
+      },
+      "note": "same command, red then green. Red tree: a clone checked out at dba17d333864abc3a36c7ca13a8c065b2b1e4c97 (the three SKILL.md files committed, the re-pin not yet made), where the guard fails with AssertionError: '6914978c...' != 'ca420e6e...' and the message 'a tracked */SKILL.md changed; re-pin only for a deliberate, reviewed edit'. A pin swap inside the test file alone cannot be used to stage this red: .ai/ci/local-ci.json pins that file's own bytes, so such an edit raises ValueError: stale source SHA256 before the guard is reached. The advanced digest was recomputed independently from git ls-files -s and matches byte for byte (provenance.digest_recomputation).",
+      "red": {
+        "at": "2026-10-09T13:21:21Z",
+        "exit_code": 1,
+        "output_sha256": "ca2cb4e158667266753b35e78e1487790fe7e459e38766d72078b1e881ba771d",
+        "tree": "clone at dba17d333864abc3a36c7ca13a8c065b2b1e4c97"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "97144bd607bd62bdf76cfad4c51aba9d1670d34a2afaf40325fd4470a99cdf08"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py"
+    },
+    {
+      "ac": 12,
+      "criterion": "catalog.json serializes with the successor plan tswc-skills-lane-matrix (E5-H1): never two open PRs on catalog.json, and the successor rebases on this goal.",
+      "green": {
+        "at": "2026-10-09T13:28:22Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "15ac4e778ee85dac7a64417a065193925c5b41597128870c1545a75896dbf42d"
+      },
+      "note": "same command, red then green. Red: a clone at the base commit, where the three entries are absent. Green: the goal worktree, where the three entries sit in the catalog's canonical sorted order, each with exactly the six declared keys. The base file was itself out of order (pr and retro had been appended rather than inserted, by 327613c), so the three new entries were inserted in sorted position and that order was kept: it is the order the catalog validator and every generated surface already use, and it keeps the successor plan tswc-skills-lane-matrix's rebase to one contiguous hunk. No entry was added, removed or re-valued beyond the three: the membership diff against the base commit is +3 / -0.",
+      "red": {
+        "at": "2026-10-09T13:28:22Z",
+        "exit_code": 1,
+        "output_sha256": "ee30480a21ce8b22ffb3bbe6c8f6e5bba79b2f469be363a0e11fa9751507bfd2",
+        "tree": "clone at 0663e29"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "15ac4e778ee85dac7a64417a065193925c5b41597128870c1545a75896dbf42d"
+      },
+      "test_command": "#!/bin/bash\n# AC12: catalog.json serializes with the successor plan tswc-skills-lane-matrix:\n# the three entries are present in the catalog's canonical sorted order, each with\n# exactly the declared keys, so the successor's rebase is a single hunks set.\nset -u\npython3 -I -B - <<'PY'\nimport json, sys\nd = json.load(open('catalog.json'))\nwant = {'evolution-rollout', 'wiki-maintainer', 'skill-proposer'}\ngot = {s['name']: s for s in d['skills'] if s['name'] in want}\nif sorted(got) != sorted(want):\n    print('  FAIL: catalog.json is missing %s' % sorted(want - set(got)))\n    sys.exit(1)\nnames = [s['name'] for s in d['skills']]\nassert d['schema_version'] == '1.0', d['schema_version']\nassert names == sorted(names), 'entries are not in the catalog\\'s sorted order'\nassert len(names) == len(set(names)), 'duplicate skill name'\nkeys = {'name', 'source_path', 'owner_phase', 'applies_to_phases', 'lifecycle', 'supported_hosts'}\nfor name, e in sorted(got.items()):\n    assert set(e) == keys, (name, sorted(set(e) ^ keys))\n    assert e['source_path'] == '02-govern-plan/' + name, (name, e['source_path'])\nprint('  PASS: schema_version 1.0, %d skills, sorted and unique, three entries exact' % len(names))\nPY\nrc=$?\necho \"AC12 rc=$rc\"\nexit $rc"
+    },
+    {
+      "ac": 13,
+      "criterion": "Evidence and verification: every simulation and verification of this goal runs on a committed tree, never with untracked files (the SKILL.md guard sees only tracked files). The observed same-command red then green is recorded in .ai/evidence/tswc-sk-b2.json. bash tests/run-tests.sh, prek run --all-files and git diff --check pass.",
+      "green": {
+        "at": "2026-10-09T13:33:36Z",
+        "commit": "549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+        "exit_code": 0,
+        "output_sha256": "8c7696cb9bce483c8dd4d56e0c0e5812c68b535ad28313af593e1eb2668aede7",
+        "prek_leg": {
+          "at": "2026-10-09T13:33:36Z",
+          "exit_code": 0,
+          "output_sha256": "dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae"
+        },
+        "run_tests_leg": {
+          "at": "2026-10-09T13:33:34Z",
+          "exit_code": 0,
+          "output_sha256": "49c63232e10d4a6423ada9687e5ac4daaf6b05c36cea45372e4d812dd953271b"
+        }
+      },
+      "note": "same command, red then green: the whole verification surface is green at the goal head and red at dba17d333864abc3a36c7ca13a8c065b2b1e4c97, where the unadvanced SKILL.md pin fails tests/readiness_v2_migrate_test.py inside the Shell Script Tests suite and the runner reports OVERALL: FAILED. The head run recorded under provenance.run_tests exits 0 with OVERALL: PASSED, both suites PASSED and 61 assertion blocks.",
+      "red": {
+        "at": "2026-10-09T14:10:25Z",
+        "exit_code": 1,
+        "output_sha256": "fd13fb136ee65d49789f4da482158320b735d47a978d0ac2940e52a20351c8a2",
+        "tree": "clone at dba17d333864abc3a36c7ca13a8c065b2b1e4c97"
+      },
+      "round_2_green": {
+        "at": "2026-10-09T23:52:45Z",
+        "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+        "exit_code": 0,
+        "output_sha256": "329b1576115c4998fdb36418dd9dafea6556cebe33e41fb14515ceb935426d06"
+      },
+      "test_command": "bash tests/run-tests.sh && prek run --all-files && git diff --check"
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "approval_digest": "962d8fd05120d53b9883655032add6588e2b99f1d0fe62339caa7111ac88cf16",
+    "assurance": "agent-self",
+    "bundle": {
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane/f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351/goals.json",
+      "sha256": "06059fae213c0d6c3d06ccff096c494616f065385cf4bb1cc0d48bcb3ddce1ad"
+    },
+    "command": "bash 04-validate-handoff/autobahn/contract-run.sh admit-v2 --root <worktree> --handoff northstar-plan-tswc-skills-lane --goal-id tswc-sk-b2 --stage implementation",
+    "gaps": [],
+    "generation": "f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351",
+    "principal": "agent@autobahn",
+    "provenance": "approved-generation",
+    "stage": "implementation",
+    "subject": {
+      "bundle_sha256": "ca8143a3195c7f7acc0573400f509b9ddae61849380539fbcffcf9464ad95640",
+      "policy_sha256": "58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a"
+    },
+    "tag": "approval/tswc-skills-lane/f68755fc44be",
+    "verified_at_head": true
+  },
+  "criteria_source": "criterion texts are abridged from .ai/handoff/readiness-v2/tswc-skills-lane/f68755fc44be2710586fdd8c65c7254be43fd9086d3a569e34576b24a805e351/goals.json; the bundle is authoritative",
+  "goal_id": "tswc-sk-b2",
+  "green": {
+    "at": "2026-10-09T23:52:45Z",
+    "command": "bash tests/run-tests.sh",
+    "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+    "exit_code": 0,
+    "output_sha256": "1ea97512faf2778ceb3863a95bbf3ba961621004287bae8df23017fda0cbde64",
+    "tree": "committed fix head (clean)"
+  },
+  "provenance": {
+    "digest_recomputation": "python3 -I -B recomputation of the sorted sha256 over git ls-files -s -- '*/SKILL.md' (path, index mode, working-tree bytes) at the goal head returns 6914978ca4af31275310aa537d9d091da08ad3685b54183c655bec0d42eeace8 for 49 tracked files, which is the value pinned at tests/readiness_v2_migrate_test.py:682",
+    "green_method": "each AC command run in the goal worktree at the committed head 549fe77a356d22b2204d8b819ad1b6d2b7410bbe",
+    "red_first_commit": "dba17d333864abc3a36c7ca13a8c065b2b1e4c97 (the three SKILL.md files and the tests, before the re-pin)",
+    "red_method": "same command run against the pre-implementation tree: a clone at the base commit 0663e29 for the conformance commands, an export of the base commit for the blindness test, an export of the head with the base test files for the retained-policy tests, a promotion fixture for the default count, and a clone at dba17d333864abc3a36c7ca13a8c065b2b1e4c97 for the SKILL.md guard and the run",
+    "round_2_digest_recomputation": "python3 -I -B recomputation at fix head 706ad1c0a1f6ba72fdaa7e246c2aef09b1301665 returns 5d0e2f1cb2d82d2d87386f3ed31a7f3a6351d0cf9e2327f98d246b678011addf for 49 tracked */SKILL.md files (path, index mode, working-tree bytes), the value re-pinned at tests/readiness_v2_migrate_test.py:681",
+    "round_2_method": "same command red at the committed red tree a2c941be7562910f93af93cc8dd249dc78035538 (clean worktree skills-s2-red-20261010) then green at the committed fix head 706ad1c0a1f6ba72fdaa7e246c2aef09b1301665 (clean worktree skills-s2-fix-20261010); each recorded AC test_command was re-run at that head and its leg is recorded per AC",
+    "run_tests": {
+      "command": "bash tests/run-tests.sh",
+      "exit_code": 0,
+      "output_sha256": "709921c5ee179d6589e3e430abb8f2c3148a23e537bdbd49accb7d24ec1ebe66",
+      "result": "OVERALL: PASSED (Shell Script Tests PASSED, Skill Structure Tests PASSED)"
+    }
+  },
+  "red": {
+    "at": "2026-10-09T23:52:45Z",
+    "command": "bash tests/run-tests.sh",
+    "commit": "a2c941be7562910f93af93cc8dd249dc78035538",
+    "exit_code": 1,
+    "output_sha256": "491b012339627856905eae80ed1613208614a462a19750a7bcbfe4d307150cd5",
+    "tree": "committed red tree: the four guard tests on the pre-fix block"
+  },
+  "review_round_2": {
+    "at": "2026-10-09T23:52:45Z",
+    "comment": "https://github.com/r3dlex/skills/pull/127#issuecomment-6090115254",
+    "finding_4_disposition": "rejected (formal review decision recorded on the PR): the retained-policy shims in tests/xskp_p5_readiness_policy_test.sh and tests/ach_s01_readiness_policy_test.sh stay byte-identical; this round did not touch those files",
+    "findings_addressed": [
+      "finding 1: the sandbox guard's `test -d \"$EXPORT\" && test ! -e \"$EXPORT\" && mkdir -p` chain aborts under set -e, so a refused export still exits 0 and the snapshot runs anyway; the block now refuses through explicit ifs before any write (existing EXPORT; EXPORT equal to or overlapping SOURCE on physical paths via cd + pwd -P, both directions)",
+      "finding 2: bin/rollout-read prefix-matched a deny-list, so mid-path traversal and a committed symlink escaped the export; rewritten to physical-path canonicalization that refuses absolute and empty targets, mid-path hops whose resolved destination leaves the export, final-component symlinks and non-regular files, every denial exit 3",
+      "finding 3: an EXPORT nested inside SOURCE resolved the ancestor .git, so the wiki stayed reachable through git show; the guard now refuses any EXPORT whose ancestor chain carries a .git entry up to /"
+    ],
+    "green": {
+      "at": "2026-10-09T23:52:45Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "706ad1c0a1f6ba72fdaa7e246c2aef09b1301665",
+      "exit_code": 0,
+      "output_sha256": "1ea97512faf2778ceb3863a95bbf3ba961621004287bae8df23017fda0cbde64",
+      "sub_legs": {
+        "diff_check": {
+          "at": "2026-10-09T23:52:45Z",
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "prek": {
+          "at": "2026-10-09T23:52:45Z",
+          "exit_code": 0,
+          "output_sha256": "dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae"
+        }
+      },
+      "tree": "committed fix head, clean tree"
+    },
+    "pin": "the per-goal */SKILL.md no-growth digest advances 6914978ca4af… → 5d0e2f1cb2d82d2d87386f3ed31a7f3a6351d0cf9e2327f98d246b678011addf for this deliberate, reviewed edit; .ai/ci/local-ci.json changes only the tests/readiness_v2_migrate_test.py sources hash; the catalog audit reports body_lines exactly 100 with no exception entry and the description untouched",
+    "red": {
+      "at": "2026-10-09T23:52:45Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "a2c941be7562910f93af93cc8dd249dc78035538",
+      "exit_code": 1,
+      "output_sha256": "491b012339627856905eae80ed1613208614a462a19750a7bcbfe4d307150cd5",
+      "result": "fails only tests/blindness_sandbox_test.sh, Results: PASS=11 FAIL=4: the equal EXPORT deletes the wiki, an EXPORT nested inside SOURCE reaches the wiki through the ancestor .git via git show, and the reader prints the wiki through a mid-path traversal and a committed symlink; every other suite passes",
+      "tree": "committed red tree: the four new guard tests on the pre-fix block"
+    }
+  },
+  "round_2_closure": {
+    "at": "2026-10-10T01:29:17Z",
+    "purpose": "round-2 review findings (2.1 masking by restore-before-assert in the destructive guards; 2.2 one-shot dirname reader serving an out-and-back hop with exit 0) closed red-first: the guards capture filesystem state (nested-export existence, git dirty state, wiki checksum) before any restore and assert against the captures, and the reader resolves its target one component at a time with containment re-checked after every resolution step and denies the empty target",
+    "red": {
+      "at": "2026-10-10T01:29:17Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "2736ff023aad4fa8f747348385eaba4278eee409",
+      "exit_code": 1,
+      "output_sha256": "6a7345ca1d0ec7ac6f5e1f7d69d37b0ccd8885fd828faf887dd07e755cff633c",
+      "result": "fails only tests/blindness_sandbox_test.sh — Results: PASS=15 FAIL=1 (+ its unit-test wrapper FAIL): the fifth guard (out-and-back symlink hop — committed seed outside -> .., then a planted symlink return back into the export, read outside/return/SKILL.md) is served with exit 0 by the pre-fix one-shot dirname reader, reproducing finding 2.2; the two destructive guards fail closed and the capture-based detection leg red on the mutant block (scratch legs below) closes finding 2.1",
+      "tree": "committed red-2 tree (clean worktree skills-s2-fix-20261010); full-suite receipt headered, raw sha as recorded"
+    },
+    "green": {
+      "at": "2026-10-10T01:29:17Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "bea0c3d35a422f789248b8d0c7959f8809a3f755",
+      "exit_code": 0,
+      "output_sha256": "5509bba3da204e21406189116e106a27e3d227445d145d64259aed66e10cce55",
+      "tree": "committed fix head (clean worktree skills-s2-fix-20261010 before and after the run)",
+      "result": "OVERALL: PASSED; blindness unit Results: PASS=16 FAIL=0 — all five guards green, the out-and-back hop denied with exit 3, the empty target denied with exit 3",
+      "sub_legs": {
+        "prek": {
+          "command": "prek run --all-files",
+          "exit_code": 0,
+          "output_sha256": "dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae",
+          "note": "byte-identical to the round-1 prek receipt (dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae) — the round-2 diff adds no hook-triggered surface changes"
+        },
+        "diff_check": {
+          "command": "git diff --check",
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    "scratch_legs": {
+      "note": "scratch probes on the committed red-2 tree, never committed; receipts held outside the branch under .omc/plans/receipts-lane-s2-20261010/",
+      "mutant_block_receipt_sha256": "3e8a81cd564feaa986ea2185e2c53ad59689eee967f7a2c5f616c9c2cfe56463",
+      "masking_old_order": {
+        "receipt_sha256": "9e417ff4df748327c9a35a9f87cb0950d72b6ef52515c2cf5d8567e000f449e1",
+        "result": "mutant block + old restore-before-assert ordering: Results: PASS=15 FAIL=0 with scratch-probe-at-refusal: nested_export_present=yes; dirty_lines=1; wiki_present=no — the old ordering masks the destructive writes"
+      },
+      "detection_new_order": {
+        "receipt_sha256": "543a3898e29715fbdd39a09dbccb6d3651d65a01915cd1e3365eff5b8d91f64d",
+        "result": "same mutant block, new capture-before-restore ordering: Results: PASS=13 FAIL=3 and the same probes — the destructive writes are detected, not masked"
+      },
+      "detection_fixed_reader_green": {
+        "receipt_sha256": "1805484e9209b6fc43156a0768762f2e3599d6085da7e62bf93d337181a2b38b",
+        "result": "with the committed per-hop reader: Results: PASS=14 FAIL=2 — the hop no longer reds (it is denied by the reader) while the destructive detection still holds"
+      }
+    },
+    "digest_pin": {
+      "recomputation_at_head": "python3 -I -B recomputation at bea0c3d35a422f789248b8d0c7959f8809a3f755 reproduces 31ee6a800ccdf298eb3d5be267b0944b7f62fc869969357153599bfaf90b6892 over 49 tracked */SKILL.md files (path, index mode, working-tree bytes, sha256-per-file, path\\0mode\\0file-sha in sorted order), the value re-pinned at tests/readiness_v2_migrate_test.py:681",
+      "advance": "5d0e2f1cb2d82d2d87386f3ed31a7f3a6351d0cf9e2327f98d246b678011addf -> 31ee6a800ccdf298eb3d5be267b0944b7f62fc869969357153599bfaf90b6892 (deliberate, reviewed SKILL.md edit: per-hop reader block)",
+      "local_ci": "tests/readiness_v2_migrate_test.py file sha256 a17e88a245032abac1dae64ee0fb84e2ea8abae0f50e1ca081fa1100163a6eb9 re-pinned as its sources value in .ai/ci/local-ci.json",
+      "audit": "python3 scripts/validate-skill-catalog.py --write-audit net-unchanged at body_lines exactly 100"
+    },
+    "per_ac_round_2_green": {
+      "note": "every recorded AC test_command re-run at bea0c3d35a422f789248b8d0c7959f8809a3f755; exit_code and sha256 of combined output recorded per AC",
+      "ac1_note": "AC1 exits 1 legitimately at a branch head: its scope check reports the evidence file itself (.ai/evidence/tswc-sk-b2.json) as an out-of-scope addition relative to its recorded baseline — the authoritative scope leg is the base->head diff below",
+      "results": {
+        "1": {
+          "exit_code": 1,
+          "output_sha256": "24d23d4e261367b14672184da4976a486a93bd8f0ecd1e547b731d32165e2584"
+        },
+        "2": {
+          "exit_code": 0,
+          "output_sha256": "ee4e88ddcbea289986df63217f96215484ceec0c684a943abcfb12e9936fdb23"
+        },
+        "3": {
+          "exit_code": 0,
+          "output_sha256": "1b096f126311ad4a4c73172b6b9cb739c7e71f242b41c3b3c596527c66f08ac1"
+        },
+        "4": {
+          "exit_code": 0,
+          "output_sha256": "a042f38410ee784486458be1e5776f12d8863ff359295eef20c55c35f3894b1e"
+        },
+        "5": {
+          "exit_code": 0,
+          "output_sha256": "cdc938e0fa61f1ac05a8341d320a949ef8299f7904b82bb8a0c26144b36f756f"
+        },
+        "6": {
+          "exit_code": 0,
+          "output_sha256": "1fcba88e18ec7a0354612dbdc66906b6baabb4e2f254202a51723b4d89c21eea"
+        },
+        "7": {
+          "exit_code": 0,
+          "output_sha256": "aae611c6c76b7df777d2aa23a7148af7a3e8930812eaaf0607416a145fd9ec02"
+        },
+        "8": {
+          "exit_code": 0,
+          "output_sha256": "1bd25e1e0b93fe668c4e75588a961de3cbfd17e5c9bb027be873a1372ac223d4"
+        },
+        "9": {
+          "exit_code": 0,
+          "output_sha256": "d6b423d672078d7da23b255f39b4da769f77d7dfc58bd82b3f2684de247ed3f5"
+        },
+        "10": {
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "11": {
+          "exit_code": 0,
+          "output_sha256": "932a82e9b96ba68c3035af9499461add05445bbde871e45141112b7c87bdc0e0"
+        },
+        "12": {
+          "exit_code": 0,
+          "output_sha256": "15ac4e778ee85dac7a64417a065193925c5b41597128870c1545a75896dbf42d"
+        },
+        "13": {
+          "exit_code": 0,
+          "output_sha256": "f7606d006de5793d5ecb514fdba7dc2770e5c2ad0ddb1cbd136445be7c532153"
+        }
+      }
+    },
+    "scope_leg": {
+      "command": "git diff --name-only 0663e292855f5aadcc9e39a5e94a6e0215b122fc..bea0c3d35a422f789248b8d0c7959f8809a3f755 — 17 changed files",
+      "result": "each changed file is inside a goals.json scope entry, and every scope entry has a diff; no outside-scope file"
+    }
+  },
+  "review_round_3": {
+    "at": "2026-10-10T02:30:51Z",
+    "reviewer": "codex cross-vendor independent review (omc ask codex), read-only at the review worktree",
+    "head_reviewed": "9bb1fb333f12a51b5db6dbec9604d1b844b85584",
+    "verdict": "REQUEST_CHANGES",
+    "blocking": [
+      "finding 2.4: the per-component reader resolves a component with one collapsed cd, so a symlink chain that leaves the export and re-enters it inside a SINGLE component (alias -> outside/return, return -> the workload dir, path alias/SKILL.md) is served with exit 0 — containment after the collapsed cd only sees the landing path"
+    ],
+    "non_blocking": [
+      "finding 2.5: a literal .. component whose hop stays inside the export is served with exit 0, contradicting the closure contract which claims a pre-cd component refusal"
+    ],
+    "artifact_receipt": "review-round3-artifact.md (plus review-round3-brief.md); verdict recorded verbatim at 9bb1fb3"
+  },
+  "round_3_closure": {
+    "at": "2026-10-10T02:30:51Z",
+    "purpose": "round-3 review findings 2.4 (single-component out-and-back symlink chain bypass) and 2.5 (literal .. component served) closed red-first: the reader now expands every component in place before entering it — a symlink component is re-read one link step at a time with its target re-entering the component queue, absolute and empty link targets refuse, a literal .. component refuses as a component anywhere in the walk, expansion is budget-capped, cd is anchored at the resolved physical hop, and in-tree symlink reads still pass",
+    "red": {
+      "at": "2026-10-10T02:30:51Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "914c956cb2d9b9221ba60f7eed4901e7d7b4cb8b",
+      "exit_code": 1,
+      "output_sha256": "87491a1d8f230a99a028107a2152d73b95917c06a48de360a96478b070d0fb03",
+      "result": "fails only tests/blindness_sandbox_test.sh — Results: PASS=16 FAIL=2 (+ its unit-test wrapper FAIL): the new seventh guard (single-component chain alias/b through return -> the workload dir) is served with exit 0 by the pre-fix reader, reproducing finding 2.4, and the eighth guard (path containing a literal .. component whose hop stays inside) is served with exit 0, reproducing finding 2.5; all sixteen round-1/round-2 asserts stay green",
+      "tree": "committed red-3 tree (clean worktree skills-s2-fix-20261010); test-file-only commit, no reader change yet"
+    },
+    "green": {
+      "at": "2026-10-10T02:30:51Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "f6daa06a2d6635b363797ad2a176073277650325",
+      "exit_code": 0,
+      "output_sha256": "e953fb09cbe5b86cecb2d75a628051172cf4657d42bf1f52a585f233f513a623",
+      "tree": "committed fix head 2 (clean worktree skills-s2-fix-20261010 before and after the run)",
+      "result": "OVERALL: PASSED; blindness unit Results: PASS=18 FAIL=0 — all eighteen asserts green: the two new guards now exit 3 (chain and .. denials), every round-1/round-2 assert unchanged, the plain workload read still passes, and an in-tree intermediate symlink hop still passes (no over-deny)",
+      "sub_legs": {
+        "prek": {
+          "command": "prek run --all-files",
+          "exit_code": 0,
+          "output_sha256": "dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae",
+          "note": "byte-identical to the round-1, round-2 and round-3-admission prek receipts — re-run at the committed fix head f6daa06"
+        },
+        "diff_check": {
+          "command": "git diff --check",
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "empty output at the committed tree"
+        }
+      }
+    },
+    "reader_probe_semantics": "development-time scratch probes against the extracted committed block (never committed): chain alias/SKILL.md exit 3; literal-.. path exit 3; in-tree intermediate symlink hop (03-configure-generate/inlink/SKILL.md with inlink -> workload) exit 0 with the payload served (no over-deny); nested inside link (inlink2 -> 03-configure-generate/inlink) exit 0; self-referential . target link (selfref -> .) exit 0; final-dir symlink target (dirlink -> a directory) exit 3 refusal preserved per the round-2 contract; empty target exit 3; absolute target exit 3; directory-as-file target exit 3; missing/unreadable root argument still exit 1 via :? (unchanged); expansion budget backstop (64) never reached by any legit walk",
+    "digest_pin": {
+      "recomputation_at_head": "python3 -I -B recomputation at f6daa06a2d6635b363797ad2a176073277650325 reproduces 56566dc9e0bdbdc90de1648ff5c7ceacdc781a1b57dc3f62de0fad9f4b57b8af over 49 tracked */SKILL.md files (path, index mode, working-tree bytes, sha256-per-file, path\\0mode\\0file-sha in sorted order), the value re-pinned at tests/readiness_v2_migrate_test.py:681",
+      "advance": "31ee6a800ccdf298eb3d5be267b0944b7f62fc869969357153599bfaf90b6892 -> 56566dc9e0bdbdc90de1648ff5c7ceacdc781a1b57dc3f62de0fad9f4b57b8af (deliberate, reviewed SKILL.md edit: per-component reader expansion block)",
+      "local_ci": "tests/readiness_v2_migrate_test.py file sha256 a17e88a245032abac1dae64ee0fb84e2ea8abae0f50e1ca081fa1100163a6eb9 -> 02a57e51d4419a793a5c92f32d9e54ec50762e87535a97282d2459de6c420b11 re-pinned as its sources value in .ai/ci/local-ci.json",
+      "audit": "python3 scripts/validate-skill-catalog.py --write-audit net-unchanged at body_lines exactly 100 (42 skills)"
+    },
+    "per_ac_round_3_green": {
+      "note": "every recorded AC test_command re-run at f6daa06a2d6635b363797ad2a176073277650325; exit_code and sha256 of combined output recorded per AC",
+      "ac1_note": "AC1 exits 1 legitimately at a branch head: its scope check reports the evidence file itself (.ai/evidence/tswc-sk-b2.json) as an out-of-scope addition relative to its recorded baseline — the authoritative scope leg is the base->head diff below",
+      "results": {
+        "1": {
+          "exit_code": 1,
+          "output_sha256": "24d23d4e261367b14672184da4976a486a93bd8f0ecd1e547b731d32165e2584"
+        },
+        "2": {
+          "exit_code": 0,
+          "output_sha256": "ee4e88ddcbea289986df63217f96215484ceec0c684a943abcfb12e9936fdb23"
+        },
+        "3": {
+          "exit_code": 0,
+          "output_sha256": "1b096f126311ad4a4c73172b6b9cb739c7e71f242b41c3b3c596527c66f08ac1"
+        },
+        "4": {
+          "exit_code": 0,
+          "output_sha256": "a042f38410ee784486458be1e5776f12d8863ff359295eef20c55c35f3894b1e"
+        },
+        "5": {
+          "exit_code": 0,
+          "output_sha256": "cdc938e0fa61f1ac05a8341d320a949ef8299f7904b82bb8a0c26144b36f756f"
+        },
+        "6": {
+          "exit_code": 0,
+          "output_sha256": "1fcba88e18ec7a0354612dbdc66906b6baabb4e2f254202a51723b4d89c21eea"
+        },
+        "7": {
+          "exit_code": 0,
+          "output_sha256": "7969f8445d5b45f27ef1ada79d369c8b6d64b14bca5efedd3b2ed3a5122a508d"
+        },
+        "8": {
+          "exit_code": 0,
+          "output_sha256": "1bd25e1e0b93fe668c4e75588a961de3cbfd17e5c9bb027be873a1372ac223d4"
+        },
+        "9": {
+          "exit_code": 0,
+          "output_sha256": "d6b423d672078d7da23b255f39b4da769f77d7dfc58bd82b3f2684de247ed3f5"
+        },
+        "10": {
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "11": {
+          "exit_code": 0,
+          "output_sha256": "b7e8ed587996312616686840264b66b20dc83714933d4e265bb8bbcef108d6ca"
+        },
+        "12": {
+          "exit_code": 0,
+          "output_sha256": "15ac4e778ee85dac7a64417a065193925c5b41597128870c1545a75896dbf42d"
+        },
+        "13": {
+          "exit_code": 0,
+          "output_sha256": "2a1756b9762df5e44877db39d081aae852b534332c59bd82750a805e541d97a9"
+        }
+      }
+    },
+    "scope_leg": {
+      "command": "git diff --name-only 0663e292855f5aadcc9e39a5e94a6e0215b122fc..f6daa06a2d6635b363797ad2a176073277650325 — 17 changed files",
+      "result": "each changed file is inside a goals.json scope entry, and every scope entry has a diff; no outside-scope file"
+    }
+  },
+  "review_round_4": {
+    "at": "2026-10-10T03:42:08Z",
+    "reviewer": "codex cross-vendor independent review (omc ask codex), read-only at the review worktree",
+    "head_reviewed": "7b2da7fc9f6b6b98c68cbed0e6064025a5059417",
+    "verdict": "REQUEST_CHANGES",
+    "blocking": [
+      "finding 2.6: the reader consumed link targets through a command substitution, which strips the newline readlink terminates its output with along with any newline the target itself ends in - so a dangling link alias -> the literal target \"workload\\n\" was served as the stripped plain name with exit 0 (a root-level decoy's payload), and a valid link to a newline-named directory was redirected to the stripped-name decoy's file"
+    ],
+    "non_blocking": [
+      "finding 2.7: the round-3 chain guard planted its alias link ABSOLUTE (alias -> $WORK/return), so the guard exercised the absolute-target refusal instead of the relative-target queue expansion the collapsed-cd defect it guards against depends on; the reviewer demonstrated a collapsed-cd mutant that passes all 18 asserts at the absolute fixture but fails at the relative one"
+    ],
+    "artifact_receipt": "review-round4-artifact.md (plus review-round4-brief.md); verdict recorded verbatim at 7b2da7f"
+  },
+  "round_4_closure": {
+    "at": "2026-10-10T03:42:08Z",
+    "purpose": "round-4 review findings 2.6 (newline byte loss in link-target reads redirecting a dangling link to a plain-name decoy) and 2.7 (the chain guard fixture planted absolute) closed red-first; the reader now consumes byte-exact values at all three sites where a command substitution previously stripped the trailing newline: link targets come from an os-level readlink via perl (BSD readlink emits only one trailing newline whether or not the target itself ends in one - readlink(1) output is inherently ambiguous on macOS, GNU readlink appends an unconditional terminator - perl readlink returns the kernel's exact target bytes on both), and the base anchor plus each physical cd hop are read through a NUL-delimited IFS= read -r -d '' < <(cd ... && pwd -P && printf '\\0') with exactly one terminator newline stripped afterward (pwd -P always appends exactly one trailing newline regardless of the directory name's own trailing newline, verified on both BSD and GNU pwd behavior), no strip after the perl readlink",
+    "platform_fact": "development-time probes established: on macOS bash 3.2.57, readlink output for kernel targets \"nldir\\n\" and \"nldir\" is byte-identical (6 bytes \"nldir\\n\", os.readlink shows the kernel values differ) while perl readlink returns the exact kernel bytes (6 vs 5); pwd -P emits the path plus exactly one trailing newline for a directory named \"nl\\n\" (2 total) and one for a plain name (1 total); read -r -d '' with a process-substitution NUL preserves bytes exactly on bash 3.2.57; the stripped hop redirected the walk into the plain-name decoy (served the decoy payload), the byte-exact hop resolves it into the true newline-named directory",
+    "red": {
+      "at": "2026-10-10T03:42:08Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "a66dd6e9a4f2357150a8f6758dd9c5fff1061d0b",
+      "exit_code": 1,
+      "output_sha256": "66178e92aca96de6ca51473ae5aaf4adbee7cf386fa61039a8df6cbb0555fd56",
+      "result": "fails only tests/blindness_sandbox_test.sh - Results: PASS=18 FAIL=2 (+ its unit wrapper): the ninth guard (valid link wlnk -> the literal target \"nldir\\n\" must serve its own \"Exact bytes.\" file, not the plain-name decoy nldir with \"Wrong bytes.\") is served the decoy with exit 0 by the pre-fix reader, and the tenth guard (dangling link nlnk -> \"nlw\\n\" read against the root-level plain-name decoy nlw must be refused, not served) serves the decoy with exit 0; the same red commit also corrects the chain-guard fixture to the relative form outside/return (finding 2.7), which still passes at the then-head; all eighteen prior asserts stay green",
+      "tree": "committed red-4 tree (clean worktree skills-s2-fix-20261010); test-file-only commit, no reader change yet"
+    },
+    "green": {
+      "at": "2026-10-10T03:42:08Z",
+      "command": "bash tests/run-tests.sh",
+      "commit": "b31f0d36a7ebbe29b9d70d07449cedd783a94192",
+      "exit_code": 0,
+      "output_sha256": "0d7cb9c359c5dd751d88f7faf10af2a66179aa95983fbd281d0d966476d89781",
+      "tree": "committed fix head 3 (clean worktree skills-s2-fix-20261010 before and after the run)",
+      "result": "OVERALL: PASSED; blindness unit Results: PASS=20 FAIL=0 - both new guards now pass (the valid newline target serves \"Exact bytes.\", the dangling newline target is refused with no decoy payload), the corrected relative-form chain guard and every other prior assert unchanged (no over-deny), the plain workload read and the in-tree intermediate symlink hop still pass",
+      "sub_legs": {
+        "prek": {
+          "command": "prek run --all-files",
+          "exit_code": 0,
+          "output_sha256": "dffa2746d1b45320ccfc3c7e557db1eba3a49c904add084392b74f0de32486ae",
+          "note": "byte-identical to every prior round's prek receipt - run at the fix content"
+        },
+        "diff_check": {
+          "command": "git diff --check",
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "empty at the committed tree"
+        }
+      }
+    },
+    "digest_pin": {
+      "recomputation_at_head": "recomputation at b31f0d36a7ebbe29b9d70d07449cedd783a94192 gives 6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4 over 49 tracked */SKILL.md files (sha256 per file over working-tree bytes, sha256 over path\\0mode\\0file-sha in sorted order) and the re-pinned tests/readiness_v2_migrate_test.py passes (16 tests OK) after the local-ci sources sha below is updated",
+      "advance": "56566dc9e0bdbdc90de1648ff5c7ceacdc781a1b57dc3f62de0fad9f4b57b8af -> 6236c6c0eccfb9363e9359095d9f9722defc9ba1d9ce7c350494f2c0d18441e4 (deliberate, reviewed SKILL.md edit: the three sites now consume byte-exact values)",
+      "local_ci": "tests/readiness_v2_migrate_test.py file sha256 02a57e51d4419a793a5c92f32d9e54ec50762e87535a97282d2459de6c420b11 -> aee2152e2bfbf8407743d01df59968318b045ec80517771353b18441791c147d re-pinned as its sources value in .ai/ci/local-ci.json",
+      "audit": "python3 scripts/validate-skill-catalog.py --write-audit exit 0, net-unchanged (42 skills), body_lines exactly 100"
+    },
+    "per_ac_round_4_green": {
+      "note": "every recorded AC test_command re-run at b31f0d36a7ebbe29b9d70d07449cedd783a94192; exit_code and sha256 of combined output recorded per AC",
+      "ac1_note": "AC1 exits 1 legitimately at a branch head: its scope check reports the evidence file itself as an out-of-scope addition relative to its recorded baseline - the authoritative scope leg is the base->head diff below",
+      "results": {
+        "1": {
+          "exit_code": 1,
+          "output_sha256": "24d23d4e261367b14672184da4976a486a93bd8f0ecd1e547b731d32165e2584"
+        },
+        "2": {
+          "exit_code": 0,
+          "output_sha256": "ee4e88ddcbea289986df63217f96215484ceec0c684a943abcfb12e9936fdb23"
+        },
+        "3": {
+          "exit_code": 0,
+          "output_sha256": "1b096f126311ad4a4c73172b6b9cb739c7e71f242b41c3b3c596527c66f08ac1"
+        },
+        "4": {
+          "exit_code": 0,
+          "output_sha256": "a042f38410ee784486458be1e5776f12d8863ff359295eef20c55c35f3894b1e"
+        },
+        "5": {
+          "exit_code": 0,
+          "output_sha256": "cdc938e0fa61f1ac05a8341d320a949ef8299f7904b82bb8a0c26144b36f756f"
+        },
+        "6": {
+          "exit_code": 0,
+          "output_sha256": "1fcba88e18ec7a0354612dbdc66906b6baabb4e2f254202a51723b4d89c21eea"
+        },
+        "7": {
+          "exit_code": 0,
+          "output_sha256": "2580c6130f22b39388e2f7589f086a782f8ffb35f963756db2cefa186b9609bb"
+        },
+        "8": {
+          "exit_code": 0,
+          "output_sha256": "1bd25e1e0b93fe668c4e75588a961de3cbfd17e5c9bb027be873a1372ac223d4"
+        },
+        "9": {
+          "exit_code": 0,
+          "output_sha256": "d6b423d672078d7da23b255f39b4da769f77d7dfc58bd82b3f2684de247ed3f5"
+        },
+        "10": {
+          "exit_code": 0,
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "11": {
+          "exit_code": 0,
+          "output_sha256": "707a9659f1d766e9fd2c2dee858aeaedeb1fb1512e9799da895e4f4e0ae35be4"
+        },
+        "12": {
+          "exit_code": 0,
+          "output_sha256": "15ac4e778ee85dac7a64417a065193925c5b41597128870c1545a75896dbf42d"
+        },
+        "13": {
+          "exit_code": 0,
+          "output_sha256": "23413df8a6fec2851bff3f0b08480996d0c7c601c8ba9120d8b57fe1c2b02788"
+        }
+      }
+    },
+    "scope_leg": {
+      "command": "git diff --name-only 0663e292855f5aadcc9e39a5e94a6e0215b122fc..b31f0d36a7ebbe29b9d70d07449cedd783a94192 - 17 changed files",
+      "result": "each changed file is inside a goals.json scope entry (entries compared as directory prefixes) and every scope entry has a diff; no outside-scope file"
+    },
+    "finding_4_note": "git diff 549fe77a356d22b2204d8b819ad1b6d2b7410bbe..b31f0d36a7ebbe29b9d70d07449cedd783a94192 over tests/xskp_p5_readiness_policy_test.sh and tests/ach_s01_readiness_policy_test.sh is EMPTY (0 bytes) - the retained-policy shim rejection stands unmodified"
+  }
+}
