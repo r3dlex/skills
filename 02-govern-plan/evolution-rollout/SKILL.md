@@ -19,8 +19,7 @@ wiki is made unreachable by the environment, never by asking the agent to look a
 ## The blindness sandbox
 
 A grep over the prompt proves nothing: the rollout can still read `evolve/wiki/` at runtime.
-Blindness is an environment property: the export below has no `evolve/` and no git history,
-so the wiki is unreachable even through `git log` or `git show`; the block is the whole procedure, and the blindness test runs it exactly.
+Blindness is an environment property, not a prompt discipline: the export below has no `evolve/` and no git history, so the wiki is unreachable even through `git log` or `git show`; the block is the whole procedure, and the blindness test runs it exactly.
 
 ```bash blindness-sandbox
 # Fail closed before any write: an EXPORT that exists, overlaps SOURCE, or sits inside a git work tree — on physical paths — is refused, so the wiki is never touched and its history never reachable.
@@ -39,7 +38,7 @@ git -C "$SOURCE" archive HEAD | tar -x -C "$EXPORT"   # blindness-sandbox:snapsh
 # Path denial: no wiki path survives, tracked or not.
 rm -rf "$EXPORT/evolve"                               # blindness-sandbox:denial
 printf 'deny evolve/\ndeny .git/\n' > "$EXPORT/.blindness-policy"
-# The export's only reader resolves the target one hop at a time; every hop, traversal or symlink, that leaves the export is refused.
+# The export's only reader expands every component before entering it; a symlink hop is followed link step by link step, and any traversal or link that leaves the export is refused.
 mkdir -p "$EXPORT/bin"
 cat > "$EXPORT/bin/rollout-read" <<'ROLLOUT_READ'
 #!/bin/bash
@@ -49,11 +48,16 @@ d3() { echo "denied: $1" >&2; exit 3; }
 case "$target" in /*|'') d3 "$target" ;; esac
 base="$(cd -- "$root" 2>/dev/null && pwd -P)" || d3 "missing root: $root"
 case "$target" in */*) dir="${target%/*}"; file="${target##*/}" ;; *) dir=""; file="$target" ;; esac
-hop="$base" rest="$dir"
-while [ -n "$rest" ]; do
-  case "$rest" in */*) c="${rest%%/*}"; rest="${rest#*/}" ;; *) c="$rest"; rest="" ;; esac
-  if ! hop="$(cd -- "$hop/$c" 2>/dev/null && pwd -P)"; then d3 "$target"; fi
-  case "$hop" in "$base"|"$base"/*) ;; *) d3 "$target escapes the export" ;; esac
+pend="$dir" hop="$base" hops=0
+while [ -n "$pend" ]; do
+  hops=$((hops + 1)); if [ "$hops" -gt 64 ]; then d3 "hop limit: $target"; fi
+  case "$pend" in */*) c="${pend%%/*}"; pend="${pend#*/}" ;; *) c="$pend"; pend="" ;; esac
+  case "$c" in ''|.) continue ;; ..) d3 "$target" ;; esac
+  if [ -L "$hop/$c" ]; then t="$(readlink -- "$hop/$c")" || d3 "$target"; case "$t" in /*|'') d3 "$target" ;; esac; if [ -n "$pend" ]; then pend="$t/$pend"; else pend="$t"; fi
+  else
+    if ! hop="$(cd -- "$hop/$c" 2>/dev/null && pwd -P)"; then d3 "$target"; fi
+    case "$hop" in "$base"|"$base"/*) ;; *) d3 "$target escapes the export" ;; esac
+  fi
 done
 if [ -L "$hop/$file" ] || ! [ -f "$hop/$file" ]; then d3 "$target"; fi
 cat "$hop/$file"
@@ -61,13 +65,11 @@ ROLLOUT_READ
 chmod +x "$EXPORT/bin/rollout-read"
 ```
 
-The rollout reads the tree only through `bin/rollout-read`: the policy and wrapper are
-the path denial, and the `rm -rf` removes a wiki file a commit already tracked.
+The rollout reads the tree only through `bin/rollout-read`: the policy and wrapper are the path denial, and the `rm -rf` removes a wiki file a commit already tracked.
 
 ## What a rollout records
 
-Write to `evolve/raw/<run-id>/`, once. A run id is a slug plus a UTC timestamp,
-and a later run never rewrites an earlier run's directory.
+Write to `evolve/raw/<run-id>/`, once. A run id is a slug plus a UTC timestamp, and a later run never rewrites an earlier run's directory.
 
 - `judgment.json` — one judgment record per judge, bound to the candidate:
   `judgment_id`, `run_id`, `candidate_overlay_sha256`, `skill_under_test`,
@@ -91,13 +93,11 @@ The prompt-grep gate is a cheap pre-check before the export — every record say
 - **Judges are human and out-of-band** — the `eval-a-skill` model. CI proves the
   record exists; the judge proves quality.
 - **Three samples plus majority** within the ceiling: a single judge on a small
-  `D_val` drifts, so stop early only when the rubric's weighted aggregate
-  reaches its maximum.
+  `D_val` drifts, so stop early only when the rubric's weighted aggregate hits its maximum.
 - **`D_val` is frozen per cycle.** A task-set change is a new version, and its
   scores are never compared with another version's.
 
-The WikiSkill paper is cited for the loop's shape alone. It states no
-complexity, lint, type or coverage threshold; never cite it for one.
+The WikiSkill paper is cited for the loop's shape alone and states no threshold; never cite it for one.
 
 ## Related
 
