@@ -26,7 +26,11 @@ sys.path.insert(0, str(AUTO / 'lib'))
 import readiness_contract_v2 as v2  # noqa: E402
 import observer  # noqa: E402
 
-NOW = datetime(2026, 10, 3, 12, 0, 0, tzinfo=timezone.utc)
+# The fixture clock is derived from the real wall clock, never a fixed instant: the run-gates.sh
+# subprocesses re-validate the fixture approval on the ungated system clock (observer deliberately
+# offers no now= injection below the driver), so a frozen NOW made every diff fail with
+# approval_expired once that instant passed.
+NOW = datetime.now(timezone.utc).replace(microsecond=0)
 POLICY = '.ai/policies/readiness-policy.json'
 REGISTRY = '.ai/workflows/northstar-readiness-v2.json'
 PATTERN = '^(feat|fix|chore)/<plan_id>-<goal_id>$'
