@@ -1,0 +1,139 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "[D4] The merged .ai/policies/readiness-policy.json bytes equal the generation's policy-candidate.json: the live readiness-policy/2 (sha256 58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a) with exactly one edit \u2014 tools becomes [\"bash\", \"python3\", \"git\", \"prek\", \"ssh-keygen\", \"gh\", \"node\", \"npm\"] \u2014 and every other byte unchanged (approval.accept [agent-self, ssh-tag, in-session] with default_mode agent, anchor_sha256 8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1 and max_age_days 14, identity_model single, required_checks, skippable_checks, sources, gates, branch_pattern, target).",
+      "green": {
+        "at": "2026-10-10T15:43:27Z",
+        "commit": "3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9",
+        "exit_code": 0,
+        "output_sha256": "ad4c4ab1e07316bcaf6b707fad6bebd4ca5232ecc5f5e5dccc1e5b1e17873f89"
+      },
+      "note": "the retargeted pin test fails at the red-first commit (live policy still 58bcd9e7 and no registry entry yet: five checks red) and passes at the head (live bytes equal the amendment candidate d48f7f67: seventeen checks green, tdd-evidence.sh observed both legs)",
+      "red": {
+        "at": "2026-10-10T15:26:10Z",
+        "exit_code": 1,
+        "output_sha256": "bb03472362e9b6a61cb1eb562d701fe971617c77463bce57f58ed63c7bcb9a8c"
+      },
+      "test_command": "bash tests/readiness_policy_v2_test.sh"
+    },
+    {
+      "ac": 2,
+      "criterion": "[M4] The candidate keeps the live branch_pattern ^(feat|fix|chore)/<plan_id>-<goal_id>$ byte-identical; routing reads the live pattern, and any candidate that changes it is refused with branch_pattern_change_refused.",
+      "green": {
+        "at": "2026-10-10T15:43:28Z",
+        "commit": "3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9",
+        "exit_code": 0,
+        "output_sha256": "4376dcab14b729aae93aa0dc036331bfc3238165d2a6a41e56d32e668147547c"
+      },
+      "note": "characterization: the branch_pattern_change_refused mechanism guard exists since S-06 and is green at the base; the published candidate keeps the live branch_pattern byte-identical, which validate_amendment enforces at publication, so the guard is green on both legs",
+      "red": {
+        "at": "2026-10-10T15:26:11Z",
+        "exit_code": 0,
+        "output_sha256": "6b8f1d47ad2285b1aacc1d514b45d783837e135cce6ef9e13cf166f0f7d7545b"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py ReviewRoundOneAmendmentTests.test_an_amendment_may_not_move_the_branch_namespace"
+    },
+    {
+      "ac": 3,
+      "criterion": "[M1] The registry entry records amends_policy_sha256 = 58bcd9e7ba044479e2f9f64bedd147926e8ea706f9d9c51378294dada52b354a and the generation id binds it; if any other policy change lands before this amendment merges, admission refuses amendment_base_moved and the amendment must be republished against the new live bytes.",
+      "green": {
+        "at": "2026-10-10T15:43:31Z",
+        "commit": "3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9",
+        "exit_code": 0,
+        "output_sha256": "9c6c91b8f9e9d84b657b376080204eef93a5e8c1c7ce75edbd0588b4b04f55bb"
+      },
+      "note": "characterization: the amendment_base_moved mechanism guard exists since S-06 and is green at the base; the registry entry this PR publishes records amends_policy_sha256 58bcd9e7 and the retargeted pin test binds it at the head",
+      "red": {
+        "at": "2026-10-10T15:26:15Z",
+        "exit_code": 0,
+        "output_sha256": "dbd447c0c090c11553c561d525007f6c7fe34925dc321bf8d87f7bd48fc35e9f"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py ReviewRoundOneAmendmentTests.test_a_concurrent_amendment_is_refused_once_another_lands"
+    },
+    {
+      "ac": 4,
+      "criterion": "[rule (d)] This amendment's approval is agent-self approvable only while agent-self stays in the candidate's own approval.accept (the candidate's and the live policy's whole form rule both govern, and the candidate's own default_mode never governs its own approval); an agent-self approval of a policy change emits agent_self_policy_change, is recorded as agent-self and never upgraded to a human label.",
+      "green": {
+        "at": "2026-10-10T15:43:41Z",
+        "commit": "3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9",
+        "exit_code": 0,
+        "output_sha256": "0a2409d0d8c8cc9aae0009063373eef1fa6911861f160c12e8d63a9c2dafe648"
+      },
+      "note": "characterization: the rule-(d) reporting guard exists since S-06 and is green at the base; this PR mints no approval, so the real rule-(d) proof remains the amendment approval minted in the later chain lane, which if agent-self emits agent_self_policy_change and is recorded as agent-self, never upgraded to a human label",
+      "red": {
+        "at": "2026-10-10T15:26:26Z",
+        "exit_code": 0,
+        "output_sha256": "8ffe0f5bb03e2bdf240df09f0d0979037f7d25debe41efc48d21856eecaa68d8"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_policy_amend_test.py AgentSelfPolicyChangeTests.test_agent_self_amendment_is_recorded_reported_and_audited"
+    },
+    {
+      "ac": 5,
+      "criterion": "[K3b] After this merge, node and npm are required tools of readiness-policy/2 and the tooling gate checks them for later skills generations; every plan approval in the repository binds the pre-amendment live digest and is voided, P5's approval/xskp-p5-skill-producers/a1fd96194619 included; each plan recovers by re-signing, and a live-mode generation keeps its identity.",
+      "green": {
+        "at": "2026-10-10T15:43:41Z",
+        "commit": "3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9",
+        "exit_code": 0,
+        "output_sha256": "19ef556a0f57316e6b8c6d36f372ebc7e9bce051d41ecd3367648fe40bc9969a"
+      },
+      "note": "the flips\u2019 assertNotEqual is the void observable: at the red-first commit the live bytes still equal P5\u2019s registered policy_sha256 58bcd9e7, so the assertEqual passes and the assertNotEqual fails; at the head the live digest has moved to the candidate and the byte-equal replay is pinned to the policy P5 was published with (the ach-skills-agent-mode candidate bytes)",
+      "red": {
+        "at": "2026-10-10T15:26:26Z",
+        "exit_code": 1,
+        "output_sha256": "84792244db8893ab70dad3bdf6e08f1f700a17a5f5a1f74015e615cdb22483ea"
+      },
+      "test_command": "python3 -I -B tests/readiness_v2_migrate_test.py PublishedP5Tests.test_offline_replay_is_byte_equal"
+    },
+    {
+      "ac": 6,
+      "criterion": "[flips] The publication flips the E6-spec D4 tests, red then green: tests/readiness_policy_v2_test.sh pins the new candidate digest (25), the amends record and the exact tools list (51-53 and the tools check); tests/readiness_v2_migrate_test.py (425-426) points the P5 H1 replay at the policy its generation was published with (the ach-skills-agent-mode candidate bytes) and asserts the live digest has moved on; .ai/ci/local-ci.json re-pins every edited source; precedents #111 (773bfde) and the P5 republish (4fee2ef).",
+      "green": {
+        "at": "2026-10-10T15:43:27Z",
+        "commit": "3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9",
+        "exit_code": 0,
+        "output_sha256": "ad4c4ab1e07316bcaf6b707fad6bebd4ca5232ecc5f5e5dccc1e5b1e17873f89"
+      },
+      "note": "same command, state and run as AC 1 (the pin test carries the D4 flip bytes): AC 1\u2019s output records are AC 6\u2019s. The .ai/ci/local-ci.json re-pins of the two edited sources land in the same publication (precedents #111 773bfde and the P5 republish 4fee2ef); the local-ci declaration test is green on both legs because it does not gate the two source pins \u2014 the re-pin is the ACH-AM-01 collateral convention, not a declared gate",
+      "red": {
+        "at": "2026-10-10T15:26:10Z",
+        "exit_code": 1,
+        "output_sha256": "bb03472362e9b6a61cb1eb562d701fe971617c77463bce57f58ed63c7bcb9a8c"
+      },
+      "test_command": "bash tests/readiness_policy_v2_test.sh"
+    },
+    {
+      "ac": 7,
+      "criterion": "[O8 first] The e6-skills-legacy-ts chain condition: this amendment merges after O8 (the o8_disposition attachment records the re-observed commit). The amendment's own approval is not minted by its publication: the e6-skills-legacy-ts generation 3f81925f38377c3e90d6df19f75796c5652b1eb379161b1dc638dbcd38dd6c35 keeps its identity, its plan approval is minted only after O8 and the amendment have merged, immediately before goal 00's admission, and is re-signed before certification when fewer than 7 days of the 14-day window remain, because merge-v2 re-verifies it at merge time.",
+      "green": {
+        "at": "2026-10-10T15:43:27Z",
+        "commit": "3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9",
+        "exit_code": 0,
+        "output_sha256": "19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061"
+      },
+      "note": "record check, not a unit test: the o8_disposition attachment resolves the o8_gate name to f5e338b by coordinator record and re-observed git ancestry (exit 0 on both legs); the amendment merges after O8 and mints no approval of its own \u2014 the e6-skills-legacy-ts generation keeps its identity and its approval is minted only before goal 00\u2019s admission, re-signed when fewer than 7 days of the 14-day window remain",
+      "red": {
+        "at": "2026-10-10T15:26:28Z",
+        "exit_code": 0,
+        "output_sha256": "1bb347b21fbfbb28ec66c0d9297158ab710e2eccb48ba4a2821eac3c22dbb4df"
+      },
+      "test_command": "git merge-base --is-ancestor f5e338b92bb754c2bfffdf542b498530258fdbc0 origin/main"
+    }
+  ],
+  "goal_id": "E6-AM-01",
+  "green": {
+    "command": "bash tests/readiness_policy_v2_test.sh",
+    "exit_code": 0
+  },
+  "provenance": {
+    "green_method": "each AC command run at the committed head 3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9 after commit c2; the pin test leg additionally observed by tdd-evidence.sh --record-green in the repository root",
+    "h1_replay": "tests/readiness_v2_migrate_test.py PublishedP5Tests.test_offline_replay_is_byte_equal: red (exit 1) at the red-first commit on the re-added assertNotEqual, green (exit 0) at the head with the replay pinned to the policy P5 was published with",
+    "red_first_commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875 (test(readiness): retargets tests/readiness_policy_v2_test.sh and tests/readiness_v2_migrate_test.py to pin the amendment candidate before any production change); the red leg was observed by tdd-evidence.sh --record-red in a detached worktree at that commit",
+    "red_method": "at the red-first commit worktree: live policy 58bcd9e7, registry without e6-skills-node-npm, local-ci pins unre-baselined; the pin test fails five checks, the migrate replay fails on the assertNotEqual, the three rule guards are green",
+    "run_tests_legs": "bash tests/run-tests.sh exits 1 on both legs for a reason outside this goal: tests/readiness_v2_gate_workspace_test.py RunGatesBytecodeTests and WorktreeSnapshotTests fail on the clean base 600f615 as well (verified 2026-10-10 by stash-run) because the fixtures\u2019 plan-a approval expires_at 2026-10-10T11:00:00Z (Fixture.record default days=7 over NOW=2026-10-03T12:00Z) is crossed by the wall clock in the real-time run-gates subprocess path; the head run\u2019s unique FAILs are exactly that pre-existing pair (approval_expired:2026-10-10T11:00:00Z). Disclosed, not waived: the red suite additionally carried the five designed pin-test reds and the migrate designed red, which disappear at the head. The merge lane cannot claim a green Test Suite until the fixture time-bomb is repaired by its owner lane"
+  },
+  "red": {
+    "command": "bash tests/readiness_policy_v2_test.sh",
+    "exit_code": 1
+  }
+}
