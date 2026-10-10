@@ -135,6 +135,22 @@
   "provenance": {
     "green_method": "each AC command run at the committed head 3f039ab7fcc234bb9fb4a9eb24a02d682590c5f9 after commit c2; the pin test leg additionally observed by tdd-evidence.sh --record-green in the repository root",
     "h1_replay": "tests/readiness_v2_migrate_test.py PublishedP5Tests.test_offline_replay_is_byte_equal: red (exit 1) at the red-first commit on the re-added assertNotEqual, green (exit 0) at the head with the replay pinned to the policy P5 was published with",
+    "o8_receipt": {
+      "binding": "Goal 00's evidence cites the receipt by path and sha256. No waiver exists.",
+      "bytes": 3970,
+      "names": {
+        "goal": "ACH-S-08",
+        "plan": "ach-skills-s08-gate-workspace-repair",
+        "pr": "r3dlex/skills#125 (MERGED 2026-10-09T10:55:25Z)"
+      },
+      "o8_commit": "f5e338b92bb754c2bfffdf542b498530258fdbc0",
+      "path": "ai-tool-workspace:.omc/handoffs/ach-20261004/o8-receipt.json",
+      "receipt_id": "O8-ACH-S-08-20261010",
+      "recorded_at_utc": "2026-10-10T16:21:10Z",
+      "sha256": "ec76282161bcfb5539ecb7e9bb0e6e245a7d9261d4bf519bc1d9d78796deceaf",
+      "sq_resolution": "SQ-2 resolved by coordinator decision 2026-10-10 (~16:25Z), Option A EXECUTED: the coordinator minted the receipt as the successor D1-coordinator role per D5 next_owner; verified programmatically from the receipt bytes (digest equals the coordinator-pinned digest).",
+      "workspace_local_by_design": ".omc/ is gitignored in the umbrella (established practice; D5-DECISION-20261006.json is itself an untracked record); receipt bytes quoted verbatim in the PR body for external verifiability"
+    },
     "red_first_commit": "e7ed1df28cdb482e01f189ce8264c26e879a9875 (test(readiness): retargets tests/readiness_policy_v2_test.sh and tests/readiness_v2_migrate_test.py to pin the amendment candidate before any production change); the red leg was observed by tdd-evidence.sh --record-red in a detached worktree at that commit",
     "red_method": "at the red-first commit worktree: live policy 58bcd9e7, registry without e6-skills-node-npm, local-ci pins unre-baselined; the pin test fails five checks, the migrate replay fails on the assertNotEqual, the three rule guards are green",
     "run_tests_legs": "bash tests/run-tests.sh exits 1 on both legs for a reason outside this goal: the RunGatesBytecodeTests class in tests/readiness_v2_gate_workspace_test.py and the WorktreeSnapshotTests class in tests/readiness_v2_identity_test.py fail on the clean base 600f615 as well (verified 2026-10-10 by stash-run) because the fixtures\u2019 plan-a approval expires_at 2026-10-10T11:00:00Z (Fixture.record default days=7 over NOW=2026-10-03T12:00Z) is crossed by the wall clock in the real-time run-gates subprocess path; the head run\u2019s unique FAILs are exactly that pre-existing pair (approval_expired:2026-10-10T11:00:00Z). Disclosed, not waived: the red suite additionally carried the five designed pin-test reds and the migrate designed red, which disappear at the head. The merge lane cannot claim a green Test Suite until the fixture time-bomb is repaired by its owner lane"
