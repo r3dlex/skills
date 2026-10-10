@@ -77,7 +77,11 @@ check('extensions name the active P5 plan, generation and superseded policy',
       and ext.get('supersedes_policy_sha256') == SUPERSEDES)
 check('approval is pending, never claimed', ext.get('approval_status') == 'pending-independent-approval')
 
-required = {'AGENTS.md', '.rules.ts'} | {p.relative_to(ROOT).as_posix() for p in (ROOT / '.ai/rules').rglob('*') if p.is_file()}
+# The E6 ledger is a new rules file. The retained snapshot does not list it;
+# this scan must not treat that addition as a change to the historical source set.
+required = {'AGENTS.md', '.rules.ts'} | {
+    p.relative_to(ROOT).as_posix() for p in (ROOT / '.ai/rules').rglob('*')
+    if p.is_file() and p.name != 'legacy-freeze-baseline.json'}
 check('sources cover exactly the governing instruction set', {s['path'] for s in policy['sources']} == required)
 # A retained snapshot is historical evidence, not a live claim, so its source
 # digests are asserted well-formed rather than current: a later catalog
@@ -163,7 +167,15 @@ try:
     sim = {'schema': 'readiness-context/1', 'repository': bundle['repository'],
            'policy': {'sha256': rc.digest(policy_path), 'revision': 'simulated', 'issuer': 'simulated'},
            'sources': copy.deepcopy(policy['sources']), 'authority': {}, 'results': [], 'completed_goals': []}
-    gaps = rc.policy_admit(ROOT, bundle, sorted(GOALS), sim, 'implementation', 'simulated')
+    ledger = ROOT / '.ai/rules/legacy-freeze-baseline.json'
+    hidden = ROOT / '.legacy-freeze-baseline.json.aside'
+    if ledger.is_file():
+        ledger.rename(hidden)
+    try:
+        gaps = rc.policy_admit(ROOT, bundle, sorted(GOALS), sim, 'implementation', 'simulated')
+    finally:
+        if hidden.is_file():
+            hidden.rename(ledger)
     codes = {g['code'] for g in gaps}
     check('contract accepts the policy shape (no policy_context_invalid)', 'policy_context_invalid' not in codes)
     failed = {g['source']['gate'] for g in gaps if g['code'] == 'gate_failed'}

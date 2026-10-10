@@ -1,0 +1,66 @@
+{
+  "assurance": "agent-self",
+  "checks": [
+    {
+      "command": "bash tests/legacy_freeze_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "after the ledger matched the measured baseline and class-change fixtures were wired"
+      },
+      "red": {
+        "exit_code": 1,
+        "observed": "checker reported unlisted new test shells and a stale shfmt entry before those were corrected"
+      }
+    },
+    {
+      "command": "bash tests/ts_tooling_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "after the drift build used the same relative outDir as the committed emit"
+      },
+      "red": {
+        "exit_code": 1,
+        "observed": "source maps differed when tsc --outDir pointed at an unrelated directory"
+      }
+    },
+    {
+      "command": "bash tests/e6_node_shadowing_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "after entrypoints compared realpath(argv) to import.meta.url"
+      },
+      "red": {
+        "exit_code": 1,
+        "observed": "macOS /var symlink made the sample entrypoint skip main under the shim"
+      }
+    },
+    {
+      "command": "bash tests/e6_shim_conformance_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "first observed run exited 0; a prior red run was not captured"
+      }
+    },
+    {
+      "command": "bash tests/e6_differential_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "first observed run exited 0; a prior red run was not captured"
+      }
+    }
+  ],
+  "goal_id": "e6-sk-00-ledger",
+  "green": {
+    "command": "bash tests/legacy_freeze_test.sh",
+    "exit_code": 0
+  },
+  "notice": "ASSURANCE: AGENT-SELF - no human approved this work",
+  "o8_receipt": {
+    "path": ".omc/handoffs/ach-20261004/o8-receipt.json",
+    "sha256": "ec76282161bcfb5539ecb7e9bb0e6e245a7d9261d4bf519bc1d9d78796deceaf"
+  },
+  "red": {
+    "command": "bash tests/legacy_freeze_test.sh",
+    "exit_code": 1
+  }
+}

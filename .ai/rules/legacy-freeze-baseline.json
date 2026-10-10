@@ -1,0 +1,1284 @@
+{
+  "schema": "legacy-freeze-baseline/1",
+  "base": "c886433d8950e5b4cb5563d02933b82644edf194",
+  "classes": [
+    "eligible",
+    "compat-shim",
+    "scaffold-template",
+    "test-wrapper",
+    "kept-language"
+  ],
+  "excludes": [
+    "tests/fixtures/**",
+    "test/fixtures/**",
+    "vendor/**",
+    "dist/**",
+    "dist-snapshot/**",
+    "reference/golden-*/**",
+    "node_modules/**",
+    ".venv/**",
+    "site-packages/**"
+  ],
+  "infrastructure_shells": [
+    "ts-tooling/bootstrap.sh"
+  ],
+  "tool_provenance": {
+    "shellcheck": "brew install shellcheck",
+    "shfmt": "brew install shfmt",
+    "ruff": "uv tool install ruff",
+    "mypy": "uv tool install mypy",
+    "xenon": "uv tool install xenon",
+    "never": "brew install lizard"
+  },
+  "entries": [
+    {
+      "path": "02-govern-plan/northstar/approve.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "02-govern-plan/northstar/handoff-write.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "02-govern-plan/northstar/prereq-check.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "03-configure-generate/ai-catapult-init/scripts/readme-generate.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "03-configure-generate/ai-catapult-init/templates/graph-automation/graph-refresh.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "03-configure-generate/ai-catapult-init/templates/graph-automation/hook-body.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "03-configure-generate/wizard/template.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/ci-gate.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/contract-run-v2.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/contract-run.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/engine-pick.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/lib/local_ci_contract.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/lib/observer.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/lib/readiness_contract.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/lib/verification.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/lint-gate.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/local-ci.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/merge-authority.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/migrate-handoff.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/prereq-check.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/readiness-check.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/run-gates.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/tdd-evidence.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/autobahn/tdd-mode.sh",
+      "class": "eligible",
+      "owner": "e6-sk-04-sh-drivers"
+    },
+    {
+      "path": "04-validate-handoff/diagnose/scripts/hitl-loop.template.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "04-validate-handoff/diagnosing-bugs/scripts/hitl-loop.template.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "04-validate-handoff/eval-a-skill/scaffold-eval.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "reference/fixtures/v3/standalone/tests/workflow-fixtures_test.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "reference/fixtures/v3/umbrella/tests/workflow-fixtures_test.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "reference/golden-root/scripts/archgate.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "reference/golden-root/scripts/sync-upstream.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "reference/golden-root/scripts/validate-rules.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "reference/golden-skills/scripts/archgate.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "reference/golden-skills/scripts/sync-upstream.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "reference/golden-skills/scripts/validate-rules.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "scripts/archgate.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "scripts/catalog-install.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/catalog-query.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/catalog.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/check-codex-parity.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/check-legacy-freeze.sh",
+      "class": "compat-shim",
+      "entrypoint": "lib/check-legacy-freeze.mjs",
+      "allow": []
+    },
+    {
+      "path": "scripts/check-markdown-links.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/check-opencode-parity.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/check-root-discovery.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/check-sync-staleness.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/generate-skill-docs.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/install-auggie.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/install-claude-code.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/install-codex.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/install-copilot.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/install-gemini.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/matrix-contract.py",
+      "class": "kept-language",
+      "consumers": [
+        "ai-catapult scripts/build-claude-plugin.sh:85-96",
+        "ai-catapult scripts/build-codex-plugin.sh:88-99",
+        "ai-catapult scripts/stage-matrix-runtime.sh",
+        "ai-catapult src/matrix-runtime.js:11-12"
+      ]
+    },
+    {
+      "path": "scripts/readme-generate.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/regen-host-golden.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/release/strategy-selector.sh",
+      "class": "kept-language",
+      "consumers": [
+        "consumer release templates scripts/release/release.yml.template:101",
+        "consumer release templates gitlab-ci-release.yml.template:61",
+        "consumer release templates azure-pipelines-release.yml.template:97"
+      ]
+    },
+    {
+      "path": "scripts/render-ci-adapters.py",
+      "class": "kept-language",
+      "consumers": [
+        "ai-catapult scripts/build-claude-plugin.sh:90-96",
+        "ai-catapult scripts/build-codex-plugin.sh:93-99",
+        "ai-catapult scripts/stage-ci-adapters-runtime.sh:6-18"
+      ]
+    },
+    {
+      "path": "scripts/scan-secret-material.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/sync-upstream.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "scripts/traceability_schema.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/validate-cascade-fixtures.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/validate-final-package.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/validate-rules.sh",
+      "class": "scaffold-template"
+    },
+    {
+      "path": "scripts/validate-skill-catalog.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/validate_skill_frontmatter.py",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "scripts/verify-golden-dir.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "tests/ach_s01_readiness_policy_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/ai-catapult-templates_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_cascade_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_ci_gate_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_commit_protocol_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_coverage_unknown_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_direct_ready_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_engine_input_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_local_ci_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_merge_authority_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_prereq_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_run_gates_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_tdd_mode_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/autobahn_worktree_driver_integration_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-02-v1-port"
+    },
+    {
+      "path": "tests/autobahn_worktree_run_gates_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/cascade-host-adapter-schema_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/catalog_contract_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/ci-adapters-contract_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/ci_hosted_routing_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/codex_verification_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/command_surface_schema_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/delegate_contract_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/eval_a_skill_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/eval_coverage_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/graph-automation-templates_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/helpers/lock_contention.py",
+      "class": "kept-language",
+      "consumers": [
+        "loads scripts/matrix-contract.py and scripts/render-ci-adapters.py as modules"
+      ]
+    },
+    {
+      "path": "tests/host_default_golden_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/install_cross_host_parity_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/interview_decomposition_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/knowledge_contract_fingerprint_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/knowledge_producers_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness",
+      "in_flight": 118
+    },
+    {
+      "path": "tests/lifecycle_installers_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/lm_judge_demo_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/local_ci_contract_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/local_ci_contract_v2_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/local_ci_declaration_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness",
+      "in_flight": 105
+    },
+    {
+      "path": "tests/matrix-v11-contract_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/mcp_a2a_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/model_routing_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/northstar_autobahn_evals_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/northstar_autobahn_pipeline_e2e_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/northstar_docs_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/northstar_handoff_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "tests/northstar_lineage_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/northstar_v2_publish_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/pointer-surfaces_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/readiness_contract_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-02-v1-port"
+    },
+    {
+      "path": "tests/readiness_fixture.py",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/readiness_legacy_matrix_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/readiness_mapped_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-02-v1-port"
+    },
+    {
+      "path": "tests/readiness_merge_driver_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/readiness_policy_v2_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/readiness_scoped_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-02-v1-port"
+    },
+    {
+      "path": "tests/readiness_v1_freeze_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/readiness_v2_approval_modes_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_approval_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_certificate_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_context_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_core_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_e2e_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_fixture.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_gate_bootstrap_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_gate_shadowing_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_gate_workspace_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_identity_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_inventory_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_migrate_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_v2_policy_amend_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-03-py-lib"
+    },
+    {
+      "path": "tests/readiness_worktree_test.py",
+      "class": "eligible",
+      "owner": "e6-sk-02-v1-port"
+    },
+    {
+      "path": "tests/readme-generate_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/security_workflow_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/skill-catalog_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/strategy-selector_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/test-skills-validator_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/traceability-fixtures_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/traceability-schema-v11_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-01-py-leaf"
+    },
+    {
+      "path": "tests/workflow-fixtures_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    },
+    {
+      "path": "tests/xskp_p5_readiness_policy_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness"
+    }
+  ],
+  "measured": {
+    "c901": [
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/04-validate-handoff/autobahn/lib/observer.py",
+        "violations": 11,
+        "max": 24
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "violations": 4,
+        "max": 29
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/04-validate-handoff/autobahn/lib/readiness_contract.py",
+        "violations": 7,
+        "max": 42
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/04-validate-handoff/autobahn/lib/verification.py",
+        "violations": 1,
+        "max": 25
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/catalog.py",
+        "violations": 1,
+        "max": 16
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/check-markdown-links.py",
+        "violations": 1,
+        "max": 11
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/matrix-contract.py",
+        "violations": 3,
+        "max": 20
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/render-ci-adapters.py",
+        "violations": 2,
+        "max": 22
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/traceability_schema.py",
+        "violations": 1,
+        "max": 18
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/validate-cascade-fixtures.py",
+        "violations": 1,
+        "max": 11
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/validate-final-package.py",
+        "violations": 1,
+        "max": 11
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/validate-skill-catalog.py",
+        "violations": 1,
+        "max": 12
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/tests/readiness_contract_test.py",
+        "violations": 1,
+        "max": 12
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/tests/readiness_v2_fixture.py",
+        "violations": 1,
+        "max": 15
+      },
+      {
+        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/tests/readiness_v2_migrate_test.py",
+        "violations": 1,
+        "max": 13
+      }
+    ],
+    "xenon": [
+      {
+        "path": "04-validate-handoff/autobahn/lib/local_ci_contract.py",
+        "violations": 2,
+        "blocks": 2,
+        "worst": "C"
+      },
+      {
+        "path": "04-validate-handoff/autobahn/lib/observer.py",
+        "violations": 31,
+        "blocks": 31,
+        "worst": "F"
+      },
+      {
+        "path": "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "violations": 13,
+        "blocks": 13,
+        "worst": "F"
+      },
+      {
+        "path": "04-validate-handoff/autobahn/lib/readiness_contract.py",
+        "violations": 14,
+        "blocks": 14,
+        "worst": "F"
+      },
+      {
+        "path": "04-validate-handoff/autobahn/lib/verification.py",
+        "violations": 2,
+        "blocks": 2,
+        "worst": "E"
+      },
+      {
+        "path": "scripts/catalog.py",
+        "violations": 2,
+        "blocks": 2,
+        "worst": "E"
+      },
+      {
+        "path": "scripts/check-markdown-links.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "C"
+      },
+      {
+        "path": "scripts/check-root-discovery.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "C"
+      },
+      {
+        "path": "scripts/generate-skill-docs.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "C"
+      },
+      {
+        "path": "scripts/matrix-contract.py",
+        "violations": 6,
+        "blocks": 6,
+        "worst": "E"
+      },
+      {
+        "path": "scripts/render-ci-adapters.py",
+        "violations": 4,
+        "blocks": 4,
+        "worst": "E"
+      },
+      {
+        "path": "scripts/traceability_schema.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "C"
+      },
+      {
+        "path": "scripts/validate-cascade-fixtures.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "F"
+      },
+      {
+        "path": "scripts/validate-final-package.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "C"
+      },
+      {
+        "path": "scripts/validate-skill-catalog.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "C"
+      },
+      {
+        "path": "tests/helpers/lock_contention.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "C"
+      },
+      {
+        "path": "tests/local_ci_declaration_test.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "C"
+      },
+      {
+        "path": "tests/readiness_v2_context_test.py",
+        "violations": 1,
+        "blocks": 1,
+        "worst": "D"
+      },
+      {
+        "path": "tests/readiness_v2_e2e_test.py",
+        "violations": 2,
+        "blocks": 2,
+        "worst": "C"
+      },
+      {
+        "path": "tests/readiness_v2_fixture.py",
+        "violations": 3,
+        "blocks": 3,
+        "worst": "C"
+      },
+      {
+        "path": "tests/readiness_v2_migrate_test.py",
+        "violations": 3,
+        "blocks": 3,
+        "worst": "C"
+      }
+    ],
+    "mypy": [
+      {
+        "path": "04-validate-handoff/autobahn/lib/local_ci_contract.py",
+        "violations": 51,
+        "errors": 51
+      },
+      {
+        "path": "04-validate-handoff/autobahn/lib/observer.py",
+        "violations": 1000,
+        "errors": 1000
+      },
+      {
+        "path": "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "violations": 329,
+        "errors": 329
+      },
+      {
+        "path": "04-validate-handoff/autobahn/lib/readiness_contract.py",
+        "violations": 510,
+        "errors": 510
+      },
+      {
+        "path": "04-validate-handoff/autobahn/lib/verification.py",
+        "violations": 26,
+        "errors": 26
+      },
+      {
+        "path": "04-validate-handoff/eval-a-skill/scaffold-eval.py",
+        "violations": 2,
+        "errors": 2
+      },
+      {
+        "path": "scripts/catalog.py",
+        "violations": 4,
+        "errors": 4
+      },
+      {
+        "path": "scripts/check-markdown-links.py",
+        "violations": 4,
+        "errors": 4
+      },
+      {
+        "path": "scripts/check-root-discovery.py",
+        "violations": 3,
+        "errors": 3
+      },
+      {
+        "path": "scripts/generate-skill-docs.py",
+        "violations": 9,
+        "errors": 9
+      },
+      {
+        "path": "scripts/matrix-contract.py",
+        "violations": 6,
+        "errors": 6
+      },
+      {
+        "path": "scripts/render-ci-adapters.py",
+        "violations": 7,
+        "errors": 7
+      },
+      {
+        "path": "scripts/traceability_schema.py",
+        "violations": 2,
+        "errors": 2
+      },
+      {
+        "path": "scripts/validate-cascade-fixtures.py",
+        "violations": 2,
+        "errors": 2
+      },
+      {
+        "path": "scripts/validate-final-package.py",
+        "violations": 2,
+        "errors": 2
+      },
+      {
+        "path": "scripts/validate-skill-catalog.py",
+        "violations": 8,
+        "errors": 8
+      },
+      {
+        "path": "tests/autobahn_worktree_driver_integration_test.py",
+        "violations": 84,
+        "errors": 84
+      },
+      {
+        "path": "tests/helpers/lock_contention.py",
+        "violations": 4,
+        "errors": 4
+      },
+      {
+        "path": "tests/local_ci_contract_test.py",
+        "violations": 57,
+        "errors": 57
+      },
+      {
+        "path": "tests/local_ci_contract_v2_test.py",
+        "violations": 40,
+        "errors": 40
+      },
+      {
+        "path": "tests/local_ci_declaration_test.py",
+        "violations": 85,
+        "errors": 85
+      },
+      {
+        "path": "tests/northstar_v2_publish_test.py",
+        "violations": 265,
+        "errors": 265
+      },
+      {
+        "path": "tests/readiness_contract_test.py",
+        "violations": 211,
+        "errors": 211
+      },
+      {
+        "path": "tests/readiness_fixture.py",
+        "violations": 15,
+        "errors": 15
+      },
+      {
+        "path": "tests/readiness_mapped_test.py",
+        "violations": 133,
+        "errors": 133
+      },
+      {
+        "path": "tests/readiness_merge_driver_test.py",
+        "violations": 48,
+        "errors": 48
+      },
+      {
+        "path": "tests/readiness_scoped_test.py",
+        "violations": 170,
+        "errors": 170
+      },
+      {
+        "path": "tests/readiness_v2_approval_modes_test.py",
+        "violations": 164,
+        "errors": 164
+      },
+      {
+        "path": "tests/readiness_v2_approval_test.py",
+        "violations": 147,
+        "errors": 147
+      },
+      {
+        "path": "tests/readiness_v2_certificate_test.py",
+        "violations": 688,
+        "errors": 688
+      },
+      {
+        "path": "tests/readiness_v2_context_test.py",
+        "violations": 125,
+        "errors": 125
+      },
+      {
+        "path": "tests/readiness_v2_core_test.py",
+        "violations": 284,
+        "errors": 284
+      },
+      {
+        "path": "tests/readiness_v2_e2e_test.py",
+        "violations": 428,
+        "errors": 428
+      },
+      {
+        "path": "tests/readiness_v2_fixture.py",
+        "violations": 199,
+        "errors": 199
+      },
+      {
+        "path": "tests/readiness_v2_gate_bootstrap_test.py",
+        "violations": 123,
+        "errors": 123
+      },
+      {
+        "path": "tests/readiness_v2_gate_shadowing_test.py",
+        "violations": 55,
+        "errors": 55
+      },
+      {
+        "path": "tests/readiness_v2_gate_workspace_test.py",
+        "violations": 101,
+        "errors": 101
+      },
+      {
+        "path": "tests/readiness_v2_identity_test.py",
+        "violations": 127,
+        "errors": 127
+      },
+      {
+        "path": "tests/readiness_v2_inventory_test.py",
+        "violations": 91,
+        "errors": 91
+      },
+      {
+        "path": "tests/readiness_v2_migrate_test.py",
+        "violations": 186,
+        "errors": 186
+      },
+      {
+        "path": "tests/readiness_v2_policy_amend_test.py",
+        "violations": 212,
+        "errors": 212
+      },
+      {
+        "path": "tests/readiness_worktree_test.py",
+        "violations": 175,
+        "errors": 175
+      }
+    ],
+    "shellcheck": [
+      {
+        "path": "tests/dead_reference_gate_test.sh",
+        "violations": 2,
+        "errors": 2
+      }
+    ],
+    "shfmt": [
+      "02-govern-plan/northstar/approve.sh",
+      "02-govern-plan/northstar/handoff-write.sh",
+      "02-govern-plan/northstar/prereq-check.sh",
+      "03-configure-generate/ai-catapult-init/scripts/readme-generate.sh",
+      "03-configure-generate/ai-catapult-init/templates/graph-automation/graph-refresh.sh",
+      "03-configure-generate/ai-catapult-init/templates/graph-automation/hook-body.sh",
+      "03-configure-generate/wizard/template.sh",
+      "04-validate-handoff/autobahn/ci-gate.sh",
+      "04-validate-handoff/autobahn/contract-run-v2.sh",
+      "04-validate-handoff/autobahn/contract-run.sh",
+      "04-validate-handoff/autobahn/engine-pick.sh",
+      "04-validate-handoff/autobahn/lint-gate.sh",
+      "04-validate-handoff/autobahn/local-ci.sh",
+      "04-validate-handoff/autobahn/merge-authority.sh",
+      "04-validate-handoff/autobahn/migrate-handoff.sh",
+      "04-validate-handoff/autobahn/run-gates.sh",
+      "04-validate-handoff/autobahn/tdd-evidence.sh",
+      "04-validate-handoff/autobahn/tdd-mode.sh",
+      "04-validate-handoff/diagnose/scripts/hitl-loop.template.sh",
+      "04-validate-handoff/diagnosing-bugs/scripts/hitl-loop.template.sh",
+      "scripts/archgate.sh",
+      "scripts/catalog-install.sh",
+      "scripts/check-codex-parity.sh",
+      "scripts/check-opencode-parity.sh",
+      "scripts/check-sync-staleness.sh",
+      "scripts/install-auggie.sh",
+      "scripts/install-claude-code.sh",
+      "scripts/install-codex.sh",
+      "scripts/install-copilot.sh",
+      "scripts/install-gemini.sh",
+      "scripts/release/strategy-selector.sh",
+      "scripts/sync-upstream.sh",
+      "scripts/validate-rules.sh",
+      "scripts/verify-golden-dir.sh",
+      "tests/adr_path_test.sh",
+      "tests/agents_index_test.sh",
+      "tests/ai-catapult-init_rename_test.sh",
+      "tests/ai-catapult-templates_test.sh",
+      "tests/ai_failure_modes_test.sh",
+      "tests/autobahn_cascade_test.sh",
+      "tests/autobahn_ci_gate_test.sh",
+      "tests/autobahn_commit_protocol_test.sh",
+      "tests/autobahn_docs_test.sh",
+      "tests/autobahn_engine_pick_test.sh",
+      "tests/autobahn_lint_gate_test.sh",
+      "tests/autobahn_local_ci_test.sh",
+      "tests/autobahn_merge_authority_test.sh",
+      "tests/autobahn_run_gates_test.sh",
+      "tests/autobahn_tdd_evidence_test.sh",
+      "tests/autobahn_tdd_mode_test.sh",
+      "tests/blindness_sandbox_test.sh",
+      "tests/catalog_contract_test.sh",
+      "tests/catalog_malformed_test.sh",
+      "tests/ci-adapters-contract_test.sh",
+      "tests/codex_parity_test.sh",
+      "tests/codex_verification_test.sh",
+      "tests/command_surface_schema_test.sh",
+      "tests/dead_reference_gate_test.sh",
+      "tests/delegate_contract_test.sh",
+      "tests/eval_a_skill_test.sh",
+      "tests/eval_coverage_test.sh",
+      "tests/final-validation-gate_test.sh",
+      "tests/graph-automation-templates_test.sh",
+      "tests/harness_map_test.sh",
+      "tests/host_default_golden_test.sh",
+      "tests/init-ai-repo_docs_test.sh",
+      "tests/install_claude_code_test.sh",
+      "tests/interview_decomposition_test.sh",
+      "tests/knowledge_contract_fingerprint_test.sh",
+      "tests/knowledge_producers_test.sh",
+      "tests/lifecycle_installers_test.sh",
+      "tests/lm_judge_demo_test.sh",
+      "tests/markdown_links_test.sh",
+      "tests/matrix-v11-contract_test.sh",
+      "tests/mcp_a2a_test.sh",
+      "tests/model_routing_test.sh",
+      "tests/northstar_autobahn_evals_test.sh",
+      "tests/northstar_docs_test.sh",
+      "tests/northstar_lineage_test.sh",
+      "tests/northstar_prereq_test.sh",
+      "tests/observability_test.sh",
+      "tests/opencode_parity_test.sh",
+      "tests/pointer-surfaces_test.sh",
+      "tests/projection_reach_test.sh",
+      "tests/readme-generate_test.sh",
+      "tests/release-guardrails_test.sh",
+      "tests/root_discovery_guard_test.sh",
+      "tests/run-tests.sh",
+      "tests/run-tests_contract_test.sh",
+      "tests/skill-modernization-audit_test.sh",
+      "tests/strategy-selector_test.sh",
+      "tests/sync_staleness_test.sh",
+      "tests/sync_upstream_test.sh",
+      "tests/tdd_legacy_safety_docs_test.sh",
+      "tests/test-skills-validator_test.sh",
+      "tests/test-skills.sh",
+      "tests/traceability-schema-v11_test.sh"
+    ],
+    "bash_n": [],
+    "xenon_average_ok": true
+  }
+}
