@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "XSKP-P5C-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: skills has no line-coverage tooling for SKILL.md, shell or catalog content and no coverage threshold applies, so legacy-safe TDD is used; the red leg is the planned extension of tests/knowledge_producers_test.sh section 3 (four producers without pointer blocks) observed red at the base and green at the goal head, recorded in .ai/evidence/XSKP-P5C-01.json. Blast radius: four shipped SKILL.md files (reflow risk against the 100-line body budget), the shared producer test, and three maintenance surfaces re-pinned from the same change set (the */SKILL.md digest in tests/readiness_v2_migrate_test.py, the local-CI sources hash for that test in .ai/ci/local-ci.json, tests/fixtures/host-default-golden.json); the re-pins must cover exactly the pointer-block edits. Readiness stays unknown until one verified plan approval binds this generation.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "xskp-p5c-skill-producers",
+  "schema": "readiness-sidecar/1"
+}
