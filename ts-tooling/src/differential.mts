@@ -102,22 +102,6 @@ function spanInside(span: MaskSpan, ranges: Array<[number, number]>): boolean {
   return ranges.some(([start, end]) => span.start >= start && span.end <= end);
 }
 
-function assertSpan(text: string, span: MaskSpan, corpus: Corpus): void {
-  const item = (corpus.normalizations ?? []).find((entry) => entry.name === span.name);
-  if (item === undefined) {
-    throw new DifferentialError(`undeclared mask: ${span.name}`);
-  }
-  const ranges = item.sites
-    .filter((site) => site.stream === span.stream && site.prefix !== undefined)
-    .flatMap((site) => siteRanges(text, site));
-  if (ranges.length > 0 && !spanInside(span, ranges)) {
-    throw new DifferentialError("mask reaches outside declared sites");
-  }
-  if (ranges.length === 0 && item.sites.some((site) => site.prefix !== undefined && site.stream === span.stream)) {
-    throw new DifferentialError("mask reaches outside declared sites");
-  }
-}
-
 function applyPrefixMask(text: string, site: Site, mask: string): string {
   if (site.prefix === undefined) {
     return text;
@@ -319,18 +303,84 @@ function sameFiles(left: Record<string, Buffer>, right: Record<string, Buffer>):
   return true;
 }
 
+function classNamed(corpus: Corpus, name: string): NormalizationClass {
+  const item = (corpus.normalizations ?? []).find((entry) => entry.name === name);
+  if (item === undefined) {
+    throw new DifferentialError(`undeclared mask: ${name}`);
+  }
+  return item;
+}
+
+function pointerRanges(bytes: Buffer, pointer: string): Array<[number, number]> {
+  try {
+    const span = jsonByteSpan(bytes, pointer);
+    return [[span.start, span.end]];
+  } catch {
+    return [];
+  }
+}
+
+function declaredRanges(bytes: Buffer, item: NormalizationClass, stream: "stdout" | "stderr"): Array<[number, number]> {
+  const ranges: Array<[number, number]> = [];
+  for (const site of item.sites) {
+    if (site.stream !== stream) {
+      continue;
+    }
+    if (site.prefix !== undefined) {
+      ranges.push(...prefixByteRanges(bytes, site.prefix));
+    }
+    if (site.jsonPointer !== undefined) {
+      ranges.push(...pointerRanges(bytes, site.jsonPointer));
+    }
+  }
+  return ranges;
+}
+
+function spanFits(span: MaskSpan, ranges: Array<[number, number]>): boolean {
+  return span.end >= span.start && spanInside(span, ranges);
+}
+
+function assertSupplied(reference: CaseResult, candidate: CaseResult, corpus: Corpus): void {
+  for (const span of corpus.applyMasks ?? []) {
+    const item = classNamed(corpus, span.name);
+    for (const result of [reference, candidate]) {
+      const bytes = span.stream === "stdout" ? result.stdout : result.stderr;
+      if (!spanFits(span, declaredRanges(bytes, item, span.stream))) {
+        throw new DifferentialError("mask reaches outside declared sites");
+      }
+    }
+  }
+}
+
+function applyDeclaredSpans(bytes: Buffer, spans: readonly MaskSpan[], corpus: Corpus, stream: "stdout" | "stderr"): Buffer {
+  const ordered = spans.filter((span) => span.stream === stream).sort((left, right) => right.start - left.start);
+  let out = bytes;
+  for (const span of ordered) {
+    out = spliceSpan(out, span.start, span.end, classNamed(corpus, span.name).mask);
+  }
+  return out;
+}
+
+function viewed(result: CaseResult, corpus: Corpus): CaseResult {
+  const spans = corpus.applyMasks ?? [];
+  if (spans.length > 0) {
+    return {
+      ...result,
+      stdout: applyDeclaredSpans(result.stdout, spans, corpus, "stdout"),
+      stderr: applyDeclaredSpans(result.stderr, spans, corpus, "stderr"),
+    };
+  }
+  return masked(result, corpus.normalizations ?? []);
+}
+
 export function compareCase(reference: CaseResult, candidate: CaseResult, corpus: Corpus): void {
   const blocked = refusal(candidate.status, candidate.stderr);
   if (blocked !== null) {
     throw new DifferentialError(`candidate ended in ${blocked}`);
   }
-  for (const span of corpus.applyMasks ?? []) {
-    const body = text(span.stream === "stdout" ? candidate.stdout : candidate.stderr);
-    assertSpan(body, span, corpus);
-  }
-  const classes = corpus.normalizations ?? [];
-  const left = masked(reference, classes);
-  const right = masked(candidate, classes);
+  assertSupplied(reference, candidate, corpus);
+  const left = viewed(reference, corpus);
+  const right = viewed(candidate, corpus);
   if (!outputsEqual(left, right) || !sameFiles(left.files, right.files)) {
     throw new DifferentialError("output divergence");
   }

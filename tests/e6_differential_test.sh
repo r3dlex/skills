@@ -72,7 +72,11 @@ child.on("exit", (code, signal) => {
 	elif [[ "$expect" == pass && "$status" -eq 0 ]]; then
 		ok "$name"
 	elif [[ "$expect" == fail && "$status" -ne 0 ]]; then
-		ok "$name"
+		if [[ -n "${8:-}" ]] && ! grep -F -q -- "${8}" /tmp/e6-diff.err; then
+			bad "$name expected '${8}' got $(cat /tmp/e6-diff.err)"
+		else
+			ok "$name"
+		fi
 	else
 		bad "$name expected $expect got $status ($(cat /tmp/e6-diff.err))"
 	fi
@@ -200,6 +204,67 @@ run_trunc() {
 }
 run_trunc "truncated json mask finishes" '{"error": "boom"'
 run_trunc "truncated compact json mask finishes" '{"error":"boom"'
+
+span_repo="$(mktemp -d)"
+git -C "$span_repo" init -q
+git -C "$span_repo" config user.email fixture@example.com
+git -C "$span_repo" config user.name fixture
+printf '%s\n' '#!/bin/sh' 'printf "error: abcX\n"' >"$span_repo/reference.sh"
+chmod +x "$span_repo/reference.sh"
+git -C "$span_repo" add reference.sh
+git -C "$span_repo" commit -q -m span
+printf '%s\n' '#!/bin/sh' 'printf "error: abcY\n"' >"$span_repo/other.sh"
+chmod +x "$span_repo/other.sh"
+repo="$span_repo"
+commit="$(git -C "$span_repo" rev-parse HEAD)"
+sblob="$(git -C "$span_repo" rev-parse HEAD:reference.sh)"
+ssha="$(git -C "$span_repo" cat-file blob "$sblob" | shasum -a 256 | awk '{print $1}')"
+partial_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"<interpreter-diagnostic>","sites":[{"stream":"stdout","prefix":"error: "}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":7,"end":8}]}'
+covered_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"<interpreter-diagnostic>","sites":[{"stream":"stdout","prefix":"error: "}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":10,"end":11}]}'
+run_case "supplied span does not hide outside bytes" fail "$span_repo/other.sh" "$sblob" "$ssha" "$partial_span" "" "output divergence"
+run_case "supplied span masks its own bytes" pass "$span_repo/other.sh" "$sblob" "$ssha" "$covered_span"
+rm -rf "$span_repo"
+
+json_span_repo="$(mktemp -d)"
+git -C "$json_span_repo" init -q
+git -C "$json_span_repo" config user.email fixture@example.com
+git -C "$json_span_repo" config user.name fixture
+node -e '
+const fs = require("fs");
+const dir = process.argv[1];
+const write = (name, body) => fs.writeFileSync(dir + "/" + name, "#!/bin/sh\nprintf %s " + JSON.stringify(body) + "\n", { mode: 0o755 });
+write("reference.sh", "{\"error\":\"boom\",\"status\":\"blocked\"}\n");
+' "$json_span_repo"
+git -C "$json_span_repo" add reference.sh
+git -C "$json_span_repo" commit -q -m json-span
+repo="$json_span_repo"
+commit="$(git -C "$json_span_repo" rev-parse HEAD)"
+jsblob="$(git -C "$json_span_repo" rev-parse HEAD:reference.sh)"
+jssha="$(git -C "$json_span_repo" cat-file blob "$jsblob" | shasum -a 256 | awk '{print $1}')"
+status_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"<interpreter-diagnostic>","sites":[{"stream":"stdout","jsonPointer":"/error"}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":17,"end":35}]}'
+run_case "json mask span must sit inside its field" fail "$json_span_repo/reference.sh" "$jsblob" "$jssha" "$status_span" "" "mask reaches outside declared sites"
+rm -rf "$json_span_repo"
+
+json_partial_repo="$(mktemp -d)"
+git -C "$json_partial_repo" init -q
+git -C "$json_partial_repo" config user.email fixture@example.com
+git -C "$json_partial_repo" config user.name fixture
+node -e '
+const fs = require("fs");
+const dir = process.argv[1];
+const write = (name, body) => fs.writeFileSync(dir + "/" + name, "#!/bin/sh\nprintf %s " + JSON.stringify(body) + "\n", { mode: 0o755 });
+write("reference.sh", "{\"error\":\"abcX\"}\n");
+write("other.sh", "{\"error\":\"abcY\"}\n");
+' "$json_partial_repo"
+git -C "$json_partial_repo" add reference.sh
+git -C "$json_partial_repo" commit -q -m json-partial
+repo="$json_partial_repo"
+commit="$(git -C "$json_partial_repo" rev-parse HEAD)"
+jpblob="$(git -C "$json_partial_repo" rev-parse HEAD:reference.sh)"
+jpsha="$(git -C "$json_partial_repo" cat-file blob "$jpblob" | shasum -a 256 | awk '{print $1}')"
+json_partial='{"normalizations":[{"name":"interpreter-diagnostic","mask":"<interpreter-diagnostic>","sites":[{"stream":"stdout","jsonPointer":"/error"}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":10,"end":11}]}'
+run_case "supplied json span does not hide outside bytes" fail "$json_partial_repo/other.sh" "$jpblob" "$jpsha" "$json_partial" "" "output divergence"
+rm -rf "$json_partial_repo"
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"

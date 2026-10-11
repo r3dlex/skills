@@ -150,5 +150,22 @@
         }
       }
     ]
+  },
+  "cure5": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. A supplied applyMasks span is the only span masked, and it must sit inside the prefix or JSON site it names. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "supplied span does not hide outside bytes expected fail got 0; json mask span must sit inside its field expected fail got 0; supplied json span does not hide outside bytes expected fail got 0; Results: PASS=17 FAIL=3"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "a prefix span [7,8) still diverges on error: abcX versus error: abcY; a span covering only that byte passes; a /error span over status is rejected; a partial /error span still diverges; EOF-stop and raw-byte checks stay green; Results: PASS=20 FAIL=0"
+        }
+      }
+    ]
   }
 }

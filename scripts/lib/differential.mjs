@@ -54,21 +54,6 @@ function siteRanges(text, site) {
 function spanInside(span, ranges) {
     return ranges.some(([start, end]) => span.start >= start && span.end <= end);
 }
-function assertSpan(text, span, corpus) {
-    const item = (corpus.normalizations ?? []).find((entry) => entry.name === span.name);
-    if (item === undefined) {
-        throw new DifferentialError(`undeclared mask: ${span.name}`);
-    }
-    const ranges = item.sites
-        .filter((site) => site.stream === span.stream && site.prefix !== undefined)
-        .flatMap((site) => siteRanges(text, site));
-    if (ranges.length > 0 && !spanInside(span, ranges)) {
-        throw new DifferentialError("mask reaches outside declared sites");
-    }
-    if (ranges.length === 0 && item.sites.some((site) => site.prefix !== undefined && site.stream === span.stream)) {
-        throw new DifferentialError("mask reaches outside declared sites");
-    }
-}
 function applyPrefixMask(text, site, mask) {
     if (site.prefix === undefined) {
         return text;
@@ -249,18 +234,78 @@ function sameFiles(left, right) {
     }
     return true;
 }
+function classNamed(corpus, name) {
+    const item = (corpus.normalizations ?? []).find((entry) => entry.name === name);
+    if (item === undefined) {
+        throw new DifferentialError(`undeclared mask: ${name}`);
+    }
+    return item;
+}
+function pointerRanges(bytes, pointer) {
+    try {
+        const span = jsonByteSpan(bytes, pointer);
+        return [[span.start, span.end]];
+    }
+    catch {
+        return [];
+    }
+}
+function declaredRanges(bytes, item, stream) {
+    const ranges = [];
+    for (const site of item.sites) {
+        if (site.stream !== stream) {
+            continue;
+        }
+        if (site.prefix !== undefined) {
+            ranges.push(...prefixByteRanges(bytes, site.prefix));
+        }
+        if (site.jsonPointer !== undefined) {
+            ranges.push(...pointerRanges(bytes, site.jsonPointer));
+        }
+    }
+    return ranges;
+}
+function spanFits(span, ranges) {
+    return span.end >= span.start && spanInside(span, ranges);
+}
+function assertSupplied(reference, candidate, corpus) {
+    for (const span of corpus.applyMasks ?? []) {
+        const item = classNamed(corpus, span.name);
+        for (const result of [reference, candidate]) {
+            const bytes = span.stream === "stdout" ? result.stdout : result.stderr;
+            if (!spanFits(span, declaredRanges(bytes, item, span.stream))) {
+                throw new DifferentialError("mask reaches outside declared sites");
+            }
+        }
+    }
+}
+function applyDeclaredSpans(bytes, spans, corpus, stream) {
+    const ordered = spans.filter((span) => span.stream === stream).sort((left, right) => right.start - left.start);
+    let out = bytes;
+    for (const span of ordered) {
+        out = spliceSpan(out, span.start, span.end, classNamed(corpus, span.name).mask);
+    }
+    return out;
+}
+function viewed(result, corpus) {
+    const spans = corpus.applyMasks ?? [];
+    if (spans.length > 0) {
+        return {
+            ...result,
+            stdout: applyDeclaredSpans(result.stdout, spans, corpus, "stdout"),
+            stderr: applyDeclaredSpans(result.stderr, spans, corpus, "stderr"),
+        };
+    }
+    return masked(result, corpus.normalizations ?? []);
+}
 export function compareCase(reference, candidate, corpus) {
     const blocked = refusal(candidate.status, candidate.stderr);
     if (blocked !== null) {
         throw new DifferentialError(`candidate ended in ${blocked}`);
     }
-    for (const span of corpus.applyMasks ?? []) {
-        const body = text(span.stream === "stdout" ? candidate.stdout : candidate.stderr);
-        assertSpan(body, span, corpus);
-    }
-    const classes = corpus.normalizations ?? [];
-    const left = masked(reference, classes);
-    const right = masked(candidate, classes);
+    assertSupplied(reference, candidate, corpus);
+    const left = viewed(reference, corpus);
+    const right = viewed(candidate, corpus);
     if (!outputsEqual(left, right) || !sameFiles(left.files, right.files)) {
         throw new DifferentialError("output divergence");
     }
