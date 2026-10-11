@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
+import { pyDirents } from "./py-dirents.mjs";
 import { pySplitlines } from "./py-text.mjs";
 
 assertNodeVersion();
@@ -18,7 +19,7 @@ const PATTERNS = [
 
 function walk(root: string): string[] {
   const found: string[] = [];
-  for (const entry of readdirSync(root, { withFileTypes: true })) {
+  for (const entry of pyDirents(root)) {
     const path = join(root, entry.name);
     if (entry.isDirectory()) {
       if (!SKIP.has(entry.name)) {

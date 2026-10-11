@@ -1,3 +1,4 @@
+import { materialize as materializeAnchor } from "./differential.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -63,7 +64,19 @@ export function main(root = process.cwd(), anchor = "") {
     }
     return failed === 0 ? 0 : 1;
 }
+export function pinAnchor(root, commit, path, blob, sha256) {
+    materializeAnchor(root, { commit, path, blob, sha256 });
+}
 if (invokedDirectly(import.meta.url)) {
+    if (process.argv[2] === "pin") {
+        try {
+            pinAnchor(process.cwd(), process.argv[3] ?? "", process.argv[4] ?? "", process.argv[5] ?? "", process.argv[6] ?? "");
+        }
+        catch {
+            process.exit(1);
+        }
+        process.exit(0);
+    }
     process.exit(main(process.cwd(), process.argv[2] ?? ""));
 }
 //# sourceMappingURL=leaf-parity.mjs.map

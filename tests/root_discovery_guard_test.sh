@@ -25,5 +25,12 @@ for path in Path('.').iterdir():
         print(body)
 EOF
 for bypass in "$tmp"/*; do
- if python3 scripts/check-root-discovery.py "$bypass" >/dev/null 2>&1; then echo "guard accepted bypass: $bypass" >&2; exit 1; fi
+ set +e
+ guard_output=$(python3 scripts/check-root-discovery.py "$bypass" 2>&1)
+ guard_rc=$?
+ set -e
+ if [[ "$guard_rc" -eq 0 || "$guard_output" == *node_unavailable* || "$guard_output" == *node_version_unsupported* || "$guard_output" != *"unsupported root SKILL.md discovery"* ]]; then
+  echo "guard refusal was not the discovery code: $bypass rc=$guard_rc $guard_output" >&2
+  exit 1
+ fi
 done

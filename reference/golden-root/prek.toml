@@ -16,20 +16,27 @@ pass_filenames = false
 [[repos.hooks]]
 id = "ts-noemit"
 name = "TypeScript strict noEmit"
-entry = "bash -c 'if [[ -d ts-tooling ]]; then cd ts-tooling && npx tsc --noEmit --project tsconfig.json; fi'"
+entry = "bash -c 'test -d ts-tooling && cd ts-tooling && npx tsc --noEmit --project tsconfig.json'"
 language = "system"
 pass_filenames = false
 
 [[repos.hooks]]
 id = "ts-eslint"
 name = "TypeScript eslint"
-entry = "bash -c 'if [[ -d ts-tooling ]]; then cd ts-tooling && npx eslint --max-warnings 0 src/**/*.mts; fi'"
+entry = "bash -c 'test -d ts-tooling && cd ts-tooling && npx eslint --max-warnings 0 src/**/*.mts'"
+language = "system"
+pass_filenames = false
+
+[[repos.hooks]]
+id = "ts-build-drift"
+name = "TypeScript build drift"
+entry = "bash -c 'set -euo pipefail; test -d ts-tooling; test -f ts-tooling/tsconfig.build.json; drift=$(mktemp -d); rsync -a --exclude node_modules --exclude build ts-tooling \"$drift/\"; ln -s \"$PWD/ts-tooling/node_modules\" \"$drift/ts-tooling/node_modules\"; (cd \"$drift/ts-tooling\" && npx tsc --project tsconfig.build.json --pretty false); diff -rq \"$drift/scripts/lib\" scripts/lib; rm -rf \"$drift\"'"
 language = "system"
 pass_filenames = false
 
 [[repos.hooks]]
 id = "legacy-freeze"
 name = "Legacy freeze ratchet"
-entry = "bash -c 'if [[ -f scripts/lib/check-legacy-freeze.mjs ]]; then node scripts/lib/check-legacy-freeze.mjs; fi'"
+entry = "bash -c 'test -f scripts/lib/check-legacy-freeze.mjs && command -v ruff >/dev/null && command -v mypy >/dev/null && command -v xenon >/dev/null && command -v shellcheck >/dev/null && command -v shfmt >/dev/null && node scripts/lib/check-legacy-freeze.mjs'"
 language = "system"
 pass_filenames = false

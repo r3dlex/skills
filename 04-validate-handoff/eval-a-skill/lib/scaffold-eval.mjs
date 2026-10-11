@@ -1,4 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+function pyJsonDumps(value, indent = 2) {
+    const body = JSON.stringify(value, null, indent) ?? "null";
+    return body.replace(/[^\u0000-\u007e]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`);
+}
 import { join, resolve } from "node:path";
 import { assertNodeVersion } from "./node-version.mjs";
 import { invokedDirectly } from "./invoked.mjs";
@@ -44,8 +48,8 @@ function rubric(skill, kind) {
 export function scaffold(skill, root, kind) {
     const out = join(root, ".ai", "evals", skill);
     mkdirSync(out, { recursive: true });
-    writeFileSync(join(out, "evalset.json"), `${JSON.stringify(evalset(skill, kind), null, 2)}\n`);
-    writeFileSync(join(out, "judge-config.json"), `${JSON.stringify(judgeConfig(), null, 2)}\n`);
+    writeFileSync(join(out, "evalset.json"), `${pyJsonDumps(evalset(skill, kind))}\n`);
+    writeFileSync(join(out, "judge-config.json"), `${pyJsonDumps(judgeConfig())}\n`);
     writeFileSync(join(out, "rubric.md"), rubric(skill, kind));
     return out;
 }

@@ -1,3 +1,7 @@
+export function pyJsonDumps(value, indent = 2) {
+    const body = JSON.stringify(value, null, indent) ?? "null";
+    return body.replace(/[^\u0000-\u007e]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`);
+}
 export function pyRepr(value) {
     if (typeof value === "string") {
         return `'${value.replaceAll("\\", "\\\\").replaceAll("'", "\\'")}'`;

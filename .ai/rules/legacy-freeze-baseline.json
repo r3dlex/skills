@@ -1,5 +1,19 @@
 {
   "schema": "legacy-freeze-baseline/1",
+  "retired": [
+    {
+      "path": "scripts/catalog.py",
+      "importers": []
+    },
+    {
+      "path": "scripts/traceability_schema.py",
+      "importers": []
+    },
+    {
+      "path": "scripts/validate_skill_frontmatter.py",
+      "importers": []
+    }
+  ],
   "base": "c886433d8950e5b4cb5563d02933b82644edf194",
   "classes": [
     "eligible",
