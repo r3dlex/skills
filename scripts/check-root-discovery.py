@@ -1,25 +1,34 @@
-#!/usr/bin/env python3
-"""Reject source discovery that bypasses the canonical catalog reader."""
-import argparse,re,sys
-from pathlib import Path
-PATTERNS=[
- re.compile(r'(?i)(?:r?glob|iglob)\s*\(\s*[rubf]*["\'][^"\']*SKILL\.md'),
- re.compile(r'(?i)(?:for\s+\w+\s+in|while[^\n]*<)\s*[^\n]*\*[^\n]*SKILL\.md'),
- re.compile(r'(?i)find\s+(?:"?\$?(?:SKILLS_DIR|REPO_ROOT)"?|\.)[^\n]*-name\s+["\']?SKILL\.md'),
- re.compile(r'(?is)iterdir\s*\(\s*\).{0,400}SKILL\.md'),
- re.compile(r'(?is)for\s+\w+\s+in\s+[^\n]*"\$\w+"?/\*[^\n]*\n.{0,300}SKILL\.md'),
-]
-def main():
- p=argparse.ArgumentParser(); p.add_argument('paths',nargs='*'); a=p.parse_args(); paths=[]
- for raw in a.paths or ['scripts','tests']:
-  path=Path(raw); paths.extend([path] if path.is_file() else path.rglob('*'))
- failures=[]
- for path in paths:
-  if not path.is_file() or path.name in {'check-root-discovery.py','root_discovery_guard_test.sh','skill-catalog_test.sh'} or '__pycache__' in path.parts: continue
-  try: text=path.read_text()
-  except UnicodeDecodeError: continue
-  for pattern in PATTERNS:
-   if pattern.search(text): failures.append(f'{path}: unsupported root SKILL.md discovery') ; break
- if failures: print('\n'.join(failures),file=sys.stderr); return 1
- return 0
-if __name__=='__main__': raise SystemExit(main())
+#!/usr/bin/env -S python3 -I -B
+# generated compat-shim — rendered from the python3 template; do not edit
+import os
+import shutil
+import subprocess
+import sys
+
+if sys.flags.isolated != 1 or not sys.dont_write_bytecode:
+    os.execv(sys.executable, [sys.executable, "-I", "-B", *sys.argv])
+
+ALLOW = ["PATH","HOME","LANG","LC_ALL","TMPDIR"]
+ENTRY_REL = "lib/leaf/check-root-discovery.mjs"
+
+
+def refuse(code: str, status: int) -> None:
+    sys.stderr.write(code + "\n")
+    raise SystemExit(status)
+
+
+here = os.path.dirname(os.path.abspath(__file__))
+entry = os.path.join(here, ENTRY_REL)
+if not os.path.isfile(entry):
+    refuse("node_unavailable", 127)
+node_bin = shutil.which("node")
+if node_bin is None:
+    refuse("node_unavailable", 127)
+assert node_bin is not None
+env = {name: os.environ[name] for name in ALLOW if name in os.environ}
+probed = subprocess.run([node_bin, "--version"], check=False, capture_output=True, text=True, env=env)
+if probed.returncode != 0:
+    refuse("node_unavailable", 127)
+if not probed.stdout.strip().startswith("v26."):
+    refuse("node_version_unsupported", 126)
+os.execve(node_bin, [node_bin, "--disable-proto=throw", entry, *sys.argv[1:]], env)

@@ -96,7 +96,7 @@ ALLOW = ${allow}
 ENTRY_REL = ${JSON.stringify(entrypoint)}
 
 
-def refuse(code, status):
+def refuse(code: str, status: int) -> None:
     sys.stderr.write(code + "\\n")
     raise SystemExit(status)
 
@@ -106,8 +106,9 @@ entry = os.path.join(here, ENTRY_REL)
 if not os.path.isfile(entry):
     refuse("node_unavailable", 127)
 node_bin = shutil.which("node")
-if not node_bin:
+if node_bin is None:
     refuse("node_unavailable", 127)
+assert node_bin is not None
 env = {name: os.environ[name] for name in ALLOW if name in os.environ}
 probed = subprocess.run([node_bin, "--version"], check=False, capture_output=True, text=True, env=env)
 if probed.returncode != 0:

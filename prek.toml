@@ -12,3 +12,24 @@ language = "system"
 files = '\.rules\.ts$'
 exclude = '^reference/golden-(skills|root)/'
 pass_filenames = false
+
+[[repos.hooks]]
+id = "ts-noemit"
+name = "TypeScript strict noEmit"
+entry = "bash -c 'if [[ -d ts-tooling ]]; then cd ts-tooling && npx tsc --noEmit --project tsconfig.json; fi'"
+language = "system"
+pass_filenames = false
+
+[[repos.hooks]]
+id = "ts-eslint"
+name = "TypeScript eslint"
+entry = "bash -c 'if [[ -d ts-tooling ]]; then cd ts-tooling && npx eslint --max-warnings 0 src/**/*.mts; fi'"
+language = "system"
+pass_filenames = false
+
+[[repos.hooks]]
+id = "legacy-freeze"
+name = "Legacy freeze ratchet"
+entry = "bash -c 'if [[ -f scripts/lib/check-legacy-freeze.mjs ]]; then node scripts/lib/check-legacy-freeze.mjs; fi'"
+language = "system"
+pass_filenames = false

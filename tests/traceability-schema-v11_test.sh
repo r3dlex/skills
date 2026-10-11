@@ -26,6 +26,7 @@ python3 - <<'PY'
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(".")
@@ -184,28 +185,49 @@ assert re.search(r"accepts?[^.]*1\.1|>=\s*1\.1|>=\s*`1\.1`", module), (
 print("PASS: module documents schema 1.1 and new types")
 
 # --- 5. The SHARED validator the shipped script calls enforces the contract ---
-# scripts/validate-final-package.py imports scripts/traceability_schema.py, so
-# asserting against the shared module proves the runtime check (not just this
+# scripts/validate-final-package.py execs scripts/lib/leaf/traceability.mjs, so
+# asserting against that module proves the runtime check (not just this
 # in-test reference validator) enforces the type enum + schema_version. Doc,
 # runtime, and test cannot drift.
-import importlib.util
+import subprocess
 
-shared_path = ROOT / "scripts/traceability_schema.py"
-assert shared_path.is_file(), "shipped shared validator scripts/traceability_schema.py must exist"
-spec = importlib.util.spec_from_file_location("traceability_schema", shared_path)
-shared = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(shared)
+shared_path = ROOT / "scripts/lib/leaf/traceability.mjs"
+assert shared_path.is_file(), "shipped shared validator scripts/lib/leaf/traceability.mjs must exist"
+
+def shared_validate(graph):
+    path = Path(tempfile.mkstemp(suffix=".json")[1])
+    try:
+        path.write_text(json.dumps(graph))
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e",
+             "import { readFileSync } from 'node:fs';"
+             "import { validateGraph } from './scripts/lib/leaf/traceability.mjs';"
+             "validateGraph(JSON.parse(readFileSync(process.argv[1], 'utf8')));",
+             str(path)],
+            capture_output=True, text=True)
+    finally:
+        path.unlink(missing_ok=True)
+    if result.returncode != 0:
+        raise ValueError((result.stderr or result.stdout or "validate_graph failed").strip())
+
+def shared_known_types():
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e",
+         "import { KNOWN_TYPES } from './scripts/lib/leaf/traceability.mjs';"
+         "process.stdout.write(JSON.stringify([...KNOWN_TYPES]));"],
+        capture_output=True, text=True, check=True)
+    return set(json.loads(result.stdout))
 
 # 5a. v1.0 + both 1.1 fixtures PASS the shared validator.
 for fixture in ("standalone", "umbrella"):
     v10 = json.loads((ROOT / "reference/fixtures/v3" / fixture / ".ai/traceability/graph.json").read_text())
-    shared.validate_graph(v10)  # raises ValueError on violation
+    shared_validate(v10)  # raises ValueError on violation
     v11 = json.loads((ROOT / "reference/fixtures/v3" / fixture / ".ai/traceability/graph-1.1.json").read_text())
-    shared.validate_graph(v11)
+    shared_validate(v11)
 print("PASS: shared validator accepts v1.0 AND both 1.1 fixtures")
 
 # 5b. The shared validator's enum/schema rules match the in-test reference enum.
-assert shared.KNOWN_TYPES == KNOWN_TYPES, "shared validator enum drifted from reference enum"
+assert shared_known_types() == KNOWN_TYPES, "shared validator enum drifted from reference enum"
 
 # 5c. An unknown node type FAILS the shared validator.
 bad_type = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json").read_text())
@@ -214,7 +236,7 @@ bad_type["nodes"].append({
     "status": "active", "repo_id": "standalone-root", "path": "README.md",
 })
 try:
-    shared.validate_graph(bad_type)
+    shared_validate(bad_type)
 except ValueError:
     print("PASS: shared validator rejects unknown node type")
 else:
@@ -225,7 +247,7 @@ else:
 no_ver = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph.json").read_text())
 no_ver.pop("schema_version", None)
 try:
-    shared.validate_graph(no_ver)
+    shared_validate(no_ver)
 except ValueError:
     print("PASS: shared validator rejects missing schema_version")
 else:

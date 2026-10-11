@@ -26,7 +26,21 @@ def blocked(result, reason):
     assert result.returncode != 0, result.stdout
     assert reason in result.stdout + result.stderr, result.stdout + result.stderr
 
-from traceability_schema import validate_graph
+def validate_graph(graph):
+    path = Path(tempfile.mkstemp(suffix=".json")[1])
+    try:
+        path.write_text(json.dumps(graph))
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e",
+             "import { readFileSync } from 'node:fs';"
+             "import { validateGraph } from './scripts/lib/leaf/traceability.mjs';"
+             "validateGraph(JSON.parse(readFileSync(process.argv[1], 'utf8')));",
+             str(path)],
+            capture_output=True, text=True)
+    finally:
+        path.unlink(missing_ok=True)
+    if result.returncode != 0:
+        raise ValueError((result.stderr or result.stdout or "validate_graph failed").strip())
 
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)

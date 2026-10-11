@@ -85,7 +85,7 @@ sed 's/^/    /' /tmp/gate.out | head -4
 # ---------------------------------------------------------------------------
 # (4) DATED flip-to-hard comment exists in gate source
 # ---------------------------------------------------------------------------
-if grep -qE "(Flip to hard|flip-to-hard|FLIP).*[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2}.*(Flip to hard|flip-to-hard|FLIP|stays advisory)" "$GATE"; then
+if grep -qE "(Flip to hard|flip-to-hard|FLIP).*[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2}.*(Flip to hard|flip-to-hard|FLIP|stays advisory)" "$GATE" ts-tooling/src/leaf/check-sync-staleness.mts; then
   ok "gate source carries the DATED flip-to-hard comment"
 else
   bad "gate source carries the DATED flip-to-hard comment"

@@ -1,14 +1,42 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# generated compat-shim — rendered from the bash template; do not edit
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; SKILLS_DIR="${SKILLS_CATALOG_ROOT:-$SCRIPT_DIR/..}"; CODEX_SKILLS="$HOME/.codex/skills"
-source "$SCRIPT_DIR/catalog-install.sh"; parse_catalog_args "$@" || exit $?; set -- "${CATALOG_REST[@]}"
-skill=""
-case "${1:-}" in --skill) [[ $# -eq 2 ]] || { echo "Usage: $0 [--skill <name> | --all] [--include-lifecycle <value>]" >&2; exit 1; }; skill="$2";; --all|"") ;; *) echo "Usage: $0 [--skill <name> | --all] [--include-lifecycle <value>]" >&2; exit 1;; esac
-projection=$(mktemp); trap 'rm -f "$projection"' EXIT
-if [[ -n "$skill" ]]; then
-  rows="$(catalog_rows codex --skill "$skill" --projection "$projection")" || exit $?
-else
-  rows="$(catalog_rows codex --projection "$projection")" || exit $?
+here="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+entry="$here/lib/leaf/install-codex.mjs"
+if [[ ! -f "$entry" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
 fi
-mkdir -p "$CODEX_SKILLS"; mv "$projection" "$CODEX_SKILLS/catalog.json"
-while IFS=$'\t' read -r name source; do [[ -n "$name" ]] || continue; rm -rf "$CODEX_SKILLS/$name"; cp -R "$SKILLS_DIR/$source" "$CODEX_SKILLS/$name"; echo "  ✓ $name"; done <<< "$rows"
+node_bin="$(command -v node 2>/dev/null || true)"
+if [[ -z "$node_bin" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+env_args=()
+if [[ "${PATH+x}" == x ]]; then env_args+=("PATH=$PATH"); fi
+if [[ "${HOME+x}" == x ]]; then env_args+=("HOME=$HOME"); fi
+if [[ "${LANG+x}" == x ]]; then env_args+=("LANG=$LANG"); fi
+if [[ "${LC_ALL+x}" == x ]]; then env_args+=("LC_ALL=$LC_ALL"); fi
+if [[ "${TMPDIR+x}" == x ]]; then env_args+=("TMPDIR=$TMPDIR"); fi
+if [[ "${SKILLS_CATALOG_ROOT+x}" == x ]]; then env_args+=("SKILLS_CATALOG_ROOT=$SKILLS_CATALOG_ROOT"); fi
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	version="$(/usr/bin/env -i "${env_args[@]}" "$node_bin" --version 2>/dev/null)" || version=""
+else
+	version="$(/usr/bin/env -i "$node_bin" --version 2>/dev/null)" || version=""
+fi
+if [[ -z "$version" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+case "$version" in
+v26.*)
+	;;
+*)
+	printf 'node_version_unsupported\n' >&2
+	exit 126
+	;;
+esac
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	exec /usr/bin/env -i "${env_args[@]}" "$node_bin" --disable-proto=throw "$entry" "$@"
+fi
+exec /usr/bin/env -i "$node_bin" --disable-proto=throw "$entry" "$@"

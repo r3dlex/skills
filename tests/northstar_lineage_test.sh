@@ -73,11 +73,16 @@ fi
 
 # --- 3. the rule survives host flattening -----------------------------------
 # shellcheck disable=SC1091
-if source scripts/catalog-install.sh >/dev/null 2>&1 \
-   && declare -f flattened_skill_body >/dev/null 2>&1; then
+flatten() {
+  node --input-type=module - "$1" <<'JS'
+import { flattenedSkillBody } from "./scripts/lib/leaf/flatten-skill.mjs";
+process.stdout.write(flattenedSkillBody(process.argv[2]));
+JS
+}
+if flatten "$SKILL" >/dev/null 2>&1; then
   ok "flattened_skill_body is sourceable"
 
-  flat="$(flattened_skill_body "$SKILL" 2>/dev/null)"
+  flat="$(flatten "$SKILL" 2>/dev/null)"
   if [[ -z "$flat" ]]; then
     bad "flattened projection is non-empty"
   else

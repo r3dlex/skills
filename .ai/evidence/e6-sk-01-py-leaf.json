@@ -1,0 +1,11 @@
+{
+  "goal_id": "e6-sk-01-py-leaf",
+  "green": {
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "exit_code": 0
+  },
+  "red": {
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "exit_code": 1
+  }
+}

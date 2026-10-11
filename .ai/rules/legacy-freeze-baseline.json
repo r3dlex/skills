@@ -48,8 +48,8 @@
     },
     {
       "path": "03-configure-generate/ai-catapult-init/scripts/readme-generate.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/readme-generate.mjs"
     },
     {
       "path": "03-configure-generate/ai-catapult-init/templates/graph-automation/graph-refresh.sh",
@@ -163,8 +163,8 @@
     },
     {
       "path": "04-validate-handoff/eval-a-skill/scaffold-eval.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/scaffold-eval.mjs"
     },
     {
       "path": "reference/fixtures/v3/standalone/tests/workflow-fixtures_test.sh",
@@ -204,23 +204,18 @@
     },
     {
       "path": "scripts/catalog-install.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/catalog-install.mjs"
     },
     {
       "path": "scripts/catalog-query.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
-    },
-    {
-      "path": "scripts/catalog.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/catalog-query.mjs"
     },
     {
       "path": "scripts/check-codex-parity.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/check-codex-parity.mjs"
     },
     {
       "path": "scripts/check-legacy-freeze.sh",
@@ -230,53 +225,68 @@
     },
     {
       "path": "scripts/check-markdown-links.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/check-markdown-links.mjs"
     },
     {
       "path": "scripts/check-opencode-parity.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/check-opencode-parity.mjs"
     },
     {
       "path": "scripts/check-root-discovery.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/check-root-discovery.mjs"
     },
     {
       "path": "scripts/check-sync-staleness.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/check-sync-staleness.mjs"
     },
     {
       "path": "scripts/generate-skill-docs.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/generate-skill-docs.mjs"
     },
     {
       "path": "scripts/install-auggie.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/install-auggie.mjs",
+      "allow": [
+        "SKILLS_CATALOG_ROOT"
+      ]
     },
     {
       "path": "scripts/install-claude-code.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/install-claude-code.mjs",
+      "allow": [
+        "SKILLS_CATALOG_ROOT"
+      ]
     },
     {
       "path": "scripts/install-codex.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/install-codex.mjs",
+      "allow": [
+        "SKILLS_CATALOG_ROOT"
+      ]
     },
     {
       "path": "scripts/install-copilot.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/install-copilot.mjs",
+      "allow": [
+        "SKILLS_CATALOG_ROOT"
+      ]
     },
     {
       "path": "scripts/install-gemini.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/install-gemini.mjs",
+      "allow": [
+        "SKILLS_CATALOG_ROOT"
+      ]
     },
     {
       "path": "scripts/matrix-contract.py",
@@ -290,13 +300,13 @@
     },
     {
       "path": "scripts/readme-generate.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/readme-generate.mjs"
     },
     {
       "path": "scripts/regen-host-golden.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/regen-host-golden.mjs"
     },
     {
       "path": "scripts/release/strategy-selector.sh",
@@ -318,27 +328,22 @@
     },
     {
       "path": "scripts/scan-secret-material.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/scan-secret-material.mjs"
     },
     {
       "path": "scripts/sync-upstream.sh",
       "class": "scaffold-template"
     },
     {
-      "path": "scripts/traceability_schema.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
-    },
-    {
       "path": "scripts/validate-cascade-fixtures.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/validate-cascade-fixtures.mjs"
     },
     {
       "path": "scripts/validate-final-package.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/validate-final-package.mjs"
     },
     {
       "path": "scripts/validate-rules.sh",
@@ -346,18 +351,13 @@
     },
     {
       "path": "scripts/validate-skill-catalog.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
-    },
-    {
-      "path": "scripts/validate_skill_frontmatter.py",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/validate-skill-catalog.mjs"
     },
     {
       "path": "scripts/verify-golden-dir.sh",
-      "class": "eligible",
-      "owner": "e6-sk-01-py-leaf"
+      "class": "compat-shim",
+      "entrypoint": "lib/leaf/verify-golden-dir.mjs"
     },
     {
       "path": "tests/ach_s01_readiness_policy_test.sh",
@@ -777,16 +777,6 @@
         "max": 25
       },
       {
-        "path": "scripts/catalog.py",
-        "violations": 1,
-        "max": 16
-      },
-      {
-        "path": "scripts/check-markdown-links.py",
-        "violations": 1,
-        "max": 11
-      },
-      {
         "path": "scripts/matrix-contract.py",
         "violations": 3,
         "max": 20
@@ -795,26 +785,6 @@
         "path": "scripts/render-ci-adapters.py",
         "violations": 2,
         "max": 22
-      },
-      {
-        "path": "scripts/traceability_schema.py",
-        "violations": 1,
-        "max": 18
-      },
-      {
-        "path": "scripts/validate-cascade-fixtures.py",
-        "violations": 1,
-        "max": 11
-      },
-      {
-        "path": "scripts/validate-final-package.py",
-        "violations": 1,
-        "max": 11
-      },
-      {
-        "path": "scripts/validate-skill-catalog.py",
-        "violations": 1,
-        "max": 12
       },
       {
         "path": "tests/readiness_contract_test.py",
@@ -864,30 +834,6 @@
         "worst": "E"
       },
       {
-        "path": "scripts/catalog.py",
-        "violations": 2,
-        "blocks": 2,
-        "worst": "E"
-      },
-      {
-        "path": "scripts/check-markdown-links.py",
-        "violations": 1,
-        "blocks": 1,
-        "worst": "C"
-      },
-      {
-        "path": "scripts/check-root-discovery.py",
-        "violations": 1,
-        "blocks": 1,
-        "worst": "C"
-      },
-      {
-        "path": "scripts/generate-skill-docs.py",
-        "violations": 1,
-        "blocks": 1,
-        "worst": "C"
-      },
-      {
         "path": "scripts/matrix-contract.py",
         "violations": 6,
         "blocks": 6,
@@ -898,30 +844,6 @@
         "violations": 4,
         "blocks": 4,
         "worst": "E"
-      },
-      {
-        "path": "scripts/traceability_schema.py",
-        "violations": 1,
-        "blocks": 1,
-        "worst": "C"
-      },
-      {
-        "path": "scripts/validate-cascade-fixtures.py",
-        "violations": 1,
-        "blocks": 1,
-        "worst": "F"
-      },
-      {
-        "path": "scripts/validate-final-package.py",
-        "violations": 1,
-        "blocks": 1,
-        "worst": "C"
-      },
-      {
-        "path": "scripts/validate-skill-catalog.py",
-        "violations": 1,
-        "blocks": 1,
-        "worst": "C"
       },
       {
         "path": "tests/helpers/lock_contention.py",
@@ -987,31 +909,6 @@
         "errors": 26
       },
       {
-        "path": "04-validate-handoff/eval-a-skill/scaffold-eval.py",
-        "violations": 2,
-        "errors": 2
-      },
-      {
-        "path": "scripts/catalog.py",
-        "violations": 4,
-        "errors": 4
-      },
-      {
-        "path": "scripts/check-markdown-links.py",
-        "violations": 4,
-        "errors": 4
-      },
-      {
-        "path": "scripts/check-root-discovery.py",
-        "violations": 3,
-        "errors": 3
-      },
-      {
-        "path": "scripts/generate-skill-docs.py",
-        "violations": 9,
-        "errors": 9
-      },
-      {
         "path": "scripts/matrix-contract.py",
         "violations": 6,
         "errors": 6
@@ -1020,26 +917,6 @@
         "path": "scripts/render-ci-adapters.py",
         "violations": 7,
         "errors": 7
-      },
-      {
-        "path": "scripts/traceability_schema.py",
-        "violations": 2,
-        "errors": 2
-      },
-      {
-        "path": "scripts/validate-cascade-fixtures.py",
-        "violations": 2,
-        "errors": 2
-      },
-      {
-        "path": "scripts/validate-final-package.py",
-        "violations": 2,
-        "errors": 2
-      },
-      {
-        "path": "scripts/validate-skill-catalog.py",
-        "violations": 8,
-        "errors": 8
       },
       {
         "path": "tests/autobahn_worktree_driver_integration_test.py",
@@ -1183,7 +1060,6 @@
       "02-govern-plan/northstar/approve.sh",
       "02-govern-plan/northstar/handoff-write.sh",
       "02-govern-plan/northstar/prereq-check.sh",
-      "03-configure-generate/ai-catapult-init/scripts/readme-generate.sh",
       "03-configure-generate/ai-catapult-init/templates/graph-automation/graph-refresh.sh",
       "03-configure-generate/ai-catapult-init/templates/graph-automation/hook-body.sh",
       "03-configure-generate/wizard/template.sh",
@@ -1201,19 +1077,9 @@
       "04-validate-handoff/diagnose/scripts/hitl-loop.template.sh",
       "04-validate-handoff/diagnosing-bugs/scripts/hitl-loop.template.sh",
       "scripts/archgate.sh",
-      "scripts/catalog-install.sh",
-      "scripts/check-codex-parity.sh",
-      "scripts/check-opencode-parity.sh",
-      "scripts/check-sync-staleness.sh",
-      "scripts/install-auggie.sh",
-      "scripts/install-claude-code.sh",
-      "scripts/install-codex.sh",
-      "scripts/install-copilot.sh",
-      "scripts/install-gemini.sh",
       "scripts/release/strategy-selector.sh",
       "scripts/sync-upstream.sh",
       "scripts/validate-rules.sh",
-      "scripts/verify-golden-dir.sh",
       "tests/adr_path_test.sh",
       "tests/agents_index_test.sh",
       "tests/ai-catapult-init_rename_test.sh",

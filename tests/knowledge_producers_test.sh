@@ -47,20 +47,20 @@ trap 'rm -rf "$SCRATCH"' EXIT
 # delimiter, counted by the catalog validator's own parser, or "-" when the
 # frontmatter does not parse.
 line_counts() {
-  python3 -B - "$1" 2>/dev/null <<'PY'
-import importlib.util, sys
-from pathlib import Path
-sys.path.insert(0, 'scripts')
-spec = importlib.util.spec_from_file_location('validate_skill_catalog', 'scripts/validate-skill-catalog.py')
-validator = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(validator)
-path = Path(sys.argv[1])
-try:
-    body = str(len(validator.frontmatter(path)[1]))
-except AssertionError:
-    body = '-'
-print(len(path.read_text(encoding='utf-8').splitlines()), body)
-PY
+  node --input-type=module - "$1" 2>/dev/null <<'JS'
+import { readFileSync } from "node:fs";
+import { frontmatter } from "./scripts/lib/leaf/frontmatter.mjs";
+import { pySplitlines } from "./scripts/lib/leaf/py-text.mjs";
+const path = process.argv[2];
+const text = readFileSync(path, "utf8");
+let body = "-";
+try {
+  body = String(frontmatter(path).body.length);
+} catch {
+  body = "-";
+}
+process.stdout.write(`${pySplitlines(text).length} ${body}\n`);
+JS
 }
 
 # Body-line budget for non-northstar producers: <=100 lines; a frontmatter that
@@ -435,14 +435,40 @@ HOME="$SCRATCH/auggie" bash scripts/install-auggie.sh --all >/dev/null 2>&1 \
 HOME="$SCRATCH/copilot" bash scripts/install-copilot.sh --all "$SCRATCH/copilot/repo" >/dev/null 2>&1 \
   || { bad "install-copilot.sh --all failed"; install_fail=1; }
 resolve_report="$(python3 -B - "$REPO_ROOT" "$MODULE" "$SCRATCH" $PRODUCERS <<'PY'
-import importlib, re, sys
+import json, re, subprocess, sys, tempfile
 from pathlib import Path
 
 repo, module, scratch = Path(sys.argv[1]), Path(sys.argv[1]) / sys.argv[2], Path(sys.argv[3])
 producers = sys.argv[4:]
-sys.path.insert(0, str(repo / 'scripts'))
-links = importlib.import_module('check-markdown-links')
-from catalog import load_catalog
+
+def load_catalog(root):
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e",
+         "import { loadCatalog } from './scripts/lib/leaf/catalog-model.mjs';"
+         "process.stdout.write(JSON.stringify(loadCatalog(process.argv[1])));",
+         str(root)],
+        capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+def logical_target(root, source_name, target, by_name):
+    path = Path(tempfile.mkstemp(suffix=".json")[1])
+    try:
+        path.write_text(json.dumps({
+            "root": str(root), "source": source_name, "target": target, "byName": by_name,
+        }))
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e",
+             "import { readFileSync } from 'node:fs';"
+             "import { logicalTarget } from './scripts/lib/leaf/check-markdown-links.mjs';"
+             "const input = JSON.parse(readFileSync(process.argv[1], 'utf8'));"
+             "const found = logicalTarget(input.root, input.source, input.target, new Map(Object.entries(input.byName)));"
+             "process.stdout.write(JSON.stringify(found));",
+             str(path)],
+            capture_output=True, text=True, check=True)
+    finally:
+        path.unlink(missing_ok=True)
+    found = json.loads(result.stdout)
+    return Path(found["path"]), found["installed"]
 
 by_name = {entry['name']: entry for entry in load_catalog(repo)['skills']}
 want = module.read_bytes() if module.is_file() else None
@@ -463,7 +489,7 @@ for name in producers:
         print(f'{name}: pointer carries no markdown link to knowledge-publish.md')
         continue
     target = targets[0]
-    resolved, cross_skill = links.logical_target(repo, name, target, by_name)
+    resolved, cross_skill = logical_target(repo, name, target, by_name)
     direct = (skill.parent / target).resolve()
     if direct != module.resolve() and (not cross_skill or resolved.resolve() != module.resolve()):
         print(f'{name}: {target} does not resolve to {sys.argv[2]} in the source layout')
