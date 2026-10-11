@@ -1,3 +1,5 @@
+import { realpathSync } from "node:fs";
+import { isAbsolute, relative as pathRelative, resolve } from "node:path";
 import { run, text } from "./proc.mjs";
 import { RANK } from "./freeze-types.mjs";
 const TOOL_ENV = { ...process.env, PYTHONDONTWRITEBYTECODE: "1" };
@@ -7,11 +9,14 @@ function requireTool(name) {
         throw new Error(`tool_missing:${name}`);
     }
 }
-function relative(root, filename) {
-    if (filename.startsWith(`${root}/`)) {
-        return filename.slice(root.length + 1);
+function repoRelative(root, filename) {
+    const base = realpathSync(resolve(root));
+    const target = realpathSync(isAbsolute(filename) ? filename : resolve(base, filename));
+    const rel = pathRelative(base, target).replaceAll("\\", "/");
+    if (rel === "" || rel === ".." || rel.startsWith("../")) {
+        throw new Error(`path outside repository: ${filename}`);
     }
-    return filename;
+    return rel;
 }
 function bump(current, row, kind) {
     current.violations += 1;
@@ -47,7 +52,7 @@ export function measureC901(root, files) {
     const parsed = JSON.parse(text(result.stdout) || "[]");
     const rows = parsed.map((item) => {
         const match = /\((\d+)\s*>/.exec(item.message);
-        return { path: relative(root, item.filename), complexity: match ? Number(match[1]) : 0 };
+        return { path: repoRelative(root, item.filename), complexity: match ? Number(match[1]) : 0 };
     });
     return group(rows, "c901");
 }
@@ -81,7 +86,7 @@ export function measureMypy(root, files) {
         if (!line.includes(": error:")) {
             continue;
         }
-        const path = relative(root, line.split(":", 1)[0] ?? "");
+        const path = repoRelative(root, line.split(":", 1)[0] ?? "");
         counts.set(path, (counts.get(path) ?? 0) + 1);
     }
     return [...counts.entries()]

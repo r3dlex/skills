@@ -96,11 +96,11 @@ export function entryProblems(entry) {
     }
     return problems;
 }
-export function compareInventory(present, entries) {
+export function compareInventory(present, entries, patterns = []) {
     const byPath = new Map(entries.map((entry) => [entry.path, entry]));
     const problems = [];
     for (const path of present) {
-        if (!byPath.has(path)) {
+        if (!byPath.has(path) && !excluded(path, patterns)) {
             problems.push(`unlisted file: ${path}`);
         }
     }

@@ -99,5 +99,22 @@
         }
       }
     ]
+  },
+  "cure2": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. Repo-relative C901 paths and fixture exclude application. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/legacy_freeze_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "unlisted file: tests/fixtures/e6-sk-00-ledger/stricter-c901.py; Results: PASS=15 FAIL=1. Hosted Test Suite run 38114699622 also reported growth and stale c901 rows because measured paths were absolute."
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "legacy freeze passes at this head; fixture excluded-py passes; measured.c901 paths are repo-relative; Results: PASS=17 FAIL=0"
+        }
+      }
+    ]
   }
 }

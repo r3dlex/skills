@@ -757,77 +757,77 @@
   "measured": {
     "c901": [
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/04-validate-handoff/autobahn/lib/observer.py",
+        "path": "04-validate-handoff/autobahn/lib/observer.py",
         "violations": 11,
         "max": 24
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "path": "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
         "violations": 4,
         "max": 29
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/04-validate-handoff/autobahn/lib/readiness_contract.py",
+        "path": "04-validate-handoff/autobahn/lib/readiness_contract.py",
         "violations": 7,
         "max": 42
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/04-validate-handoff/autobahn/lib/verification.py",
+        "path": "04-validate-handoff/autobahn/lib/verification.py",
         "violations": 1,
         "max": 25
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/catalog.py",
+        "path": "scripts/catalog.py",
         "violations": 1,
         "max": 16
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/check-markdown-links.py",
+        "path": "scripts/check-markdown-links.py",
         "violations": 1,
         "max": 11
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/matrix-contract.py",
+        "path": "scripts/matrix-contract.py",
         "violations": 3,
         "max": 20
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/render-ci-adapters.py",
+        "path": "scripts/render-ci-adapters.py",
         "violations": 2,
         "max": 22
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/traceability_schema.py",
+        "path": "scripts/traceability_schema.py",
         "violations": 1,
         "max": 18
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/validate-cascade-fixtures.py",
+        "path": "scripts/validate-cascade-fixtures.py",
         "violations": 1,
         "max": 11
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/validate-final-package.py",
+        "path": "scripts/validate-final-package.py",
         "violations": 1,
         "max": 11
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/scripts/validate-skill-catalog.py",
+        "path": "scripts/validate-skill-catalog.py",
         "violations": 1,
         "max": 12
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/tests/readiness_contract_test.py",
+        "path": "tests/readiness_contract_test.py",
         "violations": 1,
         "max": 12
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/tests/readiness_v2_fixture.py",
+        "path": "tests/readiness_v2_fixture.py",
         "violations": 1,
         "max": 15
       },
       {
-        "path": "/Users/andresilvaburgstahler/Ws/Personal/worktrees/e6-sk-00-ledger-20261010/tests/readiness_v2_migrate_test.py",
+        "path": "tests/readiness_v2_migrate_test.py",
         "violations": 1,
         "max": 13
       }

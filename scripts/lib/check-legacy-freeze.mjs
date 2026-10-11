@@ -22,7 +22,7 @@ function shellFiles(root, baseline) {
 }
 export function check(root, baseline = loadBaseline(root), previous) {
     const present = new Set(inventoryPaths(root, baseline));
-    const problems = compareInventory(present, baseline.entries);
+    const problems = compareInventory(present, baseline.entries, baseline.excludes);
     if (previous !== undefined) {
         problems.push(...classChanges(previous.entries, baseline.entries, present));
         problems.push(...compareAllowances(baseline.measured, previous.measured));

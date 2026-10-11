@@ -51,6 +51,9 @@ const flight = Object.fromEntries(baseline.entries.filter((entry) => entry.in_fl
 if (flight["tests/local_ci_declaration_test.py"] !== 105) process.exit(1);
 if (flight["tests/knowledge_producers_test.sh"] !== 118) process.exit(1);
 if (baseline.measured.c901.length === 0) process.exit(1);
+for (const row of baseline.measured.c901) {
+  if (row.path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(row.path)) process.exit(1);
+}
 JS
 [[ $? -eq 0 ]] && ok "ledger pins classes, excludes, consumers and in-flight entries" || bad "ledger pins"
 
@@ -82,6 +85,14 @@ if (name === "unlisted") {
   writeFileSync(dir + "/scripts/extra.py", "def extra() -> None:\n    return None\n");
   spawnSync("git", ["add", "scripts/extra.py"], { cwd: dir });
   spawnSync("git", ["commit", "-q", "-m", "extra"], { cwd: dir });
+}
+if (name === "excluded-py") {
+  mkdirSync(dir + "/tests/fixtures/nested", { recursive: true });
+  writeFileSync(dir + "/tests/fixtures/nested/extra.py", "def extra() -> None:\n    return None\n");
+  const added = spawnSync("git", ["add", "tests/fixtures/nested/extra.py"], { cwd: dir });
+  if (added.status !== 0) process.exit(1);
+  const committed = spawnSync("git", ["commit", "-q", "-m", "excluded"], { cwd: dir });
+  if (committed.status !== 0) process.exit(1);
 }
 if (name === "reclass") entry.class = "scaffold-template";
 if (name === "kept-leave") {
@@ -119,6 +130,7 @@ const baseline = {
   measured: { c901: [], xenon: [], mypy: [], shellcheck: [], shfmt: [], bash_n: [], xenon_average_ok: true },
 };
 if (name === "kept-leave") baseline.entries = entries;
+if (name === "excluded-py") baseline.excludes = ["tests/fixtures/**"];
 mkdirSync(dir + "/.ai/rules", { recursive: true });
 writeFileSync(dir + "/.ai/rules/legacy-freeze-baseline.json", JSON.stringify(baseline));
 const previous = { ...baseline, entries: previousEntries };
@@ -161,6 +173,7 @@ JS
 }
 
 fixture unlisted fail
+fixture excluded-py pass
 fixture reclass fail
 fixture kept-leave fail
 fixture in-flight-mismatch fail

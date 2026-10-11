@@ -108,11 +108,15 @@ export function entryProblems(entry: LedgerEntry): string[] {
   return problems;
 }
 
-export function compareInventory(present: ReadonlySet<string>, entries: readonly LedgerEntry[]): string[] {
+export function compareInventory(
+  present: ReadonlySet<string>,
+  entries: readonly LedgerEntry[],
+  patterns: readonly string[] = [],
+): string[] {
   const byPath = new Map(entries.map((entry) => [entry.path, entry]));
   const problems: string[] = [];
   for (const path of present) {
-    if (!byPath.has(path)) {
+    if (!byPath.has(path) && !excluded(path, patterns)) {
       problems.push(`unlisted file: ${path}`);
     }
   }
