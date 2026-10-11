@@ -133,5 +133,22 @@
         }
       }
     ]
+  },
+  "cure4": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. mypy and ShellCheck execution failures no longer measure as an empty success. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/legacy_freeze_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "fixture unreadable-py expected fail, got 0; fixture unreadable-sh expected fail, got 1 with growth: shfmt and growth: bash -n and no measure_failed:shellcheck; mypy-growth and shellcheck-growth already failed on growth; Results: PASS=19 FAIL=2"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "unreadable-py and unreadable-sh fail the freeze on measure_failed exit_2; mypy-growth and shellcheck-growth still fail on growth; legacy freeze passes at this head; Results: PASS=21 FAIL=0"
+        }
+      }
+    ]
   }
 }

@@ -70,11 +70,26 @@ fixture() {
 	git -C "$dir" add scripts/ok.py ruff.toml
 	git -C "$dir" commit -q -m fixture
 	node --input-type=module - "$dir" "$name" "$REPO_ROOT" <<'JS'
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 const dir = process.argv[2];
 const name = process.argv[3];
 const repoRoot = process.argv[4];
+function denyRead(path) {
+  chmodSync(path, 0);
+  try {
+    readFileSync(path);
+  } catch (error) {
+    if (error && error.code === "EACCES") return;
+  }
+  rmSync(path);
+}
+function commitFile(path) {
+  const added = spawnSync("git", ["add", path], { cwd: dir });
+  if (added.status !== 0) process.exit(1);
+  const committed = spawnSync("git", ["commit", "-q", "-m", path], { cwd: dir });
+  if (committed.status !== 0) process.exit(1);
+}
 const entry = { path: "scripts/ok.py", class: "eligible", owner: "e6-sk-01-py-leaf" };
 const previousEntries = [JSON.parse(JSON.stringify(entry))];
 const entries = [entry];
@@ -120,6 +135,28 @@ if (name === "in-flight-absent") {
   entries.push(absent);
   previousEntries.push(absent);
 }
+if (name === "unreadable-py") {
+  denyRead(dir + "/scripts/ok.py");
+}
+if (name === "unreadable-sh") {
+  writeFileSync(dir + "/scripts/hidden.sh", "#!/usr/bin/env bash\necho ok\n");
+  commitFile("scripts/hidden.sh");
+  denyRead(dir + "/scripts/hidden.sh");
+  const shell = { path: "scripts/hidden.sh", class: "scaffold-template" };
+  entries.push(shell);
+  previousEntries.push(shell);
+}
+if (name === "mypy-growth") {
+  writeFileSync(dir + "/scripts/ok.py", "def bad(x: int) -> str:\n    return x\n");
+  commitFile("scripts/ok.py");
+}
+if (name === "shellcheck-growth") {
+  writeFileSync(dir + "/scripts/bad.sh", "#!/usr/bin/env bash\nif\n");
+  commitFile("scripts/bad.sh");
+  const shell = { path: "scripts/bad.sh", class: "scaffold-template" };
+  entries.push(shell);
+  previousEntries.push(shell);
+}
 const baseline = {
   schema: "legacy-freeze-baseline/1",
   base: "fixture",
@@ -163,7 +200,15 @@ JS
 		ok "fixture $name passes"
 	elif [[ "$name" == "stricter-c901" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'growth: c901' /tmp/e6-fixture.err; then
 		ok "fixture $name fails"
-	elif [[ "$name" != "stricter-c901" && "$expect" == fail && "$status" -ne 0 ]]; then
+	elif [[ "$name" == "unreadable-py" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'measure_failed:mypy:exit_2' /tmp/e6-fixture.err; then
+		ok "fixture $name fails"
+	elif [[ "$name" == "unreadable-sh" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'measure_failed:shellcheck:.*exit_2' /tmp/e6-fixture.err; then
+		ok "fixture $name fails"
+	elif [[ "$name" == "mypy-growth" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'growth: mypy' /tmp/e6-fixture.err; then
+		ok "fixture $name fails"
+	elif [[ "$name" == "shellcheck-growth" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'growth: shellcheck' /tmp/e6-fixture.err; then
+		ok "fixture $name fails"
+	elif [[ "$name" != "stricter-c901" && "$name" != "unreadable-py" && "$name" != "unreadable-sh" && "$name" != "mypy-growth" && "$name" != "shellcheck-growth" && "$expect" == fail && "$status" -ne 0 ]]; then
 		ok "fixture $name fails"
 	else
 		bad "fixture $name expected $expect, got $status"
@@ -181,6 +226,10 @@ fixture in-flight-absent pass
 fixture kept-delete fail
 fixture scaffold-add fail
 fixture stricter-c901 fail
+fixture unreadable-py fail
+fixture unreadable-sh fail
+fixture mypy-growth fail
+fixture shellcheck-growth fail
 
 after="$(git status --porcelain --ignored)"
 printf '%s\n' "$before" >/tmp/e6-before

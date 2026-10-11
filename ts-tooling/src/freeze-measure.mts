@@ -12,6 +12,16 @@ function requireTool(name: string): void {
   }
 }
 
+function rejectExecutionFailure(tool: string, status: number, stderr: string, path?: string): void {
+  if (status === 0 || status === 1) {
+    return;
+  }
+  const where = path === undefined ? "" : `:${path}`;
+  const detail = stderr.trim().split("\n")[0] ?? "";
+  const suffix = detail === "" ? "" : `:${detail}`;
+  throw new Error(`measure_failed:${tool}${where}:exit_${status}${suffix}`);
+}
+
 function repoRelative(root: string, filename: string): string {
   const base = realpathSync(resolve(root));
   const target = realpathSync(isAbsolute(filename) ? filename : resolve(base, filename));
@@ -89,6 +99,7 @@ export function measureMypy(root: string, files: readonly string[]): FileStat[] 
   const result = run("mypy", [
     "--strict", "--cache-dir=/dev/null", "--no-error-summary", "--show-error-codes", ...files,
   ], root, TOOL_ENV);
+  rejectExecutionFailure("mypy", result.status, text(result.stderr));
   const counts = new Map<string, number>();
   for (const line of text(result.stdout).split("\n")) {
     if (!line.includes(": error:")) {
@@ -97,22 +108,39 @@ export function measureMypy(root: string, files: readonly string[]): FileStat[] 
     const path = repoRelative(root, line.split(":", 1)[0] ?? "");
     counts.set(path, (counts.get(path) ?? 0) + 1);
   }
+  if (result.status === 1 && counts.size === 0) {
+    throw new Error("measure_failed:mypy:unparsed");
+  }
   return [...counts.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([path, errors]) => ({ path, violations: errors, errors }));
+}
+
+function shellcheckCount(root: string, path: string): number {
+  const result = run("shellcheck", ["-S", "error", "-f", "json", path], root, TOOL_ENV);
+  if (result.status === 0) {
+    return 0;
+  }
+  rejectExecutionFailure("shellcheck", result.status, text(result.stderr), path);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text(result.stdout) || "[]");
+  } catch {
+    throw new Error(`measure_failed:shellcheck:${path}:unparsed`);
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error(`measure_failed:shellcheck:${path}:unparsed`);
+  }
+  return parsed.length;
 }
 
 export function measureShellcheck(root: string, files: readonly string[]): FileStat[] {
   requireTool("shellcheck");
   const counts = new Map<string, number>();
   for (const path of files) {
-    const result = run("shellcheck", ["-S", "error", "-f", "json", path], root, TOOL_ENV);
-    if (result.status === 0) {
-      continue;
-    }
-    const parsed = JSON.parse(text(result.stdout) || "[]") as unknown[];
-    if (parsed.length > 0) {
-      counts.set(path, parsed.length);
+    const findings = shellcheckCount(root, path);
+    if (findings > 0) {
+      counts.set(path, findings);
     }
   }
   return [...counts.entries()]
