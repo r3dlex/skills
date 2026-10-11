@@ -29,13 +29,63 @@ function readString(cursor) {
     cursor.i += 1;
     return value;
 }
+const SIMPLE_ESCAPES = {
+    "\"": "\"",
+    "\\": "\\",
+    "/": "/",
+    b: "\b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+};
+function isHex(char) {
+    return char !== undefined && "0123456789abcdefABCDEF".includes(char);
+}
+function readHex4(cursor) {
+    let hex = "";
+    for (let i = 0; i < 4; i += 1) {
+        const char = cursor.text[cursor.i];
+        if (!isHex(char)) {
+            malformed();
+        }
+        hex += char;
+        cursor.i += 1;
+    }
+    return Number.parseInt(hex, 16);
+}
+function readUnicode(cursor) {
+    const code = readHex4(cursor);
+    if (code < 0xd800 || code > 0xdfff) {
+        return String.fromCharCode(code);
+    }
+    if (code > 0xdbff || cursor.text[cursor.i] !== "\\" || cursor.text[cursor.i + 1] !== "u") {
+        malformed();
+    }
+    cursor.i += 2;
+    const low = readHex4(cursor);
+    if (low < 0xdc00 || low > 0xdfff) {
+        malformed();
+    }
+    return String.fromCodePoint(((code - 0xd800) << 10) + (low - 0xdc00) + 0x10000);
+}
 function readEscape(cursor) {
     if (atEnd(cursor)) {
         malformed();
     }
     const char = cursor.text[cursor.i] ?? "";
     cursor.i += 1;
-    return char;
+    const simple = SIMPLE_ESCAPES[char];
+    if (simple !== undefined) {
+        return simple;
+    }
+    if (char === "u") {
+        return readUnicode(cursor);
+    }
+    malformed();
+}
+function pointerFor(key) {
+    return `/${key}`;
 }
 function skipValue(cursor) {
     skip(cursor);
@@ -90,7 +140,7 @@ function skipObject(cursor, pointer, found) {
         }
         cursor.i += 1;
         skip(cursor);
-        if (pointer === `/${key}` && cursor.text[cursor.i] === "\"") {
+        if (pointer === pointerFor(key) && cursor.text[cursor.i] === "\"") {
             const start = cursor.i + 1;
             readString(cursor);
             if (found) {

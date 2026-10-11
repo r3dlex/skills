@@ -265,11 +265,24 @@ function declaredRanges(bytes, item, stream) {
     }
     return ranges;
 }
+function assertIntegerOffset(value) {
+    if (!Number.isSafeInteger(value)) {
+        throw new DifferentialError("mask offset is not an integer");
+    }
+}
+function assertIntegerSpans(spans) {
+    for (const span of spans) {
+        assertIntegerOffset(span.start);
+        assertIntegerOffset(span.end);
+    }
+}
 function spanFits(span, ranges) {
     return span.end >= span.start && spanInside(span, ranges);
 }
 function assertSupplied(reference, candidate, corpus) {
-    for (const span of corpus.applyMasks ?? []) {
+    const spans = corpus.applyMasks ?? [];
+    assertIntegerSpans(spans);
+    for (const span of spans) {
         const item = classNamed(corpus, span.name);
         for (const result of [reference, candidate]) {
             const bytes = span.stream === "stdout" ? result.stdout : result.stderr;
@@ -298,9 +311,11 @@ function coveredRuns(spans, corpus) {
     return runs;
 }
 function applyDeclaredSpans(bytes, spans, corpus, stream) {
+    const selected = spans.filter((span) => span.stream === stream);
+    assertIntegerSpans(selected);
     const parts = [];
     let cursor = 0;
-    for (const run of coveredRuns(spans.filter((span) => span.stream === stream), corpus)) {
+    for (const run of coveredRuns(selected, corpus)) {
         if (run.start < cursor) {
             throw new DifferentialError("mask spans overlap");
         }

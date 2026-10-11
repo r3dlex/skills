@@ -300,6 +300,44 @@ nested_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"X","sit
 run_case "nested spans do not hide the next byte" fail "$nested_repo/other.sh" "$nblob" "$nsha" "$nested_span" "" "output divergence"
 rm -rf "$nested_repo"
 
+escape_repo="$(mktemp -d)"
+git -C "$escape_repo" init -q
+git -C "$escape_repo" config user.email fixture@example.com
+git -C "$escape_repo" config user.name fixture
+node -e '
+const fs = require("fs");
+const dir = process.argv[1];
+const write = (name, body) => fs.writeFileSync(dir + "/" + name, "#!/bin/sh\nprintf %s " + JSON.stringify(body) + "\n", { mode: 0o755 });
+write("reference.sh", "{\"\\u0065rror\":\"X\",\"status\":\"ok\"}");
+write("other.sh", "{\"\\u0065rror\":\"Y\",\"status\":\"ok\"}");
+' "$escape_repo"
+git -C "$escape_repo" add reference.sh
+git -C "$escape_repo" commit -q -m escape
+repo="$escape_repo"
+commit="$(git -C "$escape_repo" rev-parse HEAD)"
+eblob="$(git -C "$escape_repo" rev-parse HEAD:reference.sh)"
+esha="$(git -C "$escape_repo" cat-file blob "$eblob" | shasum -a 256 | awk '{print $1}')"
+escape_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"<interpreter-diagnostic>","sites":[{"stream":"stdout","jsonPointer":"/u0065rror"}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":15,"end":16}]}'
+run_case "escaped json key is not the raw pointer" fail "$escape_repo/other.sh" "$eblob" "$esha" "$escape_span" "" "mask reaches outside declared sites"
+rm -rf "$escape_repo"
+
+frac_repo="$(mktemp -d)"
+git -C "$frac_repo" init -q
+git -C "$frac_repo" config user.email fixture@example.com
+git -C "$frac_repo" config user.name fixture
+printf '%s\n' '#!/bin/sh' 'printf %s "error: XZ"' >"$frac_repo/reference.sh"
+printf '%s\n' '#!/bin/sh' 'printf %s "error: YZ"' >"$frac_repo/other.sh"
+chmod +x "$frac_repo/reference.sh" "$frac_repo/other.sh"
+git -C "$frac_repo" add reference.sh
+git -C "$frac_repo" commit -q -m frac
+repo="$frac_repo"
+commit="$(git -C "$frac_repo" rev-parse HEAD)"
+fblob="$(git -C "$frac_repo" rev-parse HEAD:reference.sh)"
+fsha="$(git -C "$frac_repo" cat-file blob "$fblob" | shasum -a 256 | awk '{print $1}')"
+frac_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"-","sites":[{"stream":"stdout","prefix":"error: "}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":7.9,"end":8.1}]}'
+run_case "fractional mask offsets are rejected" fail "$frac_repo/other.sh" "$fblob" "$fsha" "$frac_span" "" "mask offset is not an integer"
+rm -rf "$frac_repo"
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]

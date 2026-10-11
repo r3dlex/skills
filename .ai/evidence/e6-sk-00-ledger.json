@@ -184,5 +184,22 @@
         }
       }
     ]
+  },
+  "cure7": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. JSON keys are decoded before the pointer is built, and non-integer applyMasks offsets are rejected instead of truncated. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "escaped json key is not the raw pointer expected fail got 0; fractional mask offsets are rejected expected fail got 0; Results: PASS=22 FAIL=2"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "{\\u0065rror:X} versus the Y variant with pointer /u0065rror and span [15,16) is rejected; error: XZ versus error: YZ with span [7.9,8.1) is rejected; overlap, containment, and raw-byte checks stay green; Results: PASS=24 FAIL=0"
+        }
+      }
+    ]
   }
 }
