@@ -32,9 +32,8 @@ function shrunk(measured, allowed) {
 function statStale(allowed, measured, kind) {
     return shrunk(measured, allowed) ? `stale baseline: ${kind} ${allowed.path}` : null;
 }
-export function compareStats(measured, allowed, kind) {
+function grewOnly(measured, allowed, kind) {
     const allowedByPath = byPath(allowed);
-    const measuredByPath = byPath(measured);
     const problems = [];
     for (const row of measured) {
         const problem = statGrew(row, allowedByPath.get(row.path), kind);
@@ -42,6 +41,11 @@ export function compareStats(measured, allowed, kind) {
             problems.push(problem);
         }
     }
+    return problems;
+}
+export function compareStats(measured, allowed, kind) {
+    const measuredByPath = byPath(measured);
+    const problems = grewOnly(measured, allowed, kind);
     for (const row of allowed) {
         const problem = statStale(row, measuredByPath.get(row.path), kind);
         if (problem !== null) {
@@ -80,6 +84,24 @@ export function compareMeasured(measured, allowed) {
     }
     if (measured.xenon_average_ok && !allowed.xenon_average_ok) {
         problems.push("stale baseline: xenon average");
+    }
+    return problems;
+}
+function pathsGrew(current, previous, kind) {
+    const allowed = new Set(previous);
+    return current.filter((path) => !allowed.has(path)).map((path) => `growth: ${kind} ${path}`);
+}
+export function compareAllowances(current, previous) {
+    const problems = [
+        ...grewOnly(current.c901, previous.c901, "c901"),
+        ...grewOnly(current.xenon, previous.xenon, "xenon"),
+        ...grewOnly(current.mypy, previous.mypy, "mypy"),
+        ...grewOnly(current.shellcheck, previous.shellcheck, "shellcheck"),
+        ...pathsGrew(current.shfmt, previous.shfmt, "shfmt"),
+        ...pathsGrew(current.bash_n, previous.bash_n, "bash -n"),
+    ];
+    if (!current.xenon_average_ok && previous.xenon_average_ok) {
+        problems.push("growth: xenon average");
     }
     return problems;
 }

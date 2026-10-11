@@ -140,17 +140,28 @@ function seed(dir, files) {
         writeFileSync(join(dir, name), text);
     }
 }
+function maskApplies(classes, stream) {
+    return classes.some((item) => item.sites.some((site) => site.stream === stream));
+}
+function maskStream(bytes, classes, stream) {
+    if (!maskApplies(classes, stream)) {
+        return bytes;
+    }
+    return Buffer.from(normalize(text(bytes), classes, stream));
+}
 function masked(result, classes) {
     return {
         ...result,
-        stdout: Buffer.from(normalize(text(result.stdout), classes, "stdout")),
-        stderr: Buffer.from(normalize(text(result.stderr), classes, "stderr")),
+        stdout: maskStream(result.stdout, classes, "stdout"),
+        stderr: maskStream(result.stderr, classes, "stderr"),
     };
 }
 function sameFiles(left, right) {
     const names = new Set([...Object.keys(left), ...Object.keys(right)]);
     for (const name of names) {
-        if (!left[name]?.equals(right[name] ?? Buffer.alloc(0))) {
+        const leftBytes = left[name];
+        const rightBytes = right[name];
+        if (leftBytes === undefined || rightBytes === undefined || !leftBytes.equals(rightBytes)) {
             return false;
         }
     }

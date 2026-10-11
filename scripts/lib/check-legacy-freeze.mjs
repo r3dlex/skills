@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { assertNodeVersion } from "./node-version.mjs";
 import { invokedDirectly } from "./invoked.mjs";
-import { compareMeasured } from "./freeze-compare.mjs";
+import { compareAllowances, compareMeasured } from "./freeze-compare.mjs";
 import { classChanges, compareInventory, excluded, inventoryPaths, tracked } from "./freeze-inventory.mjs";
 import { measure } from "./freeze-measure.mjs";
 import { run, text } from "./proc.mjs";
@@ -25,6 +25,7 @@ export function check(root, baseline = loadBaseline(root), previous) {
     const problems = compareInventory(present, baseline.entries);
     if (previous !== undefined) {
         problems.push(...classChanges(previous.entries, baseline.entries, present));
+        problems.push(...compareAllowances(baseline.measured, previous.measured));
     }
     const py = [...present].filter((path) => path.endsWith(".py") && !excluded(path, baseline.excludes));
     const sh = shellFiles(root, baseline).filter((path) => !excluded(path, baseline.excludes));

@@ -66,11 +66,12 @@ fixture() {
 	printf '%s\n' 'def ok() -> None:' '    return None' >"$dir/scripts/ok.py"
 	git -C "$dir" add scripts/ok.py ruff.toml
 	git -C "$dir" commit -q -m fixture
-	node --input-type=module - "$dir" "$name" <<'JS'
-import { writeFileSync, mkdirSync } from "node:fs";
+	node --input-type=module - "$dir" "$name" "$REPO_ROOT" <<'JS'
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 const dir = process.argv[2];
 const name = process.argv[3];
+const repoRoot = process.argv[4];
 const entry = { path: "scripts/ok.py", class: "eligible", owner: "e6-sk-01-py-leaf" };
 const previousEntries = [JSON.parse(JSON.stringify(entry))];
 const entries = [entry];
@@ -120,13 +121,37 @@ const baseline = {
 if (name === "kept-leave") baseline.entries = entries;
 mkdirSync(dir + "/.ai/rules", { recursive: true });
 writeFileSync(dir + "/.ai/rules/legacy-freeze-baseline.json", JSON.stringify(baseline));
-writeFileSync(dir + "/.ai/rules/previous.json", JSON.stringify({ ...baseline, entries: previousEntries }));
+const previous = { ...baseline, entries: previousEntries };
+if (name === "stricter-c901") {
+  const spec = JSON.parse(readFileSync(repoRoot + "/tests/fixtures/e6-sk-00-ledger/stricter-c901.json", "utf8"));
+  if (spec.case !== "stricter-c901" || spec.c901_max_delta !== -1) process.exit(1);
+  writeFileSync(dir + "/scripts/ok.py", readFileSync(repoRoot + "/tests/fixtures/e6-sk-00-ledger/stricter-c901.py"));
+  spawnSync("git", ["add", "scripts/ok.py"], { cwd: dir });
+  const committed = spawnSync("git", ["commit", "-q", "-m", "complex"], { cwd: dir });
+  if (committed.status !== 0) process.exit(1);
+  const measured = spawnSync("node", [repoRoot + "/scripts/lib/check-legacy-freeze.mjs", "--measure", dir], { encoding: "utf8" });
+  if (measured.status !== 0) process.exit(1);
+  const live = JSON.parse(measured.stdout);
+  if (!Array.isArray(live.c901) || live.c901.length === 0 || live.c901.some((row) => row.max === undefined)) process.exit(1);
+  baseline.measured = live;
+  previous.measured = JSON.parse(JSON.stringify(live));
+  previous.measured.c901 = previous.measured.c901.map((row) => ({ ...row, max: row.max + spec.c901_max_delta }));
+  writeFileSync(dir + "/.ai/rules/legacy-freeze-baseline.json", JSON.stringify(baseline));
+}
+writeFileSync(dir + "/.ai/rules/previous.json", JSON.stringify(previous));
 JS
+	if [[ $? -ne 0 ]]; then
+		bad "fixture $name setup"
+		rm -rf "$dir"
+		return
+	fi
 	local status=0
 	node "$REPO_ROOT/scripts/lib/check-legacy-freeze.mjs" "$dir" .ai/rules/previous.json >/tmp/e6-fixture.out 2>/tmp/e6-fixture.err || status=$?
 	if [[ "$expect" == pass && "$status" -eq 0 ]]; then
 		ok "fixture $name passes"
-	elif [[ "$expect" == fail && "$status" -ne 0 ]]; then
+	elif [[ "$name" == "stricter-c901" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'growth: c901' /tmp/e6-fixture.err; then
+		ok "fixture $name fails"
+	elif [[ "$name" != "stricter-c901" && "$expect" == fail && "$status" -ne 0 ]]; then
 		ok "fixture $name fails"
 	else
 		bad "fixture $name expected $expect, got $status"
@@ -142,6 +167,7 @@ fixture in-flight-mismatch fail
 fixture in-flight-absent pass
 fixture kept-delete fail
 fixture scaffold-add fail
+fixture stricter-c901 fail
 
 after="$(git status --porcelain --ignored)"
 printf '%s\n' "$before" >/tmp/e6-before

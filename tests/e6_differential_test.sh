@@ -93,6 +93,40 @@ run_json "json mask keeps surrounding bytes" pass "$json_repo/masked.sh"
 run_json "json mask does not hide outside bytes" fail "$json_repo/trimmed.sh"
 rm -rf "$json_repo"
 
+byte_repo="$(mktemp -d)"
+git -C "$byte_repo" init -q
+git -C "$byte_repo" config user.email fixture@example.com
+git -C "$byte_repo" config user.name fixture
+printf '%s\n' '#!/bin/sh' 'printf "\200"' >"$byte_repo/reference.sh"
+chmod +x "$byte_repo/reference.sh"
+git -C "$byte_repo" add reference.sh
+git -C "$byte_repo" commit -q -m bytes
+printf '%s\n' '#!/bin/sh' 'printf "\201"' >"$byte_repo/other.sh"
+chmod +x "$byte_repo/other.sh"
+repo="$byte_repo"
+commit="$(git -C "$byte_repo" rev-parse HEAD)"
+bblob="$(git -C "$byte_repo" rev-parse HEAD:reference.sh)"
+bsha="$(git -C "$byte_repo" cat-file blob "$bblob" | shasum -a 256 | awk '{print $1}')"
+run_case "raw bytes 0x80 and 0x81 diverge" fail "$byte_repo/other.sh" "$bblob" "$bsha" '{}'
+rm -rf "$byte_repo"
+
+omit_repo="$(mktemp -d)"
+git -C "$omit_repo" init -q
+git -C "$omit_repo" config user.email fixture@example.com
+git -C "$omit_repo" config user.name fixture
+printf '%s\n' '#!/bin/sh' ': > empty' >"$omit_repo/reference.sh"
+chmod +x "$omit_repo/reference.sh"
+git -C "$omit_repo" add reference.sh
+git -C "$omit_repo" commit -q -m omit
+printf '%s\n' '#!/bin/sh' 'exit 0' >"$omit_repo/omit.sh"
+chmod +x "$omit_repo/omit.sh"
+repo="$omit_repo"
+commit="$(git -C "$omit_repo" rev-parse HEAD)"
+oblob="$(git -C "$omit_repo" rev-parse HEAD:reference.sh)"
+osha="$(git -C "$omit_repo" cat-file blob "$oblob" | shasum -a 256 | awk '{print $1}')"
+run_case "missing empty file is a divergence" fail "$omit_repo/omit.sh" "$oblob" "$osha" '{}'
+rm -rf "$omit_repo"
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]

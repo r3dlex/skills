@@ -62,5 +62,42 @@
   "red": {
     "command": "bash tests/legacy_freeze_test.sh",
     "exit_code": 1
+  },
+  "cure": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. Cure of the three critic blockers and the shellcheck v0.11.0 asset name. Prior red/green pairs are unchanged.",
+    "shellcheck_url": {
+      "url": "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz",
+      "confirmed": "HEAD 200 before commit; archive member shellcheck-v0.11.0/shellcheck"
+    },
+    "local_suite": {
+      "command": "bash tests/run-tests.sh",
+      "exit_code": 0,
+      "observed": "OVERALL: PASSED, Passed: 2 Failed: 0, with python3 resolved to Homebrew 3.14. The same command under /usr/bin/python3 fails two pre-existing certificate allowlist assertions because CommandLineTools python injects CPATH, SDKROOT, LIBRARY_PATH and MANPATH into every interpreter, including the unchanged gh shim. Those tests and the product env filter are outside this cure."
+    },
+    "checks": [
+      {
+        "command": "bash tests/legacy_freeze_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "fixture stricter-c901 expected fail, got 0; Results: PASS=15 FAIL=1"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "fixture stricter-c901 fails on growth: c901; Results: PASS=16 FAIL=0"
+        }
+      },
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "raw bytes 0x80 and 0x81 diverge expected fail got 0; missing empty file is a divergence expected fail got 0; Results: PASS=10 FAIL=2"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "both new negative checks are red for the harness; Results: PASS=12 FAIL=0"
+        }
+      }
+    ]
   }
 }
