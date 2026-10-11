@@ -1,0 +1,86 @@
+{
+  "attachments": {
+    "agent_self": "No human approved this plan. This publication mints no approval tag. A plan approval, if any, is minted only after this generation's planning PR has merged, and only by a later admission. This publication does not dispatch implementation.",
+    "decisions": "D1-D13 are cited from docs/specifications/ACTIVE/e6-skills-legacy-ts-conversion.md (sha256 981f1f80182180c02837d9eabba4f15f6383725bab89e67d713fc69dc4e01834) and are not restated. This spec copies that file's planned text for e6-sk-01-py-leaf and the common successor acceptance. It changes that text only for facts observed at base a389a52528d58ba209203f582e6735c3e40fa145, and says so in the spec.",
+    "parent_plan": "e6-skills-legacy-ts generation 3f81925f38377c3e90d6df19f75796c5652b1eb379161b1dc638dbcd38dd6c35 is registered and active. This plan does not replace that entry. The parent spec is bound and is not edited. Goal ids stay stable. Goals 02-07 are not registered here.",
+    "predecessor_pin": "Dependency edge: this goal names e6-sk-00-ledger's merge commit a389a52528d58ba209203f582e6735c3e40fa145. dependencies is empty because a bundle cannot depend on a goal of another plan (bundle_dependency_unknown); the edge is this prose plus AC-1, not a bundle dependency. The parent publication rule requires this plan to be published only after that merge commit reaches origin/main. Re-observed 2026-10-11T19:41:39Z: that commit is origin/main. It is the squash of PR #135, parent c886433d8950e5b4cb5563d02933b82644edf194, head 5f4a9202253861a0bba6582434479ccd7e951b05, merged 2026-10-11T18:52:28Z. The head is not a pin. AC-1 names the merge commit, re-observed by git ancestry at prereq-check, beside O8 f5e338b92bb754c2bfffdf542b498530258fdbc0 (PR #125, already an ancestor). This publication does not waive the rule.",
+    "publication_posture": "Born readiness-contract/2, live mode. Publication grants no implementation authority. The parent rule publishes this plan only after e6-sk-00-ledger's merge commit reaches origin/main, because scope is reserved from publication to merge. Deferring a planning PR's merge does not satisfy that rule. Re-observed 2026-10-11T19:41:39Z: that merge commit is a389a52528d58ba209203f582e6735c3e40fa145 and it is origin/main. Goal 00's registered scope included .ai/ci/local-ci.json, .ai/rules/legacy-freeze-baseline.json, .shellcheckrc, mypy.ini, ruff.toml, scripts/lib and ts-tooling; that reservation ended at the merge. prek.toml, ci-prek.yml and security.yml were not in that 18-entry scope. A prior lane's machine publisher did not enforce the rule: it wrote generation 7c574a80ef4507a4a7dd7fcf561a0a92a163909b582cad45a6a7ec847a3edb6b locally and reported planning_complete true. That write was withdrawn. It is not a registration, not on a branch, and not on origin.",
+    "regime": "readiness-contract/2, live mode, one goal. The sidecar keeps every stage unknown, coverage unknown and legacy-safe TDD. Publication amends no policy and mints no approval."
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "Dispatch gate. O8 and the merge commit of every predecessor goal are ancestors of origin/main, re-observed by git ancestry at prereq-check time. The cross-plan rule applies; held, uncredited goals are exempt. Beside O8, this goal names its predecessor merge commit. Observed at base a389a52528d58ba209203f582e6735c3e40fa145: O8 is f5e338b92bb754c2bfffdf542b498530258fdbc0, the merge commit of PR #125 on branch feat/ach-skills-gate-workspace-ACH-S-08, and it is an ancestor. The predecessor e6-sk-00-ledger of plan e6-skills-legacy-ts (generation 3f81925f38377c3e90d6df19f75796c5652b1eb379161b1dc638dbcd38dd6c35) is merged as a389a52528d58ba209203f582e6735c3e40fa145, the squash of PR #135, parent c886433d8950e5b4cb5563d02933b82644edf194, head 5f4a9202253861a0bba6582434479ccd7e951b05, merged 2026-10-11T18:52:28Z, and that merge commit is origin/main. The dependency is recorded here and is not a bundle dependency, because a bundle cannot depend on a goal of another plan.",
+        "Same-PR maintenance (D7). The PR deletes the ledger entries it converts, attaches the D5 checks to every converted or surviving file it touches, removes configuration its conversion makes dead, and re-pins, adds or removes the .ai/ci/local-ci.json sources keys and workflow hashes its changes require. It never edits the local-ci.json verification list or the workflow inventory (reserved for e6-sk-06-names-batch), and never edits af-06's declaration. A stale pin left for a later goal is red.",
+        "Negative tests (D8). Every negative test over a converted entrypoint asserts its refusal code; none is satisfied by node_unavailable.",
+        "TDD evidence. .ai/evidence/e6-sk-01-py-leaf.json records an observed red then green for the same commands. bash tests/run-tests.sh, prek run --all-files and git diff --check pass at the PR head. No coverage percentage is invented.",
+        "Conversion. It converts the eleven scripts/*.py tools (catalog-query.py, catalog.py, check-markdown-links.py, check-root-discovery.py, generate-skill-docs.py, scan-secret-material.py, traceability_schema.py, validate-cascade-fixtures.py, validate-final-package.py, validate-skill-catalog.py, validate_skill_frontmatter.py), the twelve non-scaffold scripts/**/*.sh tools (catalog-install.sh, check-codex-parity.sh, check-opencode-parity.sh, check-sync-staleness.sh, install-auggie.sh, install-claude-code.sh, install-codex.sh, install-copilot.sh, install-gemini.sh, readme-generate.sh, regen-host-golden.sh, verify-golden-dir.sh), scaffold-eval.py and the init readme generator (03-configure-generate/ai-catapult-init/scripts/readme-generate.sh) to TypeScript under the one runner. The three scaffold mirrors and the three kept-language files are not converted.",
+        "Differential proof before replacement (D8). tests/e6_py_leaf_parity_test.sh runs each legacy implementation, materialized by its anchor, and its TS port over the existing goldens, every scenario its current tests exercise, a per-tool refusal corpus and a per-tool environment corpus (D3). Outputs are byte-identical, and each tool has a failing-first red leg.",
+        "Compatibility (D3). Every converted entrypoint is a template-conformant shim with its declared names. scripts/validate-skill-catalog.py stays an executable file for the policy fixture gate. The import-only modules retire once no tracked importer remains, which is recorded in the ledger.",
+        "Ported tests. tests/traceability-schema-v11_test.sh and tests/northstar_handoff_test.sh load a converted script as a module; they are ported. Tests that run a tool by its path stay unchanged and green through the shim. tests/helpers/lock_contention.py and its two callers stay, because they test kept-language files.",
+        "prek registration (A4, D9). prek.toml hooks run every TS and legacy check. ci-prek.yml installs node and the tools, and its job name Pre-commit Hooks stays byte-identical. security.yml installs node and keeps its literal line and its job name Repository Secret Scan. Moon tasks that only compile converted Python are replaced by the TS checks."
+      ],
+      "dependencies": [],
+      "id": "e6-sk-01-py-leaf",
+      "issue_ref": "issue:skills:e6-skills-ts-01",
+      "scope": [
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/e6-sk-01-py-leaf.json",
+        ".ai/rules/legacy-freeze-baseline.json",
+        ".github/workflows/ci-prek.yml",
+        ".github/workflows/security.yml",
+        ".moon/tasks/all.yml",
+        ".shellcheckrc",
+        "03-configure-generate/ai-catapult-init/scripts/lib",
+        "03-configure-generate/ai-catapult-init/scripts/readme-generate.sh",
+        "04-validate-handoff/eval-a-skill/lib",
+        "04-validate-handoff/eval-a-skill/scaffold-eval.py",
+        "mypy.ini",
+        "prek.toml",
+        "ruff.toml",
+        "scripts/lib",
+        "scripts/catalog-query.py",
+        "scripts/catalog.py",
+        "scripts/check-markdown-links.py",
+        "scripts/check-root-discovery.py",
+        "scripts/generate-skill-docs.py",
+        "scripts/scan-secret-material.py",
+        "scripts/traceability_schema.py",
+        "scripts/validate-cascade-fixtures.py",
+        "scripts/validate-final-package.py",
+        "scripts/validate-skill-catalog.py",
+        "scripts/validate_skill_frontmatter.py",
+        "scripts/catalog-install.sh",
+        "scripts/check-codex-parity.sh",
+        "scripts/check-opencode-parity.sh",
+        "scripts/check-sync-staleness.sh",
+        "scripts/install-auggie.sh",
+        "scripts/install-claude-code.sh",
+        "scripts/install-codex.sh",
+        "scripts/install-copilot.sh",
+        "scripts/install-gemini.sh",
+        "scripts/readme-generate.sh",
+        "scripts/regen-host-golden.sh",
+        "scripts/verify-golden-dir.sh",
+        "tests/e6_py_leaf_parity_test.sh",
+        "tests/fixtures/e6-py-leaf",
+        "tests/northstar_handoff_test.sh",
+        "tests/traceability-schema-v11_test.sh",
+        "ts-tooling"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "e6-skills-ts-01",
+  "issue_ref": "issue:skills:e6-skills-ts-01",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/e6-skills-ts-01.md"
+  }
+}
