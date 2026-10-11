@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "../scripts/lib",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*.mts"]
+}

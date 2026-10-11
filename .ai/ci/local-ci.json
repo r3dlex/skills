@@ -1,13 +1,13 @@
 {
-  "schema": "local-ci/1",
+  "schema": "local-ci/2",
   "workflows": {
     ".github/workflows/ci-prek.yml": "448aeaa2d3cfa2c6955cb459d5db4e6b00674525003f9ffa4053ff289401cfb2",
-    ".github/workflows/ci.yml": "6c5be6095ea3d71231ddb08eb7d7a56cc5bea7226245fc37fded1819bfd4c36f",
+    ".github/workflows/ci.yml": "225735d85d9cfbed4ae0a20a2c9cecd5c1023fe098adab3e35a859ec3d7b9764",
     ".github/workflows/security.yml": "ae8f9daeae5c7732727e6fb83aae9fc861af620ce995dbbd4a67267478d25bbd"
   },
   "sources": {
     "tests/run-tests.sh": "88dbbab43bd958d545320497c7decaccb5974bb85ab325b0823c4ad7e6ba2f93",
-    "tests/test-scripts.sh": "cf6f872b5070e4f8bfe1dc3d4b69d269357ee8b50cb0b45979c58b9bc409d7ed",
+    "tests/test-scripts.sh": "bec8773c60fe370073485918f4024ce79ea4331167213f40598f54abd0eebc89",
     "tests/test-skills.sh": "133b1a968efa01d2b421cae5e14a7ea9f104d1ea7d4aa8d56606d98232b8156d",
     "tests/test-skills-validator_test.sh": "d3fedd602339db2247c78317801d58e8519680fce284b02bd0480fd293c8cda6",
     "tests/local_lint.sh": "a49a9fa3806714f90c7ef3b4e52b902f40bb78aa57fc1e603c90b4f9f4d56415",
@@ -71,11 +71,73 @@
     "tests/local_ci_contract_v2_test.py": "2514d57fbb2ceb211fabd3a138e61f04be4894ff6f66ea7b511fbbac03a6dddd",
     "tests/local_ci_contract_v2_test.sh": "45790419136cadf0a15f490eaab238102b75def308fb83e2e539ae1e025bf271",
     "tests/readiness_v2_gate_bootstrap_test.py": "d1e47ca7b4d19ea535e4da82a5b14165ff42bb3c59199723324b536a237e462d",
-    "tests/readiness_v2_gate_bootstrap_test.sh": "77ebb8e1b9476e2986f620d57d04d6d005713e94bf7cb8f7ed14d7a03fc33cb4"
+    "tests/readiness_v2_gate_bootstrap_test.sh": "77ebb8e1b9476e2986f620d57d04d6d005713e94bf7cb8f7ed14d7a03fc33cb4",
+    "ts-tooling/bootstrap.sh": "1999d1c9036ab0568f0bb91e597d9ac12572eca7dec401b3e6dec88dd1b0aa99",
+    "ts-tooling/package.json": "245db112bcc1b7e5a000109a70b06ae2245ca102447f8edb4d06c377b1a863ae",
+    "ts-tooling/package-lock.json": "e01a46bc8b8260fc644348be59883a88bbf4c49d8890a5dd4b63a3befa6df415",
+    "ts-tooling/tsconfig.json": "124f511509efe5a778b5ddffbe2920f8ca029b34ede2b5cd97a565c6948946d1",
+    "ts-tooling/tsconfig.build.json": "f9e63dd95639d56f518664380916882f98692ced6985ff583f8e4ac7be3ec19c",
+    "ts-tooling/tsconfig.test.json": "ebaf8b2d57c20685740ea55b426dd0e0229f448cdfff54de17414cf375f2d347",
+    "ts-tooling/eslint.config.mjs": "46119f3a0f94944a563fe51ff7de58872942d355bcfb121202129539f3ef7068",
+    "scripts/check-legacy-freeze.sh": "4d9956c4082240421ec97d8e05a82ca071a7e55ecefaad1a184018a1a90e9cdc",
+    ".ai/rules/legacy-freeze-baseline.json": "66f98c08f26558a7f6f9a2276b953904b22af01e1e3f18533ebd9db2ed47b972",
+    "ruff.toml": "a8f67d5d2539791a4a464fcbeff2c23a8b3489f3bc9b3a2774d1f220c36c8b84",
+    "mypy.ini": "4f7997fd99713d57cc3988e7f5dc9420a3763112411b305592014bbcc26a0c81",
+    ".shellcheckrc": "6a180a9f928086db7754f5212950524e492ba5ab75236357f8b4c2c1a317ac35",
+    "docs/architecture/adr/0018-ts-tooling-runner-and-packaging.md": "ec7ac1d12a8942ed3617f6401f772064794b80972587d43f9409bbf3deb0cd27",
+    "tests/ts_tooling_test.sh": "d34dff6b17ae4e834b814dca4bde89de8d6bd8561f8541e16c0275af17a50eb0",
+    "tests/legacy_freeze_test.sh": "60d6b3ad3c404a50960f6901e93e9c9460c60ab268fdc714592731599d35545f",
+    "tests/e6_shim_conformance_test.sh": "2dabf0894232efa97a28a68b0d77cff339dc57fb30fd9e51006b5bc9540705a0",
+    "tests/e6_node_shadowing_test.sh": "995b6ee8f3a657ab0a7d397fbdb68b85eedf836f1af7a138f0845b9b22c6ef05",
+    "tests/e6_differential_test.sh": "7aa42472f0528491ef621e1b89f82f66defa577008ba9d389eff3007f41adfb3",
+    "ts-tooling/src/check-legacy-freeze.mts": "189d6c302561f8793ff6462d68bff28de38308ebdd8e80c886058981f7fc70de",
+    "ts-tooling/src/differential.mts": "197d3073ef6459dfaac9d310230585a4f8efbe8e3228a771810150887fb3750e",
+    "ts-tooling/src/freeze-compare.mts": "4125b9d04fb240452fe12967fa784f8c4280747676b44756098010f24f6dfecf",
+    "ts-tooling/src/freeze-inventory.mts": "0eac161546f27732dcaf4d0db8882ae0f6c8e5994b8cc98aa9d71e0ba2c58717",
+    "ts-tooling/src/freeze-measure.mts": "35dee03e4f66e81ff709d9f4e385220fab95f7728fe887b6718e29ebd29ef6c6",
+    "ts-tooling/src/freeze-types.mts": "7c9b50ee89cdfea4619e28960778a95be371a621eda3cef01e958cfb95c64fe6",
+    "ts-tooling/src/invoked.mts": "d9d066feb52bf9b759cb840efdd10f093a153c198193b045f285ba7501c8297a",
+    "ts-tooling/src/node-version.mts": "70f5d35bd1fde0e062a9715213974f0512b4564b2e5c03235df78ad2a7a7fb6b",
+    "ts-tooling/src/proc.mts": "28d838a8f938de972af8c0909c8b76dc9ae0766a66f82d8add406e3ef9cbd74d",
+    "ts-tooling/src/sample.mts": "546a168ab3b053d20912c9203671b00234b39cf5a72e72cbae956f01b0c67592",
+    "ts-tooling/src/shim-render.mts": "0294d030f7cb480dd65a3adc5c7c33002c67b7da0cce5c8dfe08017fa9197da5",
+    "scripts/lib/check-legacy-freeze.mjs": "5ba88e346b904801f1b69ac18da70606145b383c0e335674594afd42a504a490",
+    "scripts/lib/differential.mjs": "7531d7d1659e7b76a9ad4e93c451dd0db11d713892c3ffcfaf99ef42f2eca190",
+    "scripts/lib/freeze-compare.mjs": "c0c02ba6f9fc199007dce749e89d12ff2cb23ebf89203858223f91d611345fc4",
+    "scripts/lib/freeze-inventory.mjs": "166c3dd6d9483dc669e77d1b7b87276016882dd9b095939ad36e18817786a5fb",
+    "scripts/lib/freeze-measure.mjs": "f6788d274b052504a53c67aea2c6e63585001a33bb21718664467ef67709b76c",
+    "scripts/lib/freeze-types.mjs": "d81e58ac3ae1fff2744aa3698ea317c92e289745bc4f3a9c628bcd211488986f",
+    "scripts/lib/invoked.mjs": "a73777e6985eeacfb7e469cb06b14a0a0c9389d74be5f38178704f650e0aeb5a",
+    "scripts/lib/node-version.mjs": "278765358f2b955f7317bbbb6617d0535a9c3efb0662b884c075b637c03ac0ad",
+    "scripts/lib/proc.mjs": "4cd840a1c0a72aa0ec8dec8b32e5748312389063a6ec3742ce010042ee9df448",
+    "scripts/lib/sample.mjs": "c7263600ffa2a62c4b9c3c4a16cc4859fdc55db7555fa506943125a5469f6c98",
+    "scripts/lib/shim-render.mjs": "10c53aa781be0d90b2c67c36a33a16fdd4b0951ed1fa88948dadbda527c97763",
+    "tests/fixtures/e6-sk-00-ledger/cognitive.mts": "5e850179736345e8559cf558cb4c0c44aaaba2e7703eae7f0b7f619df5d149af",
+    "tests/fixtures/e6-sk-00-ledger/complexity.mts": "13513ef85aec7258c58d1b2aa9f410b3a4fb8278e2784b39be25a590e19cfcfb",
+    "tests/fixtures/e6-sk-00-ledger/floating.mts": "6060780de0ea56656892625c77eafb510328fefdd0a316699c22c0905286d15b",
+    "tests/fixtures/e6-sk-00-ledger/unchecked.mts": "ecaedf41c1dbb2544f971c9f00c7ec3d8ad4d76f338aa406f4978d46109da2bc",
+    "tests/fixtures/e6-sk-00-ledger/stricter-c901.json": "149f9679255606fb42654612d55a75ae4ece0ad87ba568fa2d9636b27b61a7e1",
+    "tests/fixtures/e6-sk-00-ledger/stricter-c901.py": "d867acd0e710bc47118db523951a779b75a3989377dee30f3ad9068af621b97f",
+    "ts-tooling/test/sample.test.mts": "bb4d9f6bcdcfdc771ebe71cc4105835ea449137d96c96b3478c7f6646b187670",
+    ".github/workflows/ci.yml": "225735d85d9cfbed4ae0a20a2c9cecd5c1023fe098adab3e35a859ec3d7b9764",
+    ".ai/evidence/e6-sk-00-ledger.json": "efe99372897ebb9e18afa5bf22c7c18dbe0b6b35590dbe3475d8de3a445d20f4",
+    "ts-tooling/src/json-span.mts": "8a49cb8546b80dca4792c46a39fc496f16f7d86caea4bff8e03f343c9c9f2ca4",
+    "scripts/lib/json-span.mjs": "5a3aefc073d1089a83cd6e529a9c09b137e1193ab8a3c7b49c21020feda6dc84"
   },
   "verification": [
     "bash tests/run-tests.sh",
     "bash tests/local_lint.sh",
     "bash tests/local_security_scan.sh"
-  ]
+  ],
+  "workspace": {
+    "bootstrap": [
+      "bash ts-tooling/bootstrap.sh"
+    ],
+    "dependencies": [
+      "ts-tooling/node_modules"
+    ],
+    "outputs": [
+      "ts-tooling/build"
+    ]
+  }
 }

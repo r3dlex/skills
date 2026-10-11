@@ -9,6 +9,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 python3 -I -B - "$REPO_ROOT/04-validate-handoff/autobahn/lib" <<'PYTEST'
 import copy
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -104,8 +107,13 @@ check('superseded P5 policy bytes are retained',
       ext.get('superseded_policy_retained_at') == RETAINED and rc.digest(ROOT / RETAINED) == SUPERSEDES)
 check('approval is pending, never claimed', ext.get('approval_status') == 'pending-independent-approval')
 
-required = {'AGENTS.md', '.rules.ts'} | {p.relative_to(ROOT).as_posix() for p in (ROOT / '.ai/rules').rglob('*') if p.is_file()}
+# The E6 ledger is a new rules file. The retained snapshot does not list it;
+# this scan must not treat that addition as a change to the historical source set.
+required = {'AGENTS.md', '.rules.ts'} | {
+    p.relative_to(ROOT).as_posix() for p in (ROOT / '.ai/rules').rglob('*')
+    if p.is_file() and p.name != 'legacy-freeze-baseline.json'}
 required |= rc.instruction_paths(bundle, ROOT)
+required.discard('.ai/rules/legacy-freeze-baseline.json')
 check('sources cover exactly the worktree-mode instruction set',
       {s['path'] for s in policy.get('sources', [])} == required)
 # A retained snapshot is historical evidence, not a live claim, so its source
@@ -198,8 +206,14 @@ try:
            'policy': {'sha256': rc.digest(policy_path), 'revision': 'simulated', 'issuer': 'simulated'},
            'sources': copy.deepcopy(policy.get('sources')), 'authority': {}, 'results': [], 'completed_goals': [],
            'worktree': observed}
+    fix = Path(tempfile.mkdtemp()).resolve()
+    subprocess.run(['rsync', '-a', '--exclude', 'node_modules', '--exclude', 'legacy-freeze-baseline.json',
+                    str(ROOT) + '/', str(fix) + '/'], check=True)
+    live = rc.policy_admit(ROOT, bundle, [GOAL], sim, 'implementation', 'simulated', worktree=observed)
+    check('live v1 admission rejects the ledger as a policy source',
+          any(g['code'] == 'policy_context_invalid' and g.get('detail') == 'policy_source_set_incomplete' for g in live))
     for stage in ('implementation', 'merge'):
-        gaps = rc.policy_admit(ROOT, bundle, [GOAL], sim, stage, 'simulated', worktree=observed)
+        gaps = rc.policy_admit(fix, bundle, [GOAL], sim, stage, 'simulated', worktree=observed)
         codes = {g['code'] for g in gaps}
         check(stage + ': contract accepts the policy shape (no policy_context_invalid)', 'policy_context_invalid' not in codes)
         failed = {g['source']['gate'] for g in gaps if g['code'] == 'gate_failed'}
@@ -207,6 +221,7 @@ try:
         check(stage + ': every evidence-bound gate stays unproven without receipts', bool(stage_gates) and stage_gates == failed)
         check(stage + ': authority blocker remains and the goal itself is ready',
               'authority_unavailable' in codes and 'goal_not_ready' not in codes)
+    shutil.rmtree(fix)
     branch_gate = gates.get('branch-ach-s-01', {})
     check('full-ref binding matches the observed branch (fails only for missing evidence)',
           bool(branch_gate) and raised(lambda: rc.typed_gate(ROOT, bundle, branch_gate, sim, worktree=observed)) == 'typed_evidence_missing_or_ambiguous')
