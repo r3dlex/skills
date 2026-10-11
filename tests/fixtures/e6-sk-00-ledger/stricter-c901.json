@@ -1,0 +1,5 @@
+{
+  "case": "stricter-c901",
+  "expect": "fail",
+  "c901_max_delta": -1
+}

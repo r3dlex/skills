@@ -1,0 +1,233 @@
+{
+  "assurance": "agent-self",
+  "checks": [
+    {
+      "command": "bash tests/legacy_freeze_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "after the ledger matched the measured baseline and class-change fixtures were wired"
+      },
+      "red": {
+        "exit_code": 1,
+        "observed": "checker reported unlisted new test shells and a stale shfmt entry before those were corrected"
+      }
+    },
+    {
+      "command": "bash tests/ts_tooling_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "after the drift build used the same relative outDir as the committed emit"
+      },
+      "red": {
+        "exit_code": 1,
+        "observed": "source maps differed when tsc --outDir pointed at an unrelated directory"
+      }
+    },
+    {
+      "command": "bash tests/e6_node_shadowing_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "after entrypoints compared realpath(argv) to import.meta.url"
+      },
+      "red": {
+        "exit_code": 1,
+        "observed": "macOS /var symlink made the sample entrypoint skip main under the shim"
+      }
+    },
+    {
+      "command": "bash tests/e6_shim_conformance_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "first observed run exited 0; a prior red run was not captured"
+      }
+    },
+    {
+      "command": "bash tests/e6_differential_test.sh",
+      "green": {
+        "exit_code": 0,
+        "observed": "first observed run exited 0; a prior red run was not captured"
+      }
+    }
+  ],
+  "goal_id": "e6-sk-00-ledger",
+  "green": {
+    "command": "bash tests/legacy_freeze_test.sh",
+    "exit_code": 0
+  },
+  "notice": "ASSURANCE: AGENT-SELF - no human approved this work",
+  "o8_receipt": {
+    "path": ".omc/handoffs/ach-20261004/o8-receipt.json",
+    "sha256": "ec76282161bcfb5539ecb7e9bb0e6e245a7d9261d4bf519bc1d9d78796deceaf"
+  },
+  "red": {
+    "command": "bash tests/legacy_freeze_test.sh",
+    "exit_code": 1
+  },
+  "cure": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. Cure of the three critic blockers and the shellcheck v0.11.0 asset name. Prior red/green pairs are unchanged.",
+    "shellcheck_url": {
+      "url": "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz",
+      "confirmed": "HEAD 200 before commit; archive member shellcheck-v0.11.0/shellcheck"
+    },
+    "local_suite": {
+      "command": "bash tests/run-tests.sh",
+      "exit_code": 0,
+      "observed": "OVERALL: PASSED, Passed: 2 Failed: 0, with python3 resolved to Homebrew 3.14. The same command under /usr/bin/python3 fails two pre-existing certificate allowlist assertions because CommandLineTools python injects CPATH, SDKROOT, LIBRARY_PATH and MANPATH into every interpreter, including the unchanged gh shim. Those tests and the product env filter are outside this cure."
+    },
+    "checks": [
+      {
+        "command": "bash tests/legacy_freeze_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "fixture stricter-c901 expected fail, got 0; Results: PASS=15 FAIL=1"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "fixture stricter-c901 fails on growth: c901; Results: PASS=16 FAIL=0"
+        }
+      },
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "raw bytes 0x80 and 0x81 diverge expected fail got 0; missing empty file is a divergence expected fail got 0; Results: PASS=10 FAIL=2"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "both new negative checks are red for the harness; Results: PASS=12 FAIL=0"
+        }
+      }
+    ]
+  },
+  "cure2": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. Repo-relative C901 paths and fixture exclude application. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/legacy_freeze_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "unlisted file: tests/fixtures/e6-sk-00-ledger/stricter-c901.py; Results: PASS=15 FAIL=1. Hosted Test Suite run 38114699622 also reported growth and stale c901 rows because measured paths were absolute."
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "legacy freeze passes at this head; fixture excluded-py passes; measured.c901 paths are repo-relative; Results: PASS=17 FAIL=0"
+        }
+      }
+    ]
+  },
+  "cure3": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. The JSON span scanner stops at EOF, and a declared mask splices only its declared span. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "masked diagnostic does not hide 0x80 versus 0x81 expected fail got 0; truncated json mask finishes timed out; truncated compact json mask finishes timed out; Results: PASS=13 FAIL=3"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "declared mask keeps a trailing 0x80 and still diverges on 0x80 versus 0x81; truncated JSON masks finish and reject; raw bytes 0x80 and 0x81 diverge stays green; Results: PASS=16 FAIL=0"
+        }
+      }
+    ]
+  },
+  "cure4": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. mypy and ShellCheck execution failures no longer measure as an empty success. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/legacy_freeze_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "fixture unreadable-py expected fail, got 0; fixture unreadable-sh expected fail, got 1 with growth: shfmt and growth: bash -n and no measure_failed:shellcheck; mypy-growth and shellcheck-growth already failed on growth; Results: PASS=19 FAIL=2"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "unreadable-py and unreadable-sh fail the freeze on measure_failed exit_2; mypy-growth and shellcheck-growth still fail on growth; legacy freeze passes at this head; Results: PASS=21 FAIL=0"
+        }
+      }
+    ]
+  },
+  "cure5": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. A supplied applyMasks span is the only span masked, and it must sit inside the prefix or JSON site it names. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "supplied span does not hide outside bytes expected fail got 0; json mask span must sit inside its field expected fail got 0; supplied json span does not hide outside bytes expected fail got 0; Results: PASS=17 FAIL=3"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "a prefix span [7,8) still diverges on error: abcX versus error: abcY; a span covering only that byte passes; a /error span over status is rejected; a partial /error span still diverges; EOF-stop and raw-byte checks stay green; Results: PASS=20 FAIL=0"
+        }
+      }
+    ]
+  },
+  "cure6": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. Overlapping supplied spans are applied from original offsets, so a byte outside every span still diverges. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "overlapping spans do not hide a later byte expected fail got 0; nested spans do not hide the next byte expected fail got 0; Results: PASS=20 FAIL=2"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "error: abcdX versus error: abcdY with spans [8,11) and [7,10) diverges on byte 11; p:abcdeFZ versus p:abcdeQZ with spans [2,7) and [4,7) diverges on byte 7; single-span and containment checks stay green; Results: PASS=22 FAIL=0"
+        }
+      }
+    ]
+  },
+  "cure7": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. JSON keys are decoded before the pointer is built, and non-integer applyMasks offsets are rejected instead of truncated. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "escaped json key is not the raw pointer expected fail got 0; fractional mask offsets are rejected expected fail got 0; Results: PASS=22 FAIL=2"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "{\\u0065rror:X} versus the Y variant with pointer /u0065rror and span [15,16) is rejected; error: XZ versus error: YZ with span [7.9,8.1) is rejected; overlap, containment, and raw-byte checks stay green; Results: PASS=24 FAIL=0"
+        }
+      }
+    ]
+  },
+  "cure8": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. A tool that fails to execute is not recorded as an empty measurement, and JSON pointer tokens escape ~ as ~0 and / as ~1 after JSON-string decoding. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/legacy_freeze_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "fixture ruff-config-missing expected fail, got 0; fixture tool-exec-failed expected fail, got 0; unreadable Python file was accepted as [] by Ruff and {blocks:[],averageOk:true} by Xenon; Results: PASS=21 FAIL=3"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "ruff-config-missing and tool-exec-failed fail on measure_failed exit_2; an unreadable Python file is rejected by Ruff and Xenon; unreadable-py still fails on measure_failed:mypy:exit_2; Results: PASS=24 FAIL=0"
+        }
+      },
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "rfc6901 slash pointer does not hide the tilde field expected fail got 0; rfc6901 supplied span [36,37) expected fail got 0; tilde pointer /error~01code and slash-field pointer expected pass got 1; decoded error\\/code pointer expected pass got 1; Results: PASS=24 FAIL=5"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "{\"error/code\":\"SAME\",\"error~1code\":\"X\"} versus the Y variant with pointer /error~1code is output divergence, and supplied span [36,37) is outside that site; /error~01code masks the tilde field; /error~1code masks the slash field; error\\/code is escaped after decoding; cure7 escape and fractional checks stay green; Results: PASS=29 FAIL=0"
+        }
+      }
+    ]
+  }
+}
