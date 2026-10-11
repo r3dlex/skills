@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "e6-sk-01-py-leaf": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: the conversion is not started and no line-coverage percentage is recorded; legacy-safe TDD is required. Predecessor e6-sk-00-ledger merged as a389a52528d58ba209203f582e6735c3e40fa145, which is origin/main (PR #135, 2026-10-11T18:52:28Z); this registration grants no execution authority. Blast radius: the eleven scripts/*.py tools, the twelve non-scaffold scripts/**/*.sh tools, scaffold-eval.py, the init readme generator, prek registration, and same-PR ledger and local-CI maintenance. Unknown readiness is not execution authority.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e6-skills-ts-01",
+  "schema": "readiness-sidecar/1"
+}

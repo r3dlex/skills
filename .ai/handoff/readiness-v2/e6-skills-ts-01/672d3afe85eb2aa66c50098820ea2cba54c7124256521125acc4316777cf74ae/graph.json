@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:e6-skills-ts-01:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "target": "plan:skills:e6-skills-ts-01:e6-sk-01-py-leaf:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "type": "plans"
+    }
+  ],
+  "generation": "672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+  "goal_ids": [
+    "e6-sk-01-py-leaf"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:e6-skills-ts-01:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "path": ".ai/handoff/readiness-v2/e6-skills-ts-01/672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "31aef581ab1448ef0b20469194346f4769fb42a881ad7b8544e21d90828be55c",
+      "id": "plan:skills:e6-skills-ts-01:e6-sk-01-py-leaf:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "path": ".ai/handoff/readiness-v2/e6-skills-ts-01/672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "e6-skills-ts-01",
+  "schema_version": "1.1"
+}

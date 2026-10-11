@@ -301,6 +301,21 @@
       "source": "handoff:skills:e6-skills-node-npm:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c",
       "target": "plan:skills:e6-skills-node-npm:E6-AM-01:24696ce66afe7a4957cc594b6f8be3e30e7c149347c68f0df22c6941c309c95c",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:e6-skills-ts-01",
+      "target": "prd:skills:e6-skills-ts-01",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:e6-skills-ts-01",
+      "target": "handoff:skills:e6-skills-ts-01:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:e6-skills-ts-01:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "target": "plan:skills:e6-skills-ts-01:e6-sk-01-py-leaf:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -1165,6 +1180,55 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "E6-AM-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:e6-skills-ts-01",
+        "handoff:skills:e6-skills-ts-01:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae"
+      ],
+      "id": "prd:skills:e6-skills-ts-01",
+      "path": "docs/specifications/ACTIVE/e6-skills-ts-01.md",
+      "repo_id": "skills",
+      "sha256": "6a58ec32a6c5c63e8fe1e2e77e127dedf0a1e19c42421f05c9d0314d713a976f",
+      "status": "active",
+      "title": "E6 successor 01: Python leaf to TypeScript (`skills`, plan `e6-skills-ts-01`)",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e6-skills-ts-01"
+      ],
+      "id": "issue:skills:e6-skills-ts-01",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/e6-skills-ts-01.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "E6 successor 01 (`skills`, plan `e6-skills-ts-01`) — local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e6-skills-ts-01",
+        "plan:skills:e6-skills-ts-01:e6-sk-01-py-leaf:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae"
+      ],
+      "id": "handoff:skills:e6-skills-ts-01:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "path": ".ai/handoff/readiness-v2/e6-skills-ts-01/672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "e6-skills-ts-01",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:e6-skills-ts-01:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae"
+      ],
+      "goal_revision": "31aef581ab1448ef0b20469194346f4769fb42a881ad7b8544e21d90828be55c",
+      "id": "plan:skills:e6-skills-ts-01:e6-sk-01-py-leaf:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
+      "path": ".ai/handoff/readiness-v2/e6-skills-ts-01/672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "e6-sk-01-py-leaf",
       "type": "plan"
     }
   ],
