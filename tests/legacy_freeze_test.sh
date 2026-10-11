@@ -138,6 +138,9 @@ if (name === "in-flight-absent") {
 if (name === "unreadable-py") {
   denyRead(dir + "/scripts/ok.py");
 }
+if (name === "ruff-config-missing") {
+  rmSync(dir + "/ruff.toml");
+}
 if (name === "unreadable-sh") {
   writeFileSync(dir + "/scripts/hidden.sh", "#!/usr/bin/env bash\necho ok\n");
   commitFile("scripts/hidden.sh");
@@ -194,8 +197,15 @@ JS
 		rm -rf "$dir"
 		return
 	fi
-	local status=0
-	node "$REPO_ROOT/scripts/lib/check-legacy-freeze.mjs" "$dir" .ai/rules/previous.json >/tmp/e6-fixture.out 2>/tmp/e6-fixture.err || status=$?
+	local status=0 check_path="$PATH"
+	if [[ "$name" == "tool-exec-failed" ]]; then
+		mkdir -p "$dir/bin"
+		printf '%s\n' '#!/bin/sh' 'echo execution-failed >&2' 'exit 2' >"$dir/bin/ruff"
+		printf '%s\n' '#!/bin/sh' 'echo execution-failed >&2' 'exit 2' >"$dir/bin/xenon"
+		chmod +x "$dir/bin/ruff" "$dir/bin/xenon"
+		check_path="$dir/bin:$PATH"
+	fi
+	PATH="$check_path" node "$REPO_ROOT/scripts/lib/check-legacy-freeze.mjs" "$dir" .ai/rules/previous.json >/tmp/e6-fixture.out 2>/tmp/e6-fixture.err || status=$?
 	if [[ "$expect" == pass && "$status" -eq 0 ]]; then
 		ok "fixture $name passes"
 	elif [[ "$name" == "stricter-c901" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'growth: c901' /tmp/e6-fixture.err; then
@@ -208,7 +218,11 @@ JS
 		ok "fixture $name fails"
 	elif [[ "$name" == "shellcheck-growth" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'growth: shellcheck' /tmp/e6-fixture.err; then
 		ok "fixture $name fails"
-	elif [[ "$name" != "stricter-c901" && "$name" != "unreadable-py" && "$name" != "unreadable-sh" && "$name" != "mypy-growth" && "$name" != "shellcheck-growth" && "$expect" == fail && "$status" -ne 0 ]]; then
+	elif [[ "$name" == "ruff-config-missing" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'measure_failed:ruff:exit_2' /tmp/e6-fixture.err; then
+		ok "fixture $name fails"
+	elif [[ "$name" == "tool-exec-failed" && "$expect" == fail && "$status" -ne 0 ]] && grep -q 'measure_failed:ruff:exit_2' /tmp/e6-fixture.err && grep -q 'measure_failed:xenon:exit_2' /tmp/e6-fixture.err; then
+		ok "fixture $name fails"
+	elif [[ "$name" != "stricter-c901" && "$name" != "unreadable-py" && "$name" != "unreadable-sh" && "$name" != "mypy-growth" && "$name" != "shellcheck-growth" && "$name" != "ruff-config-missing" && "$name" != "tool-exec-failed" && "$expect" == fail && "$status" -ne 0 ]]; then
 		ok "fixture $name fails"
 	else
 		bad "fixture $name expected $expect, got $status"
@@ -230,6 +244,41 @@ fixture unreadable-py fail
 fixture unreadable-sh fail
 fixture mypy-growth fail
 fixture shellcheck-growth fail
+fixture ruff-config-missing fail
+fixture tool-exec-failed fail
+
+node --input-type=module <<'JS'
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { measureC901, measureXenon } from "./scripts/lib/freeze-measure.mjs";
+const dir = mkdtempSync(`${tmpdir()}/e6-unreadable-`);
+writeFileSync(`${dir}/ok.py`, "def ok() -> None:\n    return None\n");
+writeFileSync(`${dir}/ruff.toml`, "[lint]\nselect = [\"C901\"]\n");
+chmodSync(`${dir}/ok.py`, 0);
+let ruff = "rejected";
+let xenon = "rejected";
+try {
+  ruff = JSON.stringify(measureC901(dir, ["ok.py"]));
+} catch {
+  ruff = "rejected";
+}
+try {
+  xenon = JSON.stringify(measureXenon(dir, ["ok.py"]));
+} catch {
+  xenon = "rejected";
+}
+chmodSync(`${dir}/ok.py`, 0o644);
+rmSync(dir, { recursive: true, force: true });
+if (ruff !== "rejected" || xenon !== "rejected") {
+  console.error(`unreadable Python file was accepted as ${ruff} by Ruff and ${xenon} by Xenon`);
+  process.exit(1);
+}
+JS
+if [[ $? -eq 0 ]]; then
+	ok "unreadable python is not an empty ruff or xenon measurement"
+else
+	bad "unreadable python is not an empty ruff or xenon measurement"
+fi
 
 after="$(git status --porcelain --ignored)"
 printf '%s\n' "$before" >/tmp/e6-before

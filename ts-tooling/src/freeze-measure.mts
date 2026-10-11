@@ -1,4 +1,4 @@
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative as pathRelative, resolve } from "node:path";
 import { run, text } from "./proc.mjs";
 import { RANK, type FileStat, type Measured } from "./freeze-types.mjs";
@@ -20,6 +20,36 @@ function rejectExecutionFailure(tool: string, status: number, stderr: string, pa
   const detail = stderr.trim().split("\n")[0] ?? "";
   const suffix = detail === "" ? "" : `:${detail}`;
   throw new Error(`measure_failed:${tool}${where}:exit_${status}${suffix}`);
+}
+
+function readErrorCode(error: unknown): string {
+  if (error instanceof Error && "code" in error && typeof error.code === "string") {
+    return error.code;
+  }
+  return "unreadable";
+}
+
+function assertReadable(root: string, files: readonly string[], tool: string): void {
+  for (const path of files) {
+    try {
+      readFileSync(isAbsolute(path) ? path : resolve(root, path));
+    } catch (error) {
+      throw new Error(`measure_failed:${tool}:${path}:${readErrorCode(error)}`, { cause: error });
+    }
+  }
+}
+
+function xenonUnparsed(status: number, report: string, parsedRanks: boolean): boolean {
+  return status !== 0 && !parsedRanks && !report.includes("average complexity") && !report.includes("has a rank of");
+}
+
+function capture<T>(failures: string[], fallback: T, run: () => T): T {
+  try {
+    return run();
+  } catch (error) {
+    failures.push(error instanceof Error ? error.message : "measure_failed");
+    return fallback;
+  }
 }
 
 function repoRelative(root: string, filename: string): string {
@@ -62,9 +92,15 @@ export function measureC901(root: string, files: readonly string[]): FileStat[] 
   if (files.length === 0) {
     return [];
   }
+  assertReadable(root, files, "ruff");
   const result = run("ruff", [
     "check", "--no-cache", "--config", "ruff.toml", "--output-format", "json", ...files,
   ], root, TOOL_ENV);
+  const stderr = text(result.stderr);
+  rejectExecutionFailure("ruff", result.status, stderr);
+  if (stderr.includes("Failed to lint")) {
+    throw new Error(`measure_failed:ruff:${stderr.trim().split("\n")[0] ?? ""}`);
+  }
   const parsed = JSON.parse(text(result.stdout) || "[]") as Array<{ filename: string; message: string }>;
   const rows = parsed.map((item) => {
     const match = /\((\d+)\s*>/.exec(item.message);
@@ -78,8 +114,11 @@ export function measureXenon(root: string, files: readonly string[]): { blocks: 
   if (files.length === 0) {
     return { blocks: [], averageOk: true };
   }
+  assertReadable(root, files, "xenon");
   const result = run("xenon", ["--max-absolute", "B", "--max-average", "A", ...files], root, TOOL_ENV);
-  const report = `${text(result.stdout)}\n${text(result.stderr)}`;
+  const stderr = text(result.stderr);
+  rejectExecutionFailure("xenon", result.status, stderr);
+  const report = `${text(result.stdout)}\n${stderr}`;
   const averageOk = !report.includes("average complexity");
   const rows: Array<{ path: string; rank: string }> = [];
   for (const line of report.split("\n")) {
@@ -87,6 +126,9 @@ export function measureXenon(root: string, files: readonly string[]): { blocks: 
     if (match?.[1] !== undefined && match[2] !== undefined) {
       rows.push({ path: match[1], rank: match[2] });
     }
+  }
+  if (xenonUnparsed(result.status, report, rows.length > 0)) {
+    throw new Error("measure_failed:xenon:unparsed");
   }
   return { blocks: group(rows, "xenon"), averageOk };
 }
@@ -158,14 +200,19 @@ export function measureBashN(root: string, files: readonly string[]): string[] {
 }
 
 export function measure(root: string, py: readonly string[], sh: readonly string[]): Measured {
-  const xenon = measureXenon(root, py);
-  return {
-    c901: measureC901(root, py),
+  const failures: string[] = [];
+  const xenon = capture(failures, { blocks: [], averageOk: true }, () => measureXenon(root, py));
+  const measured: Measured = {
+    c901: capture(failures, [], () => measureC901(root, py)),
     xenon: xenon.blocks,
-    mypy: measureMypy(root, py),
-    shellcheck: measureShellcheck(root, sh),
+    mypy: capture(failures, [], () => measureMypy(root, py)),
+    shellcheck: capture(failures, [], () => measureShellcheck(root, sh)),
     shfmt: measureShfmt(root, sh),
     bash_n: measureBashN(root, sh),
     xenon_average_ok: xenon.averageOk,
   };
+  if (failures.length > 0) {
+    throw new Error(failures.join("\n"));
+  }
+  return measured;
 }

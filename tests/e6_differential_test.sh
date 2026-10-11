@@ -338,6 +338,73 @@ frac_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"-","sites
 run_case "fractional mask offsets are rejected" fail "$frac_repo/other.sh" "$fblob" "$fsha" "$frac_span" "" "mask offset is not an integer"
 rm -rf "$frac_repo"
 
+pointer_repo="$(mktemp -d)"
+git -C "$pointer_repo" init -q
+git -C "$pointer_repo" config user.email fixture@example.com
+git -C "$pointer_repo" config user.name fixture
+node -e '
+const fs = require("fs");
+const dir = process.argv[1];
+const write = (name, body) => fs.writeFileSync(dir + "/" + name, "#!/bin/sh\nprintf %s " + JSON.stringify(body) + "\n", { mode: 0o755 });
+write("reference.sh", "{\"error/code\":\"SAME\",\"error~1code\":\"X\"}");
+write("other.sh", "{\"error/code\":\"SAME\",\"error~1code\":\"Y\"}");
+' "$pointer_repo"
+git -C "$pointer_repo" add reference.sh
+git -C "$pointer_repo" commit -q -m pointer
+repo="$pointer_repo"
+commit="$(git -C "$pointer_repo" rev-parse HEAD)"
+pblob="$(git -C "$pointer_repo" rev-parse HEAD:reference.sh)"
+psha="$(git -C "$pointer_repo" cat-file blob "$pblob" | shasum -a 256 | awk '{print $1}')"
+slash_pointer='{"normalizations":[{"name":"interpreter-diagnostic","mask":"-","sites":[{"stream":"stdout","jsonPointer":"/error~1code"}]}]}'
+slash_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"-","sites":[{"stream":"stdout","jsonPointer":"/error~1code"}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":36,"end":37}]}'
+tilde_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"-","sites":[{"stream":"stdout","jsonPointer":"/error~01code"}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":36,"end":37}]}'
+run_case "rfc6901 slash pointer does not hide the tilde field" fail "$pointer_repo/other.sh" "$pblob" "$psha" "$slash_pointer" "" "output divergence"
+run_case "rfc6901 supplied span does not hide the tilde field" fail "$pointer_repo/other.sh" "$pblob" "$psha" "$slash_span" "" "mask reaches outside declared sites"
+run_case "rfc6901 tilde pointer masks the tilde field" pass "$pointer_repo/other.sh" "$pblob" "$psha" "$tilde_span"
+rm -rf "$pointer_repo"
+
+slash_repo="$(mktemp -d)"
+git -C "$slash_repo" init -q
+git -C "$slash_repo" config user.email fixture@example.com
+git -C "$slash_repo" config user.name fixture
+node -e '
+const fs = require("fs");
+const dir = process.argv[1];
+const write = (name, body) => fs.writeFileSync(dir + "/" + name, "#!/bin/sh\nprintf %s " + JSON.stringify(body) + "\n", { mode: 0o755 });
+write("reference.sh", "{\"error/code\":\"X\",\"error~1code\":\"SAME\"}");
+write("other.sh", "{\"error/code\":\"Y\",\"error~1code\":\"SAME\"}");
+' "$slash_repo"
+git -C "$slash_repo" add reference.sh
+git -C "$slash_repo" commit -q -m slash
+repo="$slash_repo"
+commit="$(git -C "$slash_repo" rev-parse HEAD)"
+sblob="$(git -C "$slash_repo" rev-parse HEAD:reference.sh)"
+ssha="$(git -C "$slash_repo" cat-file blob "$sblob" | shasum -a 256 | awk '{print $1}')"
+slash_field='{"normalizations":[{"name":"interpreter-diagnostic","mask":"-","sites":[{"stream":"stdout","jsonPointer":"/error~1code"}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":15,"end":16}]}'
+run_case "rfc6901 slash pointer masks the slash field" pass "$slash_repo/other.sh" "$sblob" "$ssha" "$slash_field"
+rm -rf "$slash_repo"
+
+decoded_repo="$(mktemp -d)"
+git -C "$decoded_repo" init -q
+git -C "$decoded_repo" config user.email fixture@example.com
+git -C "$decoded_repo" config user.name fixture
+node -e '
+const fs = require("fs");
+const dir = process.argv[1];
+const write = (name, body) => fs.writeFileSync(dir + "/" + name, "#!/bin/sh\nprintf %s " + JSON.stringify(body) + "\n", { mode: 0o755 });
+write("reference.sh", "{\"error\\/code\":\"X\"}");
+write("other.sh", "{\"error\\/code\":\"Y\"}");
+' "$decoded_repo"
+git -C "$decoded_repo" add reference.sh
+git -C "$decoded_repo" commit -q -m decoded
+repo="$decoded_repo"
+commit="$(git -C "$decoded_repo" rev-parse HEAD)"
+dblob="$(git -C "$decoded_repo" rev-parse HEAD:reference.sh)"
+dsha="$(git -C "$decoded_repo" cat-file blob "$dblob" | shasum -a 256 | awk '{print $1}')"
+decoded_pointer='{"normalizations":[{"name":"interpreter-diagnostic","mask":"-","sites":[{"stream":"stdout","jsonPointer":"/error~1code"}]}]}'
+run_case "rfc6901 escape is applied after json decoding" pass "$decoded_repo/other.sh" "$dblob" "$dsha" "$decoded_pointer"
+rm -rf "$decoded_repo"
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]

@@ -100,7 +100,7 @@ function readEscape(cursor: Cursor): string {
 }
 
 function pointerFor(key: string): string {
-  return `/${key}`;
+  return `/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`;
 }
 
 function skipValue(cursor: Cursor): void {

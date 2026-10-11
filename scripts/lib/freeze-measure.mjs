@@ -1,4 +1,4 @@
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative as pathRelative, resolve } from "node:path";
 import { run, text } from "./proc.mjs";
 import { RANK } from "./freeze-types.mjs";
@@ -17,6 +17,34 @@ function rejectExecutionFailure(tool, status, stderr, path) {
     const detail = stderr.trim().split("\n")[0] ?? "";
     const suffix = detail === "" ? "" : `:${detail}`;
     throw new Error(`measure_failed:${tool}${where}:exit_${status}${suffix}`);
+}
+function readErrorCode(error) {
+    if (error instanceof Error && "code" in error && typeof error.code === "string") {
+        return error.code;
+    }
+    return "unreadable";
+}
+function assertReadable(root, files, tool) {
+    for (const path of files) {
+        try {
+            readFileSync(isAbsolute(path) ? path : resolve(root, path));
+        }
+        catch (error) {
+            throw new Error(`measure_failed:${tool}:${path}:${readErrorCode(error)}`, { cause: error });
+        }
+    }
+}
+function xenonUnparsed(status, report, parsedRanks) {
+    return status !== 0 && !parsedRanks && !report.includes("average complexity") && !report.includes("has a rank of");
+}
+function capture(failures, fallback, run) {
+    try {
+        return run();
+    }
+    catch (error) {
+        failures.push(error instanceof Error ? error.message : "measure_failed");
+        return fallback;
+    }
 }
 function repoRelative(root, filename) {
     const base = realpathSync(resolve(root));
@@ -55,9 +83,15 @@ export function measureC901(root, files) {
     if (files.length === 0) {
         return [];
     }
+    assertReadable(root, files, "ruff");
     const result = run("ruff", [
         "check", "--no-cache", "--config", "ruff.toml", "--output-format", "json", ...files,
     ], root, TOOL_ENV);
+    const stderr = text(result.stderr);
+    rejectExecutionFailure("ruff", result.status, stderr);
+    if (stderr.includes("Failed to lint")) {
+        throw new Error(`measure_failed:ruff:${stderr.trim().split("\n")[0] ?? ""}`);
+    }
     const parsed = JSON.parse(text(result.stdout) || "[]");
     const rows = parsed.map((item) => {
         const match = /\((\d+)\s*>/.exec(item.message);
@@ -70,8 +104,11 @@ export function measureXenon(root, files) {
     if (files.length === 0) {
         return { blocks: [], averageOk: true };
     }
+    assertReadable(root, files, "xenon");
     const result = run("xenon", ["--max-absolute", "B", "--max-average", "A", ...files], root, TOOL_ENV);
-    const report = `${text(result.stdout)}\n${text(result.stderr)}`;
+    const stderr = text(result.stderr);
+    rejectExecutionFailure("xenon", result.status, stderr);
+    const report = `${text(result.stdout)}\n${stderr}`;
     const averageOk = !report.includes("average complexity");
     const rows = [];
     for (const line of report.split("\n")) {
@@ -79,6 +116,9 @@ export function measureXenon(root, files) {
         if (match?.[1] !== undefined && match[2] !== undefined) {
             rows.push({ path: match[1], rank: match[2] });
         }
+    }
+    if (xenonUnparsed(result.status, report, rows.length > 0)) {
+        throw new Error("measure_failed:xenon:unparsed");
     }
     return { blocks: group(rows, "xenon"), averageOk };
 }
@@ -145,15 +185,20 @@ export function measureBashN(root, files) {
     return files.filter((path) => run("bash", ["-n", path], root, TOOL_ENV).status !== 0).sort();
 }
 export function measure(root, py, sh) {
-    const xenon = measureXenon(root, py);
-    return {
-        c901: measureC901(root, py),
+    const failures = [];
+    const xenon = capture(failures, { blocks: [], averageOk: true }, () => measureXenon(root, py));
+    const measured = {
+        c901: capture(failures, [], () => measureC901(root, py)),
         xenon: xenon.blocks,
-        mypy: measureMypy(root, py),
-        shellcheck: measureShellcheck(root, sh),
+        mypy: capture(failures, [], () => measureMypy(root, py)),
+        shellcheck: capture(failures, [], () => measureShellcheck(root, sh)),
         shfmt: measureShfmt(root, sh),
         bash_n: measureBashN(root, sh),
         xenon_average_ok: xenon.averageOk,
     };
+    if (failures.length > 0) {
+        throw new Error(failures.join("\n"));
+    }
+    return measured;
 }
 //# sourceMappingURL=freeze-measure.mjs.map

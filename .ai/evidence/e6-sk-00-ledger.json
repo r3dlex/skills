@@ -201,5 +201,33 @@
         }
       }
     ]
+  },
+  "cure8": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. A tool that fails to execute is not recorded as an empty measurement, and JSON pointer tokens escape ~ as ~0 and / as ~1 after JSON-string decoding. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/legacy_freeze_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "fixture ruff-config-missing expected fail, got 0; fixture tool-exec-failed expected fail, got 0; unreadable Python file was accepted as [] by Ruff and {blocks:[],averageOk:true} by Xenon; Results: PASS=21 FAIL=3"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "ruff-config-missing and tool-exec-failed fail on measure_failed exit_2; an unreadable Python file is rejected by Ruff and Xenon; unreadable-py still fails on measure_failed:mypy:exit_2; Results: PASS=24 FAIL=0"
+        }
+      },
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "rfc6901 slash pointer does not hide the tilde field expected fail got 0; rfc6901 supplied span [36,37) expected fail got 0; tilde pointer /error~01code and slash-field pointer expected pass got 1; decoded error\\/code pointer expected pass got 1; Results: PASS=24 FAIL=5"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "{\"error/code\":\"SAME\",\"error~1code\":\"X\"} versus the Y variant with pointer /error~1code is output divergence, and supplied span [36,37) is outside that site; /error~01code masks the tilde field; /error~1code masks the slash field; error\\/code is escaped after decoding; cure7 escape and fractional checks stay green; Results: PASS=29 FAIL=0"
+        }
+      }
+    ]
   }
 }

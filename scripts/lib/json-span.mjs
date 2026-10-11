@@ -85,7 +85,7 @@ function readEscape(cursor) {
     malformed();
 }
 function pointerFor(key) {
-    return `/${key}`;
+    return `/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`;
 }
 function skipValue(cursor) {
     skip(cursor);
