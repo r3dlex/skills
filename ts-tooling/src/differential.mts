@@ -352,13 +352,36 @@ function assertSupplied(reference: CaseResult, candidate: CaseResult, corpus: Co
   }
 }
 
-function applyDeclaredSpans(bytes: Buffer, spans: readonly MaskSpan[], corpus: Corpus, stream: "stdout" | "stderr"): Buffer {
-  const ordered = spans.filter((span) => span.stream === stream).sort((left, right) => right.start - left.start);
-  let out = bytes;
+function coveredRuns(spans: readonly MaskSpan[], corpus: Corpus): Array<{ start: number; end: number; mask: string }> {
+  const ordered = [...spans].sort((left, right) => left.start - right.start || left.end - right.end);
+  const runs: Array<{ start: number; end: number; mask: string }> = [];
   for (const span of ordered) {
-    out = spliceSpan(out, span.start, span.end, classNamed(corpus, span.name).mask);
+    const mask = classNamed(corpus, span.name).mask;
+    const last = runs.at(-1);
+    if (last !== undefined && span.start < last.end) {
+      if (last.mask !== mask) {
+        throw new DifferentialError("mask spans overlap");
+      }
+      last.end = Math.max(last.end, span.end);
+    } else {
+      runs.push({ start: span.start, end: span.end, mask });
+    }
   }
-  return out;
+  return runs;
+}
+
+function applyDeclaredSpans(bytes: Buffer, spans: readonly MaskSpan[], corpus: Corpus, stream: "stdout" | "stderr"): Buffer {
+  const parts: Buffer[] = [];
+  let cursor = 0;
+  for (const run of coveredRuns(spans.filter((span) => span.stream === stream), corpus)) {
+    if (run.start < cursor) {
+      throw new DifferentialError("mask spans overlap");
+    }
+    parts.push(bytes.subarray(cursor, run.start), Buffer.from(run.mask));
+    cursor = run.end;
+  }
+  parts.push(bytes.subarray(cursor));
+  return Buffer.concat(parts);
 }
 
 function viewed(result: CaseResult, corpus: Corpus): CaseResult {

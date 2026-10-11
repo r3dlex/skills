@@ -279,13 +279,36 @@ function assertSupplied(reference, candidate, corpus) {
         }
     }
 }
-function applyDeclaredSpans(bytes, spans, corpus, stream) {
-    const ordered = spans.filter((span) => span.stream === stream).sort((left, right) => right.start - left.start);
-    let out = bytes;
+function coveredRuns(spans, corpus) {
+    const ordered = [...spans].sort((left, right) => left.start - right.start || left.end - right.end);
+    const runs = [];
     for (const span of ordered) {
-        out = spliceSpan(out, span.start, span.end, classNamed(corpus, span.name).mask);
+        const mask = classNamed(corpus, span.name).mask;
+        const last = runs.at(-1);
+        if (last !== undefined && span.start < last.end) {
+            if (last.mask !== mask) {
+                throw new DifferentialError("mask spans overlap");
+            }
+            last.end = Math.max(last.end, span.end);
+        }
+        else {
+            runs.push({ start: span.start, end: span.end, mask });
+        }
     }
-    return out;
+    return runs;
+}
+function applyDeclaredSpans(bytes, spans, corpus, stream) {
+    const parts = [];
+    let cursor = 0;
+    for (const run of coveredRuns(spans.filter((span) => span.stream === stream), corpus)) {
+        if (run.start < cursor) {
+            throw new DifferentialError("mask spans overlap");
+        }
+        parts.push(bytes.subarray(cursor, run.start), Buffer.from(run.mask));
+        cursor = run.end;
+    }
+    parts.push(bytes.subarray(cursor));
+    return Buffer.concat(parts);
 }
 function viewed(result, corpus) {
     const spans = corpus.applyMasks ?? [];

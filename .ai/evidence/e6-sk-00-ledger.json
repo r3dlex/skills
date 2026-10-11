@@ -167,5 +167,22 @@
         }
       }
     ]
+  },
+  "cure6": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. Overlapping supplied spans are applied from original offsets, so a byte outside every span still diverges. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "overlapping spans do not hide a later byte expected fail got 0; nested spans do not hide the next byte expected fail got 0; Results: PASS=20 FAIL=2"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "error: abcdX versus error: abcdY with spans [8,11) and [7,10) diverges on byte 11; p:abcdeFZ versus p:abcdeQZ with spans [2,7) and [4,7) diverges on byte 7; single-span and containment checks stay green; Results: PASS=22 FAIL=0"
+        }
+      }
+    ]
   }
 }

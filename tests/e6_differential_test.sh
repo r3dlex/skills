@@ -266,6 +266,40 @@ json_partial='{"normalizations":[{"name":"interpreter-diagnostic","mask":"<inter
 run_case "supplied json span does not hide outside bytes" fail "$json_partial_repo/other.sh" "$jpblob" "$jpsha" "$json_partial" "" "output divergence"
 rm -rf "$json_partial_repo"
 
+overlap_repo="$(mktemp -d)"
+git -C "$overlap_repo" init -q
+git -C "$overlap_repo" config user.email fixture@example.com
+git -C "$overlap_repo" config user.name fixture
+printf '%s\n' '#!/bin/sh' 'printf "error: abcdX\n"' >"$overlap_repo/reference.sh"
+printf '%s\n' '#!/bin/sh' 'printf "error: abcdY\n"' >"$overlap_repo/other.sh"
+chmod +x "$overlap_repo/reference.sh" "$overlap_repo/other.sh"
+git -C "$overlap_repo" add reference.sh
+git -C "$overlap_repo" commit -q -m overlap
+repo="$overlap_repo"
+commit="$(git -C "$overlap_repo" rev-parse HEAD)"
+oblob="$(git -C "$overlap_repo" rev-parse HEAD:reference.sh)"
+osha="$(git -C "$overlap_repo" cat-file blob "$oblob" | shasum -a 256 | awk '{print $1}')"
+overlap_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"-","sites":[{"stream":"stdout","prefix":"error: "}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":8,"end":11},{"name":"interpreter-diagnostic","stream":"stdout","start":7,"end":10}]}'
+run_case "overlapping spans do not hide a later byte" fail "$overlap_repo/other.sh" "$oblob" "$osha" "$overlap_span" "" "output divergence"
+rm -rf "$overlap_repo"
+
+nested_repo="$(mktemp -d)"
+git -C "$nested_repo" init -q
+git -C "$nested_repo" config user.email fixture@example.com
+git -C "$nested_repo" config user.name fixture
+printf '%s\n' '#!/bin/sh' 'printf %s "p:abcdeFZ"' >"$nested_repo/reference.sh"
+printf '%s\n' '#!/bin/sh' 'printf %s "p:abcdeQZ"' >"$nested_repo/other.sh"
+chmod +x "$nested_repo/reference.sh" "$nested_repo/other.sh"
+git -C "$nested_repo" add reference.sh
+git -C "$nested_repo" commit -q -m nested
+repo="$nested_repo"
+commit="$(git -C "$nested_repo" rev-parse HEAD)"
+nblob="$(git -C "$nested_repo" rev-parse HEAD:reference.sh)"
+nsha="$(git -C "$nested_repo" cat-file blob "$nblob" | shasum -a 256 | awk '{print $1}')"
+nested_span='{"normalizations":[{"name":"interpreter-diagnostic","mask":"X","sites":[{"stream":"stdout","prefix":"p:"}]}],"applyMasks":[{"name":"interpreter-diagnostic","stream":"stdout","start":2,"end":7},{"name":"interpreter-diagnostic","stream":"stdout","start":4,"end":7}]}'
+run_case "nested spans do not hide the next byte" fail "$nested_repo/other.sh" "$nblob" "$nsha" "$nested_span" "" "output divergence"
+rm -rf "$nested_repo"
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]
