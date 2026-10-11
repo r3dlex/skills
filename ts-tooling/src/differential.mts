@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assertNodeVersion, EXIT_NODE_UNAVAILABLE, EXIT_NODE_VERSION_UNSUPPORTED, NODE_UNAVAILABLE, NODE_VERSION_UNSUPPORTED } from "./node-version.mjs";
 import { invokedDirectly } from "./invoked.mjs";
-import { replaceJsonString } from "./json-span.mjs";
+import { jsonStringSpan, replaceJsonString } from "./json-span.mjs";
 import { run, text } from "./proc.mjs";
 
 assertNodeVersion();
@@ -205,11 +205,98 @@ function maskApplies(classes: readonly NormalizationClass[], stream: "stdout" | 
   return classes.some((item) => item.sites.some((site) => site.stream === stream));
 }
 
+function spliceSpan(bytes: Buffer, start: number, end: number, mask: string): Buffer {
+  return Buffer.concat([bytes.subarray(0, start), Buffer.from(mask), bytes.subarray(end)]);
+}
+
+function prefixByteRanges(bytes: Buffer, prefix: string): Array<[number, number]> {
+  const needle = Buffer.from(prefix);
+  const ranges: Array<[number, number]> = [];
+  let from = 0;
+  while (from <= bytes.length) {
+    const at = bytes.indexOf(needle, from);
+    if (at < 0) {
+      break;
+    }
+    const start = at + needle.length;
+    const lineEnd = bytes.indexOf(0x0a, start);
+    const end = lineEnd < 0 ? bytes.length : lineEnd;
+    ranges.push([start, end]);
+    from = end + 1;
+  }
+  return ranges;
+}
+
+function maskPrefixBytes(bytes: Buffer, site: Site, mask: string): Buffer {
+  if (site.prefix === undefined) {
+    return bytes;
+  }
+  const ranges = prefixByteRanges(bytes, site.prefix);
+  if (ranges.length === 0) {
+    throw new DifferentialError(`mask site not located: ${site.prefix}`);
+  }
+  let out = bytes;
+  for (const [start, end] of [...ranges].reverse()) {
+    out = spliceSpan(out, start, end, mask);
+  }
+  return out;
+}
+
+function utf8Valid(bytes: Buffer): boolean {
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function jsonByteSpan(bytes: Buffer, pointer: string): { start: number; end: number } {
+  if (utf8Valid(bytes)) {
+    const decoded = bytes.toString("utf8");
+    const span = jsonStringSpan(decoded, pointer);
+    return {
+      start: Buffer.byteLength(decoded.slice(0, span.start)),
+      end: Buffer.byteLength(decoded.slice(0, span.end)),
+    };
+  }
+  return jsonStringSpan(bytes.toString("latin1"), pointer);
+}
+
+function maskJsonBytes(bytes: Buffer, pointer: string, mask: string): Buffer {
+  try {
+    const span = jsonByteSpan(bytes, pointer);
+    return spliceSpan(bytes, span.start, span.end, mask);
+  } catch (error) {
+    throw new DifferentialError(error instanceof Error ? error.message : "mask site not located");
+  }
+}
+
+function maskSite(bytes: Buffer, site: Site, mask: string, stream: "stdout" | "stderr"): Buffer {
+  if (site.stream !== stream) {
+    return bytes;
+  }
+  let out = bytes;
+  if (site.jsonPointer !== undefined && stream === "stdout") {
+    out = maskJsonBytes(out, site.jsonPointer, mask);
+  }
+  if (site.prefix !== undefined) {
+    out = maskPrefixBytes(out, site, mask);
+  }
+  return out;
+}
+
 function maskStream(bytes: Buffer, classes: readonly NormalizationClass[], stream: "stdout" | "stderr"): Buffer {
   if (!maskApplies(classes, stream)) {
     return bytes;
   }
-  return Buffer.from(normalize(text(bytes), classes, stream));
+  let out = bytes;
+  for (const item of classes) {
+    for (const site of item.sites) {
+      out = maskSite(out, site, item.mask, stream);
+    }
+  }
+  return out;
 }
 
 function masked(result: CaseResult, classes: readonly NormalizationClass[]): CaseResult {

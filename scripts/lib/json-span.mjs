@@ -1,29 +1,47 @@
+function atEnd(cursor) {
+    return cursor.i >= cursor.text.length;
+}
+function isSpace(char) {
+    return char === " " || char === "\n" || char === "\r" || char === "\t";
+}
 function skip(cursor) {
-    while (" \n\r\t".includes(cursor.text[cursor.i] ?? "")) {
+    while (!atEnd(cursor) && isSpace(cursor.text[cursor.i])) {
         cursor.i += 1;
     }
 }
+function malformed() {
+    throw new Error("mask site not located");
+}
 function readString(cursor) {
     if (cursor.text[cursor.i] !== "\"") {
-        throw new Error("mask site not located");
+        malformed();
     }
     cursor.i += 1;
     let value = "";
-    while (cursor.i < cursor.text.length && cursor.text[cursor.i] !== "\"") {
+    while (!atEnd(cursor) && cursor.text[cursor.i] !== "\"") {
         const char = cursor.text[cursor.i] ?? "";
         cursor.i += 1;
         value += char === "\\" ? readEscape(cursor) : char;
+    }
+    if (cursor.text[cursor.i] !== "\"") {
+        malformed();
     }
     cursor.i += 1;
     return value;
 }
 function readEscape(cursor) {
+    if (atEnd(cursor)) {
+        malformed();
+    }
     const char = cursor.text[cursor.i] ?? "";
     cursor.i += 1;
     return char;
 }
 function skipValue(cursor) {
     skip(cursor);
+    if (atEnd(cursor)) {
+        malformed();
+    }
     const char = cursor.text[cursor.i];
     if (char === "{") {
         skipObject(cursor, undefined, undefined);
@@ -37,33 +55,42 @@ function skipValue(cursor) {
         readString(cursor);
         return;
     }
-    while (cursor.i < cursor.text.length && !",}]".includes(cursor.text[cursor.i] ?? "")) {
+    while (!atEnd(cursor) && !",}]".includes(cursor.text[cursor.i] ?? " ")) {
         cursor.i += 1;
     }
 }
 function skipArray(cursor) {
     cursor.i += 1;
     skip(cursor);
-    while (cursor.text[cursor.i] !== "]") {
+    while (!atEnd(cursor) && cursor.text[cursor.i] !== "]") {
+        const before = cursor.i;
         skipValue(cursor);
         skip(cursor);
         if (cursor.text[cursor.i] === ",") {
             cursor.i += 1;
             skip(cursor);
         }
+        if (cursor.i === before) {
+            malformed();
+        }
+    }
+    if (cursor.text[cursor.i] !== "]") {
+        malformed();
     }
     cursor.i += 1;
 }
 function skipObject(cursor, pointer, found) {
     cursor.i += 1;
     skip(cursor);
-    while (cursor.text[cursor.i] !== "}") {
+    while (!atEnd(cursor) && cursor.text[cursor.i] !== "}") {
         const key = readString(cursor);
         skip(cursor);
+        if (atEnd(cursor)) {
+            malformed();
+        }
         cursor.i += 1;
         skip(cursor);
-        const path = `/${key}`;
-        if (pointer === path && cursor.text[cursor.i] === "\"") {
+        if (pointer === `/${key}` && cursor.text[cursor.i] === "\"") {
             const start = cursor.i + 1;
             readString(cursor);
             if (found) {
@@ -80,19 +107,26 @@ function skipObject(cursor, pointer, found) {
             skip(cursor);
         }
     }
+    if (cursor.text[cursor.i] !== "}") {
+        malformed();
+    }
     cursor.i += 1;
 }
-export function replaceJsonString(text, pointer, mask) {
+export function jsonStringSpan(text, pointer) {
     const found = { start: -1, end: -1 };
     const cursor = { text, i: 0 };
     skip(cursor);
-    if (text[cursor.i] !== "{") {
-        throw new Error("mask site not located");
+    if (cursor.text[cursor.i] !== "{") {
+        malformed();
     }
     skipObject(cursor, pointer, found);
-    if (found.start < 0) {
-        throw new Error("mask site not located");
+    if (found.start < 0 || found.end < found.start) {
+        malformed();
     }
-    return text.slice(0, found.start) + mask + text.slice(found.end);
+    return { start: found.start, end: found.end };
+}
+export function replaceJsonString(text, pointer, mask) {
+    const span = jsonStringSpan(text, pointer);
+    return text.slice(0, span.start) + mask + text.slice(span.end);
 }
 //# sourceMappingURL=json-span.mjs.map

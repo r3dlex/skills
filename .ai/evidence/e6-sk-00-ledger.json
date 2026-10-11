@@ -116,5 +116,22 @@
         }
       }
     ]
+  },
+  "cure3": {
+    "assurance": "agent-self",
+    "notice": "ASSURANCE: AGENT-SELF - no human approved this work. The JSON span scanner stops at EOF, and a declared mask splices only its declared span. Prior red/green pairs are unchanged.",
+    "checks": [
+      {
+        "command": "bash tests/e6_differential_test.sh",
+        "red": {
+          "exit_code": 1,
+          "observed": "masked diagnostic does not hide 0x80 versus 0x81 expected fail got 0; truncated json mask finishes timed out; truncated compact json mask finishes timed out; Results: PASS=13 FAIL=3"
+        },
+        "green": {
+          "exit_code": 0,
+          "observed": "declared mask keeps a trailing 0x80 and still diverges on 0x80 versus 0x81; truncated JSON masks finish and reject; raw bytes 0x80 and 0x81 diverge stays green; Results: PASS=16 FAIL=0"
+        }
+      }
+    ]
   }
 }

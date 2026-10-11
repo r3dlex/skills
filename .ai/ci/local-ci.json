@@ -89,9 +89,9 @@
     "tests/legacy_freeze_test.sh": "3f209e69bf17b34ea1abe46712433a04896fb359fe8d4733af49567f200d6527",
     "tests/e6_shim_conformance_test.sh": "2dabf0894232efa97a28a68b0d77cff339dc57fb30fd9e51006b5bc9540705a0",
     "tests/e6_node_shadowing_test.sh": "995b6ee8f3a657ab0a7d397fbdb68b85eedf836f1af7a138f0845b9b22c6ef05",
-    "tests/e6_differential_test.sh": "7aa42472f0528491ef621e1b89f82f66defa577008ba9d389eff3007f41adfb3",
+    "tests/e6_differential_test.sh": "ae5fae44a512cc3c38f18e0935f3b0d794417c1f67b596e221d44b5cce99967c",
     "ts-tooling/src/check-legacy-freeze.mts": "06392f861965ac486aebf8e8a0e885ba41190dfc898a6f5a05d846230477e188",
-    "ts-tooling/src/differential.mts": "197d3073ef6459dfaac9d310230585a4f8efbe8e3228a771810150887fb3750e",
+    "ts-tooling/src/differential.mts": "99eae2ee5a24f5eb7834d9d93c6de971758e3a3f96202f3451a80d63259ea3f7",
     "ts-tooling/src/freeze-compare.mts": "4125b9d04fb240452fe12967fa784f8c4280747676b44756098010f24f6dfecf",
     "ts-tooling/src/freeze-inventory.mts": "62c906182841738fa10b46d26288810f04b384c183d166abab22088cc18c680c",
     "ts-tooling/src/freeze-measure.mts": "a4ecb33dc4fb4074cae15ae7b96d25d0e9c9f498f3a524564bf761382dd5877b",
@@ -102,7 +102,7 @@
     "ts-tooling/src/sample.mts": "546a168ab3b053d20912c9203671b00234b39cf5a72e72cbae956f01b0c67592",
     "ts-tooling/src/shim-render.mts": "0294d030f7cb480dd65a3adc5c7c33002c67b7da0cce5c8dfe08017fa9197da5",
     "scripts/lib/check-legacy-freeze.mjs": "23de61d46119ad6cdfd21764ec8f94b10aa1a4b6313c0907855dd9b827286cc1",
-    "scripts/lib/differential.mjs": "7531d7d1659e7b76a9ad4e93c451dd0db11d713892c3ffcfaf99ef42f2eca190",
+    "scripts/lib/differential.mjs": "b5c5f1c809da81c93b46363e2154e4da4c7e5514e3eda64c4e3df501e76592a5",
     "scripts/lib/freeze-compare.mjs": "c0c02ba6f9fc199007dce749e89d12ff2cb23ebf89203858223f91d611345fc4",
     "scripts/lib/freeze-inventory.mjs": "287de86ee4930edff844fecf1dcf81b3939d11cf8fd2e1d616eaf4544ce3527b",
     "scripts/lib/freeze-measure.mjs": "03ac88fcf28b05cb2b6c6bc11c1fdc0aac83585f49754a92037fcbdb417d4d27",
@@ -120,9 +120,9 @@
     "tests/fixtures/e6-sk-00-ledger/stricter-c901.py": "d867acd0e710bc47118db523951a779b75a3989377dee30f3ad9068af621b97f",
     "ts-tooling/test/sample.test.mts": "bb4d9f6bcdcfdc771ebe71cc4105835ea449137d96c96b3478c7f6646b187670",
     ".github/workflows/ci.yml": "225735d85d9cfbed4ae0a20a2c9cecd5c1023fe098adab3e35a859ec3d7b9764",
-    ".ai/evidence/e6-sk-00-ledger.json": "b239a5f7d56a3c011072e10eb41d1c75bd27cb61752a2f2beb257e6072eeda6a",
-    "ts-tooling/src/json-span.mts": "8a49cb8546b80dca4792c46a39fc496f16f7d86caea4bff8e03f343c9c9f2ca4",
-    "scripts/lib/json-span.mjs": "5a3aefc073d1089a83cd6e529a9c09b137e1193ab8a3c7b49c21020feda6dc84"
+    ".ai/evidence/e6-sk-00-ledger.json": "a9a22b2634457b53840cc950aed9ad1bea6890b6198920a754e1a12d23cf41b9",
+    "ts-tooling/src/json-span.mts": "2d32853ea1d76a6bbd32315110185ed75fe6e6aea9a6819541ff093597ce29ce",
+    "scripts/lib/json-span.mjs": "e1bb7e6a8319992e560880ed5cfff3833a4ca5ba8d3fb32eb63478f57436e55a"
   },
   "verification": [
     "bash tests/run-tests.sh",

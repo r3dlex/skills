@@ -3,28 +3,46 @@ interface Cursor {
   i: number;
 }
 
+function atEnd(cursor: Cursor): boolean {
+  return cursor.i >= cursor.text.length;
+}
+
+function isSpace(char: string | undefined): boolean {
+  return char === " " || char === "\n" || char === "\r" || char === "\t";
+}
+
 function skip(cursor: Cursor): void {
-  while (" \n\r\t".includes(cursor.text[cursor.i] ?? "")) {
+  while (!atEnd(cursor) && isSpace(cursor.text[cursor.i])) {
     cursor.i += 1;
   }
 }
 
+function malformed(): never {
+  throw new Error("mask site not located");
+}
+
 function readString(cursor: Cursor): string {
   if (cursor.text[cursor.i] !== "\"") {
-    throw new Error("mask site not located");
+    malformed();
   }
   cursor.i += 1;
   let value = "";
-  while (cursor.i < cursor.text.length && cursor.text[cursor.i] !== "\"") {
+  while (!atEnd(cursor) && cursor.text[cursor.i] !== "\"") {
     const char = cursor.text[cursor.i] ?? "";
     cursor.i += 1;
     value += char === "\\" ? readEscape(cursor) : char;
+  }
+  if (cursor.text[cursor.i] !== "\"") {
+    malformed();
   }
   cursor.i += 1;
   return value;
 }
 
 function readEscape(cursor: Cursor): string {
+  if (atEnd(cursor)) {
+    malformed();
+  }
   const char = cursor.text[cursor.i] ?? "";
   cursor.i += 1;
   return char;
@@ -32,6 +50,9 @@ function readEscape(cursor: Cursor): string {
 
 function skipValue(cursor: Cursor): void {
   skip(cursor);
+  if (atEnd(cursor)) {
+    malformed();
+  }
   const char = cursor.text[cursor.i];
   if (char === "{") {
     skipObject(cursor, undefined, undefined);
@@ -45,7 +66,7 @@ function skipValue(cursor: Cursor): void {
     readString(cursor);
     return;
   }
-  while (cursor.i < cursor.text.length && !",}]".includes(cursor.text[cursor.i] ?? "")) {
+  while (!atEnd(cursor) && !",}]".includes(cursor.text[cursor.i] ?? " ")) {
     cursor.i += 1;
   }
 }
@@ -53,13 +74,20 @@ function skipValue(cursor: Cursor): void {
 function skipArray(cursor: Cursor): void {
   cursor.i += 1;
   skip(cursor);
-  while (cursor.text[cursor.i] !== "]") {
+  while (!atEnd(cursor) && cursor.text[cursor.i] !== "]") {
+    const before = cursor.i;
     skipValue(cursor);
     skip(cursor);
     if (cursor.text[cursor.i] === ",") {
       cursor.i += 1;
       skip(cursor);
     }
+    if (cursor.i === before) {
+      malformed();
+    }
+  }
+  if (cursor.text[cursor.i] !== "]") {
+    malformed();
   }
   cursor.i += 1;
 }
@@ -67,13 +95,15 @@ function skipArray(cursor: Cursor): void {
 function skipObject(cursor: Cursor, pointer: string | undefined, found: { start: number; end: number } | undefined): void {
   cursor.i += 1;
   skip(cursor);
-  while (cursor.text[cursor.i] !== "}") {
+  while (!atEnd(cursor) && cursor.text[cursor.i] !== "}") {
     const key = readString(cursor);
     skip(cursor);
+    if (atEnd(cursor)) {
+      malformed();
+    }
     cursor.i += 1;
     skip(cursor);
-    const path = `/${key}`;
-    if (pointer === path && cursor.text[cursor.i] === "\"") {
+    if (pointer === `/${key}` && cursor.text[cursor.i] === "\"") {
       const start = cursor.i + 1;
       readString(cursor);
       if (found) {
@@ -89,19 +119,27 @@ function skipObject(cursor: Cursor, pointer: string | undefined, found: { start:
       skip(cursor);
     }
   }
+  if (cursor.text[cursor.i] !== "}") {
+    malformed();
+  }
   cursor.i += 1;
 }
 
-export function replaceJsonString(text: string, pointer: string, mask: string): string {
+export function jsonStringSpan(text: string, pointer: string): { start: number; end: number } {
   const found = { start: -1, end: -1 };
   const cursor = { text, i: 0 };
   skip(cursor);
-  if (text[cursor.i] !== "{") {
-    throw new Error("mask site not located");
+  if (cursor.text[cursor.i] !== "{") {
+    malformed();
   }
   skipObject(cursor, pointer, found);
-  if (found.start < 0) {
-    throw new Error("mask site not located");
+  if (found.start < 0 || found.end < found.start) {
+    malformed();
   }
-  return text.slice(0, found.start) + mask + text.slice(found.end);
+  return { start: found.start, end: found.end };
+}
+
+export function replaceJsonString(text: string, pointer: string, mask: string): string {
+  const span = jsonStringSpan(text, pointer);
+  return text.slice(0, span.start) + mask + text.slice(span.end);
 }
