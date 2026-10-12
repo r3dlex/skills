@@ -47,7 +47,7 @@
     },
     "green": {
       "exit_code": 0,
-      "observed": "PASS=136 FAIL=0 after tree comparison included symlink targets and each red leg ran the TypeScript candidate. Recorded candidate statuses were 0, 1, or 2; none was a fabricated 9. Comparator failures were real candidate divergences or a one-byte seed of that candidate's captured stdout."
+      "observed": "PASS=136 FAIL=0 after tree comparison included symlink targets and each red leg ran the TypeScript candidate. Recorded candidate statuses were 0, 1, or 2; none was a fabricated 9. Comparator failures were real candidate divergences or a one-byte seed of that candidate's captured stdout. A following format-only edit makes shfmt -d clean; it does not change the comparison."
     }
   }
 }

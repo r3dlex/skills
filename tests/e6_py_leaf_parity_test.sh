@@ -246,21 +246,21 @@ run_ts_candidate() {
 	shift 4
 	local fix="$REPO_ROOT/tests/fixtures/e6-py-leaf"
 	case "$path" in
-		scripts/catalog.py)
-			HOME="$watch" node "$fix/catalog_port.mjs" "$REPO_ROOT" >"$out" 2>"$err"
-			;;
-		scripts/traceability_schema.py)
-			HOME="$watch" node "$fix/trace_port.mjs" '{"schema_version":"1.1","nodes":[],"edges":[]}' >"$out" 2>"$err"
-			;;
-		scripts/validate_skill_frontmatter.py)
-			HOME="$watch" node "$fix/frontmatter_port.mjs" "$REPO_ROOT/03-configure-generate/ai-catapult-init/SKILL.md" >"$out" 2>"$err"
-			;;
-		*.py)
-			HOME="$watch" python3 "$REPO_ROOT/$path" "$@" >"$out" 2>"$err"
-			;;
-		*)
-			HOME="$watch" invoke_sh "parity-argv0/$(basename "$path")" "$REPO_ROOT/$path" "$@" >"$out" 2>"$err"
-			;;
+	scripts/catalog.py)
+		HOME="$watch" node "$fix/catalog_port.mjs" "$REPO_ROOT" >"$out" 2>"$err"
+		;;
+	scripts/traceability_schema.py)
+		HOME="$watch" node "$fix/trace_port.mjs" '{"schema_version":"1.1","nodes":[],"edges":[]}' >"$out" 2>"$err"
+		;;
+	scripts/validate_skill_frontmatter.py)
+		HOME="$watch" node "$fix/frontmatter_port.mjs" "$REPO_ROOT/03-configure-generate/ai-catapult-init/SKILL.md" >"$out" 2>"$err"
+		;;
+	*.py)
+		HOME="$watch" python3 "$REPO_ROOT/$path" "$@" >"$out" 2>"$err"
+		;;
+	*)
+		HOME="$watch" invoke_sh "parity-argv0/$(basename "$path")" "$REPO_ROOT/$path" "$@" >"$out" 2>"$err"
+		;;
 	esac
 }
 
@@ -676,7 +676,8 @@ for fixture in standalone umbrella; do
 		trace_graph "traceability_schema $ver $fixture" "$graph"
 	done
 done
-unknown="$(python3 - <<'PY'
+unknown="$(
+	python3 - <<'PY'
 import json
 from pathlib import Path
 graph = json.loads(Path("reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json").read_text())
