@@ -207,8 +207,11 @@ def shared_validate(graph):
             capture_output=True, text=True)
     finally:
         path.unlink(missing_ok=True)
+    detail = (result.stderr or result.stdout or "validate_graph failed").strip()
     if result.returncode != 0:
-        raise ValueError((result.stderr or result.stdout or "validate_graph failed").strip())
+        if result.returncode != 1 or "node_unavailable" in detail or "node_version_unsupported" in detail:
+            raise SystemExit(f"shared validator refusal was not status 1: rc={result.returncode} {detail}")
+        raise ValueError(detail)
 
 def shared_known_types():
     result = subprocess.run(
@@ -237,7 +240,10 @@ bad_type["nodes"].append({
 })
 try:
     shared_validate(bad_type)
-except ValueError:
+except ValueError as exc:
+    if "unknown node type" not in str(exc):
+        print(f"FAIL: shared validator refusal was not the unknown-type diagnostic: {exc}")
+        sys.exit(1)
     print("PASS: shared validator rejects unknown node type")
 else:
     print("FAIL: shared validator accepted unknown node type")
@@ -248,11 +254,34 @@ no_ver = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/g
 no_ver.pop("schema_version", None)
 try:
     shared_validate(no_ver)
-except ValueError:
+except ValueError as exc:
+    if "graph missing schema_version" not in str(exc):
+        print(f"FAIL: shared validator refusal was not the missing-schema diagnostic: {exc}")
+        sys.exit(1)
     print("PASS: shared validator rejects missing schema_version")
 else:
     print("FAIL: shared validator accepted graph with no schema_version")
     sys.exit(1)
+
+# 5e. Malformed schema versions fail with the anchor diagnostic, not any error.
+base = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph.json").read_text())
+for label, version, expected in (
+    ("garbage", "garbage", "invalid literal for int() with base 10: 'garbage'"),
+    ("1.0x", "1.0x", "invalid literal for int() with base 10: '0x'"),
+    ("1", "1", "unsupported schema_version 1"),
+):
+    malformed = json.loads(json.dumps(base))
+    malformed["schema_version"] = version
+    try:
+        shared_validate(malformed)
+    except ValueError as exc:
+        if expected not in str(exc):
+            print(f"FAIL: shared validator malformed {label} was not the anchor diagnostic: {exc}")
+            sys.exit(1)
+        print(f"PASS: shared validator rejects malformed schema_version {label}")
+    else:
+        print(f"FAIL: shared validator accepted malformed schema_version {label}")
+        sys.exit(1)
 PY
 
 # --- 6. The SHIPPED validate-final-package.py rejects an unknown node type -----
@@ -278,16 +307,16 @@ open(p, "w").write(json.dumps(g, indent=2) + "\n")
 PY
 
 set +e
-python3 scripts/validate-final-package.py >/dev/null 2>&1
+shipped_output=$(python3 scripts/validate-final-package.py 2>&1)
 shipped_exit=$?
 set -e
 restore
 trap - EXIT
 
-if [ "$shipped_exit" -ne 0 ]; then
+if [ "$shipped_exit" -eq 1 ] && [[ "$shipped_output" != *node_unavailable* && "$shipped_output" != *node_version_unsupported* && "$shipped_output" == *"unknown node type"* ]]; then
   echo "PASS: shipped validate-final-package.py rejects an unknown traceability node type"
 else
-  echo "FAIL: shipped validate-final-package.py accepted an unknown traceability node type"
+  echo "FAIL: shipped validate-final-package.py refusal was not status 1 with the unknown-type diagnostic: rc=$shipped_exit $shipped_output"
   exit 1
 fi
 

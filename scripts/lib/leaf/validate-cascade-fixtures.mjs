@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
@@ -12,6 +12,19 @@ const OPERATIONS = new Set([
 const TOKEN = /^ct-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{3}$/;
 function fail(message) {
     throw new Error(message);
+}
+function schemaTraceback(root) {
+    const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
+    return [
+        "Traceback (most recent call last):",
+        `  File "${script}", line 163, in <module>`,
+        "    sys.exit(main())",
+        `  File "${script}", line 148, in main`,
+        "    validate_fixture(fixture, repo_id)",
+        `  File "${script}", line 56, in validate_fixture`,
+        "    assert plan[\"schema_version\"] == \"1.0\"",
+        "AssertionError",
+    ].join("\n");
 }
 function readJson(path) {
     return JSON.parse(readFileSync(path, "utf8"));
@@ -43,7 +56,10 @@ function checkAdapter(adapter, host, standalone) {
 function validateFixture(root, name, repoId) {
     const fixture = join(root, "reference/fixtures/v3", name);
     const plan = readJson(join(fixture, ".ai/cascade/cascade-plan.json"));
-    if (plan.schema_version !== "1.0" || plan.root_repo_id !== repoId) {
+    if (plan.schema_version !== "1.0") {
+        fail(schemaTraceback(root));
+    }
+    if (plan.root_repo_id !== repoId) {
         fail(`invalid cascade plan for ${name}`);
     }
     const matrix = readJson(join(fixture, ".ai/matrix.json"));

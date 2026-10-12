@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 function pyJsonDumps(value, indent = 2) {
     const body = JSON.stringify(value, null, indent) ?? "null";
@@ -57,9 +58,31 @@ export function main(argv) {
     let skill;
     let root = ".";
     let kind = "output";
+    const takesValue = new Set(["--skill", "--root", "--kind"]);
+    let skip = false;
+    for (const flag of argv) {
+        if (skip) {
+            skip = false;
+            continue;
+        }
+        if (takesValue.has(flag)) {
+            skip = true;
+            continue;
+        }
+        if (flag === "-h" || flag === "--help") {
+            const probed = spawnSync("python3", ["-c", "import sys; print(0 if sys.version_info >= (3, 10) else 1)"], { encoding: "utf8" });
+            const heading = probed.stdout.trim() === "0" ? "options:" : "optional arguments:";
+            process.stdout.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\n\nScaffold a structurally valid eval triplet for a target skill, offline. Given\na target skill name, write the P0 eval shape under\n\`\`<root>/.ai/evals/<skill>/\`\`: - \`\`evalset.json\`\` labelled cases\n(schema_version, set_id, kind, cases) - \`\`rubric.md\`\` scoring rubric\n(criteria, weights summing to 1.0, threshold) - \`\`judge-config.json\`\` LM-judge\nharness stub (tier/mode/harness/evaluates, \`\`execution: out-of-band\`\`) No\nmodel or network call is made. The judge declared in \`\`judge-config.json\`\` is\nan out-of-band stub: this script never invokes it, and CI never invokes it.\nSee \`\`eval-a-skill/SKILL.md\`\` and \`\`ai-catapult-init/modules/evals.md\`\`.\nUsage: scaffold-eval.py --skill <name> [--root <dir>] [--kind\noutput|trajectory] Idempotent: re-running rewrites the triplet in place; no\nduplicate files.\n\n${heading}\n  -h, --help            show this help message and exit\n  --skill SKILL         target skill name\n  --root ROOT           repo root to write under\n  --kind {output,trajectory}\n                        evalset kind (default: output)\n`);
+            return 0;
+        }
+    }
     for (let index = 0; index < argv.length; index += 1) {
         const flag = argv[index];
         const value = argv[index + 1];
+        if ((flag === "--skill" || flag === "--root" || flag === "--kind") && value === undefined) {
+            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument ${flag}: expected one argument\n`);
+            return 2;
+        }
         if (flag === "--skill" && value !== undefined) {
             skill = value;
             index += 1;

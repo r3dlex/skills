@@ -1535,6 +1535,310 @@ lifecycle_home "install-copilot.sh lifecycle missing" install-copilot.sh --inclu
 lifecycle_home "install-codex lifecycle reject experimental" install-codex.sh --skill experimental-skill
 lifecycle_home "install-codex lifecycle admit experimental" install-codex.sh --skill experimental-skill --include-lifecycle experimental
 
+# Cure6 corpus. Each case is the publication anchor against the candidate.
+# A refusal passes only when status and streams match that anchor.
+
+while IFS=$'\t' read -r skill_name skill_source; do
+	sh_case "codex parity catalog $skill_name" scripts/check-codex-parity.sh "$ARGV0_CODEX" "$REPO_ROOT/$skill_source/SKILL.md"
+done < <(python3 "$REPO_ROOT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex)
+while IFS=$'\t' read -r skill_name skill_source; do
+	sh_case "opencode parity catalog $skill_name" scripts/check-opencode-parity.sh "$ARGV0_OPEN" "$REPO_ROOT/$skill_source/SKILL.md"
+done < <(python3 "$REPO_ROOT/scripts/catalog-query.py" --root "$REPO_ROOT" --host opencode)
+DOC_OPEN="$(mktemp)"
+cat >"$DOC_OPEN" <<'EOF'
+# Fixture skill
+
+## Process
+
+- Documented mention: `AskUserQuestion`, `~/.claude/skills`.
+- Path reference: `.claude-plugin/marketplace.json`.
+
+```text
+Task(subagent_type=executor) inside a fenced block is documentation, not invocation.
+```
+EOF
+sh_case "opencode parity documentary exemption" scripts/check-opencode-parity.sh "$ARGV0_OPEN" "$DOC_OPEN"
+rm -f "$DOC_OPEN"
+
+py_case "scaffold help" 04-validate-handoff/eval-a-skill/scaffold-eval.py --help
+py_case "scaffold help short" 04-validate-handoff/eval-a-skill/scaffold-eval.py -h
+py_case "scaffold unrecognized" 04-validate-handoff/eval-a-skill/scaffold-eval.py --nope
+py_case "scaffold missing skill value" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill
+py_case "scaffold missing kind value" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample-target --kind
+py_case "scaffold missing root value" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample-target --root
+py_case "scaffold bad kind" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample-target --kind nope
+
+scaffold_rerun() {
+	local root lsnap rsnap lout rout lerr rerr lrc rrc
+	pin 04-validate-handoff/eval-a-skill/scaffold-eval.py || return
+	root="$(mktemp -d)"
+	lsnap="$(mktemp -d)"
+	rsnap="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	python3 "$WT/04-validate-handoff/eval-a-skill/scaffold-eval.py" --skill sample-target --root "$root" >/dev/null
+	python3 "$WT/04-validate-handoff/eval-a-skill/scaffold-eval.py" --skill sample-target --root "$root" >"$lout" 2>"$lerr"
+	lrc=$?
+	cp -R "$root/." "$lsnap/" 2>/dev/null || true
+	rm -rf "$root"
+	mkdir -p "$root"
+	python3 "$REPO_ROOT/04-validate-handoff/eval-a-skill/scaffold-eval.py" --skill sample-target --root "$root" >/dev/null
+	python3 "$REPO_ROOT/04-validate-handoff/eval-a-skill/scaffold-eval.py" --skill sample-target --root "$root" >"$rout" 2>"$rerr"
+	rrc=$?
+	cp -R "$root/." "$rsnap/" 2>/dev/null || true
+	set +e
+	judge "scaffold-eval rerun" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lsnap" "$rsnap"
+	rm -rf "$root" "$lsnap" "$rsnap"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+scaffold_rerun
+
+trace_mut() {
+	local label="$1" expr="$2" graph
+	graph="$(node --input-type=module -e "$expr")"
+	trace_graph "$label" "$graph"
+}
+trace_mut "traceability_schema malformed version garbage" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+graph.schema_version = "garbage";
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema malformed version 1.0x" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+graph.schema_version = "1.0x";
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema malformed version 1" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+graph.schema_version = "1";
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema duplicate id" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+graph.nodes.push(JSON.parse(JSON.stringify(graph.nodes[0])));
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema missing title" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+delete graph.nodes[0].title;
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema missing status" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+delete graph.nodes[0].status;
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema missing repo_id" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+delete graph.nodes[0].repo_id;
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema missing path" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+delete graph.nodes[0].path;
+delete graph.nodes[0].host_url;
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema dangling backlink" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+graph.nodes[0].backlinks = ["missing-id"];
+process.stdout.write(JSON.stringify(graph));
+'
+trace_mut "traceability_schema dangling edge" '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+graph.edges.push({ source: "nope", target: "nope", relation: "x" });
+process.stdout.write(JSON.stringify(graph));
+'
+TRACE_ENV="$(cat "$REPO_ROOT/reference/fixtures/v3/standalone/.ai/traceability/graph.json")"
+LEFT=(env PYTHONPATH="$WT/scripts" NODE_OPTIONS=--throw-deprecation python3 "$FIX/trace_driver.py" "$TRACE_ENV")
+RIGHT=(env NODE_OPTIONS=--throw-deprecation node "$FIX/trace_port.mjs" "$TRACE_ENV")
+module_case "traceability_schema NODE_OPTIONS"
+TRACE_BAD="$(node --input-type=module -e '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+graph.schema_version = "garbage";
+process.stdout.write(JSON.stringify(graph));
+')"
+LEFT=(env PYTHONPATH="$WT/scripts" NODE_OPTIONS=--throw-deprecation python3 "$FIX/trace_driver.py" "$TRACE_BAD")
+RIGHT=(env NODE_OPTIONS=--throw-deprecation node "$FIX/trace_port.mjs" "$TRACE_BAD")
+module_case "traceability_schema malformed version NODE_OPTIONS"
+
+# checkout-root: the anchor traceback embeds the script checkout. The mask
+# replaces that absolute root and no other byte, so the assertion text remains
+# compared.
+mask_checkout_root() {
+	local root="$1" stream="$2" real tmp
+	real="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$root")"
+	tmp="$(mktemp)"
+	sed "s#${real}#<repo>#g; s#${root}#<repo>#g" "$stream" >"$tmp"
+	mv "$tmp" "$stream"
+}
+cascade_refuse() {
+	local label="$1" rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
+	rel="reference/fixtures/v3/standalone/.ai/cascade/cascade-plan.json"
+	bak="$(mktemp)"
+	wt_bak="$(mktemp)"
+	cp "$REPO_ROOT/$rel" "$bak"
+	cp "$WT/$rel" "$wt_bak"
+	python3 - "$REPO_ROOT/$rel" "$WT/$rel" <<'PY'
+import json, sys
+for path in sys.argv[1:]:
+    plan = json.loads(open(path).read())
+    plan["schema_version"] = "9.9"
+    open(path, "w").write(json.dumps(plan, indent=2) + "\n")
+PY
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	set +e
+	python3 "$WT/scripts/validate-cascade-fixtures.py" >"$lout" 2>"$lerr"
+	lrc=$?
+	python3 "$REPO_ROOT/scripts/validate-cascade-fixtures.py" >"$rout" 2>"$rerr"
+	rrc=$?
+	set +e
+	cp "$bak" "$REPO_ROOT/$rel"
+	cp "$wt_bak" "$WT/$rel"
+	rm -f "$bak" "$wt_bak"
+	mask_checkout_root "$WT" "$lerr"
+	mask_checkout_root "$REPO_ROOT" "$rerr"
+	mask_checkout_root "$WT" "$lout"
+	mask_checkout_root "$REPO_ROOT" "$rout"
+	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+	rm -rf "$lwatch" "$rwatch"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+cascade_refuse "cascade invalid schema_version"
+
+setup_readme_encoded_apache() {
+	local root="$1" i
+	printf 'MIT License\n' >"$root/LICENSE"
+	{
+		echo '# Encoded License Badge Tool'
+		echo '[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)'
+		for i in $(seq 1 35); do
+			echo "Existing project fact $i keeps this README non-sparse."
+		done
+		echo
+		echo '## Features'
+		echo
+		echo '- stable output'
+	} >"$root/README.md"
+}
+setup_readme_encoded_bsd() {
+	local root="$1" i
+	printf 'MIT License\n' >"$root/LICENSE"
+	{
+		echo '# Encoded License Badge Tool'
+		echo '[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)'
+		for i in $(seq 1 35); do
+			echo "Existing project fact $i keeps this README non-sparse."
+		done
+		echo
+		echo '## Features'
+		echo
+		echo '- stable output'
+	} >"$root/README.md"
+}
+for readme_script in scripts/readme-generate.sh 03-configure-generate/ai-catapult-init/scripts/readme-generate.sh; do
+	if [[ "$readme_script" == scripts/* ]]; then
+		readme_label="readme"
+	else
+		readme_label="init readme"
+	fi
+	encoded_sha="$(readme_sha setup_readme_encoded_apache)"
+	readme_case "$readme_label encoded apache license" "$readme_script" setup_readme_encoded_apache \
+		--mode augment --project "Encoded License Badge Tool" \
+		--tagline "Recognizes common Shields encodings." \
+		--why "Keep encoded license claims aligned with the repository license." \
+		--archetype cli-tool --primary-surface 'encoded-license <command>' \
+		--mental-model "The LICENSE file is the source of truth." \
+		--install-command "install-encoded-license" --first-success-command "encoded-license doctor" \
+		--success-evidence "prints ready" --source-sha "$encoded_sha"
+	encoded_sha="$(readme_sha setup_readme_encoded_bsd)"
+	readme_case "$readme_label encoded bsd license" "$readme_script" setup_readme_encoded_bsd \
+		--mode augment --project "Encoded License Badge Tool" \
+		--tagline "Recognizes common Shields encodings." \
+		--why "Keep encoded license claims aligned with the repository license." \
+		--archetype cli-tool --primary-surface 'encoded-license <command>' \
+		--mental-model "The LICENSE file is the source of truth." \
+		--install-command "install-encoded-license" --first-success-command "encoded-license doctor" \
+		--success-evidence "prints ready" --source-sha "$encoded_sha"
+done
+
+readme_sha256sum_only() {
+	local label="$1" script="$2" bin work sha lsnap rsnap lout rout lerr rerr lrc rrc cmd src
+	pin "$script" || return
+	bin="$(mktemp -d)"
+	for cmd in bash node mkdir mktemp mv chmod cp grep sed awk stat tr wc date dirname cat rm sha256sum; do
+		src="$(command -v "$cmd" || true)"
+		if [[ -n "$src" ]]; then
+			ln -s "$src" "$bin/$cmd"
+		fi
+	done
+	if ! PATH="$bin" command -v sha256sum >/dev/null 2>&1 || PATH="$bin" command -v shasum >/dev/null 2>&1; then
+		bad "$label sha256sum-only PATH is not sha256sum without shasum"
+		rm -rf "$bin"
+		return
+	fi
+	work="$(mktemp -d)"
+	setup_readme_existing "$work"
+	sha="$(shasum -a 256 "$work/README.md" | awk '{print $1}')"
+	lsnap="$(mktemp -d)"
+	rsnap="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	PATH="$bin" invoke_sh "parity-argv0/$(basename "$script")" "$WT/$script" --repo "$work" --out "$work/README.md" \
+		--mode template --project "Sha256sum CLI" --tagline "Uses coreutils sha256sum." \
+		--why "Replace a reviewed README when only sha256sum is installed." \
+		--archetype cli-tool --primary-surface "sha256sum <command>" \
+		--mental-model "sha256sum gates the replacement when shasum is absent." \
+		--install-command install-sha256sum --first-success-command "sha256sum doctor" \
+		--success-evidence "prints sha256sum ready" --source-sha "$sha" \
+		--force >"$lout" 2>"$lerr"
+	lrc=$?
+	cp -R "$work/." "$lsnap/" 2>/dev/null || true
+	rm -rf "$work"
+	mkdir -p "$work"
+	setup_readme_existing "$work"
+	PATH="$bin" invoke_sh "parity-argv0/$(basename "$script")" "$REPO_ROOT/$script" --repo "$work" --out "$work/README.md" \
+		--mode template --project "Sha256sum CLI" --tagline "Uses coreutils sha256sum." \
+		--why "Replace a reviewed README when only sha256sum is installed." \
+		--archetype cli-tool --primary-surface "sha256sum <command>" \
+		--mental-model "sha256sum gates the replacement when shasum is absent." \
+		--install-command install-sha256sum --first-success-command "sha256sum doctor" \
+		--success-evidence "prints sha256sum ready" --source-sha "$sha" \
+		--force >"$rout" 2>"$rerr"
+	rrc=$?
+	cp -R "$work/." "$rsnap/" 2>/dev/null || true
+	set +e
+	mask_readme_stamp "$lsnap" "$lout" "$lerr"
+	mask_readme_stamp "$rsnap" "$rout" "$rerr"
+	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lsnap" "$rsnap"
+	rm -rf "$bin" "$work" "$lsnap" "$rsnap"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+readme_sha256sum_only "readme sha256sum-only" scripts/readme-generate.sh
+readme_sha256sum_only "init readme sha256sum-only" 03-configure-generate/ai-catapult-init/scripts/readme-generate.sh
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]

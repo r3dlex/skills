@@ -86,5 +86,17 @@
       "exit_code": 0,
       "observed": "PASS=258 FAIL=0 after those four matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains. Prior pairs were not dropped."
     }
+  },
+  "cure6": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=352 FAIL=11 before scaffold --help exited 0, before a missing flag value was expected one argument, before schema versions garbage, 1.0x, and 1 were rejected, before a dangling edge used the anchor mapping text, and before an invalid cascade plan emitted the anchor traceback. Catalog-wide parity, scaffold rerun, encoded license conflicts, and the sha256sum-only README path already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=363 FAIL=0 after those refusals matched the publication anchor on status and streams. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }

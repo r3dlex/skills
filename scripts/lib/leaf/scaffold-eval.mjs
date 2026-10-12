@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { pyJsonDumps } from "./py-repr.mjs";
 import { join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
+import { helpRequested, optionHeading } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 assertNodeVersion();
@@ -52,9 +53,34 @@ export function scaffold(skill, root, kind) {
     return out;
 }
 const SCAFFOLD_USAGE = "usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]";
+const SCAFFOLD_DESCRIPTION = [
+    "Scaffold a structurally valid eval triplet for a target skill, offline. Given",
+    "a target skill name, write the P0 eval shape under",
+    "``<root>/.ai/evals/<skill>/``: - ``evalset.json`` labelled cases",
+    "(schema_version, set_id, kind, cases) - ``rubric.md`` scoring rubric",
+    "(criteria, weights summing to 1.0, threshold) - ``judge-config.json`` LM-judge",
+    "harness stub (tier/mode/harness/evaluates, ``execution: out-of-band``) No",
+    "model or network call is made. The judge declared in ``judge-config.json`` is",
+    "an out-of-band stub: this script never invokes it, and CI never invokes it.",
+    "See ``eval-a-skill/SKILL.md`` and ``ai-catapult-init/modules/evals.md``.",
+    "Usage: scaffold-eval.py --skill <name> [--root <dir>] [--kind",
+    "output|trajectory] Idempotent: re-running rewrites the triplet in place; no",
+    "duplicate files.",
+].join("\n");
+const SCAFFOLD_OPTIONS = [
+    "  -h, --help            show this help message and exit",
+    "  --skill SKILL         target skill name",
+    "  --root ROOT           repo root to write under",
+    "  --kind {output,trajectory}",
+    "                        evalset kind (default: output)",
+].join("\n");
+const SCAFFOLD_VALUES = new Set(["--skill", "--root", "--kind"]);
 function scaffoldFail(message) {
     process.stderr.write(`${SCAFFOLD_USAGE}\nscaffold-eval.py: error: ${message}\n`);
     return 2;
+}
+function writeScaffoldHelp() {
+    process.stdout.write(`${SCAFFOLD_USAGE}\n\n${SCAFFOLD_DESCRIPTION}\n\n${optionHeading()}\n${SCAFFOLD_OPTIONS}\n`);
 }
 function assignScaffold(args, flag, value) {
     if (flag === "--skill") {
@@ -84,9 +110,18 @@ function takeScaffold(args, flag, value) {
     return undefined;
 }
 function parseScaffold(argv) {
+    if (helpRequested(argv, SCAFFOLD_VALUES)) {
+        writeScaffoldHelp();
+        return 0;
+    }
     const args = { root: ".", kind: "output" };
     for (let index = 0; index < argv.length; index += 1) {
-        const taken = takeScaffold(args, argv[index], argv[index + 1]);
+        const flag = argv[index];
+        const value = argv[index + 1];
+        if (flag !== undefined && SCAFFOLD_VALUES.has(flag) && value === undefined) {
+            return scaffoldFail(`argument ${flag}: expected one argument`);
+        }
+        const taken = takeScaffold(args, flag, value);
         if (typeof taken === "number" && taken !== 1) {
             return taken;
         }

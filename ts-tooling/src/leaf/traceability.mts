@@ -1,17 +1,45 @@
+import { pyRepr } from "./py-repr.mjs";
+
 export const V10_TYPES = new Set([
   "brd", "prd", "adr", "plan", "issue", "pr", "test", "handoff", "workflow", "validation",
 ]);
 export const V11_ADDED_TYPES = new Set(["eval-result", "trajectory-trace"]);
 export const KNOWN_TYPES = new Set([...V10_TYPES, ...V11_ADDED_TYPES]);
 
+function pyInt(part: string): number {
+  const stripped = part.trim();
+  if (!/^[-+]?(?:\d+_)*\d+$/.test(stripped)) {
+    throw new Error(`invalid literal for int() with base 10: '${part}'`);
+  }
+  return Number(stripped.replaceAll("_", ""));
+}
+
 export function parseVersion(value: string): number[] {
-  return String(value).split(".").map((part) => Number(part));
+  return String(value).split(".").map((part) => pyInt(part));
 }
 
 function below(version: readonly number[]): boolean {
-  const major = version[0] ?? 0;
-  const minor = version[1] ?? 0;
-  return major < 1 || (major === 1 && minor < 0);
+  const floor = [1, 0];
+  const length = Math.min(version.length, floor.length);
+  for (let index = 0; index < length; index += 1) {
+    const left = version[index] ?? 0;
+    const right = floor[index] ?? 0;
+    if (left < right) {
+      return true;
+    }
+    if (left > right) {
+      return false;
+    }
+  }
+  return version.length < floor.length;
+}
+
+function pyMapping(value: unknown): string {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return JSON.stringify(value);
+  }
+  const parts = Object.entries(value).map(([key, item]) => `${pyRepr(key)}: ${pyRepr(item)}`);
+  return `{${parts.join(", ")}}`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
@@ -80,10 +108,10 @@ export function validateGraph(graph: Record<string, unknown>): void {
   for (const raw of Array.isArray(graph.edges) ? graph.edges : []) {
     const edge = asRecord(raw) ?? {};
     if (!nodes.has(String(edge.source))) {
-      throw new Error(`dangling edge source ${JSON.stringify(raw)}`);
+      throw new Error(`dangling edge source ${pyMapping(raw)}`);
     }
     if (!nodes.has(String(edge.target))) {
-      throw new Error(`dangling edge target ${JSON.stringify(raw)}`);
+      throw new Error(`dangling edge target ${pyMapping(raw)}`);
     }
   }
 }
