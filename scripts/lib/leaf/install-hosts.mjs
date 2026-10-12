@@ -30,8 +30,11 @@ function installRows(root, host, includes, skill) {
         return failCatalog(error);
     }
 }
-function usage(text) {
-    process.stderr.write(`${text}\n`);
+function scriptArgv0() {
+    return process.env.SHIM_ARGV0 ?? "";
+}
+function usage(tail) {
+    process.stderr.write(`Usage: ${scriptArgv0()} ${tail}\n`);
     return 1;
 }
 export function installClaude(argv) {
@@ -41,7 +44,7 @@ export function installClaude(argv) {
     }
     const scope = parsed.rest[0] ?? "--user";
     if (parsed.rest.length > 1 || !["--user", "--project", "--all"].includes(scope)) {
-        return usage("Usage: install-claude-code.sh [--user | --project | --all] [--include-lifecycle <value>]");
+        return usage("[--user | --project | --all] [--include-lifecycle <value>]");
     }
     const root = skillsDir();
     const rows = installRows(root, "claude-code", parsed.includes);
@@ -69,7 +72,7 @@ export function installCodex(argv) {
     }
     const flag = parsed.rest[0];
     if ((flag !== undefined && flag !== "--skill" && flag !== "--all") || (flag === "--skill" && parsed.rest.length !== 2)) {
-        return usage("Usage: install-codex.sh [--skill <name> | --all] [--include-lifecycle <value>]");
+        return usage("[--skill <name> | --all] [--include-lifecycle <value>]");
     }
     const root = skillsDir();
     const skill = flag === "--skill" ? parsed.rest[1] : undefined;
@@ -89,7 +92,7 @@ export function installGemini(argv) {
     }
     const flag = parsed.rest[0] ?? "";
     if (flag !== "" && flag !== "--install" && flag !== "--link" && flag !== "--all") {
-        return usage("Usage: install-gemini.sh [--install | --link | --all] [--include-lifecycle <value>]");
+        return usage("[--install | --link | --all] [--include-lifecycle <value>]");
     }
     const root = skillsDir();
     const rows = installRows(root, "gemini", parsed.includes);
@@ -108,7 +111,7 @@ export function installAuggie(argv) {
     }
     const flag = parsed.rest[0] ?? "";
     if (flag !== "" && flag !== "--rules" && flag !== "--all") {
-        return usage("Usage: install-auggie.sh [--rules | --all] [--include-lifecycle <value>]");
+        return usage("[--rules | --all] [--include-lifecycle <value>]");
     }
     const root = skillsDir();
     const rows = installRows(root, "auggie", parsed.includes);
@@ -140,7 +143,7 @@ function copilotTarget(rest, root) {
         target = rest[1] ?? target;
     }
     if (!["--consolidated", "--per-skill", "--all"].includes(mode)) {
-        return usage("Usage: install-copilot.sh [--consolidated | --per-skill | --all | --repo <path>] [--include-lifecycle <value>]");
+        return usage("[--consolidated | --per-skill | --all | --repo <path>] [--include-lifecycle <value>]");
     }
     return { mode, target };
 }

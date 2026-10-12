@@ -45,10 +45,12 @@ stale_date="$(date -v-$((THRESHOLD + 7))d -u +%Y-%m-%d 2>/dev/null || date -u -d
 # (1) synthetic OLD (stale) lock → non-zero, even in advisory mode
 # ---------------------------------------------------------------------------
 mklock "$tmpdir/old.lock" "$stale_date" "$FORK_SHA"
-if bash "$GATE" --lock "$tmpdir/old.lock" --mode advisory --repo-root . >/dev/null 2>&1; then
-  bad "stale lock exits non-zero in advisory mode"
+stale_out="$(bash "$GATE" --lock "$tmpdir/old.lock" --mode advisory --repo-root . 2>&1)"
+stale_rc=$?
+if [[ "$stale_rc" -eq 1 && "$stale_out" != *node_unavailable* && "$stale_out" != *node_version_unsupported* && "$stale_out" == *stale* ]]; then
+  ok "stale lock exits 1 with the stale diagnostic"
 else
-  ok "stale lock exits non-zero in advisory mode"
+  bad "stale lock exits 1 with the stale diagnostic (rc=$stale_rc)"
 fi
 
 # ---------------------------------------------------------------------------
@@ -97,10 +99,10 @@ fi
 mklock "$tmpdir/unreach.lock" "$old_date" "$UNREACHABLE_SHA"
 outU="$(bash "$GATE" --lock "$tmpdir/unreach.lock" --mode advisory --repo-root . 2>&1)"
 rcU=$?
-if [[ "$rcU" -ne 0 ]] && grep -qi "reach\|not reachable\|fetch" <<< "$outU"; then
-  ok "unreachable pinned_sha exits non-zero with guidance"
+if [[ "$rcU" -eq 1 && "$outU" != *node_unavailable* && "$outU" != *node_version_unsupported* ]] && grep -qi "reach\|not reachable\|fetch" <<< "$outU"; then
+  ok "unreachable pinned_sha exits 1 with guidance"
 else
-  bad "unreachable pinned_sha exits non-zero with guidance (rc=$rcU)"
+  bad "unreachable pinned_sha exits 1 with guidance (rc=$rcU)"
 fi
 
 echo ""

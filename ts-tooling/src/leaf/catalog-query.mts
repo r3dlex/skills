@@ -14,8 +14,20 @@ interface QueryArgs {
   projection?: string;
 }
 
+const USAGE = [
+  "usage: catalog-query.py [-h] [--root ROOT] --host HOST",
+  "                        [--include-lifecycle INCLUDE_LIFECYCLE]",
+  "                        [--skill SKILL] [--projection PROJECTION]",
+].join("\n");
+const OPTIONS = new Set(["--root", "--host", "--include-lifecycle", "--skill", "--projection"]);
+
 function fail(message: string): number {
   process.stderr.write(`${message}\n`);
+  return 2;
+}
+
+function argparseFail(message: string): number {
+  process.stderr.write(`${USAGE}\ncatalog-query.py: error: ${message}\n`);
   return 2;
 }
 
@@ -41,14 +53,27 @@ function take(args: QueryArgs, flag: string, value: string | undefined): boolean
 
 function parse(argv: readonly string[], fallbackRoot: string): QueryArgs | number {
   const args: QueryArgs = { root: fallbackRoot, lifecycles: [] };
+  const unknown: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index] ?? "";
-    if (!take(args, flag, argv[index + 1])) {
-      return fail(`unrecognized arguments: ${flag}`);
+    if (!OPTIONS.has(flag)) {
+      unknown.push(flag);
+      continue;
+    }
+    const value = argv[index + 1];
+    if (value === undefined) {
+      return argparseFail(`argument ${flag}: expected one argument`);
+    }
+    if (!take(args, flag, value)) {
+      return argparseFail(`unrecognized arguments: ${flag}`);
     }
     index += 1;
   }
-  return args.host === undefined ? fail("the following arguments are required: --host") : args;
+  if (args.host === undefined) {
+    return argparseFail("the following arguments are required: --host");
+  }
+  const firstUnknown = unknown[0];
+  return firstUnknown === undefined ? args : argparseFail(`unrecognized arguments: ${firstUnknown}`);
 }
 
 export function main(argv: readonly string[], root = repoRoot(import.meta.url)): number {

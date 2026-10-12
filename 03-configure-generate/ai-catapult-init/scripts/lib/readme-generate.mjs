@@ -194,6 +194,10 @@ export function main(argv, root = repoRoot(import.meta.url)) {
     if (!parsed.out.startsWith("/")) {
         parsed.out = resolve(parsed.repo, parsed.out);
     }
+    if (parsed.mode !== "template" && parsed.mode !== "augment" && parsed.mode !== "audit-only") {
+        process.stderr.write(`unknown --mode: ${parsed.mode}\n`);
+        return 1;
+    }
     if (parsed.mode === "audit-only") {
         const stamp = new Date().toISOString().replaceAll(/[-:]/g, "-").replace(/\.\d+Z$/, "Z");
         const dir = join(parsed.repo, ".ai/drift/readme-backups");
@@ -216,11 +220,7 @@ export function main(argv, root = repoRoot(import.meta.url)) {
     if (parsed.mode === "template") {
         return writeTemplate(parsed, root);
     }
-    if (parsed.mode === "augment") {
-        return augment(parsed);
-    }
-    process.stderr.write(`unknown --mode: ${parsed.mode}\n`);
-    return 1;
+    return augment(parsed);
 }
 function detectLicense(repo) {
     const file = join(repo, "LICENSE");

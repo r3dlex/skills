@@ -216,15 +216,26 @@ function writeArtifacts(root: string, payload: AuditPayload): void {
   writeFileSync(join(out, "modernization-report.md"), `${lines.join("\n")}\n`);
 }
 
+const CATALOG_USAGE = "usage: validate-skill-catalog.py [-h] [--root ROOT] [--write-audit]";
+
 export function main(argv: readonly string[]): number {
   let root = ".";
   let writeAudit = false;
   for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index] === "--root" && argv[index + 1] !== undefined) {
-      root = argv[index + 1] ?? root;
+    const flag = argv[index];
+    if (flag === "--root") {
+      const value = argv[index + 1];
+      if (value === undefined) {
+        process.stderr.write(`${CATALOG_USAGE}\nvalidate-skill-catalog.py: error: argument --root: expected one argument\n`);
+        return 2;
+      }
+      root = value;
       index += 1;
-    } else if (argv[index] === "--write-audit") {
+    } else if (flag === "--write-audit") {
       writeAudit = true;
+    } else if (flag !== undefined) {
+      process.stderr.write(`${CATALOG_USAGE}\nvalidate-skill-catalog.py: error: unrecognized arguments: ${flag}\n`);
+      return 2;
     }
   }
   const resolved = resolve(root);

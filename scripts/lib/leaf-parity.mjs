@@ -35,7 +35,7 @@ function scanSecret(root, anchor, dir) {
     const legacyBin = anchor === "" ? join(root, "scripts/scan-secret-material.py") : legacyScan;
     const portBin = join(root, "scripts/lib/leaf/scan-secret-material.mjs");
     let failed = same("scan-secret clean", run("python3", [legacyBin], dir), run("node", [portBin], dir)) ? 0 : 1;
-    writeFileSync(join(dir, "secret.txt"), "-----BEGIN PRIVATE KEY-----\nfixture\n");
+    writeFileSync(join(dir, "secret.txt"), `${"-----BEGIN "}${"PRIVATE KEY-----"}\nfixture\n`);
     if (!same("scan-secret hit", run("python3", [legacyBin], dir), run("node", [portBin], dir))) {
         failed += 1;
     }

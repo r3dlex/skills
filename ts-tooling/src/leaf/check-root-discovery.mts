@@ -31,6 +31,11 @@ function expand(raw: string): string[] {
 }
 
 export function main(argv: readonly string[]): number {
+  const flagged = argv.find((flag) => flag.startsWith("-"));
+  if (flagged !== undefined) {
+    process.stderr.write(`usage: check-root-discovery.py [-h] [paths ...]\ncheck-root-discovery.py: error: unrecognized arguments: ${flagged}\n`);
+    return 2;
+  }
   const roots = argv.length > 0 ? argv : ["scripts", "tests"];
   const failures: string[] = [];
   for (const path of roots.flatMap((raw) => expand(raw))) {

@@ -68,6 +68,11 @@ function phaseReadme(root: string, phase: string, skills: readonly SkillEntry[])
 }
 
 export function main(argv: readonly string[], root = repoRoot(import.meta.url)): number {
+  const flagged = argv.find((flag) => flag !== "--check");
+  if (flagged !== undefined) {
+    process.stderr.write(`usage: generate-skill-docs.py [-h] [--check]\ngenerate-skill-docs.py: error: unrecognized arguments: ${flagged}\n`);
+    return 2;
+  }
   const check = argv.includes("--check");
   const catalog = loadCatalog(root);
   let ok = replaceRegion(join(root, "README.md"), catalogRows(root, catalog.skills), check);

@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 function pyJsonDumps(value, indent = 2) {
     const body = JSON.stringify(value, null, indent) ?? "null";
     return body.replace(/[^\u0000-\u007e]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`);
@@ -72,17 +72,21 @@ export function main(argv) {
             kind = value;
             index += 1;
         }
-        else {
-            process.stderr.write("usage: scaffold-eval.py --skill <name> [--root <dir>] [--kind output|trajectory]\n");
+        else if (flag === "--kind") {
+            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value ?? ""}' (choose from 'output', 'trajectory')\n`);
+            return 2;
+        }
+        else if (flag !== undefined && skill !== undefined) {
+            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: unrecognized arguments: ${flag}\n`);
             return 2;
         }
     }
     if (skill === undefined) {
-        process.stderr.write("the following arguments are required: --skill\n");
+        process.stderr.write("usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: the following arguments are required: --skill\n");
         return 2;
     }
     const out = scaffold(skill, resolve(root), kind);
-    process.stdout.write(`scaffolded eval triplet: ${out}\n`);
+    process.stdout.write(`scaffolded eval triplet: ${realpathSync(out)}\n`);
     return 0;
 }
 if (invokedDirectly(import.meta.url)) {

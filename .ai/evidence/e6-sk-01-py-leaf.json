@@ -1,11 +1,41 @@
 {
+  "assurance": "agent-self",
   "goal_id": "e6-sk-01-py-leaf",
   "green": {
     "command": "bash tests/e6_py_leaf_parity_test.sh",
-    "exit_code": 0
+    "exit_code": 0,
+    "observed": "PASS=113 FAIL=0 after each converted script was compared to the publication anchor on status, stdout, stderr, and written files, with one seeded-divergence red leg per script"
   },
   "red": {
     "command": "bash tests/e6_py_leaf_parity_test.sh",
-    "exit_code": 1
-  }
+    "exit_code": 1,
+    "observed": "PASS=89 FAIL=27 before installer argv0, argparse usage, README mode order, and written-file scope matched the anchor"
+  },
+  "red_legs": [
+    "scripts/catalog-query.py",
+    "scripts/catalog.py",
+    "scripts/check-markdown-links.py",
+    "scripts/check-root-discovery.py",
+    "scripts/generate-skill-docs.py",
+    "scripts/scan-secret-material.py",
+    "scripts/traceability_schema.py",
+    "scripts/validate-cascade-fixtures.py",
+    "scripts/validate-final-package.py",
+    "scripts/validate-skill-catalog.py",
+    "scripts/validate_skill_frontmatter.py",
+    "scripts/catalog-install.sh",
+    "scripts/check-codex-parity.sh",
+    "scripts/check-opencode-parity.sh",
+    "scripts/check-sync-staleness.sh",
+    "scripts/install-auggie.sh",
+    "scripts/install-claude-code.sh",
+    "scripts/install-codex.sh",
+    "scripts/install-copilot.sh",
+    "scripts/install-gemini.sh",
+    "scripts/readme-generate.sh",
+    "scripts/regen-host-golden.sh",
+    "scripts/verify-golden-dir.sh",
+    "04-validate-handoff/eval-a-skill/scaffold-eval.py",
+    "03-configure-generate/ai-catapult-init/scripts/readme-generate.sh"
+  ]
 }

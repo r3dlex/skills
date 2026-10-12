@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # generated compat-shim — rendered from the bash template; do not edit
 set -euo pipefail
-here="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+here="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 entry="$here/lib/leaf/regen-host-golden.mjs"
 if [[ ! -f "$entry" ]]; then
 	printf 'node_unavailable\n' >&2
@@ -36,6 +36,6 @@ v26.*)
 	;;
 esac
 if [[ ${#env_args[@]} -gt 0 ]]; then
-	exec /usr/bin/env -i "${env_args[@]}" "$node_bin" --disable-proto=throw "$entry" "$@"
+	exec /usr/bin/env -i "${env_args[@]}" "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"
 fi
-exec /usr/bin/env -i "$node_bin" --disable-proto=throw "$entry" "$@"
+exec /usr/bin/env -i "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"

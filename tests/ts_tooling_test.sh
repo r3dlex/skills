@@ -79,7 +79,7 @@ grep -q 'ts-tooling/node_modules' tests/test-scripts.sh && grep -q 'ts-tooling/b
 
 (cd ts-tooling && npm ci --ignore-scripts >/dev/null) && ok "bootstrap install" || bad "bootstrap install"
 (cd ts-tooling && npx tsc --noEmit --project tsconfig.json) && ok "tsc --noEmit" || bad "tsc --noEmit"
-(cd ts-tooling && npx eslint --max-warnings 0 'src/**/*.mts') && ok "eslint --max-warnings 0" || bad "eslint"
+(cd ts-tooling && npx eslint --max-warnings 0 'src/*.mts' 'src/**/*.mts') && ok "eslint covers src/*.mts and nested sources" || bad "eslint"
 drift="$(mktemp -d)"
 mkdir -p "$drift/scripts"
 rsync -a --exclude node_modules --exclude build ts-tooling "$drift/"

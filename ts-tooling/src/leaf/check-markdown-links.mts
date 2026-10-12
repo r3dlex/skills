@@ -137,14 +137,26 @@ export function failures(root: string, files: readonly string[], catalog: Catalo
   return files.flatMap((path) => scanFile(path, root, byName, byFile));
 }
 
+function rejectMarkdown(flag: string): number {
+  process.stderr.write(`usage: check-markdown-links.py [-h] [--root ROOT] [files ...]\ncheck-markdown-links.py: error: unrecognized arguments: ${flag}\n`);
+  return 2;
+}
+
 export function main(argv: readonly string[], fallback = repoRoot(import.meta.url)): number {
   let root = fallback;
   const files: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
-    if (flag === "--root" && argv[index + 1] !== undefined) {
-      root = argv[index + 1] ?? root;
+    if (flag === "--root") {
+      const value = argv[index + 1];
+      if (value === undefined) {
+        process.stderr.write("usage: check-markdown-links.py [-h] [--root ROOT] [files ...]\ncheck-markdown-links.py: error: argument --root: expected one argument\n");
+        return 2;
+      }
+      root = value;
       index += 1;
+    } else if (flag !== undefined && flag.startsWith("-")) {
+      return rejectMarkdown(flag);
     } else if (flag !== undefined) {
       files.push(flag);
     }

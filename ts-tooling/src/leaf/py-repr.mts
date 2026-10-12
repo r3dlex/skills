@@ -1,6 +1,12 @@
 export function pyJsonDumps(value: unknown, indent = 2): string {
   const body = JSON.stringify(value, null, indent) ?? "null";
-  return body.replace(/[^\u0000-\u007e]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`);
+  let out = "";
+  for (let index = 0; index < body.length; index += 1) {
+    const code = body.charCodeAt(index);
+    const ch = body[index] ?? "";
+    out += code > 0x7e ? `\\u${code.toString(16).padStart(4, "0")}` : ch;
+  }
+  return out;
 }
 
 export function pyRepr(value: unknown): string {

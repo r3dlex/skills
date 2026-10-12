@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { pyJsonDumps } from "./py-repr.mjs";
 import { join, resolve } from "node:path";
+import { realpathSync } from "node:fs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 assertNodeVersion();
@@ -50,36 +51,58 @@ export function scaffold(skill, root, kind) {
     writeFileSync(join(out, "rubric.md"), rubric(skill, kind));
     return out;
 }
-export function main(argv) {
-    let skill;
-    let root = ".";
-    let kind = "output";
+const SCAFFOLD_USAGE = "usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]";
+function scaffoldFail(message) {
+    process.stderr.write(`${SCAFFOLD_USAGE}\nscaffold-eval.py: error: ${message}\n`);
+    return 2;
+}
+function assignScaffold(args, flag, value) {
+    if (flag === "--skill") {
+        args.skill = value;
+        return true;
+    }
+    if (flag === "--root") {
+        args.root = value;
+        return true;
+    }
+    if (flag === "--kind" && (value === "output" || value === "trajectory")) {
+        args.kind = value;
+        return true;
+    }
+    return false;
+}
+function takeScaffold(args, flag, value) {
+    if (flag !== undefined && value !== undefined && assignScaffold(args, flag, value)) {
+        return 1;
+    }
+    if (flag === "--kind") {
+        return scaffoldFail(`argument --kind: invalid choice: '${value ?? ""}' (choose from 'output', 'trajectory')`);
+    }
+    if (flag !== undefined && args.skill !== undefined) {
+        return scaffoldFail(`unrecognized arguments: ${flag}`);
+    }
+    return undefined;
+}
+function parseScaffold(argv) {
+    const args = { root: ".", kind: "output" };
     for (let index = 0; index < argv.length; index += 1) {
-        const flag = argv[index];
-        const value = argv[index + 1];
-        if (flag === "--skill" && value !== undefined) {
-            skill = value;
-            index += 1;
+        const taken = takeScaffold(args, argv[index], argv[index + 1]);
+        if (typeof taken === "number" && taken !== 1) {
+            return taken;
         }
-        else if (flag === "--root" && value !== undefined) {
-            root = value;
+        if (taken === 1) {
             index += 1;
-        }
-        else if (flag === "--kind" && (value === "output" || value === "trajectory")) {
-            kind = value;
-            index += 1;
-        }
-        else {
-            process.stderr.write("usage: scaffold-eval.py --skill <name> [--root <dir>] [--kind output|trajectory]\n");
-            return 2;
         }
     }
-    if (skill === undefined) {
-        process.stderr.write("the following arguments are required: --skill\n");
-        return 2;
+    return args.skill === undefined ? scaffoldFail("the following arguments are required: --skill") : { skill: args.skill, root: args.root, kind: args.kind };
+}
+export function main(argv) {
+    const parsed = parseScaffold(argv);
+    if (typeof parsed === "number") {
+        return parsed;
     }
-    const out = scaffold(skill, resolve(root), kind);
-    process.stdout.write(`scaffolded eval triplet: ${out}\n`);
+    const out = scaffold(parsed.skill, resolve(parsed.root), parsed.kind);
+    process.stdout.write(`scaffolded eval triplet: ${realpathSync(out)}\n`);
     return 0;
 }
 if (invokedDirectly(import.meta.url)) {

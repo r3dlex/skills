@@ -36,7 +36,7 @@ export function renderBash(entrypoint: string, names: readonly string[]): string
     "#!/usr/bin/env bash",
     "# generated compat-shim — rendered from the bash template; do not edit",
     "set -euo pipefail",
-    'here="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"',
+    'here="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"',
     `entry="$here/${entrypoint}"`,
     'if [[ ! -f "$entry" ]]; then',
     "\tprintf 'node_unavailable\\n' >&2",
@@ -67,9 +67,9 @@ export function renderBash(entrypoint: string, names: readonly string[]): string
     "\t;;",
     "esac",
     'if [[ ${#env_args[@]} -gt 0 ]]; then',
-    '\texec /usr/bin/env -i "${env_args[@]}" "$node_bin" --disable-proto=throw "$entry" "$@"',
+    '\texec /usr/bin/env -i "${env_args[@]}" "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"',
     "fi",
-    'exec /usr/bin/env -i "$node_bin" --disable-proto=throw "$entry" "$@"',
+    'exec /usr/bin/env -i "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"',
     "",
   ];
   return lines.join("\n");

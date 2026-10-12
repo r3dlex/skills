@@ -35,10 +35,16 @@ export function main(root = repoRoot(import.meta.url)) {
     const catalogRoot = process.env.SKILLS_CATALOG_ROOT;
     process.env.HOME = home;
     process.env.SKILLS_CATALOG_ROOT = root;
+    const write = process.stdout.write.bind(process.stdout);
+    process.stdout.write = (chunk) => {
+        void chunk;
+        return true;
+    };
     try {
         installGemini(["--link"]);
         installAuggie(["--all"]);
         installCopilot(["--repo", target]);
+        process.stdout.write = write;
         const golden = {
             gemini: hashes(join(home, ".gemini/skills")),
             auggie: hashes(join(home, ".auggie/rules")),
@@ -49,6 +55,7 @@ export function main(root = repoRoot(import.meta.url)) {
         return 0;
     }
     finally {
+        process.stdout.write = write;
         if (previous === undefined) {
             delete process.env.HOME;
         }

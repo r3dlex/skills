@@ -88,13 +88,18 @@ function lockCheck(repo: string): number {
   return errors;
 }
 
+function usage(): number {
+  const argv0 = process.env.SHIM_ARGV0 ?? "";
+  process.stdout.write(`Usage: ${argv0} <repo-path> <golden-dir-path>\n`);
+  process.stdout.write(`Example: ${argv0} /path/to/skills/repo reference/golden-skills\n`);
+  return 1;
+}
+
 export function main(argv: readonly string[]): number {
   const repo = argv[0];
   const golden = argv[1];
   if (repo === undefined || golden === undefined || argv.length !== 2) {
-    process.stdout.write("Usage: verify-golden-dir.sh <repo-path> <golden-dir-path>\n");
-    process.stdout.write("Example: verify-golden-dir.sh /path/to/skills/repo reference/golden-skills\n");
-    return 1;
+    return usage();
   }
   if (!existsSync(golden)) {
     process.stdout.write(`FAIL: Golden directory not found: ${golden}\n`);
