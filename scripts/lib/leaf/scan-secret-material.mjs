@@ -14,6 +14,20 @@ const PATTERNS = [
     /xox[baprs]-[A-Za-z0-9-]{20,}/,
     /AKIA[0-9A-Z]{16}/,
 ];
+function isScannedFile(entry, path) {
+    if (entry.isFile()) {
+        return true;
+    }
+    if (!entry.isSymbolicLink()) {
+        return false;
+    }
+    try {
+        return statSync(path).isFile();
+    }
+    catch {
+        return false;
+    }
+}
 function walk(root) {
     const found = [];
     for (const entry of pyDirents(root)) {
@@ -23,7 +37,7 @@ function walk(root) {
                 found.push(...walk(path));
             }
         }
-        else if (entry.isFile()) {
+        else if (isScannedFile(entry, path)) {
             found.push(path);
         }
     }

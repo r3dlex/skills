@@ -1,4 +1,5 @@
 import { writeFileSync } from "node:fs";
+import { helpRequested, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { CatalogError, loadCatalog, projection, select } from "./catalog-model.mjs";
@@ -66,7 +67,20 @@ function parse(argv, fallbackRoot) {
     const firstUnknown = unknown[0];
     return firstUnknown === undefined ? args : argparseFail(`unrecognized arguments: ${firstUnknown}`);
 }
+const CATALOG_HELP_OPTIONS = [
+    "  -h, --help            show this help message and exit",
+    "  --root ROOT",
+    "  --host HOST",
+    "  --include-lifecycle INCLUDE_LIFECYCLE",
+    "  --skill SKILL",
+    "  --projection PROJECTION",
+    "",
+].join("\n");
 export function main(argv, root = repoRoot(import.meta.url)) {
+    if (helpRequested(argv, OPTIONS)) {
+        writeHelp(USAGE, CATALOG_HELP_OPTIONS);
+        return 0;
+    }
     const parsed = parse(argv, root);
     if (typeof parsed === "number") {
         return parsed;

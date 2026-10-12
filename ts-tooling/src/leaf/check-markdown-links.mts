@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { helpRequested, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { loadCatalog, type CatalogPayload, type SkillEntry } from "./catalog-model.mjs";
@@ -147,7 +148,14 @@ function pyPath(path: string): string {
   return existsSync(absolute) ? realpathSync(absolute) : absolute;
 }
 
-export function main(argv: readonly string[], fallback = repoRoot(import.meta.url)): number {
+const MARKDOWN_HELP_USAGE = "usage: check-markdown-links.py [-h] [--root ROOT] [files ...]\n\npositional arguments:\n  files";
+const MARKDOWN_HELP_OPTIONS = "  -h, --help   show this help message and exit\n  --root ROOT\n";
+
+function readMarkdownArgs(argv: readonly string[], fallback: string): { root: string; files: string[] } | number {
+  if (helpRequested(argv, new Set(["--root"]))) {
+    writeHelp(MARKDOWN_HELP_USAGE, MARKDOWN_HELP_OPTIONS);
+    return 0;
+  }
   let root = fallback;
   const files: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
@@ -166,6 +174,15 @@ export function main(argv: readonly string[], fallback = repoRoot(import.meta.ur
       files.push(flag);
     }
   }
+  return { root, files };
+}
+
+export function main(argv: readonly string[], fallback = repoRoot(import.meta.url)): number {
+  const parsed = readMarkdownArgs(argv, fallback);
+  if (typeof parsed === "number") {
+    return parsed;
+  }
+  const { root, files } = parsed;
   const resolved = pyPath(root);
   const catalog = loadCatalog(resolved);
   const selected = files.length > 0 ? files.map((path) => resolve(path)) : checkedFiles(resolved, catalog);

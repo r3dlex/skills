@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync, type Dirent } from "node:fs";
 import { join } from "node:path";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
@@ -17,6 +17,20 @@ const PATTERNS = [
   /AKIA[0-9A-Z]{16}/,
 ];
 
+function isScannedFile(entry: Dirent, path: string): boolean {
+  if (entry.isFile()) {
+    return true;
+  }
+  if (!entry.isSymbolicLink()) {
+    return false;
+  }
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function walk(root: string): string[] {
   const found: string[] = [];
   for (const entry of pyDirents(root)) {
@@ -25,7 +39,7 @@ function walk(root: string): string[] {
       if (!SKIP.has(entry.name)) {
         found.push(...walk(path));
       }
-    } else if (entry.isFile()) {
+    } else if (isScannedFile(entry, path)) {
       found.push(path);
     }
   }

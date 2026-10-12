@@ -61,5 +61,18 @@
       "exit_code": 0,
       "observed": "PASS=181 FAIL=0 after those comparisons matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains."
     }
+  },
+  "cure4": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "ledger": "Aligned the importer lists with the tracked fixture drivers and recorded importer_target 6255da27afeee8c2e9f3582793e74fbc5ff68bf3. Did not drop a comparison. The anchor ledger schema does not own importers; the empty lists were the false claim.",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=214 FAIL=7 before --help exited 0, before secret scanning followed file symlinks, and before the readme-stamp mask rewrote only audit JSON, audit/backup filenames, stdout, and stderr. Trajectory scaffolding, the missing-schema graph, and the README refusal corpus already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=221 FAIL=0 after those three matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains."
+    }
   }
 }

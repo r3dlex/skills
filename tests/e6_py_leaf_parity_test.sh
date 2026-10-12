@@ -367,6 +367,8 @@ py_case "catalog-query missing host" scripts/catalog-query.py --root "$REPO_ROOT
 py_case "catalog-query unknown flag" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --nope
 py_case "catalog-query missing value" scripts/catalog-query.py --host
 py_case "catalog-query unknown lifecycle" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --include-lifecycle unknown
+py_case "catalog-query help" scripts/catalog-query.py --help
+py_case "catalog-query help short" scripts/catalog-query.py -h
 env_py "catalog-query NODE_OPTIONS" scripts/catalog-query.py --root "$REPO_ROOT" --host codex
 PROJ_L="$(mktemp)"
 PROJ_R="$(mktemp)"
@@ -394,12 +396,16 @@ done
 
 py_case "markdown links repo" scripts/check-markdown-links.py --root "$REPO_ROOT"
 py_case "markdown links unknown flag" scripts/check-markdown-links.py --nope
+py_case "markdown links help" scripts/check-markdown-links.py --help
+py_case "markdown links help short" scripts/check-markdown-links.py -h
 env_py "markdown links NODE_OPTIONS" scripts/check-markdown-links.py --root "$REPO_ROOT"
 py_case "root discovery repo" scripts/check-root-discovery.py
 py_case "root discovery unknown flag" scripts/check-root-discovery.py --nope
 env_py "root discovery NODE_OPTIONS" scripts/check-root-discovery.py
 py_case "skill docs check" scripts/generate-skill-docs.py --check
 py_case "skill docs unknown flag" scripts/generate-skill-docs.py --nope
+py_case "skill docs help" scripts/generate-skill-docs.py --help
+py_case "skill docs help short" scripts/generate-skill-docs.py -h
 env_py "skill docs NODE_OPTIONS" scripts/generate-skill-docs.py --check
 py_case "cascade fixtures" scripts/validate-cascade-fixtures.py
 py_case "cascade fixtures extra arg" scripts/validate-cascade-fixtures.py --nope
@@ -421,6 +427,15 @@ rwatch="$(mktemp -d)"
 marker="$(printf '%s%s%s' '-----BE' 'GIN PRIVATE KEY-' '----')"
 printf '%s\n%s\n' "$marker" fixture >"$SECRET/secret.txt"
 (cd "$SECRET" && HOME="$lwatch" run_pair "scan-secret fixture hit" "$lwatch" "$rwatch")
+link_target="$(mktemp)"
+printf '%s\n%s\n' "$marker" linked >"$link_target"
+ln -s "$link_target" "$SECRET/linked-secret"
+outside_secret="$(mktemp -d)"
+printf '%s\n' "$marker" >"$outside_secret/hidden.txt"
+ln -s "$outside_secret" "$SECRET/dir-link"
+(cd "$SECRET" && HOME="$lwatch" run_pair "scan-secret file symlink" "$lwatch" "$rwatch")
+rm -f "$link_target"
+rm -rf "$outside_secret"
 env_py "scan-secret NODE_OPTIONS" scripts/scan-secret-material.py
 rm -rf "$SECRET"
 
@@ -561,6 +576,28 @@ set +e
 judge "scaffold-eval cafe" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$cafe_l" "$cafe_r"
 rm -rf "$CAFE" "$cafe_l" "$cafe_r"
 rm -f "$lout" "$rout" "$lerr" "$rerr"
+TRAJ="$(mktemp -d)"
+LEFT=(python3 "$WT/04-validate-handoff/eval-a-skill/scaffold-eval.py" --skill traj-target --root "$TRAJ" --kind trajectory)
+RIGHT=(python3 "$REPO_ROOT/04-validate-handoff/eval-a-skill/scaffold-eval.py" --skill traj-target --root "$TRAJ" --kind trajectory)
+traj_l="$(mktemp -d)"
+traj_r="$(mktemp -d)"
+lout="$(mktemp)"
+rout="$(mktemp)"
+lerr="$(mktemp)"
+rerr="$(mktemp)"
+set +e
+"${LEFT[@]}" >"$lout" 2>"$lerr"
+lrc=$?
+cp -R "$TRAJ/." "$traj_l/" 2>/dev/null || true
+rm -rf "$TRAJ"
+mkdir -p "$TRAJ"
+"${RIGHT[@]}" >"$rout" 2>"$rerr"
+rrc=$?
+cp -R "$TRAJ/." "$traj_r/" 2>/dev/null || true
+set +e
+judge "scaffold-eval trajectory" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$traj_l" "$traj_r"
+rm -rf "$TRAJ" "$traj_l" "$traj_r"
+rm -f "$lout" "$rout" "$lerr" "$rerr"
 
 sh_case "verify-golden usage" scripts/verify-golden-dir.sh parity-argv0/verify-golden-dir.sh
 sh_case "verify-golden skills" scripts/verify-golden-dir.sh parity-argv0/verify-golden-dir.sh "$REPO_ROOT" "$REPO_ROOT/reference/golden-skills"
@@ -694,6 +731,13 @@ graph.nodes.push({
 process.stdout.write(JSON.stringify(graph));
 ')"
 trace_graph "traceability_schema unknown node" "$unknown"
+missing_schema="$(node --input-type=module -e '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph.json", "utf8"));
+delete graph.schema_version;
+process.stdout.write(JSON.stringify(graph));
+')"
+trace_graph "traceability_schema missing schema" "$missing_schema"
 
 POLLUTE_REL="reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json"
 POLLUTE_BAK="$(mktemp)"
@@ -830,27 +874,36 @@ mask_readme_stamp() {
 			sed "s/${stamp}/<readme-stamp>/g" "$file" >"$tmp"
 			mv "$tmp" "$file"
 		fi
-	done < <(find "$root" -type f -print)
+	done < <(find "$root" -type f -name 'audit-*.json' -print)
 	while IFS= read -r file; do
 		dest="${file//${stamp}/<readme-stamp>}"
 		if [[ "$dest" != "$file" ]]; then
 			mv "$file" "$dest"
 		fi
-	done < <(find "$root" -name "*${stamp}*" -print)
+	done < <(find "$root" \( -name "audit-*${stamp}*" -o -name "README-${stamp}.bak" \) -print)
 }
 
 probe_stamp_mask_sites() {
-	local root stream before after
+	local root stream stamp before_readme before_notes before_backup
+	local after_readme after_notes after_backup audit
 	root="$(mktemp -d)"
-	mkdir -p "$root/.ai"
-	printf 'keep\n' >"$root/README.md"
-	printf 'stamp 2026-10-12T04-40-28Z-9 here\n' >"$root/.ai/audit-2026-10-12T04-40-28Z-9.json"
-	before="$(shasum -a 256 "$root/README.md" | awk '{print $1}')"
+	mkdir -p "$root/.ai/drift/readme-backups"
+	stamp="2026-10-12T04-40-28Z-9"
+	printf 'keep %s\n' "$stamp" >"$root/README.md"
+	printf 'notes %s\n' "$stamp" >"$root/notes.txt"
+	printf 'backup %s\n' "$stamp" >"$root/.ai/drift/readme-backups/README-${stamp}.bak"
+	printf 'stamp %s here\n' "$stamp" >"$root/.ai/drift/readme-backups/audit-${stamp}.json"
+	before_readme="$(shasum -a 256 "$root/README.md" | awk '{print $1}')"
+	before_notes="$(shasum -a 256 "$root/notes.txt" | awk '{print $1}')"
+	before_backup="$(shasum -a 256 "$root/.ai/drift/readme-backups/README-${stamp}.bak" | awk '{print $1}')"
 	stream="$(mktemp)"
-	printf 'path audit-2026-10-12T04-40-28Z-9.json\n' >"$stream"
+	printf 'path audit-%s.json\n' "$stamp" >"$stream"
 	mask_readme_stamp "$root" "$stream" "$stream"
-	after="$(shasum -a 256 "$root/README.md" | awk '{print $1}')"
-	if [[ "$before" == "$after" && -f "$root/.ai/audit-<readme-stamp>.json" && "$(cat "$stream")" == "path audit-<readme-stamp>.json" ]]; then
+	after_readme="$(shasum -a 256 "$root/README.md" | awk '{print $1}')"
+	after_notes="$(shasum -a 256 "$root/notes.txt" | awk '{print $1}')"
+	after_backup="$(shasum -a 256 "$root/.ai/drift/readme-backups/README-<readme-stamp>.bak" | awk '{print $1}')"
+	audit="$root/.ai/drift/readme-backups/audit-<readme-stamp>.json"
+	if [[ "$before_readme" == "$after_readme" && "$before_notes" == "$after_notes" && "$before_backup" == "$after_backup" && -f "$audit" && "$(cat "$audit")" == "stamp <readme-stamp> here" && "$(cat "$stream")" == "path audit-<readme-stamp>.json" ]]; then
 		ok "readme-stamp mask stays inside stamp sites"
 	else
 		bad "readme-stamp mask stays inside stamp sites"
@@ -994,6 +1047,132 @@ setup_readme_existing() {
 	} >"$root/README.md"
 }
 
+setup_readme_sparse() {
+	local root="$1"
+	printf 'stub\n' >"$root/README.md"
+}
+
+setup_readme_stale() {
+	local root="$1"
+	printf '# Changed behind reviewer\n' >"$root/README.md"
+}
+
+setup_readme_fake() {
+	local root="$1" i
+	{
+		echo "# Fake Project"
+		for i in $(seq 1 30); do
+			echo "Filler line $i to push the file size well over the 600 byte sparse threshold so the classifier treats this as an existing README."
+		done
+		echo
+		echo "## Quick start"
+		echo
+		echo "Run it."
+		echo
+		echo "## Features"
+		echo
+		echo "- one"
+		echo
+		echo "## License"
+		echo
+		echo "MIT"
+		echo
+		echo "[![Fake](https://img.shields.io/badge/license-fake-blue)](LICENSE)"
+	} >"$root/README.md"
+}
+
+setup_readme_public_marker() {
+	local root="$1" i
+	{
+		echo "# Public Project"
+		for i in $(seq 1 30); do
+			echo "Filler line $i to push the file size well over the 600 byte sparse threshold so the classifier treats this as an existing README."
+		done
+		echo
+		echo "## Quick start"
+		echo
+		echo "Run it."
+		echo
+		echo "## Features"
+		echo
+		echo "- one"
+		echo
+		echo "## License"
+		echo
+		echo "MIT"
+		echo
+		echo "internal-only workflows documented here."
+	} >"$root/README.md"
+}
+
+setup_readme_private_signal() {
+	local root="$1" i
+	{
+		echo "# Private Project"
+		for i in $(seq 1 30); do
+			echo "Filler line $i to push the file size well over the 600 byte sparse threshold so the classifier treats this as an existing README."
+		done
+		echo
+		echo "## Quick start"
+		echo
+		echo "Run it."
+		echo
+		echo "## Features"
+		echo
+		echo "- one"
+		echo
+		echo "## License"
+		echo
+		echo "MIT"
+		echo
+		echo "Check our public contributors and star-history here."
+	} >"$root/README.md"
+}
+
+setup_readme_license_conflict() {
+	local root="$1" i
+	printf 'MIT License\n' >"$root/LICENSE"
+	{
+		echo "# Conflicting License Tool"
+		for i in $(seq 1 35); do
+			echo "Existing project fact $i keeps this README non-sparse."
+		done
+		echo
+		echo "## Features"
+		echo
+		echo "- stable output"
+		echo
+		echo "## License"
+		echo
+		echo "Apache-2.0"
+	} >"$root/README.md"
+}
+
+setup_readme_license_badge() {
+	local root="$1" i
+	printf 'MIT License\n' >"$root/LICENSE"
+	{
+		echo "# Conflicting Top-Level License Tool"
+		echo "[![License: GPL 3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)"
+		for i in $(seq 1 35); do
+			echo "Existing project fact $i keeps this README non-sparse."
+		done
+		echo
+		echo "## Features"
+		echo
+		echo "- stable output"
+	} >"$root/README.md"
+}
+
+readme_sha() {
+	local setup="$1" sample sha
+	sample="$(mktemp -d)"
+	"$setup" "$sample"
+	sha="$(shasum -a 256 "$sample/README.md" | awk '{print $1}')"
+	rm -rf "$sample"
+	printf '%s\n' "$sha"
+}
+
 README_FACTS=(
 	--why "Use the CLI to verify one target before continuing."
 	--primary-surface "tool <command>"
@@ -1026,6 +1205,57 @@ for readme_script in scripts/readme-generate.sh 03-configure-generate/ai-catapul
 		"${README_FACTS[@]}" --install-command install-t2 \
 		--first-success-command "t2 doctor" --success-evidence "prints ready" \
 		--source-sha "$existing_sha" --force
+	readme_case "$readme_label overwrite refusal" "$readme_script" setup_readme_existing \
+		--mode template --project T2 --tagline "Second tool" --archetype cli-tool \
+		"${README_FACTS[@]}" --install-command install-t2 \
+		--first-success-command "t2 doctor" --success-evidence "prints ready"
+	readme_case "$readme_label sparse augment" "$readme_script" setup_readme_sparse \
+		--mode augment --project Sparse --tagline "Sparse tool" --archetype cli-tool \
+		"${README_FACTS[@]}" --install-command install-sparse \
+		--first-success-command "sparse doctor" --success-evidence "prints ready"
+	stale_sha="$(printf '%s\n' '# Reviewed README' '' 'Original facts.' | shasum -a 256 | awk '{print $1}')"
+	readme_case "$readme_label stale source SHA" "$readme_script" setup_readme_stale \
+		--mode template --project "Guarded CLI" --tagline "Guarded writes." \
+		--why "Protect reviewed README content from stale overwrites." \
+		--archetype cli-tool --primary-surface "guarded <command>" \
+		--mental-model "A reviewed source hash gates the replacement." \
+		--install-command install-guarded --first-success-command "guarded doctor" \
+		--success-evidence "prints guarded ready" --source-sha "$stale_sha" --force
+	fake_sha="$(readme_sha setup_readme_fake)"
+	readme_case "$readme_label fake badges" "$readme_script" setup_readme_fake \
+		--mode augment --project Fake --tagline "Fake project" --archetype cli-tool \
+		"${README_FACTS[@]}" --install-command install-fake \
+		--first-success-command "fake doctor" --success-evidence "prints ready" \
+		--visibility public --source-sha "$fake_sha"
+	public_sha="$(readme_sha setup_readme_public_marker)"
+	readme_case "$readme_label public visibility refusal" "$readme_script" setup_readme_public_marker \
+		--mode augment --project Public --tagline "Public project" --archetype cli-tool \
+		"${README_FACTS[@]}" --install-command install-public \
+		--first-success-command "public doctor" --success-evidence "prints ready" \
+		--visibility public --source-sha "$public_sha"
+	private_sha="$(readme_sha setup_readme_private_signal)"
+	readme_case "$readme_label private visibility refusal" "$readme_script" setup_readme_private_signal \
+		--mode augment --project Private --tagline "Private project" --archetype cli-tool \
+		"${README_FACTS[@]}" --install-command install-private \
+		--first-success-command "private doctor" --success-evidence "prints ready" \
+		--visibility private --source-sha "$private_sha"
+	conflict_sha="$(readme_sha setup_readme_license_conflict)"
+	readme_case "$readme_label license conflict" "$readme_script" setup_readme_license_conflict \
+		--mode augment --project "Conflicting License Tool" --tagline "Preserves legal truth." \
+		--why "Keep README license claims aligned with the repository license." \
+		--archetype cli-tool --primary-surface "conflict <command>" \
+		--mental-model "The LICENSE file is the source of truth." \
+		--install-command install-conflict --first-success-command "conflict doctor" \
+		--success-evidence "prints ready" --source-sha "$conflict_sha"
+	badge_sha="$(readme_sha setup_readme_license_badge)"
+	readme_case "$readme_label license badge conflict" "$readme_script" setup_readme_license_badge \
+		--mode augment --project "Conflicting Top-Level License Tool" \
+		--tagline "Preserves legal truth everywhere." \
+		--why "Keep every README license claim aligned with the repository license." \
+		--archetype cli-tool --primary-surface "outside-conflict <command>" \
+		--mental-model "The LICENSE file is the source of truth." \
+		--install-command install-outside-conflict --first-success-command "outside-conflict doctor" \
+		--success-evidence "prints ready" --source-sha "$badge_sha"
 done
 
 readme_restricted() {

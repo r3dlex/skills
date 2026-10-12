@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { helpRequested, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { loadCatalog, type SkillEntry } from "./catalog-model.mjs";
@@ -67,7 +68,13 @@ function phaseReadme(root: string, phase: string, skills: readonly SkillEntry[])
   return lines.join("\n");
 }
 
+const DOCS_HELP_OPTIONS = "  -h, --help  show this help message and exit\n  --check\n";
+
 export function main(argv: readonly string[], root = repoRoot(import.meta.url)): number {
+  if (helpRequested(argv, new Set())) {
+    writeHelp("usage: generate-skill-docs.py [-h] [--check]", DOCS_HELP_OPTIONS);
+    return 0;
+  }
   const flagged = argv.find((flag) => flag !== "--check");
   if (flagged !== undefined) {
     process.stderr.write(`usage: generate-skill-docs.py [-h] [--check]\ngenerate-skill-docs.py: error: unrecognized arguments: ${flagged}\n`);

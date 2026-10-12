@@ -3,15 +3,18 @@
   "retired": [
     {
       "path": "scripts/catalog.py",
-      "importers": []
+      "importers": ["tests/fixtures/e6-py-leaf/catalog_driver.py"],
+      "importer_target": "6255da27afeee8c2e9f3582793e74fbc5ff68bf3"
     },
     {
       "path": "scripts/traceability_schema.py",
-      "importers": []
+      "importers": ["tests/fixtures/e6-py-leaf/trace_driver.py"],
+      "importer_target": "6255da27afeee8c2e9f3582793e74fbc5ff68bf3"
     },
     {
       "path": "scripts/validate_skill_frontmatter.py",
-      "importers": []
+      "importers": ["tests/fixtures/e6-py-leaf/frontmatter_driver.py"],
+      "importer_target": "6255da27afeee8c2e9f3582793e74fbc5ff68bf3"
     }
   ],
   "base": "c886433d8950e5b4cb5563d02933b82644edf194",
