@@ -410,6 +410,7 @@ py_case "catalog-query codex" scripts/catalog-query.py --root "$REPO_ROOT" --hos
 py_case "catalog-query missing host" scripts/catalog-query.py --root "$REPO_ROOT"
 py_case "catalog-query unknown flag" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --nope
 py_case "catalog-query missing value" scripts/catalog-query.py --host
+py_case "catalog-query host option-like" scripts/catalog-query.py --host --nope
 py_case "catalog-query unknown lifecycle" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --include-lifecycle unknown
 py_case "catalog-query help" scripts/catalog-query.py --help
 py_case "catalog-query help short" scripts/catalog-query.py -h
@@ -1567,6 +1568,8 @@ py_case "scaffold missing skill value" 04-validate-handoff/eval-a-skill/scaffold
 py_case "scaffold missing kind value" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample-target --kind
 py_case "scaffold missing root value" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample-target --root
 py_case "scaffold bad kind" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample-target --kind nope
+py_case "scaffold skill option-like" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill --nope
+py_case "scaffold kind option-like" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample --kind --nope
 
 scaffold_rerun() {
 	local root lsnap rsnap lout rout lerr rerr lrc rrc
@@ -1687,7 +1690,7 @@ mask_checkout_root() {
 	mv "$tmp" "$stream"
 }
 cascade_refuse() {
-	local label="$1" rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
+	local label="$1" mode="${2:-schema}" rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
 	rel="reference/fixtures/v3/standalone/.ai/cascade/cascade-plan.json"
 	bak="$(mktemp)"
 	wt_bak="$(mktemp)"
@@ -1695,12 +1698,17 @@ cascade_refuse() {
 	cp "$WT/$rel" "$wt_bak"
 	node -e '
 const fs = require("fs");
-for (const path of process.argv.slice(1)) {
+const mode = process.argv[1];
+for (const path of process.argv.slice(2)) {
   const plan = JSON.parse(fs.readFileSync(path, "utf8"));
-  plan.schema_version = "9.9";
+  if (mode === "safety") {
+    plan.safety.no_first_run_apply_without_confirmation = false;
+  } else {
+    plan.schema_version = "9.9";
+  }
   fs.writeFileSync(path, JSON.stringify(plan, null, 2) + "\n");
 }
-' "$REPO_ROOT/$rel" "$WT/$rel"
+' "$mode" "$REPO_ROOT/$rel" "$WT/$rel"
 	lout="$(mktemp)"
 	rout="$(mktemp)"
 	lerr="$(mktemp)"
@@ -1725,6 +1733,7 @@ for (const path of process.argv.slice(1)) {
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
 }
 cascade_refuse "cascade invalid schema_version"
+cascade_refuse "cascade safety confirmation false" safety
 
 setup_readme_encoded_apache() {
 	local root="$1" i

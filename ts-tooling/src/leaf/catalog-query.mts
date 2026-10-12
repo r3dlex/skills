@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import { helpRequested, writeHelp } from "./argparse-help.mjs";
+import { helpRequested, optionLike, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { CatalogError, loadCatalog, projection, select } from "./catalog-model.mjs";
@@ -60,6 +60,10 @@ function splitEquals(token: string): { flag: string; inline?: string } {
   return { flag: token };
 }
 
+function missingArgument(inline: string | undefined, next: string | undefined): boolean {
+  return inline === undefined && (next === undefined || optionLike(next));
+}
+
 function parse(argv: readonly string[], fallbackRoot: string): QueryArgs | number {
   const args: QueryArgs = { root: fallbackRoot, lifecycles: [] };
   const unknown: string[] = [];
@@ -72,10 +76,11 @@ function parse(argv: readonly string[], fallbackRoot: string): QueryArgs | numbe
       continue;
     }
     const inline = parts.inline;
-    const value = inline !== undefined ? inline : argv[index + 1];
-    if (value === undefined) {
+    const next = argv[index + 1];
+    if (missingArgument(inline, next)) {
       return argparseFail(`argument ${flag}: expected one argument`);
     }
+    const value = inline ?? next;
     if (!take(args, flag, value)) {
       return argparseFail(`unrecognized arguments: ${flag}`);
     }

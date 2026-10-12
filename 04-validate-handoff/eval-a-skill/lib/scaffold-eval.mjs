@@ -79,7 +79,7 @@ export function main(argv) {
     for (let index = 0; index < argv.length; index += 1) {
         const flag = argv[index];
         const value = argv[index + 1];
-        if ((flag === "--skill" || flag === "--root" || flag === "--kind") && value === undefined) {
+        if ((flag === "--skill" || flag === "--root" || flag === "--kind") && (value === undefined || (value.length > 1 && value.startsWith("-") && !/^-\d+(\.\d*)?$|^-\.\d+$/.test(value)))) {
             process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument ${flag}: expected one argument\n`);
             return 2;
         }

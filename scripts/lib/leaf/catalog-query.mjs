@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import { helpRequested, writeHelp } from "./argparse-help.mjs";
+import { helpRequested, optionLike, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { CatalogError, loadCatalog, projection, select } from "./catalog-model.mjs";
@@ -50,6 +50,9 @@ function splitEquals(token) {
     }
     return { flag: token };
 }
+function missingArgument(inline, next) {
+    return inline === undefined && (next === undefined || optionLike(next));
+}
 function parse(argv, fallbackRoot) {
     const args = { root: fallbackRoot, lifecycles: [] };
     const unknown = [];
@@ -62,10 +65,11 @@ function parse(argv, fallbackRoot) {
             continue;
         }
         const inline = parts.inline;
-        const value = inline !== undefined ? inline : argv[index + 1];
-        if (value === undefined) {
+        const next = argv[index + 1];
+        if (missingArgument(inline, next)) {
             return argparseFail(`argument ${flag}: expected one argument`);
         }
+        const value = inline ?? next;
         if (!take(args, flag, value)) {
             return argparseFail(`unrecognized arguments: ${flag}`);
         }

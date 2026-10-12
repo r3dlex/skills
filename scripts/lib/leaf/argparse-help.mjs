@@ -6,6 +6,11 @@ export function optionHeading() {
     });
     return probed.stdout.trim() === "0" ? "options:" : "optional arguments:";
 }
+const NEGATIVE_NUMBER = /^-\d+(\.\d*)?$|^-\.\d+$/;
+// Argparse will not consume a following token that parses as an optional.
+export function optionLike(token) {
+    return token !== undefined && token.length > 1 && token.startsWith("-") && !NEGATIVE_NUMBER.test(token);
+}
 export function helpRequested(argv, takesValue) {
     let skip = false;
     for (const flag of argv) {

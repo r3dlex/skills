@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { pyJsonDumps } from "./py-repr.mjs";
 import { join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
-import { helpRequested, optionHeading } from "./argparse-help.mjs";
+import { helpRequested, optionHeading, optionLike } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 
@@ -126,6 +126,10 @@ function takeScaffold(args: ScaffoldArgs, flag: string | undefined, value: strin
   return undefined;
 }
 
+function missingScaffoldArgument(flag: string | undefined, value: string | undefined): boolean {
+  return flag !== undefined && SCAFFOLD_VALUES.has(flag) && (value === undefined || optionLike(value));
+}
+
 function parseScaffold(argv: readonly string[]): { skill: string; root: string; kind: string } | number {
   if (helpRequested(argv, SCAFFOLD_VALUES)) {
     writeScaffoldHelp();
@@ -135,7 +139,7 @@ function parseScaffold(argv: readonly string[]): { skill: string; root: string; 
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (flag !== undefined && SCAFFOLD_VALUES.has(flag) && value === undefined) {
+    if (missingScaffoldArgument(flag, value)) {
       return scaffoldFail(`argument ${flag}: expected one argument`);
     }
     const taken = takeScaffold(args, flag, value);

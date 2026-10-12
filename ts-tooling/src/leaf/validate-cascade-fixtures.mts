@@ -25,6 +25,42 @@ function pythonShowsCarets(): boolean {
   return probed.stdout.trim() === "0";
 }
 
+function safetyTraceback(root: string): string {
+  const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
+  const carets = pythonShowsCarets();
+  const lines = [
+    "Traceback (most recent call last):",
+    `  File "${script}", line 163, in <module>`,
+    "    sys.exit(main())",
+  ];
+  if (carets) {
+    lines.push("             ^^^^^^");
+  }
+  lines.push(
+    `  File "${script}", line 148, in main`,
+    "    validate_fixture(fixture, repo_id)",
+    `  File "${script}", line 63, in validate_fixture`,
+    "    assert plan[\"safety\"][\"no_first_run_apply_without_confirmation\"] is True",
+  );
+  if (carets) {
+    lines.push("           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+  }
+  lines.push("AssertionError");
+  return lines.join("\n");
+}
+
+function firstRunUnconfirmed(plan: Record<string, unknown>): boolean {
+  const safety = plan.safety;
+  if (safety === null || typeof safety !== "object") {
+    return false;
+  }
+  const record = safety as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(record, "no_first_run_apply_without_confirmation")) {
+    return false;
+  }
+  return record.no_first_run_apply_without_confirmation !== true;
+}
+
 function schemaTraceback(root: string): string {
   const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
   const carets = pythonShowsCarets();
@@ -79,15 +115,22 @@ function checkAdapter(adapter: Record<string, unknown>, host: string, standalone
   }
 }
 
-function validateFixture(root: string, name: string, repoId: string): void {
-  const fixture = join(root, "reference/fixtures/v3", name);
-  const plan = readJson(join(fixture, ".ai/cascade/cascade-plan.json"));
+function refuseInvalidPlan(root: string, name: string, repoId: string, plan: Record<string, unknown>): void {
   if (plan.schema_version !== "1.0") {
     fail(schemaTraceback(root));
   }
   if (plan.root_repo_id !== repoId) {
     fail(`invalid cascade plan for ${name}`);
   }
+  if (firstRunUnconfirmed(plan)) {
+    fail(safetyTraceback(root));
+  }
+}
+
+function validateFixture(root: string, name: string, repoId: string): void {
+  const fixture = join(root, "reference/fixtures/v3", name);
+  const plan = readJson(join(fixture, ".ai/cascade/cascade-plan.json"));
+  refuseInvalidPlan(root, name, repoId, plan);
   const matrix = readJson(join(fixture, ".ai/matrix.json"));
   const standalone = matrix.topology_type === "standalone";
   for (const host of HOSTS) {

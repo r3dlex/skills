@@ -98,5 +98,17 @@
       "exit_code": 0,
       "observed": "PASS=363 FAIL=0 after those refusals matched the publication anchor on status and streams. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure7": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=363 FAIL=4 before a plan with safety.no_first_run_apply_without_confirmation false was refused, and before --skill --nope, --kind --nope, and --host --nope matched the anchor diagnostic. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=367 FAIL=0 after those refusals matched the publication anchor on status and streams. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }
