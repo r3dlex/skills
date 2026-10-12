@@ -37,5 +37,17 @@
     "scripts/verify-golden-dir.sh",
     "04-validate-handoff/eval-a-skill/scaffold-eval.py",
     "03-configure-generate/ai-catapult-init/scripts/readme-generate.sh"
-  ]
+  ],
+  "cure": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=109 FAIL=27 before symlink targets were compared and while each red leg still fabricated status 9. The added traceability, polluted-package, catalog, frontmatter, and catalog-install comparisons already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=136 FAIL=0 after tree comparison included symlink targets and each red leg ran the TypeScript candidate. Recorded candidate statuses were 0, 1, or 2; none was a fabricated 9. Comparator failures were real candidate divergences or a one-byte seed of that candidate's captured stdout."
+    }
+  }
 }

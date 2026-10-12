@@ -25,6 +25,12 @@ fi
 WT="$(mktemp -d)"
 git worktree add --detach "$WT" "$ANCHOR" >/dev/null
 cleanup() {
+	if [[ -n "${POLLUTE_BAK:-}" && -f "${POLLUTE_BAK}" && -n "${POLLUTE_REL:-}" ]]; then
+		cp "$POLLUTE_BAK" "$REPO_ROOT/$POLLUTE_REL"
+	fi
+	if [[ -n "${GOLDEN_GUARD:-}" && -f "${GOLDEN_GUARD}" ]]; then
+		cp "$GOLDEN_GUARD" "$REPO_ROOT/tests/fixtures/host-default-golden.json"
+	fi
 	git worktree remove --force "$WT" >/dev/null 2>&1 || true
 	rm -rf "$WT"
 }
@@ -52,25 +58,65 @@ else
 	ok "bad sha256 is refused"
 fi
 
+manifest_tree() {
+	local root="$1" out="$2"
+	if [[ ! -d "$root" ]]; then
+		: >"$out"
+		return
+	fi
+	(
+		cd "$root" || exit 1
+		find . \( -type f -o -type l \) ! -name '*.pyc' ! -path '*/__pycache__/*' ! -path '*/Library/*' ! -path '*/.npm/*' ! -path '*/.cache/*' | sort | while IFS= read -r name; do
+			if [[ -L "$name" ]]; then
+				printf 'link %s -> %s\n' "$name" "$(readlink "$name")"
+			else
+				shasum -a 256 "$name"
+			fi
+		done
+	) >"$out"
+}
+
 tree_same() {
 	local left="$1" right="$2" lmanifest rmanifest
 	lmanifest="$(mktemp)"
 	rmanifest="$(mktemp)"
-	if [[ -d "$left" ]]; then
-		(cd "$left" && find . -type f ! -name '*.pyc' ! -path '*/__pycache__/*' ! -path '*/Library/*' ! -path '*/.npm/*' ! -path '*/.cache/*' | sort | while IFS= read -r name; do
-			shasum -a 256 "$name"
-		done) >"$lmanifest"
-	fi
-	if [[ -d "$right" ]]; then
-		(cd "$right" && find . -type f ! -name '*.pyc' ! -path '*/__pycache__/*' ! -path '*/Library/*' ! -path '*/.npm/*' ! -path '*/.cache/*' | sort | while IFS= read -r name; do
-			shasum -a 256 "$name"
-		done) >"$rmanifest"
-	fi
+	manifest_tree "$left" "$lmanifest"
+	manifest_tree "$right" "$rmanifest"
 	cmp -s "$lmanifest" "$rmanifest"
 	local rc=$?
 	rm -f "$lmanifest" "$rmanifest"
 	return "$rc"
 }
+
+probe_symlink_oracle() {
+	local left right
+	left="$(mktemp -d)"
+	right="$(mktemp -d)"
+	printf 'same\n' >"$left/file"
+	printf 'same\n' >"$right/file"
+	ln -s file "$left/link"
+	ln -s file "$right/link"
+	if tree_same "$left" "$right"; then
+		ok "matching symlink targets compare equal"
+	else
+		bad "matching symlink targets compare equal"
+	fi
+	rm "$right/link"
+	ln -s other "$right/link"
+	if tree_same "$left" "$right"; then
+		bad "symlink target divergence is invisible"
+	else
+		ok "symlink target divergence is detected"
+	fi
+	rm "$right/link"
+	if tree_same "$left" "$right"; then
+		bad "missing symlink is invisible"
+	else
+		ok "missing symlink is detected"
+	fi
+	rm -rf "$left" "$right"
+}
+probe_symlink_oracle
 
 refused() {
 	local err="$1"
@@ -86,14 +132,27 @@ invoke_sh() {
 }
 
 # compare_pair label left_cmd...  --- right_cmd... with watches in $LWATCH $RWATCH
+same_outputs() {
+	local lrc="$1" rrc="$2" lout="$3" rout="$4" lerr="$5" rerr="$6" lwatch="$7" rwatch="$8"
+	[[ "$lrc" -eq "$rrc" ]] && cmp -s "$lout" "$rout" && cmp -s "$lerr" "$rerr" && tree_same "$lwatch" "$rwatch"
+}
+
 judge() {
-	local label="$1" lrc="$2" rrc="$3" lout="$4" rout="$5" lerr="$6" rerr="$7" lwatch="$8" rwatch="$9"
-	if [[ "$lrc" -eq "$rrc" ]] && cmp -s "$lout" "$rout" && cmp -s "$lerr" "$rerr" && tree_same "$lwatch" "$rwatch"; then
+	local label="$1" lrc="$2" rrc="$3" lout="$4" rout="$5" lerr="$6" rerr="$7" lwatch="$8" rwatch="$9" expect="${10:-}"
+	if same_outputs "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"; then
+		if [[ "$expect" == expect-diverge ]]; then
+			bad "$label comparator accepted the candidate"
+			return 1
+		fi
 		if refused "$rerr" || refused "$rout"; then
 			bad "$label ended in a node refusal"
 			return 1
 		fi
 		ok "$label"
+		return 0
+	fi
+	if [[ "$expect" == expect-diverge ]]; then
+		ok "$label comparator failed"
 		return 0
 	fi
 	bad "$label legacy=$lrc ts=$rrc"
@@ -172,33 +231,84 @@ env_sh() {
 	unset NODE_OPTIONS
 }
 
+run_legacy_tool() {
+	local path="$1" watch="$2" out="$3" err="$4"
+	shift 4
+	if [[ "$path" == *.py ]]; then
+		HOME="$watch" python3 "$WT/$path" "$@" >"$out" 2>"$err"
+	else
+		HOME="$watch" invoke_sh "parity-argv0/$(basename "$path")" "$WT/$path" "$@" >"$out" 2>"$err"
+	fi
+}
+
+run_ts_candidate() {
+	local path="$1" watch="$2" out="$3" err="$4"
+	shift 4
+	local fix="$REPO_ROOT/tests/fixtures/e6-py-leaf"
+	case "$path" in
+		scripts/catalog.py)
+			HOME="$watch" node "$fix/catalog_port.mjs" "$REPO_ROOT" >"$out" 2>"$err"
+			;;
+		scripts/traceability_schema.py)
+			HOME="$watch" node "$fix/trace_port.mjs" '{"schema_version":"1.1","nodes":[],"edges":[]}' >"$out" 2>"$err"
+			;;
+		scripts/validate_skill_frontmatter.py)
+			HOME="$watch" node "$fix/frontmatter_port.mjs" "$REPO_ROOT/03-configure-generate/ai-catapult-init/SKILL.md" >"$out" 2>"$err"
+			;;
+		*.py)
+			HOME="$watch" python3 "$REPO_ROOT/$path" "$@" >"$out" 2>"$err"
+			;;
+		*)
+			HOME="$watch" invoke_sh "parity-argv0/$(basename "$path")" "$REPO_ROOT/$path" "$@" >"$out" 2>"$err"
+			;;
+	esac
+}
+
 red_leg() {
 	local label="$1" path="$2"
 	pin "$path" || return
-	local lwatch rwatch lout rout lerr rerr lrc rrc
+	local lwatch rwatch lout rout lerr rerr lrc rrc seeded repo_l repo_r
 	lwatch="$(mktemp -d)"
 	rwatch="$(mktemp -d)"
 	lout="$(mktemp)"
 	rout="$(mktemp)"
 	lerr="$(mktemp)"
 	rerr="$(mktemp)"
+	repo_l=""
+	repo_r=""
+	# install-copilot with no args writes beside the catalog root. Bound both
+	# runs to a directory inside the watch so the candidate still runs.
+	if [[ "$path" == scripts/install-copilot.sh ]]; then
+		repo_l="$lwatch/repo"
+		repo_r="$rwatch/repo"
+		mkdir -p "$repo_l" "$repo_r"
+	fi
 	set +e
-	if [[ "$path" == *.py ]]; then
-		HOME="$lwatch" python3 "$WT/$path" >"$lout" 2>"$lerr"
+	if [[ -n "$repo_l" ]]; then
+		run_legacy_tool "$path" "$lwatch" "$lout" "$lerr" --repo "$repo_l"
 	else
-		HOME="$lwatch" invoke_sh "parity-argv0/$(basename "$path")" "$WT/$path" >"$lout" 2>"$lerr"
+		run_legacy_tool "$path" "$lwatch" "$lout" "$lerr"
 	fi
 	lrc=$?
-	printf 'seeded-divergence\n' >"$rout"
-	printf 'seeded\n' >"$rerr"
-	printf 'seeded\n' >"$rwatch/diverged"
-	rrc=9
-	set +e
-	if [[ "$lrc" -eq "$rrc" ]] && cmp -s "$lout" "$rout" && cmp -s "$lerr" "$rerr" && tree_same "$lwatch" "$rwatch"; then
-		bad "$label red-leg missed a seeded divergence"
+	if [[ -n "$repo_r" ]]; then
+		run_ts_candidate "$path" "$rwatch" "$rout" "$rerr" --repo "$repo_r"
 	else
-		ok "$label red-leg detects a seeded divergence"
+		run_ts_candidate "$path" "$rwatch" "$rout" "$rerr"
 	fi
+	rrc=$?
+	set +e
+	if [[ "$rrc" -eq 9 ]]; then
+		bad "$label red-leg fabricated status 9"
+		rm -rf "$lwatch" "$rwatch"
+		rm -f "$lout" "$rout" "$lerr" "$rerr"
+		return
+	fi
+	seeded=0
+	if same_outputs "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"; then
+		printf 'x' >>"$rout"
+		seeded=1
+	fi
+	judge "$label red-leg status=$rrc seeded=$seeded" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch" expect-diverge
 	rm -rf "$lwatch" "$rwatch"
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
 }
@@ -238,10 +348,15 @@ PATHS=(
 	04-validate-handoff/eval-a-skill/scaffold-eval.py
 	03-configure-generate/ai-catapult-init/scripts/readme-generate.sh
 )
+GOLDEN_GUARD="$(mktemp)"
+cp "$REPO_ROOT/tests/fixtures/host-default-golden.json" "$GOLDEN_GUARD"
 for path in "${PATHS[@]}"; do
 	pin "$path" || true
 	red_leg "$path" "$path"
+	cp "$GOLDEN_GUARD" "$REPO_ROOT/tests/fixtures/host-default-golden.json"
 done
+rm -f "$GOLDEN_GUARD"
+unset GOLDEN_GUARD
 
 py_case "catalog-query codex" scripts/catalog-query.py --root "$REPO_ROOT" --host codex
 py_case "catalog-query missing host" scripts/catalog-query.py --root "$REPO_ROOT"
@@ -531,12 +646,165 @@ rerr="$(mktemp)"
 set +e
 bash -c 'set -euo pipefail; SCRIPT_DIR="$1"; SKILLS_DIR="$2"; source "$SCRIPT_DIR/catalog-install.sh"; parse_catalog_args --include-lifecycle nope' bash "$WT/scripts" "$REPO_ROOT" >"$lout" 2>"$lerr"
 lrc=$?
-node "$FIX/install_port.mjs" >"$rout" 2>"$rerr"
+node "$FIX/install_port.mjs" --include-lifecycle nope >"$rout" 2>"$rerr"
 rrc=$?
 set +e
 judge "catalog-install unknown lifecycle" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
 rm -f "$lout" "$rout" "$lerr" "$rerr"
 rm -rf "$lwatch" "$rwatch"
+
+module_case() {
+	local label="$1" lwatch rwatch
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	run_pair "$label" "$lwatch" "$rwatch"
+	rm -rf "$lwatch" "$rwatch"
+}
+
+trace_graph() {
+	local label="$1" graph="$2"
+	LEFT=(env PYTHONPATH="$WT/scripts" python3 "$FIX/trace_driver.py" "$graph")
+	RIGHT=(node "$FIX/trace_port.mjs" "$graph")
+	module_case "$label"
+}
+
+for fixture in standalone umbrella; do
+	for name in graph.json graph-1.1.json; do
+		ver="v1.0"
+		[[ "$name" == "graph-1.1.json" ]] && ver="v1.1"
+		graph="$(cat "$REPO_ROOT/reference/fixtures/v3/$fixture/.ai/traceability/$name")"
+		trace_graph "traceability_schema $ver $fixture" "$graph"
+	done
+done
+unknown="$(python3 - <<'PY'
+import json
+from pathlib import Path
+graph = json.loads(Path("reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json").read_text())
+graph["nodes"].append({
+    "id": "bogus:standalone-root:nope",
+    "type": "bogus-type",
+    "title": "unknown type",
+    "status": "active",
+    "repo_id": "standalone-root",
+    "path": "README.md",
+})
+print(json.dumps(graph))
+PY
+)"
+trace_graph "traceability_schema unknown node" "$unknown"
+
+POLLUTE_REL="reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json"
+POLLUTE_BAK="$(mktemp)"
+wt_bak="$(mktemp)"
+cp "$REPO_ROOT/$POLLUTE_REL" "$POLLUTE_BAK"
+cp "$WT/$POLLUTE_REL" "$wt_bak"
+python3 - "$REPO_ROOT/$POLLUTE_REL" "$WT/$POLLUTE_REL" <<'PY'
+import json
+import sys
+for path in sys.argv[1:]:
+    graph = json.loads(open(path).read())
+    graph["nodes"].append({
+        "id": "bogus:standalone-root:shipped",
+        "type": "definitely-not-a-type",
+        "title": "x",
+        "status": "active",
+        "repo_id": "standalone-root",
+        "path": "README.md",
+    })
+    open(path, "w").write(json.dumps(graph, indent=2) + "\n")
+PY
+LEFT=(python3 "$WT/scripts/validate-final-package.py")
+RIGHT=(python3 "$REPO_ROOT/scripts/validate-final-package.py")
+module_case "final package polluted unknown node"
+cp "$POLLUTE_BAK" "$REPO_ROOT/$POLLUTE_REL"
+cp "$wt_bak" "$WT/$POLLUTE_REL"
+rm -f "$POLLUTE_BAK" "$wt_bak"
+unset POLLUTE_BAK
+
+catalog_pair() {
+	local label="$1" mode="$2" root="$3" with_env="${4:-}"
+	if [[ -n "$with_env" ]]; then
+		LEFT=(env PYTHONPATH="$WT/scripts" NODE_OPTIONS=--throw-deprecation python3 "$FIX/catalog_driver.py" "$root" "$mode")
+		RIGHT=(env NODE_OPTIONS=--throw-deprecation node "$FIX/catalog_port.mjs" "$root" "$mode")
+	else
+		LEFT=(env PYTHONPATH="$WT/scripts" python3 "$FIX/catalog_driver.py" "$root" "$mode")
+		RIGHT=(node "$FIX/catalog_port.mjs" "$root" "$mode")
+	fi
+	module_case "$label"
+}
+catalog_pair "catalog unknown host" unknown-host "$REPO_ROOT"
+catalog_pair "catalog unknown lifecycle" unknown-lifecycle "$REPO_ROOT"
+catalog_pair "catalog NODE_OPTIONS" select "$REPO_ROOT" env
+BADCAT="$(mktemp -d)"
+mkdir -p "$BADCAT/skill"
+cp "$REPO_ROOT/tests/fixtures/catalog-malformed/entry-not-object.json" "$BADCAT/catalog.json"
+catalog_pair "catalog malformed entry" load "$BADCAT"
+catalog_pair "catalog malformed NODE_OPTIONS" load "$BADCAT" env
+rm -rf "$BADCAT"
+
+fm_pair() {
+	local label="$1" path="$2" with_env="${3:-}"
+	if [[ -n "$with_env" ]]; then
+		LEFT=(env PYTHONPATH="$WT/scripts" NODE_OPTIONS=--throw-deprecation python3 "$FIX/frontmatter_driver.py" "$path")
+		RIGHT=(env NODE_OPTIONS=--throw-deprecation node "$FIX/frontmatter_port.mjs" "$path")
+	else
+		LEFT=(env PYTHONPATH="$WT/scripts" python3 "$FIX/frontmatter_driver.py" "$path")
+		RIGHT=(node "$FIX/frontmatter_port.mjs" "$path")
+	fi
+	module_case "$label"
+}
+NOFM="$(mktemp)"
+UNCLOSED="$(mktemp)"
+QUOTED="$(mktemp)"
+printf 'no frontmatter\n' >"$NOFM"
+printf '%s\n' '---' 'name: open' >"$UNCLOSED"
+printf '%s\n' '---' "name: 'quoted'" '---' >"$QUOTED"
+fm_pair "frontmatter missing delimiter" "$NOFM"
+fm_pair "frontmatter unclosed" "$UNCLOSED"
+fm_pair "frontmatter quoted name" "$QUOTED"
+fm_pair "frontmatter NODE_OPTIONS" "$SKILL_MD" env
+fm_pair "frontmatter missing delimiter NODE_OPTIONS" "$NOFM" env
+rm -f "$NOFM" "$UNCLOSED" "$QUOTED"
+
+install_pair() {
+	local label="$1"
+	shift
+	local lwatch rwatch lout rout lerr rerr lrc rrc
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	bash -c 'set -euo pipefail; SCRIPT_DIR="$1"; shift; source "$SCRIPT_DIR/catalog-install.sh"; parse_catalog_args "$@"' bash "$WT/scripts" "$@" >"$lout" 2>"$lerr"
+	lrc=$?
+	bash "$REPO_ROOT/scripts/catalog-install.sh" "$@" >"$rout" 2>"$rerr"
+	rrc=$?
+	set +e
+	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+	rm -rf "$lwatch" "$rwatch"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+install_pair "catalog-install missing value" --include-lifecycle
+install_pair "catalog-install unknown lifecycle shim" --include-lifecycle nope
+NODE_OPTIONS=--throw-deprecation install_pair "catalog-install NODE_OPTIONS" --include-lifecycle nope
+unset NODE_OPTIONS
+lout="$(mktemp)"
+rout="$(mktemp)"
+lerr="$(mktemp)"
+rerr="$(mktemp)"
+lwatch="$(mktemp -d)"
+rwatch="$(mktemp -d)"
+set +e
+bash -c 'set -euo pipefail; SCRIPT_DIR="$1"; shift; source "$SCRIPT_DIR/catalog-install.sh"; parse_catalog_args "$@"' bash "$WT/scripts" --include-lifecycle >"$lout" 2>"$lerr"
+lrc=$?
+env NODE_OPTIONS=--throw-deprecation node "$FIX/install_port.mjs" --include-lifecycle >"$rout" 2>"$rerr"
+rrc=$?
+set +e
+judge "catalog-install port missing value NODE_OPTIONS" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+rm -rf "$lwatch" "$rwatch"
+rm -f "$lout" "$rout" "$lerr" "$rerr"
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
