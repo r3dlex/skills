@@ -30,6 +30,10 @@ export function helpRequested(argv: readonly string[], takesValue: ReadonlySet<s
       skip = false;
       continue;
     }
+    // Argparse stops option scanning at the first bare --.
+    if (flag === "--") {
+      return false;
+    }
     if (takesValue.has(flag)) {
       skip = true;
       continue;

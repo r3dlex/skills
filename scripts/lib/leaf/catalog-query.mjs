@@ -1,4 +1,7 @@
-import { writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { helpRequested, optionLike, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
@@ -63,6 +66,58 @@ function resolveOption(flag) {
 function missingArgument(inline, next) {
     return inline === undefined && (next === undefined || optionLike(next));
 }
+function isEnoent(error) {
+    return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+function projectionProbe() {
+    const pad = Array.from({ length: 12 }, () => "    x = 1");
+    const lines = [
+        "import json, sys",
+        "from pathlib import Path",
+        "payload = {'schema_version': '1.0', 'skills': []}",
+        "entries = []",
+        "def projection(payload, entries):",
+        "    return {'schema_version': payload['schema_version'], 'skills': list(entries)}",
+        "class Args: pass",
+        "args = Args()",
+        "args.projection = sys.argv[1]",
+        "def main() -> int:",
+        ...pad,
+        "    if args.projection:",
+        "        Path(args.projection).write_text(json.dumps(projection(payload, entries), indent=2, ensure_ascii=False) + \"\\n\", encoding=\"utf-8\")",
+        "    for entry in entries:",
+        "        print(f\"{entry['name']}\\t{entry['source_path']}\")",
+        "    return 0",
+        "if __name__ == \"__main__\": raise SystemExit(main())",
+    ];
+    return `${lines.join("\n")}\n`;
+}
+function projectionMissing(root, projectionPath) {
+    const dir = mkdtempSync(join(tmpdir(), "catalog-query-"));
+    const probe = join(dir, "probe.py");
+    try {
+        writeFileSync(probe, projectionProbe());
+        const ran = spawnSync("python3", [probe, projectionPath], { encoding: "utf8" });
+        const script = join(realpathSync(root), "scripts/catalog-query.py");
+        return ran.stderr.replaceAll(probe, script);
+    }
+    finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+}
+function writeProjection(path, text, root) {
+    try {
+        writeFileSync(path, text);
+        return 0;
+    }
+    catch (error) {
+        if (!isEnoent(error)) {
+            throw error;
+        }
+        process.stderr.write(projectionMissing(root, path));
+        return 1;
+    }
+}
 function parse(argv, fallbackRoot) {
     const args = { root: fallbackRoot, lifecycles: [] };
     const unknown = [];
@@ -101,6 +156,20 @@ const CATALOG_HELP_OPTIONS = [
     "  --projection PROJECTION",
     "",
 ].join("\n");
+function emitQuery(parsed, root) {
+    const payload = loadCatalog(parsed.root);
+    const entries = select(payload, parsed.host ?? "", new Set(parsed.lifecycles), parsed.skill);
+    if (parsed.projection) {
+        const wrote = writeProjection(parsed.projection, `${JSON.stringify(projection(payload, entries), null, 2)}\n`, root);
+        if (wrote !== 0) {
+            return wrote;
+        }
+    }
+    for (const entry of entries) {
+        process.stdout.write(`${entry.name}\t${entry.source_path}\n`);
+    }
+    return 0;
+}
 export function main(argv, root = repoRoot(import.meta.url)) {
     if (helpRequested(argv, OPTIONS)) {
         writeHelp(USAGE, CATALOG_HELP_OPTIONS);
@@ -116,15 +185,7 @@ export function main(argv, root = repoRoot(import.meta.url)) {
         return fail(`unknown lifecycle: ${first}`);
     }
     try {
-        const payload = loadCatalog(parsed.root);
-        const entries = select(payload, parsed.host ?? "", new Set(parsed.lifecycles), parsed.skill);
-        if (parsed.projection) {
-            writeFileSync(parsed.projection, `${JSON.stringify(projection(payload, entries), null, 2)}\n`);
-        }
-        for (const entry of entries) {
-            process.stdout.write(`${entry.name}\t${entry.source_path}\n`);
-        }
-        return 0;
+        return emitQuery(parsed, root);
     }
     catch (error) {
         const message = error instanceof CatalogError ? error.message : "catalog query failed";

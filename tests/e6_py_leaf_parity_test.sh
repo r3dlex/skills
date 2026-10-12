@@ -438,6 +438,8 @@ py_case "catalog-query help short" scripts/catalog-query.py -h
 py_case "catalog-query equals host" scripts/catalog-query.py --root "$REPO_ROOT" --host=codex --skill=research
 py_case "catalog-query abbreviated host" scripts/catalog-query.py --ho codex --root "$REPO_ROOT"
 py_case "catalog-query abbreviated help" scripts/catalog-query.py --he
+py_case "catalog-query help after terminator" scripts/catalog-query.py --host codex -- --help
+py_case "catalog-query help after terminator with root" scripts/catalog-query.py --root "$REPO_ROOT" --host codex -- --help
 py_case "catalog-query empty projection" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --projection=
 env_py "catalog-query NODE_OPTIONS" scripts/catalog-query.py --root "$REPO_ROOT" --host codex
 PROJ_L="$(mktemp)"
@@ -465,6 +467,8 @@ for fixture in "$MALFORMED"/*.json; do
 done
 
 py_case "markdown links repo" scripts/check-markdown-links.py --root "$REPO_ROOT"
+py_case "markdown links equals root" scripts/check-markdown-links.py --root="$REPO_ROOT"
+py_case "markdown links root option-like" scripts/check-markdown-links.py --root --nope
 py_case "markdown links unknown flag" scripts/check-markdown-links.py --nope
 py_case "markdown links unrecognized arguments" scripts/check-markdown-links.py --nope --other
 py_case "markdown links help" scripts/check-markdown-links.py --help
@@ -1861,6 +1865,34 @@ mask_checkout_root() {
 	sed "s#${real}#<repo>#g; s#${root}#<repo>#g" "$stream" >"$tmp"
 	mv "$tmp" "$stream"
 }
+
+# The anchor traceback embeds the script checkout. The mask replaces that
+# absolute root and no other byte, including the FileNotFoundError path.
+projection_missing_dir() {
+	local label="$1" dest="$2"
+	pin scripts/catalog-query.py || return
+	local lwatch rwatch lout rout lerr rerr lrc rrc
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	HOME="$lwatch" python3 "$WT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex --projection "$dest" >"$lout" 2>"$lerr"
+	lrc=$?
+	HOME="$rwatch" python3 "$REPO_ROOT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex --projection "$dest" >"$rout" 2>"$rerr"
+	rrc=$?
+	set +e
+	mask_checkout_root "$WT" "$lerr"
+	mask_checkout_root "$REPO_ROOT" "$rerr"
+	mask_checkout_root "$WT" "$lout"
+	mask_checkout_root "$REPO_ROOT" "$rout"
+	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+	rm -rf "$lwatch" "$rwatch"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+projection_missing_dir "catalog-query projection missing directory" /nonexistent-blind137-dir/projection.json
 cascade_refuse() {
 	local label="$1" mode="${2:-schema}" rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
 	local audit_rel audit_bak wt_audit_bak

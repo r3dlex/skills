@@ -181,5 +181,17 @@
       "exit_code": 0,
       "observed": "PASS=411 FAIL=0 after those comparisons matched the publication anchor on status and streams. The parity driver is listed in the ledger the way the other in-flight test drivers are listed. The local-ci source pins for the parity test and the freeze baseline were refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure13": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=411 FAIL=5 before help scanning stopped at --, before check-markdown-links.py --root=<repo> and --root --nope matched the anchor, and before a projection write to /nonexistent-blind137-dir/projection.json was refused. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=416 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The local-ci source pin for the parity test was refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }

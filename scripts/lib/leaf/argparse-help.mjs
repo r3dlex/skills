@@ -25,6 +25,10 @@ export function helpRequested(argv, takesValue) {
             skip = false;
             continue;
         }
+        // Argparse stops option scanning at the first bare --.
+        if (flag === "--") {
+            return false;
+        }
         if (takesValue.has(flag)) {
             skip = true;
             continue;

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { helpRequested, writeHelp } from "./argparse-help.mjs";
+import { helpRequested, optionLike, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { loadCatalog, type CatalogPayload, type SkillEntry } from "./catalog-model.mjs";
@@ -151,34 +151,68 @@ function pyPath(path: string): string {
 const MARKDOWN_HELP_USAGE = "usage: check-markdown-links.py [-h] [--root ROOT] [files ...]\n\npositional arguments:\n  files";
 const MARKDOWN_HELP_OPTIONS = "  -h, --help   show this help message and exit\n  --root ROOT\n";
 
+function expectedRoot(): number {
+  process.stderr.write("usage: check-markdown-links.py [-h] [--root ROOT] [files ...]\ncheck-markdown-links.py: error: argument --root: expected one argument\n");
+  return 2;
+}
+
+function assignedRoot(flag: string): string | undefined {
+  return flag.startsWith("--root=") ? flag.slice("--root=".length) : undefined;
+}
+
+function takeRoot(argv: readonly string[], index: number, assigned: string | undefined): { root: string; next: number } | number {
+  if (assigned !== undefined) {
+    return { root: assigned, next: index };
+  }
+  const value = argv[index + 1];
+  if (value === undefined || optionLike(value)) {
+    return expectedRoot();
+  }
+  return { root: value, next: index + 1 };
+}
+
+function stepMarkdown(
+  argv: readonly string[],
+  index: number,
+  files: string[],
+  unknown: string[],
+): { root?: string; next: number } | number {
+  const flag = argv[index] ?? "";
+  const assigned = assignedRoot(flag);
+  if (flag === "--root" || assigned !== undefined) {
+    return takeRoot(argv, index, assigned);
+  }
+  if (flag.startsWith("-")) {
+    unknown.push(flag);
+  } else if (flag !== "") {
+    files.push(flag);
+  }
+  return { next: index };
+}
+
+function walkMarkdown(argv: readonly string[], fallback: string): { root: string; files: string[] } | number {
+  let root = fallback;
+  const files: string[] = [];
+  const unknown: string[] = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const step = stepMarkdown(argv, index, files, unknown);
+    if (typeof step === "number") {
+      return step;
+    }
+    if (step.root !== undefined) {
+      root = step.root;
+    }
+    index = step.next;
+  }
+  return unknown.length === 0 ? { root, files } : rejectMarkdown(unknown.join(" "));
+}
+
 function readMarkdownArgs(argv: readonly string[], fallback: string): { root: string; files: string[] } | number {
   if (helpRequested(argv, new Set(["--root"]))) {
     writeHelp(MARKDOWN_HELP_USAGE, MARKDOWN_HELP_OPTIONS);
     return 0;
   }
-  let root = fallback;
-  const files: string[] = [];
-  const unknown: string[] = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    const flag = argv[index];
-    if (flag === "--root") {
-      const value = argv[index + 1];
-      if (value === undefined) {
-        process.stderr.write("usage: check-markdown-links.py [-h] [--root ROOT] [files ...]\ncheck-markdown-links.py: error: argument --root: expected one argument\n");
-        return 2;
-      }
-      root = value;
-      index += 1;
-    } else if (flag !== undefined && flag.startsWith("-")) {
-      unknown.push(flag);
-    } else if (flag !== undefined) {
-      files.push(flag);
-    }
-  }
-  if (unknown.length > 0) {
-    return rejectMarkdown(unknown.join(" "));
-  }
-  return { root, files };
+  return walkMarkdown(argv, fallback);
 }
 
 export function main(argv: readonly string[], fallback = repoRoot(import.meta.url)): number {
