@@ -39,15 +39,36 @@ function safetyTraceback(root) {
     return lines.join("\n");
 }
 function firstRunUnconfirmed(plan) {
+    return safetyFieldUntrue(plan, "no_first_run_apply_without_confirmation");
+}
+function safetyFieldUntrue(plan, field) {
     const safety = plan.safety;
     if (safety === null || typeof safety !== "object") {
         return false;
     }
     const record = safety;
-    if (!Object.prototype.hasOwnProperty.call(record, "no_first_run_apply_without_confirmation")) {
+    if (!Object.prototype.hasOwnProperty.call(record, field)) {
         return false;
     }
-    return record.no_first_run_apply_without_confirmation !== true;
+    return record[field] !== true;
+}
+function safetyFieldTraceback(root, line, assertion, carets) {
+    const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
+    const shows = pythonShowsCarets();
+    const lines = [
+        "Traceback (most recent call last):",
+        `  File "${script}", line 163, in <module>`,
+        "    sys.exit(main())",
+    ];
+    if (shows) {
+        lines.push("             ^^^^^^");
+    }
+    lines.push(`  File "${script}", line 148, in main`, "    validate_fixture(fixture, repo_id)", `  File "${script}", line ${line}, in validate_fixture`, `    ${assertion}`);
+    if (shows) {
+        lines.push(carets);
+    }
+    lines.push("AssertionError");
+    return lines.join("\n");
 }
 function schemaTraceback(root) {
     const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
@@ -103,6 +124,12 @@ function refuseInvalidPlan(root, name, repoId, plan) {
     }
     if (firstRunUnconfirmed(plan)) {
         fail(safetyTraceback(root));
+    }
+    if (safetyFieldUntrue(plan, "no_duplicate_child_items")) {
+        fail(safetyFieldTraceback(root, 64, "assert plan[\"safety\"][\"no_duplicate_child_items\"] is True", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
+    }
+    if (safetyFieldUntrue(plan, "no_secret_material")) {
+        fail(safetyFieldTraceback(root, 65, "assert plan[\"safety\"][\"no_secret_material\"] is True", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
     }
 }
 function validateFixture(root, name, repoId) {

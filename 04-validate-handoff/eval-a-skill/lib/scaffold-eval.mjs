@@ -76,36 +76,46 @@ export function main(argv) {
             return 0;
         }
     }
+    const unknown = [];
     for (let index = 0; index < argv.length; index += 1) {
-        const flag = argv[index];
-        const value = argv[index + 1];
-        if ((flag === "--skill" || flag === "--root" || flag === "--kind") && (value === undefined || (value.length > 1 && value.startsWith("-") && !/^-\d+(\.\d*)?$|^-\.\d+$/.test(value)))) {
+        const token = argv[index] ?? "";
+        const eq = token.indexOf("=");
+        const inline = token.startsWith("--") && eq > 2 ? token.slice(eq + 1) : undefined;
+        const flag = inline === undefined ? token : token.slice(0, eq);
+        if (!takesValue.has(flag)) {
+            unknown.push(token);
+            continue;
+        }
+        const next = argv[index + 1];
+        const optionLike = next !== undefined && next.length > 1 && next.startsWith("-") && !/^-\d+(\.\d*)?$|^-\.\d+$/.test(next);
+        const value = inline !== undefined ? inline : (next !== undefined && !optionLike ? next : undefined);
+        if (value === undefined) {
             process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument ${flag}: expected one argument\n`);
             return 2;
         }
-        if (flag === "--skill" && value !== undefined) {
+        if (flag === "--kind" && value !== "output" && value !== "trajectory") {
+            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from 'output', 'trajectory')\n`);
+            return 2;
+        }
+        if (flag === "--skill") {
             skill = value;
-            index += 1;
         }
-        else if (flag === "--root" && value !== undefined) {
+        else if (flag === "--root") {
             root = value;
-            index += 1;
-        }
-        else if (flag === "--kind" && (value === "output" || value === "trajectory")) {
-            kind = value;
-            index += 1;
         }
         else if (flag === "--kind") {
-            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value ?? ""}' (choose from 'output', 'trajectory')\n`);
-            return 2;
+            kind = value;
         }
-        else if (flag !== undefined && skill !== undefined) {
-            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: unrecognized arguments: ${flag}\n`);
-            return 2;
+        if (inline === undefined) {
+            index += 1;
         }
     }
     if (skill === undefined) {
         process.stderr.write("usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: the following arguments are required: --skill\n");
+        return 2;
+    }
+    if (unknown.length > 0) {
+        process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: unrecognized arguments: ${unknown[0]}\n`);
         return 2;
     }
     const out = scaffold(skill, resolve(root), kind);

@@ -15,7 +15,7 @@
     "scripts/lib/leaf/scan-secret-material.mjs": "e822ae227299b7e34fc83a21273f17999a4ff21bcd4ddd9a029cf81047df9ce7",
     "ts-tooling/src/leaf/scan-secret-material.mts": "0c1505a508f84e37b42e3dec7d30f0c8ab1f503a913408601007f0ddcc709ee0",
     "scripts/lib/leaf-parity.mjs": "8a99bd82ac00efed7c716db3f1ed7c9c64488f2c0c416b4adfd5565715b58484",
-    "tests/e6_py_leaf_parity_test.sh": "6f599214b63f5432187f2bb512963e601248788fec94498f8a2baa94777d7752",
+    "tests/e6_py_leaf_parity_test.sh": "88b18e122ea69e089bea7eb3768f29f596ac51cb501216cfbdf4ce7e3097ec01",
     "scripts/scan-secret-material.py": "d63f92be7740879c7558262780866609a9428bb80a11543d3f4f17b558157369",
     "scripts/validate-rules.sh": "d0cfc3fa258fabb12bf94247a84236af56f52371d161d7ce010c7198e1a005a1",
     "prek.toml": "378d4e3242979689a50dd09a4e8d9ec92a3c567e144761c7cbae467258fa73d8",

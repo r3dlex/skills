@@ -1570,6 +1570,34 @@ py_case "scaffold missing root value" 04-validate-handoff/eval-a-skill/scaffold-
 py_case "scaffold bad kind" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample-target --kind nope
 py_case "scaffold skill option-like" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill --nope
 py_case "scaffold kind option-like" 04-validate-handoff/eval-a-skill/scaffold-eval.py --skill sample --kind --nope
+scaffold_anchor_pair() {
+	local label="$1"
+	shift
+	local root lsnap rsnap lout rout lerr rerr lrc rrc
+	pin 04-validate-handoff/eval-a-skill/scaffold-eval.py || return
+	root="$(mktemp -d)"
+	lsnap="$(mktemp -d)"
+	rsnap="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	python3 "$WT/04-validate-handoff/eval-a-skill/scaffold-eval.py" "$@" --root "$root" >"$lout" 2>"$lerr"
+	lrc=$?
+	cp -R "$root/." "$lsnap/" 2>/dev/null || true
+	rm -rf "$root"
+	mkdir -p "$root"
+	python3 "$REPO_ROOT/04-validate-handoff/eval-a-skill/scaffold-eval.py" "$@" --root "$root" >"$rout" 2>"$rerr"
+	rrc=$?
+	cp -R "$root/." "$rsnap/" 2>/dev/null || true
+	set +e
+	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lsnap" "$rsnap"
+	rm -rf "$root" "$lsnap" "$rsnap"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+scaffold_anchor_pair "scaffold skill equals" --skill=sample
+scaffold_anchor_pair "scaffold leading unrecognized" --nope --skill sample
 
 scaffold_rerun() {
 	local root lsnap rsnap lout rout lerr rerr lrc rrc
@@ -1703,6 +1731,10 @@ for (const path of process.argv.slice(2)) {
   const plan = JSON.parse(fs.readFileSync(path, "utf8"));
   if (mode === "safety") {
     plan.safety.no_first_run_apply_without_confirmation = false;
+  } else if (mode === "duplicate") {
+    plan.safety.no_duplicate_child_items = false;
+  } else if (mode === "secret") {
+    plan.safety.no_secret_material = false;
   } else {
     plan.schema_version = "9.9";
   }
@@ -1734,6 +1766,49 @@ for (const path of process.argv.slice(2)) {
 }
 cascade_refuse "cascade invalid schema_version"
 cascade_refuse "cascade safety confirmation false" safety
+cascade_refuse "cascade duplicate child items false" duplicate
+cascade_refuse "cascade secret material false" secret
+
+final_package_optional_branch() {
+	local rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
+	rel="reference/fixtures/v3/standalone/.ai/workflows/repo-workflow.json"
+	bak="$(mktemp)"
+	wt_bak="$(mktemp)"
+	cp "$REPO_ROOT/$rel" "$bak"
+	cp "$WT/$rel" "$wt_bak"
+	node -e '
+const fs = require("fs");
+for (const path of process.argv.slice(1)) {
+  const workflow = JSON.parse(fs.readFileSync(path, "utf8"));
+  const branch = workflow.optional_branches.find((item) => item.id === "multi-repo-cascade");
+  branch.status = "unavailable";
+  fs.writeFileSync(path, JSON.stringify(workflow) + "\n");
+}
+' "$REPO_ROOT/$rel" "$WT/$rel"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	set +e
+	python3 "$WT/scripts/validate-final-package.py" >"$lout" 2>"$lerr"
+	lrc=$?
+	python3 "$REPO_ROOT/scripts/validate-final-package.py" >"$rout" 2>"$rerr"
+	rrc=$?
+	set +e
+	cp "$bak" "$REPO_ROOT/$rel"
+	cp "$wt_bak" "$WT/$rel"
+	rm -f "$bak" "$wt_bak"
+	mask_checkout_root "$WT" "$lerr"
+	mask_checkout_root "$REPO_ROOT" "$rerr"
+	mask_checkout_root "$WT" "$lout"
+	mask_checkout_root "$REPO_ROOT" "$rout"
+	judge "final package optional branch unavailable" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+	rm -rf "$lwatch" "$rwatch"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+final_package_optional_branch
 
 setup_readme_encoded_apache() {
 	local root="$1" i

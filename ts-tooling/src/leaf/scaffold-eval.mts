@@ -113,21 +113,26 @@ function assignScaffold(args: ScaffoldArgs, flag: string, value: string): boolea
   return false;
 }
 
-function takeScaffold(args: ScaffoldArgs, flag: string | undefined, value: string | undefined): number | undefined {
-  if (flag !== undefined && value !== undefined && assignScaffold(args, flag, value)) {
-    return 1;
+function splitScaffold(token: string): { flag: string; inline?: string } {
+  const eq = token.indexOf("=");
+  if (token.startsWith("--") && eq > 2) {
+    return { flag: token.slice(0, eq), inline: token.slice(eq + 1) };
   }
-  if (flag === "--kind") {
-    return scaffoldFail(`argument --kind: invalid choice: '${value ?? ""}' (choose from 'output', 'trajectory')`);
-  }
-  if (flag !== undefined && args.skill !== undefined) {
-    return scaffoldFail(`unrecognized arguments: ${flag}`);
-  }
-  return undefined;
+  return { flag: token };
 }
 
-function missingScaffoldArgument(flag: string | undefined, value: string | undefined): boolean {
-  return flag !== undefined && SCAFFOLD_VALUES.has(flag) && (value === undefined || optionLike(value));
+function scaffoldValue(inline: string | undefined, next: string | undefined): string | undefined {
+  if (inline !== undefined) {
+    return inline;
+  }
+  return next !== undefined && !optionLike(next) ? next : undefined;
+}
+
+function consumeScaffold(args: ScaffoldArgs, flag: string, value: string): number | undefined {
+  if (flag === "--kind" && value !== "output" && value !== "trajectory") {
+    return scaffoldFail(`argument --kind: invalid choice: '${value}' (choose from 'output', 'trajectory')`);
+  }
+  return assignScaffold(args, flag, value) ? undefined : scaffoldFail(`unrecognized arguments: ${flag}`);
 }
 
 function parseScaffold(argv: readonly string[]): { skill: string; root: string; kind: string } | number {
@@ -136,21 +141,34 @@ function parseScaffold(argv: readonly string[]): { skill: string; root: string; 
     return 0;
   }
   const args: ScaffoldArgs = { root: ".", kind: "output" };
+  const unknown: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
-    const flag = argv[index];
-    const value = argv[index + 1];
-    if (missingScaffoldArgument(flag, value)) {
-      return scaffoldFail(`argument ${flag}: expected one argument`);
+    const token = argv[index] ?? "";
+    const parts = splitScaffold(token);
+    if (!SCAFFOLD_VALUES.has(parts.flag)) {
+      unknown.push(token);
+      continue;
     }
-    const taken = takeScaffold(args, flag, value);
-    if (typeof taken === "number" && taken !== 1) {
-      return taken;
+    const value = scaffoldValue(parts.inline, argv[index + 1]);
+    if (value === undefined) {
+      return scaffoldFail(`argument ${parts.flag}: expected one argument`);
     }
-    if (taken === 1) {
+    const failed = consumeScaffold(args, parts.flag, value);
+    if (failed !== undefined) {
+      return failed;
+    }
+    if (parts.inline === undefined) {
       index += 1;
     }
   }
-  return args.skill === undefined ? scaffoldFail("the following arguments are required: --skill") : { skill: args.skill, root: args.root, kind: args.kind };
+  if (args.skill === undefined) {
+    return scaffoldFail("the following arguments are required: --skill");
+  }
+  const firstUnknown = unknown[0];
+  if (firstUnknown !== undefined) {
+    return scaffoldFail(`unrecognized arguments: ${firstUnknown}`);
+  }
+  return { skill: args.skill, root: args.root, kind: args.kind };
 }
 
 export function main(argv: readonly string[]): number {

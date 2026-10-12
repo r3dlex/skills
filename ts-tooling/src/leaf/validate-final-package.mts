@@ -83,6 +83,20 @@ function checkRequired(root: string): void {
   }
 }
 
+function checkOptionalBranches(fixture: string, workflow: Record<string, unknown>): void {
+  const branches = workflow.optional_branches;
+  if (!Array.isArray(branches)) {
+    return;
+  }
+  for (const branch of branches) {
+    const record = branch as Record<string, unknown>;
+    const id = record.id;
+    if ((id === "multi-repo-cascade" || id === "skill-modernization") && record.status !== "available") {
+      fail(`optional branch ${String(id)} must be available in ${fixture}`);
+    }
+  }
+}
+
 function checkGraph(root: string, fixture: string): void {
   for (const name of ["graph.json", "graph-1.1.json"]) {
     const graphPath = join(fixture, ".ai/traceability", name);
@@ -114,6 +128,7 @@ function checkFixture(root: string, fixture: string): void {
   if (workflow.workflow_id !== "init-ai-repo") {
     fail(`invalid workflow id in ${fixture}`);
   }
+  checkOptionalBranches(fixture, workflow);
   checkGraph(root, fixture);
   const catalog = readJson(join(fixture, ".ai/skills/catalog-audit.json"));
   if (catalog.status !== "pass" || catalog.skill_count !== 21) {
