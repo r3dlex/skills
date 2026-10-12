@@ -1,5 +1,6 @@
 import { readFileSync, statSync, type Dirent } from "node:fs";
 import { join } from "node:path";
+import { TextDecoder } from "node:util";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { pyDirents } from "./py-dirents.mjs";
@@ -58,7 +59,7 @@ export function main(): number {
     }
     let text: string;
     try {
-      text = readFileSync(path, "utf8");
+      text = new TextDecoder("utf-8", { fatal: true }).decode(readFileSync(path));
     } catch {
       continue;
     }

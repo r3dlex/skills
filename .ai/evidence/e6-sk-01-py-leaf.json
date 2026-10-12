@@ -146,5 +146,17 @@
       "exit_code": 0,
       "observed": "PASS=393 FAIL=0 after those comparisons matched the publication anchor on status and streams. The skill-catalog fixture command does not quote the retired diagnose identity. The local-ci source pin was refreshed to the committed test bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure11": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=396 FAIL=7 before a wrong cascade_id, an empty audit log, a missing reconciliation report, and an unknown adapter operation were refused, before invalid UTF-8 was skipped, before unset HOME refused install-codex, and while a subshell comparison failure still returned 0. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=404 FAIL=0 after those comparisons matched the publication anchor on status and streams. The isolated invalid-UTF8 file exits 0 on both sides. A comparison failure in the scanner subshell increments FAIL and returns non-zero. The local-ci source pins for the parity test and the secret scanner were refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }

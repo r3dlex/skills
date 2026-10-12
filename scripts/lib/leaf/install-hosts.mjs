@@ -33,6 +33,14 @@ function installRows(root, host, includes, skill) {
 function scriptArgv0() {
     return process.env.SHIM_ARGV0 ?? "";
 }
+function requiredHome(line) {
+    const home = process.env.HOME;
+    if (home !== undefined) {
+        return home;
+    }
+    process.stderr.write(`${scriptArgv0()}: line ${line}: HOME: unbound variable\n`);
+    return 1;
+}
 function usage(tail) {
     process.stderr.write(`Usage: ${scriptArgv0()} ${tail}\n`);
     return 1;
@@ -46,26 +54,38 @@ export function installClaude(argv) {
     if (parsed.rest.length > 1 || !["--user", "--project", "--all"].includes(scope)) {
         return usage("[--user | --project | --all] [--include-lifecycle <value>]");
     }
+    let home = "";
+    if (scope !== "--project") {
+        const required = requiredHome(7);
+        if (typeof required === "number") {
+            return required;
+        }
+        home = required;
+    }
     const root = skillsDir();
     const rows = installRows(root, "claude-code", parsed.includes);
     if (typeof rows === "number") {
         return rows;
     }
-    for (const dest of claudeTargets(root, scope)) {
+    for (const dest of claudeTargets(root, scope, home)) {
         writeProjection(dest, "catalog.json", rows.projectionText);
         eachRow(rows.rows, (name, source) => copySkill(root, source, dest, name));
     }
     return 0;
 }
-function claudeTargets(root, scope) {
-    const user = join(process.env.HOME ?? "", ".claude/skills/omc-learned");
+function claudeTargets(root, scope, home) {
     const project = join(root, ".omc/skills");
     if (scope === "--project") {
         return [project];
     }
+    const user = join(home, ".claude/skills/omc-learned");
     return scope === "--all" ? [user, project] : [user];
 }
 export function installCodex(argv) {
+    const home = requiredHome(3);
+    if (typeof home === "number") {
+        return home;
+    }
     const parsed = parseCatalogArgs(argv);
     if (typeof parsed === "number") {
         return parsed;
@@ -80,12 +100,16 @@ export function installCodex(argv) {
     if (typeof rows === "number") {
         return rows;
     }
-    const dest = join(process.env.HOME ?? "", ".codex/skills");
+    const dest = join(home, ".codex/skills");
     writeProjection(dest, "catalog.json", rows.projectionText);
     eachRow(rows.rows, (name, source) => copySkill(root, source, dest, name));
     return 0;
 }
 export function installGemini(argv) {
+    const home = requiredHome(3);
+    if (typeof home === "number") {
+        return home;
+    }
     const parsed = parseCatalogArgs(argv);
     if (typeof parsed === "number") {
         return parsed;
@@ -99,12 +123,16 @@ export function installGemini(argv) {
     if (typeof rows === "number") {
         return rows;
     }
-    const dest = join(process.env.HOME ?? "", ".gemini/skills");
+    const dest = join(home, ".gemini/skills");
     writeProjection(dest, "catalog.json", rows.projectionText);
     eachRow(rows.rows, (name, source) => writeFlat(root, dest, name, source, "gemini"));
     return 0;
 }
 export function installAuggie(argv) {
+    const home = requiredHome(3);
+    if (typeof home === "number") {
+        return home;
+    }
     const parsed = parseCatalogArgs(argv);
     if (typeof parsed === "number") {
         return parsed;
@@ -118,7 +146,7 @@ export function installAuggie(argv) {
     if (typeof rows === "number") {
         return rows;
     }
-    const dest = join(process.env.HOME ?? "", ".auggie/rules");
+    const dest = join(home, ".auggie/rules");
     writeProjection(dest, "catalog.json", rows.projectionText);
     eachRow(rows.rows, (name, source) => writeFlat(root, dest, name, source, "auggie"));
     return 0;

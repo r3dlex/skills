@@ -148,19 +148,35 @@ function assertionTraceback(root: string, line: number, assertion: string, caret
   return detail === "" ? body : `${body}: ${detail}`;
 }
 
-function refuseMissingAudit(root: string, name: string): void {
-  const relative = join("reference/fixtures/v3", name, ".ai/cascade/audit.jsonl");
+function refuseMissingFile(root: string, name: string, file: string, line: number, assertion: string, carets: string): void {
+  const relative = join("reference/fixtures/v3", name, ".ai/cascade", file);
   if (existsSync(join(root, relative))) {
     return;
   }
   const shown = join(realpathSync(root), relative);
-  fail(assertionTraceback(
+  fail(assertionTraceback(root, line, assertion, carets, `missing ${shown}`));
+}
+
+function refuseMissingAudit(root: string, name: string): void {
+  refuseMissingFile(
     root,
+    name,
+    "audit.jsonl",
     52,
     "assert audit_path.is_file(), f\"missing {audit_path}\"",
     "           ^^^^^^^^^^^^^^^^^^^^",
-    `missing ${shown}`,
-  ));
+  );
+}
+
+function refuseMissingReport(root: string, name: string): void {
+  refuseMissingFile(
+    root,
+    name,
+    "reconciliation-report.md",
+    53,
+    "assert report_path.is_file(), f\"missing {report_path}\"",
+    "           ^^^^^^^^^^^^^^^^^^^^^",
+  );
 }
 
 function refuseInvalidPlan(root: string, name: string, repoId: string, plan: Record<string, unknown>): void {
@@ -170,6 +186,7 @@ function refuseInvalidPlan(root: string, name: string, repoId: string, plan: Rec
   if (plan.root_repo_id !== repoId) {
     fail(`invalid cascade plan for ${name}`);
   }
+  refuseWrongCascadeId(root, repoId, plan);
   if (
     Object.prototype.hasOwnProperty.call(plan, "first_run_confirmation_required")
     && plan.first_run_confirmation_required !== true
@@ -217,6 +234,45 @@ function emptyChildItems(value: unknown): boolean {
   return Array.isArray(value) && value.length === 0;
 }
 
+function refuseWrongCascadeId(root: string, repoId: string, plan: Record<string, unknown>): void {
+  if (plan.cascade_id === `cascade:${repoId}:init-ai-repo`) {
+    return;
+  }
+  fail(safetyFieldTraceback(
+    root,
+    58,
+    "assert plan[\"cascade_id\"] == f\"cascade:{repo_id}:init-ai-repo\"",
+    "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+  ));
+}
+
+function refuseEmptyAudit(root: string, name: string): void {
+  const path = join(root, "reference/fixtures/v3", name, ".ai/cascade/audit.jsonl");
+  const statuses = new Set<string>();
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    if (line.trim() === "") {
+      continue;
+    }
+    const event = JSON.parse(line) as Record<string, unknown>;
+    if (typeof event.status === "string") {
+      statuses.add(event.status);
+    }
+  }
+  if (statuses.has("apply-blocked-no-confirmation")) {
+    return;
+  }
+  fail(safetyFieldTraceback(
+    root,
+    82,
+    "assert \"apply-blocked-no-confirmation\" in statuses",
+    "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+  ));
+}
+
+function knownOperations(operations: unknown): boolean {
+  return Array.isArray(operations) && operations.every((operation) => typeof operation === "string" && OPERATIONS.has(operation));
+}
+
 function refuseNonemptyChildren(root: string, plan: Record<string, unknown>, standalone: boolean): void {
   if (!standalone || !Object.prototype.hasOwnProperty.call(plan, "child_items") || emptyChildItems(plan.child_items)) {
     return;
@@ -232,11 +288,13 @@ function refuseNonemptyChildren(root: string, plan: Record<string, unknown>, sta
 function validateFixture(root: string, name: string, repoId: string): void {
   const fixture = join(root, "reference/fixtures/v3", name);
   refuseMissingAudit(root, name);
+  refuseMissingReport(root, name);
   const plan = readJson(join(fixture, ".ai/cascade/cascade-plan.json"));
   refuseInvalidPlan(root, name, repoId, plan);
   const matrix = readJson(join(fixture, ".ai/matrix.json"));
   const standalone = matrix.topology_type === "standalone";
   refuseNonemptyChildren(root, plan, standalone);
+  refuseEmptyAudit(root, name);
   for (const host of HOSTS) {
     const path = join(fixture, ".ai/cascade/host-adapters", `${host}.json`);
     if (!existsSync(path)) {
@@ -246,6 +304,14 @@ function validateFixture(root: string, name: string, repoId: string): void {
     const adapter = readJson(path);
     if (adapter.host !== host || !Array.isArray(adapter.operations) || new Set(adapter.operations as string[]).size !== OPERATIONS.size) {
       fail(`invalid adapter ${host}`);
+    }
+    if (!knownOperations(adapter.operations)) {
+      fail(safetyFieldTraceback(
+        root,
+        112,
+        "assert set(adapter[\"operations\"]) == OPERATIONS",
+        "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+      ));
     }
     checkAdapter(adapter, host, standalone);
     if (adapter.hosted === true && !TOKEN.test(String((adapter.safety as Record<string, unknown>).confirmation_token))) {

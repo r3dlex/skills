@@ -9,14 +9,29 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 PASS=0
 FAIL=0
+COUNT_FILE="$(mktemp)"
+sync_counts() {
+	local line
+	line="$(cat "$COUNT_FILE")"
+	PASS="${line%% *}"
+	FAIL="${line##* }"
+}
+store_counts() {
+	printf '%s %s\n' "$PASS" "$FAIL" >"$COUNT_FILE"
+}
 ok() {
+	sync_counts
 	echo "  PASS: $1"
 	PASS=$((PASS + 1))
+	store_counts
 }
 bad() {
+	sync_counts
 	echo "  FAIL: $1"
 	FAIL=$((FAIL + 1))
+	store_counts
 }
+store_counts
 ANCHOR="6255da27afeee8c2e9f3582793e74fbc5ff68bf3"
 RED_ONLY=""
 if [[ "${1:-}" == "--red-leg" ]]; then
@@ -33,6 +48,7 @@ cleanup() {
 	fi
 	git worktree remove --force "$WT" >/dev/null 2>&1 || true
 	rm -rf "$WT"
+	rm -rf "$REPO_ROOT/scripts/.codex"
 }
 trap cleanup EXIT
 
@@ -170,7 +186,7 @@ judge() {
 run_pair() {
 	local label="$1" lwatch="$2" rwatch="$3"
 	shift 3
-	local lout rout lerr rerr lrc rrc
+	local lout rout lerr rerr lrc rrc judged
 	lout="$(mktemp)"
 	rout="$(mktemp)"
 	lerr="$(mktemp)"
@@ -183,7 +199,9 @@ run_pair() {
 	rrc=$?
 	set +e
 	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+	judged=$?
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
+	return "$judged"
 }
 
 py_case() {
@@ -364,6 +382,7 @@ red_leg() {
 if [[ -n "$RED_ONLY" ]]; then
 	red_leg "$RED_ONLY" "$RED_ONLY"
 	echo ""
+	sync_counts
 	echo "Results: PASS=$PASS FAIL=$FAIL"
 	[[ "$FAIL" -eq 0 ]]
 	exit $?
@@ -472,6 +491,30 @@ py_case "skill catalog unknown flag" scripts/validate-skill-catalog.py --nope
 py_case "skill catalog unrecognized arguments" scripts/validate-skill-catalog.py --nope --other
 env_py "skill catalog NODE_OPTIONS" scripts/validate-skill-catalog.py --root "$REPO_ROOT"
 
+probe_swallowed_comparison() {
+	sync_counts
+	local before_fail=$FAIL before_pass=$PASS secret lwatch rwatch rc persisted
+	secret="$(mktemp -d)"
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	LEFT=(python3 -c 'raise SystemExit(0)')
+	RIGHT=(python3 -c 'raise SystemExit(1)')
+	(cd "$secret" && run_pair "comparison failure reaches the suite" "$lwatch" "$rwatch")
+	rc=$?
+	sync_counts
+	persisted=$FAIL
+	PASS=$before_pass
+	FAIL=$before_fail
+	store_counts
+	if [[ "$rc" -ne 0 && "$persisted" -gt "$before_fail" ]]; then
+		ok "comparison failure reaches the suite"
+	else
+		bad "swallowed comparison failure"
+	fi
+	rm -rf "$secret" "$lwatch" "$rwatch"
+}
+probe_swallowed_comparison
+
 SECRET="$(mktemp -d)"
 pin scripts/scan-secret-material.py || true
 LEFT=(python3 "$WT/scripts/scan-secret-material.py")
@@ -489,6 +532,13 @@ outside_secret="$(mktemp -d)"
 printf '%s\n' "$marker" >"$outside_secret/hidden.txt"
 ln -s "$outside_secret" "$SECRET/dir-link"
 (cd "$SECRET" && HOME="$lwatch" run_pair "scan-secret file symlink" "$lwatch" "$rwatch")
+python3 -c 'import pathlib,sys; pathlib.Path(sys.argv[1]).write_bytes(bytes([255, 0]) + b"ghp_" + b"A" * 30)' "$SECRET/binary.dat"
+(cd "$SECRET" && HOME="$lwatch" run_pair "scan-secret invalid utf8" "$lwatch" "$rwatch")
+rm -f "$SECRET/binary.dat"
+utf8_only="$(mktemp -d)"
+python3 -c 'import pathlib,sys; pathlib.Path(sys.argv[1]).write_bytes(bytes([255, 0]) + b"ghp_" + b"A" * 30)' "$utf8_only/binary.dat"
+(cd "$utf8_only" && HOME="$lwatch" run_pair "scan-secret invalid utf8 only" "$lwatch" "$rwatch")
+rm -rf "$utf8_only"
 rm -f "$link_target"
 rm -rf "$outside_secret"
 env_py "scan-secret NODE_OPTIONS" scripts/scan-secret-material.py
@@ -608,6 +658,62 @@ RIGHT=(invoke_sh parity-argv0/install-codex.sh "$REPO_ROOT/scripts/install-codex
 SKILLS_CATALOG_ROOT="$ALT" run_pair "install-codex SKILLS_CATALOG_ROOT" "$LHOME" "$RHOME"
 unset SKILLS_CATALOG_ROOT
 rm -rf "$ALT" "$LHOME" "$RHOME"
+
+install_unset_home() {
+	local catalog lsnap rsnap lout rout lerr rerr lrc rrc
+	pin scripts/install-codex.sh || return
+	catalog="$(mktemp -d)"
+	node -e '
+const fs = require("fs");
+const root = process.argv[1];
+fs.mkdirSync(root + "/sample", { recursive: true });
+fs.writeFileSync(root + "/sample/SKILL.md", "---\nname: sample\ndescription: A sample skill.\n---\n\nSample body.\n");
+fs.writeFileSync(root + "/catalog.json", JSON.stringify({
+  schema_version: "1.0",
+  phases: ["03-configure-generate"],
+  skills: [{
+    name: "sample",
+    source_path: "sample",
+    owner_phase: "03-configure-generate",
+    applies_to_phases: ["03-configure-generate"],
+    lifecycle: "stable",
+    supported_hosts: ["codex"],
+  }],
+}, null, 2) + "\n");
+' "$catalog"
+	lsnap="$(mktemp -d)"
+	rsnap="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	(
+		unset HOME
+		export SKILLS_CATALOG_ROOT="$catalog"
+		cd "$WT/scripts" && bash ./install-codex.sh --skill sample
+	) >"$lout" 2>"$lerr"
+	lrc=$?
+	if [[ -d "$WT/scripts/.codex" ]]; then
+		cp -R "$WT/scripts/.codex" "$lsnap/.codex"
+		rm -rf "$WT/scripts/.codex"
+	fi
+	(
+		unset HOME
+		export SKILLS_CATALOG_ROOT="$catalog"
+		cd "$REPO_ROOT/scripts" && bash ./install-codex.sh --skill sample
+	) >"$rout" 2>"$rerr"
+	rrc=$?
+	if [[ -d "$REPO_ROOT/scripts/.codex" ]]; then
+		cp -R "$REPO_ROOT/scripts/.codex" "$rsnap/.codex"
+		rm -rf "$REPO_ROOT/scripts/.codex"
+	fi
+	set +e
+	judge "install-codex unset HOME" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lsnap" "$rsnap"
+	rm -rf "$catalog" "$lsnap" "$rsnap" "$WT/scripts/.codex" "$REPO_ROOT/scripts/.codex"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+install_unset_home
 
 sh_case "readme usage missing mode" scripts/readme-generate.sh parity-argv0/readme-generate.sh
 sh_case "readme bad mode" scripts/readme-generate.sh parity-argv0/readme-generate.sh --mode nope
@@ -999,6 +1105,7 @@ probe_refusal_divergence() {
 	set +e
 	PASS=$saved_pass
 	FAIL=$saved_fail
+	store_counts
 	if [[ "$rc" -eq 0 ]]; then
 		bad "node_unavailable counted as a successful divergence"
 	else
@@ -1014,6 +1121,7 @@ probe_refusal_divergence() {
 	set +e
 	PASS=$saved_pass
 	FAIL=$saved_fail
+	store_counts
 	if [[ "$rc" -eq 0 ]]; then
 		bad "node_version_unsupported counted as a successful divergence"
 	else
@@ -1029,6 +1137,7 @@ probe_refusal_divergence() {
 	set +e
 	PASS=$saved_pass
 	FAIL=$saved_fail
+	store_counts
 	if [[ "$rc" -eq 0 ]]; then
 		ok "seeded divergence still counts"
 	else
@@ -1752,18 +1861,46 @@ mask_checkout_root() {
 cascade_refuse() {
 	local label="$1" mode="${2:-schema}" rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
 	local audit_rel audit_bak wt_audit_bak
+	local report_rel report_bak wt_report_bak
+	local adapter_rel adapter_bak wt_adapter_bak
 	rel="reference/fixtures/v3/standalone/.ai/cascade/cascade-plan.json"
 	audit_rel="reference/fixtures/v3/standalone/.ai/cascade/audit.jsonl"
+	report_rel="reference/fixtures/v3/standalone/.ai/cascade/reconciliation-report.md"
+	adapter_rel="reference/fixtures/v3/standalone/.ai/cascade/host-adapters/github.json"
 	bak="$(mktemp)"
 	wt_bak="$(mktemp)"
 	cp "$REPO_ROOT/$rel" "$bak"
 	cp "$WT/$rel" "$wt_bak"
-	if [[ "$mode" == "audit" ]]; then
+	if [[ "$mode" == "audit" || "$mode" == "empty-audit" ]]; then
 		audit_bak="$(mktemp)"
 		wt_audit_bak="$(mktemp)"
 		cp "$REPO_ROOT/$audit_rel" "$audit_bak"
 		cp "$WT/$audit_rel" "$wt_audit_bak"
-		rm -f "$REPO_ROOT/$audit_rel" "$WT/$audit_rel"
+		if [[ "$mode" == "audit" ]]; then
+			rm -f "$REPO_ROOT/$audit_rel" "$WT/$audit_rel"
+		else
+			: >"$REPO_ROOT/$audit_rel"
+			: >"$WT/$audit_rel"
+		fi
+	elif [[ "$mode" == "report" ]]; then
+		report_bak="$(mktemp)"
+		wt_report_bak="$(mktemp)"
+		cp "$REPO_ROOT/$report_rel" "$report_bak"
+		cp "$WT/$report_rel" "$wt_report_bak"
+		rm -f "$REPO_ROOT/$report_rel" "$WT/$report_rel"
+	elif [[ "$mode" == "operation" ]]; then
+		adapter_bak="$(mktemp)"
+		wt_adapter_bak="$(mktemp)"
+		cp "$REPO_ROOT/$adapter_rel" "$adapter_bak"
+		cp "$WT/$adapter_rel" "$wt_adapter_bak"
+		node -e '
+const fs = require("fs");
+for (const path of process.argv.slice(1)) {
+  const adapter = JSON.parse(fs.readFileSync(path, "utf8"));
+  adapter.operations[0] = "unknown_operation";
+  fs.writeFileSync(path, JSON.stringify(adapter, null, 2) + "\n");
+}
+' "$REPO_ROOT/$adapter_rel" "$WT/$adapter_rel"
 	else
 		node -e '
 const fs = require("fs");
@@ -1782,6 +1919,8 @@ for (const path of process.argv.slice(2)) {
     plan.child_items = ["child"];
   } else if (mode === "token") {
     plan.confirmation_token_pattern = ".*";
+  } else if (mode === "id") {
+    plan.cascade_id = "cascade:wrong:init-ai-repo";
   } else {
     plan.schema_version = "9.9";
   }
@@ -1804,10 +1943,20 @@ for (const path of process.argv.slice(2)) {
 	cp "$bak" "$REPO_ROOT/$rel"
 	cp "$wt_bak" "$WT/$rel"
 	rm -f "$bak" "$wt_bak"
-	if [[ "$mode" == "audit" ]]; then
+	if [[ "$mode" == "audit" || "$mode" == "empty-audit" ]]; then
 		cp "$audit_bak" "$REPO_ROOT/$audit_rel"
 		cp "$wt_audit_bak" "$WT/$audit_rel"
 		rm -f "$audit_bak" "$wt_audit_bak"
+	fi
+	if [[ "$mode" == "report" ]]; then
+		cp "$report_bak" "$REPO_ROOT/$report_rel"
+		cp "$wt_report_bak" "$WT/$report_rel"
+		rm -f "$report_bak" "$wt_report_bak"
+	fi
+	if [[ "$mode" == "operation" ]]; then
+		cp "$adapter_bak" "$REPO_ROOT/$adapter_rel"
+		cp "$wt_adapter_bak" "$WT/$adapter_rel"
+		rm -f "$adapter_bak" "$wt_adapter_bak"
 	fi
 	mask_checkout_root "$WT" "$lerr"
 	mask_checkout_root "$REPO_ROOT" "$rerr"
@@ -1825,6 +1974,10 @@ cascade_refuse "cascade first_run_confirmation_required false" confirm
 cascade_refuse "cascade nonempty child_items" children
 cascade_refuse "cascade confirmation_token_pattern wildcard" token
 cascade_refuse "cascade missing audit.jsonl" audit
+cascade_refuse "cascade wrong cascade_id" id
+cascade_refuse "cascade empty audit.jsonl" empty-audit
+cascade_refuse "cascade missing reconciliation-report.md" report
+cascade_refuse "cascade unknown adapter operation" operation
 
 final_package_optional_branch() {
 	local rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
@@ -2001,5 +2154,6 @@ consumer_prek_template() {
 consumer_prek_template
 
 echo ""
+sync_counts
 echo "Results: PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]
