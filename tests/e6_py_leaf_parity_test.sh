@@ -409,6 +409,7 @@ unset GOLDEN_GUARD
 py_case "catalog-query codex" scripts/catalog-query.py --root "$REPO_ROOT" --host codex
 py_case "catalog-query missing host" scripts/catalog-query.py --root "$REPO_ROOT"
 py_case "catalog-query unknown flag" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --nope
+py_case "catalog-query unrecognized arguments" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --nope --other
 py_case "catalog-query missing value" scripts/catalog-query.py --host
 py_case "catalog-query host option-like" scripts/catalog-query.py --host --nope
 py_case "catalog-query unknown lifecycle" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --include-lifecycle unknown
@@ -442,16 +443,19 @@ done
 
 py_case "markdown links repo" scripts/check-markdown-links.py --root "$REPO_ROOT"
 py_case "markdown links unknown flag" scripts/check-markdown-links.py --nope
+py_case "markdown links unrecognized arguments" scripts/check-markdown-links.py --nope --other
 py_case "markdown links help" scripts/check-markdown-links.py --help
 py_case "markdown links help short" scripts/check-markdown-links.py -h
 env_py "markdown links NODE_OPTIONS" scripts/check-markdown-links.py --root "$REPO_ROOT"
 py_case "root discovery repo" scripts/check-root-discovery.py
 py_case "root discovery unknown flag" scripts/check-root-discovery.py --nope
+py_case "root discovery unrecognized arguments" scripts/check-root-discovery.py --nope --other
 py_case "root discovery help" scripts/check-root-discovery.py --help
 py_case "root discovery help short" scripts/check-root-discovery.py -h
 env_py "root discovery NODE_OPTIONS" scripts/check-root-discovery.py
 py_case "skill docs check" scripts/generate-skill-docs.py --check
 py_case "skill docs unknown flag" scripts/generate-skill-docs.py --nope
+py_case "skill docs unrecognized arguments" scripts/generate-skill-docs.py --nope --other
 py_case "skill docs help" scripts/generate-skill-docs.py --help
 py_case "skill docs help short" scripts/generate-skill-docs.py -h
 env_py "skill docs NODE_OPTIONS" scripts/generate-skill-docs.py --check
@@ -463,6 +467,7 @@ py_case "final package extra arg" scripts/validate-final-package.py --nope
 env_py "final package NODE_OPTIONS" scripts/validate-final-package.py
 py_case "skill catalog repo" scripts/validate-skill-catalog.py --root "$REPO_ROOT"
 py_case "skill catalog unknown flag" scripts/validate-skill-catalog.py --nope
+py_case "skill catalog unrecognized arguments" scripts/validate-skill-catalog.py --nope --other
 env_py "skill catalog NODE_OPTIONS" scripts/validate-skill-catalog.py --root "$REPO_ROOT"
 
 SECRET="$(mktemp -d)"
@@ -1598,6 +1603,7 @@ scaffold_anchor_pair() {
 }
 scaffold_anchor_pair "scaffold skill equals" --skill=sample
 scaffold_anchor_pair "scaffold leading unrecognized" --nope --skill sample
+scaffold_anchor_pair "scaffold unrecognized arguments" --skill sample --nope --other
 
 scaffold_rerun() {
 	local root lsnap rsnap lout rout lerr rerr lrc rrc
@@ -1735,6 +1741,8 @@ for (const path of process.argv.slice(2)) {
     plan.safety.no_duplicate_child_items = false;
   } else if (mode === "secret") {
     plan.safety.no_secret_material = false;
+  } else if (mode === "confirm") {
+    plan.first_run_confirmation_required = false;
   } else {
     plan.schema_version = "9.9";
   }
@@ -1768,6 +1776,7 @@ cascade_refuse "cascade invalid schema_version"
 cascade_refuse "cascade safety confirmation false" safety
 cascade_refuse "cascade duplicate child items false" duplicate
 cascade_refuse "cascade secret material false" secret
+cascade_refuse "cascade first_run_confirmation_required false" confirm
 
 final_package_optional_branch() {
 	local rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
@@ -1923,6 +1932,25 @@ readme_sha256sum_only() {
 }
 readme_sha256sum_only "readme sha256sum-only" scripts/readme-generate.sh
 readme_sha256sum_only "init readme sha256sum-only" 03-configure-generate/ai-catapult-init/scripts/readme-generate.sh
+
+# The consumer template is not the repository workflow. The comparison expects
+# the publication anchor bytes, not a template invented for this port.
+consumer_prek_template() {
+	local rel="03-configure-generate/ai-catapult-init/templates/dot-github/workflows/ci-prek.yml"
+	local anchor got
+	anchor="$(mktemp)"
+	got="$(mktemp)"
+	git cat-file blob "$ANCHOR:$rel" >"$anchor"
+	cp "$REPO_ROOT/$rel" "$got"
+	if cmp -s "$anchor" "$got"; then
+		ok "consumer ci-prek.yml template matches anchor"
+	else
+		bad "consumer ci-prek.yml template matches anchor"
+		diff -u "$anchor" "$got" | head -40 >&2 || true
+	fi
+	rm -f "$anchor" "$got"
+}
+consumer_prek_template
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"

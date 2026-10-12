@@ -158,6 +158,7 @@ function readMarkdownArgs(argv: readonly string[], fallback: string): { root: st
   }
   let root = fallback;
   const files: string[] = [];
+  const unknown: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === "--root") {
@@ -169,10 +170,13 @@ function readMarkdownArgs(argv: readonly string[], fallback: string): { root: st
       root = value;
       index += 1;
     } else if (flag !== undefined && flag.startsWith("-")) {
-      return rejectMarkdown(flag);
+      unknown.push(flag);
     } else if (flag !== undefined) {
       files.push(flag);
     }
+  }
+  if (unknown.length > 0) {
+    return rejectMarkdown(unknown.join(" "));
   }
   return { root, files };
 }

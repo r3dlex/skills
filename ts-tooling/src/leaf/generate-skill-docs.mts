@@ -75,9 +75,9 @@ export function main(argv: readonly string[], root = repoRoot(import.meta.url)):
     writeHelp("usage: generate-skill-docs.py [-h] [--check]", DOCS_HELP_OPTIONS);
     return 0;
   }
-  const flagged = argv.find((flag) => flag !== "--check");
-  if (flagged !== undefined) {
-    process.stderr.write(`usage: generate-skill-docs.py [-h] [--check]\ngenerate-skill-docs.py: error: unrecognized arguments: ${flagged}\n`);
+  const flagged = argv.filter((flag) => flag !== "--check");
+  if (flagged.length > 0) {
+    process.stderr.write(`usage: generate-skill-docs.py [-h] [--check]\ngenerate-skill-docs.py: error: unrecognized arguments: ${flagged.join(" ")}\n`);
     return 2;
   }
   const check = argv.includes("--check");

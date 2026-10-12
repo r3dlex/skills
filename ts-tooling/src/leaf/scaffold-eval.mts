@@ -164,9 +164,8 @@ function parseScaffold(argv: readonly string[]): { skill: string; root: string; 
   if (args.skill === undefined) {
     return scaffoldFail("the following arguments are required: --skill");
   }
-  const firstUnknown = unknown[0];
-  if (firstUnknown !== undefined) {
-    return scaffoldFail(`unrecognized arguments: ${firstUnknown}`);
+  if (unknown.length > 0) {
+    return scaffoldFail(`unrecognized arguments: ${unknown.join(" ")}`);
   }
   return { skill: args.skill, root: args.root, kind: args.kind };
 }

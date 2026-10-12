@@ -122,6 +122,10 @@ function refuseInvalidPlan(root, name, repoId, plan) {
     if (plan.root_repo_id !== repoId) {
         fail(`invalid cascade plan for ${name}`);
     }
+    if (Object.prototype.hasOwnProperty.call(plan, "first_run_confirmation_required")
+        && plan.first_run_confirmation_required !== true) {
+        fail(safetyFieldTraceback(root, 61, "assert plan[\"first_run_confirmation_required\"] is True", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
+    }
     if (firstRunUnconfirmed(plan)) {
         fail(safetyTraceback(root));
     }

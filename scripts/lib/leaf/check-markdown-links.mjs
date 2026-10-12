@@ -121,6 +121,7 @@ function readMarkdownArgs(argv, fallback) {
     }
     let root = fallback;
     const files = [];
+    const unknown = [];
     for (let index = 0; index < argv.length; index += 1) {
         const flag = argv[index];
         if (flag === "--root") {
@@ -133,11 +134,14 @@ function readMarkdownArgs(argv, fallback) {
             index += 1;
         }
         else if (flag !== undefined && flag.startsWith("-")) {
-            return rejectMarkdown(flag);
+            unknown.push(flag);
         }
         else if (flag !== undefined) {
             files.push(flag);
         }
+    }
+    if (unknown.length > 0) {
+        return rejectMarkdown(unknown.join(" "));
     }
     return { root, files };
 }

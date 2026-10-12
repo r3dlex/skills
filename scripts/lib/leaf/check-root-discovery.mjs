@@ -38,11 +38,11 @@ function helpStatus(argv) {
     return 0;
 }
 function rejectFlag(argv) {
-    const flagged = argv.find((flag) => flag.startsWith("-"));
-    if (flagged === undefined) {
+    const flagged = argv.filter((flag) => flag.startsWith("-"));
+    if (flagged.length === 0) {
         return undefined;
     }
-    process.stderr.write(`usage: check-root-discovery.py [-h] [paths ...]\ncheck-root-discovery.py: error: unrecognized arguments: ${flagged}\n`);
+    process.stderr.write(`usage: check-root-discovery.py [-h] [paths ...]\ncheck-root-discovery.py: error: unrecognized arguments: ${flagged.join(" ")}\n`);
     return 2;
 }
 function scan(argv) {

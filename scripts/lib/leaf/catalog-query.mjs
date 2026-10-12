@@ -80,8 +80,7 @@ function parse(argv, fallbackRoot) {
     if (args.host === undefined) {
         return argparseFail("the following arguments are required: --host");
     }
-    const firstUnknown = unknown[0];
-    return firstUnknown === undefined ? args : argparseFail(`unrecognized arguments: ${firstUnknown}`);
+    return unknown.length === 0 ? args : argparseFail(`unrecognized arguments: ${unknown.join(" ")}`);
 }
 const CATALOG_HELP_OPTIONS = [
     "  -h, --help            show this help message and exit",

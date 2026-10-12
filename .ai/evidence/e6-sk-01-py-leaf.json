@@ -122,5 +122,17 @@
       "exit_code": 0,
       "observed": "PASS=372 FAIL=0 after those comparisons matched the publication anchor on status and streams. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure9": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=372 FAIL=8 before first_run_confirmation_required false was refused, before scaffold, catalog-query, markdown-links, root-discovery, skill-docs, and skill-catalog reported every unrecognized argument, and before the consumer ci-prek.yml template matched the publication anchor bytes. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=380 FAIL=0 after those comparisons matched the publication anchor on status and streams. The consumer template was restored to the anchor bytes, not rewritten to a new template. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }

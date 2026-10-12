@@ -221,6 +221,7 @@ const CATALOG_USAGE = "usage: validate-skill-catalog.py [-h] [--root ROOT] [--wr
 export function main(argv: readonly string[]): number {
   let root = ".";
   let writeAudit = false;
+  const unknown: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === "--root") {
@@ -234,9 +235,12 @@ export function main(argv: readonly string[]): number {
     } else if (flag === "--write-audit") {
       writeAudit = true;
     } else if (flag !== undefined) {
-      process.stderr.write(`${CATALOG_USAGE}\nvalidate-skill-catalog.py: error: unrecognized arguments: ${flag}\n`);
-      return 2;
+      unknown.push(flag);
     }
+  }
+  if (unknown.length > 0) {
+    process.stderr.write(`${CATALOG_USAGE}\nvalidate-skill-catalog.py: error: unrecognized arguments: ${unknown.join(" ")}\n`);
+    return 2;
   }
   const resolved = resolve(root);
   const payload = audit(resolved);

@@ -115,7 +115,7 @@ export function main(argv) {
         return 2;
     }
     if (unknown.length > 0) {
-        process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: unrecognized arguments: ${unknown[0]}\n`);
+        process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: unrecognized arguments: ${unknown.join(" ")}\n`);
         return 2;
     }
     const out = scaffold(skill, resolve(root), kind);
