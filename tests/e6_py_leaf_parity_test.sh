@@ -1681,7 +1681,7 @@ module_case "traceability_schema malformed version NODE_OPTIONS"
 # compared.
 mask_checkout_root() {
 	local root="$1" stream="$2" real tmp
-	real="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$root")"
+	real="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$root")"
 	tmp="$(mktemp)"
 	sed "s#${real}#<repo>#g; s#${root}#<repo>#g" "$stream" >"$tmp"
 	mv "$tmp" "$stream"
@@ -1693,13 +1693,14 @@ cascade_refuse() {
 	wt_bak="$(mktemp)"
 	cp "$REPO_ROOT/$rel" "$bak"
 	cp "$WT/$rel" "$wt_bak"
-	python3 - "$REPO_ROOT/$rel" "$WT/$rel" <<'PY'
-import json, sys
-for path in sys.argv[1:]:
-    plan = json.loads(open(path).read())
-    plan["schema_version"] = "9.9"
-    open(path, "w").write(json.dumps(plan, indent=2) + "\n")
-PY
+	node -e '
+const fs = require("fs");
+for (const path of process.argv.slice(1)) {
+  const plan = JSON.parse(fs.readFileSync(path, "utf8"));
+  plan.schema_version = "9.9";
+  fs.writeFileSync(path, JSON.stringify(plan, null, 2) + "\n");
+}
+' "$REPO_ROOT/$rel" "$WT/$rel"
 	lout="$(mktemp)"
 	rout="$(mktemp)"
 	lerr="$(mktemp)"
