@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { assertNodeVersion } from "../node-version.mjs";
@@ -17,18 +18,35 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
+function pythonShowsCarets(): boolean {
+  const probed = spawnSync("python3", ["-c", "import sys; print(0 if sys.version_info >= (3, 11) else 1)"], {
+    encoding: "utf8",
+  });
+  return probed.stdout.trim() === "0";
+}
+
 function schemaTraceback(root: string): string {
   const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
-  return [
+  const carets = pythonShowsCarets();
+  const lines = [
     "Traceback (most recent call last):",
     `  File "${script}", line 163, in <module>`,
     "    sys.exit(main())",
+  ];
+  if (carets) {
+    lines.push("             ^^^^^^");
+  }
+  lines.push(
     `  File "${script}", line 148, in main`,
     "    validate_fixture(fixture, repo_id)",
     `  File "${script}", line 56, in validate_fixture`,
     "    assert plan[\"schema_version\"] == \"1.0\"",
-    "AssertionError",
-  ].join("\n");
+  );
+  if (carets) {
+    lines.push("           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+  }
+  lines.push("AssertionError");
+  return lines.join("\n");
 }
 
 function readJson(path: string): Record<string, unknown> {
