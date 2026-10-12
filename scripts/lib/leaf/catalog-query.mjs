@@ -50,6 +50,16 @@ function splitEquals(token) {
     }
     return { flag: token };
 }
+function resolveOption(flag) {
+    if (OPTIONS.has(flag)) {
+        return flag;
+    }
+    if (!flag.startsWith("--") || flag.length < 3) {
+        return undefined;
+    }
+    const matches = [...OPTIONS].filter((option) => option.startsWith(flag));
+    return matches.length === 1 ? matches[0] : undefined;
+}
 function missingArgument(inline, next) {
     return inline === undefined && (next === undefined || optionLike(next));
 }
@@ -59,8 +69,8 @@ function parse(argv, fallbackRoot) {
     for (let index = 0; index < argv.length; index += 1) {
         const token = argv[index] ?? "";
         const parts = splitEquals(token);
-        const flag = parts.flag;
-        if (!OPTIONS.has(flag)) {
+        const flag = resolveOption(parts.flag);
+        if (flag === undefined) {
             unknown.push(token);
             continue;
         }

@@ -30,17 +30,45 @@ function expand(raw) {
 function writeDiscoveryHelp() {
     process.stdout.write(`usage: check-root-discovery.py [-h] [paths ...]\n\npositional arguments:\n  paths\n\n${optionHeading()}\n  -h, --help  show this help message and exit\n`);
 }
+function beforeTerminator(argv) {
+    const visible = [];
+    for (const token of argv) {
+        if (token === "--") {
+            break;
+        }
+        visible.push(token);
+    }
+    return visible;
+}
 function helpStatus(argv) {
-    if (!argv.includes("--help") && !argv.includes("-h")) {
+    const visible = beforeTerminator(argv);
+    if (!visible.includes("--help") && !visible.includes("-h")) {
         return undefined;
     }
     writeDiscoveryHelp();
     return 0;
 }
-function rejectFlag(argv) {
-    const flagged = argv.filter((flag) => flag.startsWith("-"));
+function positionals(argv) {
+    const positional = [];
+    const flagged = [];
+    let ended = false;
+    for (const token of argv) {
+        if (ended) {
+            positional.push(token);
+            continue;
+        }
+        if (token === "--") {
+            ended = true;
+            continue;
+        }
+        if (token.startsWith("-")) {
+            flagged.push(token);
+            continue;
+        }
+        positional.push(token);
+    }
     if (flagged.length === 0) {
-        return undefined;
+        return positional;
     }
     process.stderr.write(`usage: check-root-discovery.py [-h] [paths ...]\ncheck-root-discovery.py: error: unrecognized arguments: ${flagged.join(" ")}\n`);
     return 2;
@@ -71,7 +99,12 @@ function scan(argv) {
     return 0;
 }
 export function main(argv) {
-    return helpStatus(argv) ?? rejectFlag(argv) ?? scan(argv);
+    const helped = helpStatus(argv);
+    if (helped !== undefined) {
+        return helped;
+    }
+    const parsed = positionals(argv);
+    return typeof parsed === "number" ? parsed : scan(parsed);
 }
 if (invokedDirectly(import.meta.url)) {
     process.exit(main(process.argv.slice(2)));

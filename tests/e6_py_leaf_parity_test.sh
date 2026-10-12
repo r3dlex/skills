@@ -416,6 +416,7 @@ py_case "catalog-query unknown lifecycle" scripts/catalog-query.py --root "$REPO
 py_case "catalog-query help" scripts/catalog-query.py --help
 py_case "catalog-query help short" scripts/catalog-query.py -h
 py_case "catalog-query equals host" scripts/catalog-query.py --root "$REPO_ROOT" --host=codex --skill=research
+py_case "catalog-query abbreviated host" scripts/catalog-query.py --ho codex --root "$REPO_ROOT"
 env_py "catalog-query NODE_OPTIONS" scripts/catalog-query.py --root "$REPO_ROOT" --host codex
 PROJ_L="$(mktemp)"
 PROJ_R="$(mktemp)"
@@ -450,6 +451,7 @@ env_py "markdown links NODE_OPTIONS" scripts/check-markdown-links.py --root "$RE
 py_case "root discovery repo" scripts/check-root-discovery.py
 py_case "root discovery unknown flag" scripts/check-root-discovery.py --nope
 py_case "root discovery unrecognized arguments" scripts/check-root-discovery.py --nope --other
+py_case "root discovery option terminator" scripts/check-root-discovery.py -- "$WT/scripts/catalog-query.py"
 py_case "root discovery help" scripts/check-root-discovery.py --help
 py_case "root discovery help short" scripts/check-root-discovery.py -h
 env_py "root discovery NODE_OPTIONS" scripts/check-root-discovery.py
@@ -1084,6 +1086,16 @@ setup_readme_template() {
 	printf 'MIT License\n' >"$root/LICENSE"
 }
 
+setup_readme_claude_only() {
+	local root="$1"
+	printf '# Claude guidance\n' >"$root/CLAUDE.md"
+}
+
+setup_readme_empty() {
+	local root="$1"
+	:
+}
+
 setup_readme_existing() {
 	local root="$1" i
 	printf 'MIT License\n' >"$root/LICENSE"
@@ -1322,6 +1334,20 @@ for readme_script in scripts/readme-generate.sh 03-configure-generate/ai-catapul
 		--mental-model "The LICENSE file is the source of truth." \
 		--install-command install-outside-conflict --first-success-command "outside-conflict doctor" \
 		--success-evidence "prints ready" --source-sha "$badge_sha"
+	readme_case "$readme_label CLAUDE-only governance" "$readme_script" setup_readme_claude_only \
+		--mode template --project "Claude Only" --tagline "Uses the available governance surface." \
+		--archetype cli-tool "${README_FACTS[@]}" --install-command "install-claude-only" \
+		--first-success-command "claude-only doctor" --success-evidence "prints ready" \
+		--visibility private
+	readme_case "$readme_label skill-catalog archetype" "$readme_script" setup_readme_empty \
+		--mode template --project "Agent Skills" --tagline "Reusable agent workflows." \
+		--archetype skill-catalog \
+		--why "Install reusable workflows without copying their instructions by hand." \
+		--primary-surface '<skill>/SKILL.md frontmatter' \
+		--mental-model "The host discovers metadata, then loads one matching workflow." \
+		--install-command "./install-skills.sh" \
+		--first-success-command 'agent "$diagnose example failure"' \
+		--success-evidence "the agent loads diagnose/SKILL.md"
 done
 
 readme_restricted() {
@@ -1725,12 +1751,21 @@ mask_checkout_root() {
 }
 cascade_refuse() {
 	local label="$1" mode="${2:-schema}" rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
+	local audit_rel audit_bak wt_audit_bak
 	rel="reference/fixtures/v3/standalone/.ai/cascade/cascade-plan.json"
+	audit_rel="reference/fixtures/v3/standalone/.ai/cascade/audit.jsonl"
 	bak="$(mktemp)"
 	wt_bak="$(mktemp)"
 	cp "$REPO_ROOT/$rel" "$bak"
 	cp "$WT/$rel" "$wt_bak"
-	node -e '
+	if [[ "$mode" == "audit" ]]; then
+		audit_bak="$(mktemp)"
+		wt_audit_bak="$(mktemp)"
+		cp "$REPO_ROOT/$audit_rel" "$audit_bak"
+		cp "$WT/$audit_rel" "$wt_audit_bak"
+		rm -f "$REPO_ROOT/$audit_rel" "$WT/$audit_rel"
+	else
+		node -e '
 const fs = require("fs");
 const mode = process.argv[1];
 for (const path of process.argv.slice(2)) {
@@ -1743,12 +1778,17 @@ for (const path of process.argv.slice(2)) {
     plan.safety.no_secret_material = false;
   } else if (mode === "confirm") {
     plan.first_run_confirmation_required = false;
+  } else if (mode === "children") {
+    plan.child_items = ["child"];
+  } else if (mode === "token") {
+    plan.confirmation_token_pattern = ".*";
   } else {
     plan.schema_version = "9.9";
   }
   fs.writeFileSync(path, JSON.stringify(plan, null, 2) + "\n");
 }
 ' "$mode" "$REPO_ROOT/$rel" "$WT/$rel"
+	fi
 	lout="$(mktemp)"
 	rout="$(mktemp)"
 	lerr="$(mktemp)"
@@ -1764,6 +1804,11 @@ for (const path of process.argv.slice(2)) {
 	cp "$bak" "$REPO_ROOT/$rel"
 	cp "$wt_bak" "$WT/$rel"
 	rm -f "$bak" "$wt_bak"
+	if [[ "$mode" == "audit" ]]; then
+		cp "$audit_bak" "$REPO_ROOT/$audit_rel"
+		cp "$wt_audit_bak" "$WT/$audit_rel"
+		rm -f "$audit_bak" "$wt_audit_bak"
+	fi
 	mask_checkout_root "$WT" "$lerr"
 	mask_checkout_root "$REPO_ROOT" "$rerr"
 	mask_checkout_root "$WT" "$lout"
@@ -1777,6 +1822,9 @@ cascade_refuse "cascade safety confirmation false" safety
 cascade_refuse "cascade duplicate child items false" duplicate
 cascade_refuse "cascade secret material false" secret
 cascade_refuse "cascade first_run_confirmation_required false" confirm
+cascade_refuse "cascade nonempty child_items" children
+cascade_refuse "cascade confirmation_token_pattern wildcard" token
+cascade_refuse "cascade missing audit.jsonl" audit
 
 final_package_optional_branch() {
 	local rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch

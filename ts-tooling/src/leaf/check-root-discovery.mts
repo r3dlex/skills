@@ -37,18 +37,47 @@ function writeDiscoveryHelp(): void {
   );
 }
 
+function beforeTerminator(argv: readonly string[]): string[] {
+  const visible: string[] = [];
+  for (const token of argv) {
+    if (token === "--") {
+      break;
+    }
+    visible.push(token);
+  }
+  return visible;
+}
+
 function helpStatus(argv: readonly string[]): number | undefined {
-  if (!argv.includes("--help") && !argv.includes("-h")) {
+  const visible = beforeTerminator(argv);
+  if (!visible.includes("--help") && !visible.includes("-h")) {
     return undefined;
   }
   writeDiscoveryHelp();
   return 0;
 }
 
-function rejectFlag(argv: readonly string[]): number | undefined {
-  const flagged = argv.filter((flag) => flag.startsWith("-"));
+function positionals(argv: readonly string[]): string[] | number {
+  const positional: string[] = [];
+  const flagged: string[] = [];
+  let ended = false;
+  for (const token of argv) {
+    if (ended) {
+      positional.push(token);
+      continue;
+    }
+    if (token === "--") {
+      ended = true;
+      continue;
+    }
+    if (token.startsWith("-")) {
+      flagged.push(token);
+      continue;
+    }
+    positional.push(token);
+  }
   if (flagged.length === 0) {
-    return undefined;
+    return positional;
   }
   process.stderr.write(`usage: check-root-discovery.py [-h] [paths ...]\ncheck-root-discovery.py: error: unrecognized arguments: ${flagged.join(" ")}\n`);
   return 2;
@@ -80,7 +109,12 @@ function scan(argv: readonly string[]): number {
 }
 
 export function main(argv: readonly string[]): number {
-  return helpStatus(argv) ?? rejectFlag(argv) ?? scan(argv);
+  const helped = helpStatus(argv);
+  if (helped !== undefined) {
+    return helped;
+  }
+  const parsed = positionals(argv);
+  return typeof parsed === "number" ? parsed : scan(parsed);
 }
 
 if (invokedDirectly(import.meta.url)) {

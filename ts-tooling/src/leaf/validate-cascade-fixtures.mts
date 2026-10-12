@@ -143,6 +143,26 @@ function checkAdapter(adapter: Record<string, unknown>, host: string, standalone
   }
 }
 
+function assertionTraceback(root: string, line: number, assertion: string, carets: string, detail = ""): string {
+  const body = safetyFieldTraceback(root, line, assertion, carets);
+  return detail === "" ? body : `${body}: ${detail}`;
+}
+
+function refuseMissingAudit(root: string, name: string): void {
+  const relative = join("reference/fixtures/v3", name, ".ai/cascade/audit.jsonl");
+  if (existsSync(join(root, relative))) {
+    return;
+  }
+  const shown = join(realpathSync(root), relative);
+  fail(assertionTraceback(
+    root,
+    52,
+    "assert audit_path.is_file(), f\"missing {audit_path}\"",
+    "           ^^^^^^^^^^^^^^^^^^^^",
+    `missing ${shown}`,
+  ));
+}
+
 function refuseInvalidPlan(root: string, name: string, repoId: string, plan: Record<string, unknown>): void {
   if (plan.schema_version !== "1.0") {
     fail(schemaTraceback(root));
@@ -159,6 +179,17 @@ function refuseInvalidPlan(root: string, name: string, repoId: string, plan: Rec
       61,
       "assert plan[\"first_run_confirmation_required\"] is True",
       "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    ));
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(plan, "confirmation_token_pattern")
+    && plan.confirmation_token_pattern !== TOKEN.source
+  ) {
+    fail(safetyFieldTraceback(
+      root,
+      62,
+      "assert TOKEN_RE.pattern == plan[\"confirmation_token_pattern\"]",
+      "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
     ));
   }
   if (firstRunUnconfirmed(plan)) {
@@ -182,12 +213,30 @@ function refuseInvalidPlan(root: string, name: string, repoId: string, plan: Rec
   }
 }
 
+function emptyChildItems(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
+}
+
+function refuseNonemptyChildren(root: string, plan: Record<string, unknown>, standalone: boolean): void {
+  if (!standalone || !Object.prototype.hasOwnProperty.call(plan, "child_items") || emptyChildItems(plan.child_items)) {
+    return;
+  }
+  fail(safetyFieldTraceback(
+    root,
+    76,
+    "assert plan[\"child_items\"] == []",
+    "           ^^^^^^^^^^^^^^^^^^^^^^^^^",
+  ));
+}
+
 function validateFixture(root: string, name: string, repoId: string): void {
   const fixture = join(root, "reference/fixtures/v3", name);
+  refuseMissingAudit(root, name);
   const plan = readJson(join(fixture, ".ai/cascade/cascade-plan.json"));
   refuseInvalidPlan(root, name, repoId, plan);
   const matrix = readJson(join(fixture, ".ai/matrix.json"));
   const standalone = matrix.topology_type === "standalone";
+  refuseNonemptyChildren(root, plan, standalone);
   for (const host of HOSTS) {
     const path = join(fixture, ".ai/cascade/host-adapters", `${host}.json`);
     if (!existsSync(path)) {

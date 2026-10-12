@@ -134,5 +134,17 @@
       "exit_code": 0,
       "observed": "PASS=380 FAIL=0 after those comparisons matched the publication anchor on status and streams. The consumer template was restored to the anchor bytes, not rewritten to a new template. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure10": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=388 FAIL=5 before a nonempty child_items, confirmation_token_pattern .*, and a missing audit.jsonl were refused, and before catalog-query --ho and the root-discovery -- terminator matched the anchor. The CLAUDE-only governance fallback and the skill-catalog archetype already matched. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=393 FAIL=0 after those comparisons matched the publication anchor on status and streams. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }
