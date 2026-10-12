@@ -132,7 +132,7 @@ export function main(argv: readonly string[], root = repoRoot(import.meta.url)):
   try {
     const payload = loadCatalog(parsed.root);
     const entries = select(payload, parsed.host ?? "", new Set(parsed.lifecycles), parsed.skill);
-    if (parsed.projection !== undefined) {
+    if (parsed.projection) {
       writeFileSync(parsed.projection, `${JSON.stringify(projection(payload, entries), null, 2)}\n`);
     }
     for (const entry of entries) {

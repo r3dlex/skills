@@ -158,5 +158,28 @@
       "exit_code": 0,
       "observed": "PASS=404 FAIL=0 after those comparisons matched the publication anchor on status and streams. The isolated invalid-UTF8 file exits 0 on both sides. A comparison failure in the scanner subshell increments FAIL and returns non-zero. The local-ci source pins for the parity test and the secret scanner were refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure12": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "freeze": {
+      "command": "bash scripts/check-legacy-freeze.sh .",
+      "red": {
+        "exit_code": 1,
+        "observed": "unlisted file: tests/e6_py_leaf_parity_test.sh"
+      },
+      "green": {
+        "exit_code": 0,
+        "observed": "legacy-freeze: pass after listing tests/e6_py_leaf_parity_test.sh as an in-flight eligible test driver, owner e6-sk-05-test-harness, in_flight 137. The freeze checker was not weakened."
+      }
+    },
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=404 FAIL=7 before catalog-query --he and --host codex --projection= matched the anchor, before a wrong matrix_path, an empty reconciliation report, removal of audit status match, and adapter apply.status created-or-linked were refused, and before final-package scanning of ghp_ plus an invalid UTF-8 byte plus thirty A characters was refused. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=411 FAIL=0 after those comparisons matched the publication anchor on status and streams. The parity driver is listed in the ledger the way the other in-flight test drivers are listed. The local-ci source pins for the parity test and the freeze baseline were refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }

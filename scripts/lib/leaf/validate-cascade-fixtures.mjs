@@ -141,6 +141,7 @@ function refuseInvalidPlan(root, name, repoId, plan) {
         fail(`invalid cascade plan for ${name}`);
     }
     refuseWrongCascadeId(root, repoId, plan);
+    refuseWrongMatrixPath(root, plan);
     if (Object.prototype.hasOwnProperty.call(plan, "first_run_confirmation_required")
         && plan.first_run_confirmation_required !== true) {
         fail(safetyFieldTraceback(root, 61, "assert plan[\"first_run_confirmation_required\"] is True", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
@@ -180,10 +181,46 @@ function refuseEmptyAudit(root, name) {
             statuses.add(event.status);
         }
     }
-    if (statuses.has("apply-blocked-no-confirmation")) {
+    if (!statuses.has("apply-blocked-no-confirmation")) {
+        fail(safetyFieldTraceback(root, 82, "assert \"apply-blocked-no-confirmation\" in statuses", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
+    }
+    if (!statuses.has("match")) {
+        fail(safetyFieldTraceback(root, 89, "assert \"match\" in statuses", "           ^^^^^^^^^^^^^^^^^^^"));
+    }
+}
+function refuseWrongMatrixPath(root, plan) {
+    if (plan.matrix_path === ".ai/matrix.json") {
         return;
     }
-    fail(safetyFieldTraceback(root, 82, "assert \"apply-blocked-no-confirmation\" in statuses", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
+    fail(safetyFieldTraceback(root, 59, "assert plan[\"matrix_path\"] == \".ai/matrix.json\"", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
+}
+const REPORT_REQUIRED = [
+    "status: `pass`",
+    "first_run_without_confirmation: `blocked`",
+    "idempotent_update: `pass`",
+    "duplicates_created: `0`",
+    "missing_links: `0`",
+    "readback_status: `match`",
+];
+function refuseSparseReport(root, name) {
+    const relative = join("reference/fixtures/v3", name, ".ai/cascade", "reconciliation-report.md");
+    const report = readFileSync(join(root, relative), "utf8");
+    const missing = REPORT_REQUIRED.find((required) => !report.includes(required));
+    if (missing === undefined) {
+        return;
+    }
+    const shown = join(realpathSync(root), relative);
+    fail(assertionTraceback(root, 97, "assert required in report, f\"missing {required} in {report_path}\"", "           ^^^^^^^^^^^^^^^^^^", `missing ${missing} in ${shown}`));
+}
+function refuseStandaloneApply(root, adapter, standalone) {
+    if (!standalone) {
+        return;
+    }
+    const apply = adapter.apply;
+    if (apply.status === "not-required") {
+        return;
+    }
+    fail(safetyFieldTraceback(root, 118, "assert adapter[\"apply\"][\"status\"] == \"not-required\"", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
 }
 function knownOperations(operations) {
     return Array.isArray(operations) && operations.every((operation) => typeof operation === "string" && OPERATIONS.has(operation));
@@ -204,6 +241,7 @@ function validateFixture(root, name, repoId) {
     const standalone = matrix.topology_type === "standalone";
     refuseNonemptyChildren(root, plan, standalone);
     refuseEmptyAudit(root, name);
+    refuseSparseReport(root, name);
     for (const host of HOSTS) {
         const path = join(fixture, ".ai/cascade/host-adapters", `${host}.json`);
         if (!existsSync(path)) {
@@ -217,6 +255,7 @@ function validateFixture(root, name, repoId) {
         if (!knownOperations(adapter.operations)) {
             fail(safetyFieldTraceback(root, 112, "assert set(adapter[\"operations\"]) == OPERATIONS", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"));
         }
+        refuseStandaloneApply(root, adapter, standalone);
         checkAdapter(adapter, host, standalone);
         if (adapter.hosted === true && !TOKEN.test(String(adapter.safety.confirmation_token))) {
             fail(`invalid confirmation token for ${host}`);

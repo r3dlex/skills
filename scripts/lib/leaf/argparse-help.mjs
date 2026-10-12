@@ -11,6 +11,13 @@ const NEGATIVE_NUMBER = /^-\d+(\.\d*)?$|^-\.\d+$/;
 export function optionLike(token) {
     return token !== undefined && token.length > 1 && token.startsWith("-") && !NEGATIVE_NUMBER.test(token);
 }
+function helpPrefix(flag, takesValue) {
+    if (!flag.startsWith("--") || flag.includes("=") || flag.length < 3) {
+        return false;
+    }
+    const matches = ["--help", ...takesValue].filter((option) => option.startsWith(flag));
+    return matches.length === 1 && matches[0] === "--help";
+}
 export function helpRequested(argv, takesValue) {
     let skip = false;
     for (const flag of argv) {
@@ -22,7 +29,7 @@ export function helpRequested(argv, takesValue) {
             skip = true;
             continue;
         }
-        if (flag === "-h" || flag === "--help") {
+        if (flag === "-h" || flag === "--help" || helpPrefix(flag, takesValue)) {
             return true;
         }
     }

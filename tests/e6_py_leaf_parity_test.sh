@@ -49,6 +49,7 @@ cleanup() {
 	git worktree remove --force "$WT" >/dev/null 2>&1 || true
 	rm -rf "$WT"
 	rm -rf "$REPO_ROOT/scripts/.codex"
+	rm -f "$REPO_ROOT/binary-secret.txt"
 }
 trap cleanup EXIT
 
@@ -436,6 +437,8 @@ py_case "catalog-query help" scripts/catalog-query.py --help
 py_case "catalog-query help short" scripts/catalog-query.py -h
 py_case "catalog-query equals host" scripts/catalog-query.py --root "$REPO_ROOT" --host=codex --skill=research
 py_case "catalog-query abbreviated host" scripts/catalog-query.py --ho codex --root "$REPO_ROOT"
+py_case "catalog-query abbreviated help" scripts/catalog-query.py --he
+py_case "catalog-query empty projection" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --projection=
 env_py "catalog-query NODE_OPTIONS" scripts/catalog-query.py --root "$REPO_ROOT" --host codex
 PROJ_L="$(mktemp)"
 PROJ_R="$(mktemp)"
@@ -1882,12 +1885,45 @@ cascade_refuse() {
 			: >"$REPO_ROOT/$audit_rel"
 			: >"$WT/$audit_rel"
 		fi
-	elif [[ "$mode" == "report" ]]; then
+	elif [[ "$mode" == "report" || "$mode" == "empty-report" ]]; then
 		report_bak="$(mktemp)"
 		wt_report_bak="$(mktemp)"
 		cp "$REPO_ROOT/$report_rel" "$report_bak"
 		cp "$WT/$report_rel" "$wt_report_bak"
-		rm -f "$REPO_ROOT/$report_rel" "$WT/$report_rel"
+		if [[ "$mode" == "report" ]]; then
+			rm -f "$REPO_ROOT/$report_rel" "$WT/$report_rel"
+		else
+			: >"$REPO_ROOT/$report_rel"
+			: >"$WT/$report_rel"
+		fi
+	elif [[ "$mode" == "audit-match" ]]; then
+		audit_bak="$(mktemp)"
+		wt_audit_bak="$(mktemp)"
+		cp "$REPO_ROOT/$audit_rel" "$audit_bak"
+		cp "$WT/$audit_rel" "$wt_audit_bak"
+		node -e '
+const fs = require("fs");
+for (const path of process.argv.slice(1)) {
+  const kept = fs.readFileSync(path, "utf8").split("\n").filter((line) => {
+    if (line.trim() === "") return false;
+    return JSON.parse(line).status !== "match";
+  });
+  fs.writeFileSync(path, kept.length === 0 ? "" : `${kept.join("\n")}\n`);
+}
+' "$REPO_ROOT/$audit_rel" "$WT/$audit_rel"
+	elif [[ "$mode" == "apply" ]]; then
+		adapter_bak="$(mktemp)"
+		wt_adapter_bak="$(mktemp)"
+		cp "$REPO_ROOT/$adapter_rel" "$adapter_bak"
+		cp "$WT/$adapter_rel" "$wt_adapter_bak"
+		node -e '
+const fs = require("fs");
+for (const path of process.argv.slice(1)) {
+  const adapter = JSON.parse(fs.readFileSync(path, "utf8"));
+  adapter.apply.status = "created-or-linked";
+  fs.writeFileSync(path, `${JSON.stringify(adapter, null, 2)}\n`);
+}
+' "$REPO_ROOT/$adapter_rel" "$WT/$adapter_rel"
 	elif [[ "$mode" == "operation" ]]; then
 		adapter_bak="$(mktemp)"
 		wt_adapter_bak="$(mktemp)"
@@ -1921,6 +1957,8 @@ for (const path of process.argv.slice(2)) {
     plan.confirmation_token_pattern = ".*";
   } else if (mode === "id") {
     plan.cascade_id = "cascade:wrong:init-ai-repo";
+  } else if (mode === "matrix") {
+    plan.matrix_path = "wrong.json";
   } else {
     plan.schema_version = "9.9";
   }
@@ -1943,17 +1981,17 @@ for (const path of process.argv.slice(2)) {
 	cp "$bak" "$REPO_ROOT/$rel"
 	cp "$wt_bak" "$WT/$rel"
 	rm -f "$bak" "$wt_bak"
-	if [[ "$mode" == "audit" || "$mode" == "empty-audit" ]]; then
+	if [[ "$mode" == "audit" || "$mode" == "empty-audit" || "$mode" == "audit-match" ]]; then
 		cp "$audit_bak" "$REPO_ROOT/$audit_rel"
 		cp "$wt_audit_bak" "$WT/$audit_rel"
 		rm -f "$audit_bak" "$wt_audit_bak"
 	fi
-	if [[ "$mode" == "report" ]]; then
+	if [[ "$mode" == "report" || "$mode" == "empty-report" ]]; then
 		cp "$report_bak" "$REPO_ROOT/$report_rel"
 		cp "$wt_report_bak" "$WT/$report_rel"
 		rm -f "$report_bak" "$wt_report_bak"
 	fi
-	if [[ "$mode" == "operation" ]]; then
+	if [[ "$mode" == "operation" || "$mode" == "apply" ]]; then
 		cp "$adapter_bak" "$REPO_ROOT/$adapter_rel"
 		cp "$wt_adapter_bak" "$WT/$adapter_rel"
 		rm -f "$adapter_bak" "$wt_adapter_bak"
@@ -1978,6 +2016,10 @@ cascade_refuse "cascade wrong cascade_id" id
 cascade_refuse "cascade empty audit.jsonl" empty-audit
 cascade_refuse "cascade missing reconciliation-report.md" report
 cascade_refuse "cascade unknown adapter operation" operation
+cascade_refuse "cascade wrong matrix_path" matrix
+cascade_refuse "cascade empty reconciliation report" empty-report
+cascade_refuse "cascade audit missing match" audit-match
+cascade_refuse "cascade standalone apply created-or-linked" apply
 
 final_package_optional_branch() {
 	local rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
@@ -2019,6 +2061,33 @@ for (const path of process.argv.slice(1)) {
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
 }
 final_package_optional_branch
+
+final_package_invalid_utf8_secret() {
+	local rel="binary-secret.txt" lout rout lerr rerr lrc rrc lwatch rwatch
+	python3 -c 'import pathlib,sys; pathlib.Path(sys.argv[1]).write_bytes(b"ghp_" + bytes([255]) + b"A"*30 + b"\n")' "$REPO_ROOT/$rel"
+	python3 -c 'import pathlib,sys; pathlib.Path(sys.argv[1]).write_bytes(b"ghp_" + bytes([255]) + b"A"*30 + b"\n")' "$WT/$rel"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	set +e
+	python3 "$WT/scripts/validate-final-package.py" >"$lout" 2>"$lerr"
+	lrc=$?
+	python3 "$REPO_ROOT/scripts/validate-final-package.py" >"$rout" 2>"$rerr"
+	rrc=$?
+	set +e
+	rm -f "$REPO_ROOT/$rel" "$WT/$rel"
+	mask_checkout_root "$WT" "$lerr"
+	mask_checkout_root "$REPO_ROOT" "$rerr"
+	mask_checkout_root "$WT" "$lout"
+	mask_checkout_root "$REPO_ROOT" "$rout"
+	judge "final package invalid utf8 secret" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+	rm -rf "$lwatch" "$rwatch"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+final_package_invalid_utf8_secret
 
 setup_readme_encoded_apache() {
 	local root="$1" i

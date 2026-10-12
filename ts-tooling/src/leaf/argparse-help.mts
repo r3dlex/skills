@@ -15,6 +15,14 @@ export function optionLike(token: string | undefined): boolean {
   return token !== undefined && token.length > 1 && token.startsWith("-") && !NEGATIVE_NUMBER.test(token);
 }
 
+function helpPrefix(flag: string, takesValue: ReadonlySet<string>): boolean {
+  if (!flag.startsWith("--") || flag.includes("=") || flag.length < 3) {
+    return false;
+  }
+  const matches = ["--help", ...takesValue].filter((option) => option.startsWith(flag));
+  return matches.length === 1 && matches[0] === "--help";
+}
+
 export function helpRequested(argv: readonly string[], takesValue: ReadonlySet<string>): boolean {
   let skip = false;
   for (const flag of argv) {
@@ -26,7 +34,7 @@ export function helpRequested(argv: readonly string[], takesValue: ReadonlySet<s
       skip = true;
       continue;
     }
-    if (flag === "-h" || flag === "--help") {
+    if (flag === "-h" || flag === "--help" || helpPrefix(flag, takesValue)) {
       return true;
     }
   }

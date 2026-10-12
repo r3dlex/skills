@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { TextDecoder } from "node:util";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { repoRoot } from "./repo-root.mjs";
@@ -191,12 +192,36 @@ function walk(root: string, dir: string, files: string[]): void {
   }
 }
 
+function utf8Ignore(bytes: Uint8Array): string {
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  const parts: string[] = [];
+  let index = 0;
+  while (index < bytes.length) {
+    let end = bytes.length;
+    let decoded = false;
+    while (end > index) {
+      try {
+        parts.push(decoder.decode(bytes.subarray(index, end)));
+        index = end;
+        decoded = true;
+        break;
+      } catch {
+        end -= 1;
+      }
+    }
+    if (!decoded) {
+      index += 1;
+    }
+  }
+  return parts.join("");
+}
+
 function checkSecrets(root: string): void {
   const files: string[] = [];
   walk(root, root, files);
   const offenders: string[] = [];
   for (const path of files) {
-    const text = readFileSync(path, "utf8");
+    const text = utf8Ignore(readFileSync(path));
     for (const pattern of SECRET_PATTERNS) {
       if (pattern.test(text)) {
         offenders.push(`${relative(root, path)} matches ${pattern.source}`);

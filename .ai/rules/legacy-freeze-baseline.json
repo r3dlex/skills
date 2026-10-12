@@ -487,6 +487,12 @@
       "owner": "e6-sk-05-test-harness"
     },
     {
+      "path": "tests/e6_py_leaf_parity_test.sh",
+      "class": "eligible",
+      "owner": "e6-sk-05-test-harness",
+      "in_flight": 137
+    },
+    {
       "path": "tests/eval_a_skill_test.sh",
       "class": "eligible",
       "owner": "e6-sk-05-test-harness"
