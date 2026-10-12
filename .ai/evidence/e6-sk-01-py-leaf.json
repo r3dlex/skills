@@ -49,5 +49,17 @@
       "exit_code": 0,
       "observed": "PASS=136 FAIL=0 after tree comparison included symlink targets and each red leg ran the TypeScript candidate. Recorded candidate statuses were 0, 1, or 2; none was a fabricated 9. Comparator failures were real candidate divergences or a one-byte seed of that candidate's captured stdout. A following format-only edit makes shfmt -d clean; it does not change the comparison."
     }
+  },
+  "cure3": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=170 FAIL=11 before README success, audit, augment, and guarded-force writes matched the anchor, before a broken markdown link path was realpathed, and while a node_unavailable or node_version_unsupported mismatch still counted as a successful divergence. Host, lifecycle, root-discovery bypass, and SKILLS_CATALOG_ROOT comparisons already matched. Restricted-PATH SHA refusal already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=181 FAIL=0 after those comparisons matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains."
+    }
   }
 }

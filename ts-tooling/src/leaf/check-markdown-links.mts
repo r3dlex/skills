@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
@@ -142,6 +142,11 @@ function rejectMarkdown(flag: string): number {
   return 2;
 }
 
+function pyPath(path: string): string {
+  const absolute = resolve(path);
+  return existsSync(absolute) ? realpathSync(absolute) : absolute;
+}
+
 export function main(argv: readonly string[], fallback = repoRoot(import.meta.url)): number {
   let root = fallback;
   const files: string[] = [];
@@ -161,7 +166,7 @@ export function main(argv: readonly string[], fallback = repoRoot(import.meta.ur
       files.push(flag);
     }
   }
-  const resolved = resolve(root);
+  const resolved = pyPath(root);
   const catalog = loadCatalog(resolved);
   const selected = files.length > 0 ? files.map((path) => resolve(path)) : checkedFiles(resolved, catalog);
   const broken = failures(resolved, selected, catalog);

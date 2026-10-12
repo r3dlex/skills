@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
@@ -107,6 +107,10 @@ function rejectMarkdown(flag) {
     process.stderr.write(`usage: check-markdown-links.py [-h] [--root ROOT] [files ...]\ncheck-markdown-links.py: error: unrecognized arguments: ${flag}\n`);
     return 2;
 }
+function pyPath(path) {
+    const absolute = resolve(path);
+    return existsSync(absolute) ? realpathSync(absolute) : absolute;
+}
 export function main(argv, fallback = repoRoot(import.meta.url)) {
     let root = fallback;
     const files = [];
@@ -128,7 +132,7 @@ export function main(argv, fallback = repoRoot(import.meta.url)) {
             files.push(flag);
         }
     }
-    const resolved = resolve(root);
+    const resolved = pyPath(root);
     const catalog = loadCatalog(resolved);
     const selected = files.length > 0 ? files.map((path) => resolve(path)) : checkedFiles(resolved, catalog);
     const broken = failures(resolved, selected, catalog);

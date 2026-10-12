@@ -100,32 +100,42 @@ function sha256(path) {
     throw new Error("SHA-256 requires sha256sum or shasum");
 }
 function templatePath(root) {
-    const beside = join(dirname(fileURLToPath(import.meta.url)), "../assets/readme/template.md");
-    if (existsSync(beside)) {
-        return beside;
+    const here = dirname(fileURLToPath(import.meta.url));
+    for (const relative of ["../assets/readme/template.md", "../../assets/readme/template.md"]) {
+        const candidate = join(here, relative);
+        if (existsSync(candidate)) {
+            return candidate;
+        }
     }
     return join(root, "03-configure-generate/ai-catapult-init/assets/readme/template.md");
 }
+function bashCapture(value) {
+    return value.replace(/\n+$/, "");
+}
+function resolvedLicense(args) {
+    return args.license !== "" ? args.license : detectLicense(args.repo);
+}
 function render(args, root) {
     const body = readFileSync(templatePath(root), "utf8");
+    const license = resolvedLicense(args);
     const replacements = {
         "@@PROJECT_NAME@@": args.project,
         "@@PROJECT_TAGLINE@@": args.tagline,
-        "@@BADGES_BLOCK@@": args.badges === "license" && args.license !== ""
-            ? `[![License: ${args.license}](https://img.shields.io/badge/license-${args.license}-blue)](LICENSE)`
+        "@@BADGES_BLOCK@@": args.badges === "license" && license !== ""
+            ? `[![License: ${license}](https://img.shields.io/badge/license-${license}-blue)](LICENSE)`
             : "",
         "@@INSTALL_COMMAND@@": args.install,
         "@@FIRST_SUCCESS_COMMAND@@": args.first,
         "@@SUCCESS_EVIDENCE@@": args.evidence,
         "@@REQUIREMENTS_SECTION@@": args.requirements === "" ? "" : `## Requirements\n\n- ${args.requirements}`,
         "@@WHY_SECTION@@": `## Why\n\n${args.why}`,
-        "@@ARCHETYPE_SECTION@@": archetype(args),
+        "@@ARCHETYPE_SECTION@@": bashCapture(archetype(args)),
         "@@UPDATE_SECTION@@": args.update === "" ? "" : `## Update\n\n\`\`\`sh\n${args.update}\n\`\`\``,
         "@@COMMUNITY_SECTION@@": existsSync(join(args.repo, "CONTRIBUTING.md"))
             ? "## Community\n\nSee [CONTRIBUTING.md](CONTRIBUTING.md) to propose changes or report repository-specific problems."
             : "",
-        "@@LICENSE_SECTION@@": args.license === "" ? "" : `## License\n\n${args.license} — see [LICENSE](LICENSE).`,
-        "@@GOVERNANCE_SECTION@@": governance(args.repo),
+        "@@LICENSE_SECTION@@": license === "" ? "" : `## License\n\n${license} — see [LICENSE](LICENSE).`,
+        "@@GOVERNANCE_SECTION@@": bashCapture(governance(args.repo)),
     };
     let rendered = body;
     for (const [needle, value] of Object.entries(replacements)) {
@@ -198,12 +208,69 @@ export function main(argv, root = repoRoot(import.meta.url)) {
         process.stderr.write(`unknown --mode: ${parsed.mode}\n`);
         return 1;
     }
+    return dispatch(parsed, root);
+}
+function readmeStamp() {
+    const head = new Date().toISOString().replace(/\.\d+Z$/, "Z").replaceAll(":", "-");
+    return `${head}-${process.pid}`;
+}
+function sourceSections(text) {
+    const sections = [];
+    for (const line of text.split("\n")) {
+        if (line.startsWith("# ") || line.startsWith("## ")) {
+            sections.push(line.replace(/^#+/, "").trim());
+        }
+    }
+    return sections;
+}
+function emitAudit(src, repo, spec) {
+    const stamp = readmeStamp();
+    const backupDir = join(repo, ".ai/drift/readme-backups");
+    mkdirSync(backupDir, { recursive: true });
+    const manifest = join(backupDir, `audit-${stamp}.json`);
+    let sourceSha = "";
+    let backup = "";
+    let content = Buffer.alloc(0);
+    if (existsSync(src)) {
+        content = readFileSync(src);
+        sourceSha = sha256(src);
+        backup = join(backupDir, `README-${stamp}.bak`);
+        copyFileSync(src, backup);
+    }
+    let newlines = 0;
+    for (const byte of content) {
+        if (byte === 0x0a) {
+            newlines += 1;
+        }
+    }
+    writeFileSync(manifest, `${JSON.stringify({
+        timestamp: stamp,
+        source_path: src,
+        source_sha256: sourceSha,
+        source_size: content.length,
+        source_lines: newlines,
+        source_sections: sourceSections(content.toString("utf8")),
+        mode: spec.mode,
+        reason: spec.reason,
+        visibility: spec.visibility,
+        planned_additions: spec.additions,
+        planned_modifications: [],
+        planned_deletions: [],
+        user_response: spec.userResponse,
+        backup_path: backup,
+    }, null, 2)}\n`);
+    return manifest;
+}
+function dispatch(parsed, root) {
     if (parsed.mode === "audit-only") {
-        const stamp = new Date().toISOString().replaceAll(/[-:]/g, "-").replace(/\.\d+Z$/, "Z");
-        const dir = join(parsed.repo, ".ai/drift/readme-backups");
-        mkdirSync(dir, { recursive: true });
-        const manifest = join(dir, `audit-${stamp}-${process.pid}.json`);
-        writeFileSync(manifest, `${JSON.stringify({ mode: "audit-only", source_path: parsed.out }, null, 2)}\n`);
+        process.stdout.write(`mode: ${sparse(parsed.out) ? "template (sparse)" : "augment (existing)"}\n`);
+        const manifest = emitAudit(parsed.out, parsed.repo, {
+            mode: "audit-only",
+            reason: "manual",
+            additions: [],
+            userResponse: "audit-only",
+            visibility: parsed.visibility,
+        });
         process.stdout.write(`${manifest}\n`);
         process.stdout.write(`ok: ${parsed.mode} ${parsed.out}\n`);
         return 0;
@@ -299,8 +366,9 @@ function augmentSections(args, text) {
     if (args.update !== "" && !/^##\s+Update/im.test(text)) {
         additions.push(`## Update\n\n\`\`\`sh\n${args.update}\n\`\`\``);
     }
-    if (args.license !== "" && !/^##\s+License/im.test(text)) {
-        additions.push(`## License\n\n${args.license} — see [LICENSE](LICENSE).`);
+    const license = resolvedLicense(args);
+    if (license !== "" && !/^##\s+License/im.test(text)) {
+        additions.push(`## License\n\n${license} — see [LICENSE](LICENSE).`);
     }
     return additions;
 }
@@ -377,13 +445,18 @@ function augment(args) {
             additions.push(block);
         }
     }
-    const next = `${text.trimEnd()}${additions.map((section) => `\n\n${section}`).join("")}\n`;
-    const backupDir = join(args.repo, ".ai/drift/readme-backups");
-    mkdirSync(backupDir, { recursive: true });
-    const stamp = `${Date.now()}-${process.pid}`;
-    const backup = join(backupDir, `README-${stamp}.bak`);
-    copyFileSync(args.out, backup);
-    writeFileSync(join(backupDir, `audit-${stamp}.json`), `${JSON.stringify({ source_sha256: args.sourceSha }, null, 2)}\n`);
+    let next = text;
+    for (const section of additions) {
+        next += `\n\n${bashCapture(section)}\n`;
+    }
+    const manifest = emitAudit(args.out, args.repo, {
+        mode: "augment",
+        reason: "missing canonical onboarding",
+        additions: ["complete onboarding sections"],
+        userResponse: "source-sha-confirmed",
+        visibility: args.visibility,
+    });
+    process.stderr.write(`audit manifest: ${manifest}\n`);
     writeFileSync(args.out, next);
     const guarded = guard(args.out, args.visibility);
     if (guarded !== 0) {
@@ -410,12 +483,14 @@ function writeTemplate(parsed, root) {
             process.stderr.write("guarded write rejected: README no longer matches --source-sha\n");
             return 2;
         }
-        const backupDir = join(parsed.repo, ".ai/drift/readme-backups");
-        mkdirSync(backupDir, { recursive: true });
-        const stamp = `${Date.now()}-${process.pid}`;
-        const backup = join(backupDir, `README-${stamp}.bak`);
-        copyFileSync(parsed.out, backup);
-        writeFileSync(join(backupDir, `audit-${stamp}.json`), `${JSON.stringify({ source_sha256: parsed.sourceSha, backup_path: backup, mode: "template-force" }, null, 2)}\n`);
+        const manifest = emitAudit(parsed.out, parsed.repo, {
+            mode: "template-force",
+            reason: "operator-requested canonical replacement",
+            additions: ["canonical README"],
+            userResponse: "source-sha-confirmed",
+            visibility: parsed.visibility,
+        });
+        process.stderr.write(`audit manifest: ${manifest}\n`);
     }
     const guarded = guard(candidate, parsed.visibility);
     if (guarded !== 0) {

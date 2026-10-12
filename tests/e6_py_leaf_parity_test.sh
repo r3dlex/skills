@@ -152,6 +152,10 @@ judge() {
 		return 0
 	fi
 	if [[ "$expect" == expect-diverge ]]; then
+		if refused "$rerr" || refused "$rout"; then
+			bad "$label tool-unavailable is not a divergence"
+			return 1
+		fi
 		ok "$label comparator failed"
 		return 0
 	fi
@@ -803,6 +807,385 @@ set +e
 judge "catalog-install port missing value NODE_OPTIONS" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
 rm -rf "$lwatch" "$rwatch"
 rm -f "$lout" "$rout" "$lerr" "$rerr"
+
+# Class readme-stamp. Sites are the token
+# YYYY-MM-DDTHH-MM-SSZ-<pid> in audit/backup filenames, audit JSON, stdout, and
+# stderr. The mask replaces that token with <readme-stamp> and no other byte.
+mask_readme_stamp() {
+	local root="$1" out="$2" err="$3" stamp file dest tmp stream
+	stamp="$(find "$root" -name 'audit-*.json' -print 2>/dev/null | head -1 || true)"
+	stamp="$(basename "${stamp:-}" .json)"
+	stamp="${stamp#audit-}"
+	if [[ ! "$stamp" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}Z-[0-9]+$ ]]; then
+		return 0
+	fi
+	for stream in "$out" "$err"; do
+		tmp="$(mktemp)"
+		sed "s/${stamp}/<readme-stamp>/g" "$stream" >"$tmp"
+		mv "$tmp" "$stream"
+	done
+	while IFS= read -r file; do
+		if grep -q "$stamp" "$file"; then
+			tmp="$(mktemp)"
+			sed "s/${stamp}/<readme-stamp>/g" "$file" >"$tmp"
+			mv "$tmp" "$file"
+		fi
+	done < <(find "$root" -type f -print)
+	while IFS= read -r file; do
+		dest="${file//${stamp}/<readme-stamp>}"
+		if [[ "$dest" != "$file" ]]; then
+			mv "$file" "$dest"
+		fi
+	done < <(find "$root" -name "*${stamp}*" -print)
+}
+
+probe_stamp_mask_sites() {
+	local root stream before after
+	root="$(mktemp -d)"
+	mkdir -p "$root/.ai"
+	printf 'keep\n' >"$root/README.md"
+	printf 'stamp 2026-10-12T04-40-28Z-9 here\n' >"$root/.ai/audit-2026-10-12T04-40-28Z-9.json"
+	before="$(shasum -a 256 "$root/README.md" | awk '{print $1}')"
+	stream="$(mktemp)"
+	printf 'path audit-2026-10-12T04-40-28Z-9.json\n' >"$stream"
+	mask_readme_stamp "$root" "$stream" "$stream"
+	after="$(shasum -a 256 "$root/README.md" | awk '{print $1}')"
+	if [[ "$before" == "$after" && -f "$root/.ai/audit-<readme-stamp>.json" && "$(cat "$stream")" == "path audit-<readme-stamp>.json" ]]; then
+		ok "readme-stamp mask stays inside stamp sites"
+	else
+		bad "readme-stamp mask stays inside stamp sites"
+	fi
+	rm -rf "$root"
+	rm -f "$stream"
+}
+probe_stamp_mask_sites
+
+probe_refusal_divergence() {
+	local lout rout lerr rerr lwatch rwatch saved_pass saved_fail rc
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	printf 'legacy\n' >"$lout"
+	printf 'node_unavailable\n' >"$rerr"
+	saved_pass=$PASS
+	saved_fail=$FAIL
+	set +e
+	judge "internal node_unavailable diverge" 0 127 "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch" expect-diverge
+	rc=$?
+	set +e
+	PASS=$saved_pass
+	FAIL=$saved_fail
+	if [[ "$rc" -eq 0 ]]; then
+		bad "node_unavailable counted as a successful divergence"
+	else
+		ok "node_unavailable is not a successful divergence"
+	fi
+	printf 'node_version_unsupported\n' >"$rout"
+	printf 'node_version_unsupported\n' >"$rerr"
+	saved_pass=$PASS
+	saved_fail=$FAIL
+	set +e
+	judge "internal node_version_unsupported diverge" 0 126 "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch" expect-diverge
+	rc=$?
+	set +e
+	PASS=$saved_pass
+	FAIL=$saved_fail
+	if [[ "$rc" -eq 0 ]]; then
+		bad "node_version_unsupported counted as a successful divergence"
+	else
+		ok "node_version_unsupported is not a successful divergence"
+	fi
+	printf 'different\n' >"$rout"
+	: >"$rerr"
+	saved_pass=$PASS
+	saved_fail=$FAIL
+	set +e
+	judge "internal seeded diverge" 0 1 "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch" expect-diverge
+	rc=$?
+	set +e
+	PASS=$saved_pass
+	FAIL=$saved_fail
+	if [[ "$rc" -eq 0 ]]; then
+		ok "seeded divergence still counts"
+	else
+		bad "seeded divergence still counts"
+	fi
+	rm -rf "$lwatch" "$rwatch"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+probe_refusal_divergence
+
+readme_case() {
+	local label="$1" script="$2" setup="$3"
+	shift 3
+	pin "$script" || return
+	local work lsnap rsnap lout rout lerr rerr lrc rrc before
+	work="$(mktemp -d)"
+	lsnap="$(mktemp -d)"
+	rsnap="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	"$setup" "$work"
+	set +e
+	invoke_sh "parity-argv0/$(basename "$script")" "$WT/$script" --repo "$work" --out "$work/README.md" "$@" >"$lout" 2>"$lerr"
+	lrc=$?
+	cp -R "$work/." "$lsnap/" 2>/dev/null || true
+	rm -rf "$work"
+	mkdir -p "$work"
+	"$setup" "$work"
+	invoke_sh "parity-argv0/$(basename "$script")" "$REPO_ROOT/$script" --repo "$work" --out "$work/README.md" "$@" >"$rout" 2>"$rerr"
+	rrc=$?
+	cp -R "$work/." "$rsnap/" 2>/dev/null || true
+	set +e
+	before=""
+	if [[ -f "$lsnap/README.md" ]]; then
+		before="$(shasum -a 256 "$lsnap/README.md" | awk '{print $1}')"
+	fi
+	mask_readme_stamp "$lsnap" "$lout" "$lerr"
+	mask_readme_stamp "$rsnap" "$rout" "$rerr"
+	if [[ -n "$before" ]]; then
+		if [[ "$before" == "$(shasum -a 256 "$lsnap/README.md" | awk '{print $1}')" ]]; then
+			ok "$label readme-stamp mask left README.md"
+		else
+			bad "$label readme-stamp mask rewrote README.md"
+		fi
+	fi
+	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lsnap" "$rsnap"
+	rm -rf "$work" "$lsnap" "$rsnap"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+
+setup_readme_template() {
+	local root="$1"
+	printf 'MIT License\n' >"$root/LICENSE"
+}
+
+setup_readme_existing() {
+	local root="$1" i
+	printf 'MIT License\n' >"$root/LICENSE"
+	{
+		echo "# Existing Project"
+		echo
+		for i in $(seq 1 30); do
+			echo "Filler line $i to push the file size well over the 600 byte sparse threshold so the classifier treats this as an existing README."
+		done
+		echo
+		echo "## Quick start"
+		echo
+		echo '```sh'
+		echo "install-existing"
+		echo "existing doctor"
+		echo '```'
+		echo
+		echo "**Expected result:** prints ready"
+		echo
+		echo "## Features"
+		echo
+		echo "- one"
+		echo
+		echo "## License"
+		echo
+		echo "MIT"
+	} >"$root/README.md"
+}
+
+README_FACTS=(
+	--why "Use the CLI to verify one target before continuing."
+	--primary-surface "tool <command>"
+	--mental-model "One command inspects one target and reports a deterministic result."
+)
+for readme_script in scripts/readme-generate.sh 03-configure-generate/ai-catapult-init/scripts/readme-generate.sh; do
+	if [[ "$readme_script" == scripts/* ]]; then
+		readme_label="readme"
+	else
+		readme_label="init readme"
+	fi
+	readme_case "$readme_label template success" "$readme_script" setup_readme_template \
+		--mode template --project T1Tool --tagline Tagline1 --archetype cli-tool \
+		"${README_FACTS[@]}" --install-command install-t1tool \
+		--first-success-command "t1tool doctor" --success-evidence "prints T1Tool ready" \
+		--visibility public --license MIT --badges license
+	readme_case "$readme_label audit-only" "$readme_script" setup_readme_existing \
+		--mode audit-only
+	existing_sample="$(mktemp -d)"
+	setup_readme_existing "$existing_sample"
+	existing_sha="$(shasum -a 256 "$existing_sample/README.md" | awk '{print $1}')"
+	rm -rf "$existing_sample"
+	readme_case "$readme_label augment" "$readme_script" setup_readme_existing \
+		--mode augment --project Existing --tagline "Existing tool tagline" \
+		--archetype cli-tool "${README_FACTS[@]}" --install-command install-existing \
+		--first-success-command "existing doctor" --success-evidence "prints ready" \
+		--source-sha "$existing_sha"
+	readme_case "$readme_label guarded force" "$readme_script" setup_readme_existing \
+		--mode template --project T2 --tagline "Second tool" --archetype cli-tool \
+		"${README_FACTS[@]}" --install-command install-t2 \
+		--first-success-command "t2 doctor" --success-evidence "prints ready" \
+		--source-sha "$existing_sha" --force
+done
+
+readme_restricted() {
+	local label="$1" script="$2" bin work lsnap rsnap lout rout lerr rerr lrc rrc cmd src sha
+	pin "$script" || return
+	bin="$(mktemp -d)"
+	for cmd in bash node mkdir mktemp mv chmod cp grep sed awk stat tr wc date dirname cat rm; do
+		src="$(command -v "$cmd" || true)"
+		if [[ -n "$src" ]]; then
+			ln -s "$src" "$bin/$cmd"
+		fi
+	done
+	if PATH="$bin" command -v sha256sum >/dev/null 2>&1 || PATH="$bin" command -v shasum >/dev/null 2>&1; then
+		bad "$label restricted PATH still has a SHA provider"
+		rm -rf "$bin"
+		return
+	fi
+	work="$(mktemp -d)"
+	setup_readme_existing "$work"
+	sha="$(shasum -a 256 "$work/README.md" | awk '{print $1}')"
+	lsnap="$(mktemp -d)"
+	rsnap="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	PATH="$bin" invoke_sh "parity-argv0/$(basename "$script")" "$WT/$script" --repo "$work" --out "$work/README.md" \
+		--mode template --project "No SHA CLI" --tagline "Rejects unverified writes." \
+		--why "Prevent guarded writes without a SHA-256 implementation." \
+		--archetype cli-tool --primary-surface "no-sha <command>" \
+		--mental-model "A checksum provider gates the replacement." \
+		--install-command install-no-sha --first-success-command "no-sha doctor" \
+		--success-evidence "prints no-sha ready" --source-sha "$sha" \
+		--force >"$lout" 2>"$lerr"
+	lrc=$?
+	cp -R "$work/." "$lsnap/" 2>/dev/null || true
+	rm -rf "$work"
+	mkdir -p "$work"
+	setup_readme_existing "$work"
+	PATH="$bin" invoke_sh "parity-argv0/$(basename "$script")" "$REPO_ROOT/$script" --repo "$work" --out "$work/README.md" \
+		--mode template --project "No SHA CLI" --tagline "Rejects unverified writes." \
+		--why "Prevent guarded writes without a SHA-256 implementation." \
+		--archetype cli-tool --primary-surface "no-sha <command>" \
+		--mental-model "A checksum provider gates the replacement." \
+		--install-command install-no-sha --first-success-command "no-sha doctor" \
+		--success-evidence "prints no-sha ready" --source-sha "$sha" \
+		--force >"$rout" 2>"$rerr"
+	rrc=$?
+	cp -R "$work/." "$rsnap/" 2>/dev/null || true
+	set +e
+	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lsnap" "$rsnap"
+	rm -rf "$bin" "$work" "$lsnap" "$rsnap"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+readme_restricted "readme restricted-PATH SHA refusal" scripts/readme-generate.sh
+readme_restricted "init readme restricted-PATH SHA refusal" 03-configure-generate/ai-catapult-init/scripts/readme-generate.sh
+
+link_root="$(mktemp -d)"
+mkdir -p "$link_root/phase-a/alpha" "$link_root/phase-b/beta"
+cat >"$link_root/catalog.json" <<'JSON'
+{
+  "schema_version": "1.0",
+  "phases": ["phase-a", "phase-b"],
+  "skills": [
+    {"name":"alpha","source_path":"phase-a/alpha","owner_phase":"phase-a","applies_to_phases":["phase-a"],"lifecycle":"stable","supported_hosts":["codex"]},
+    {"name":"beta","source_path":"phase-b/beta","owner_phase":"phase-b","applies_to_phases":["phase-b"],"lifecycle":"stable","supported_hosts":["codex"]}
+  ]
+}
+JSON
+cat >"$link_root/phase-a/alpha/SKILL.md" <<'MD'
+---
+name: alpha
+description: alpha fixture
+---
+[flat beta reference](../beta/detail.md)
+MD
+cat >"$link_root/phase-b/beta/SKILL.md" <<'MD'
+---
+name: beta
+description: beta fixture
+---
+MD
+printf 'detail\n' >"$link_root/phase-b/beta/detail.md"
+py_case "markdown links valid fixture" scripts/check-markdown-links.py --root "$link_root"
+rm "$link_root/phase-b/beta/detail.md"
+py_case "markdown links broken fixture" scripts/check-markdown-links.py --root "$link_root"
+rm -rf "$link_root"
+
+discover_root="$(mktemp -d)"
+skill="$(printf '%s.%s' SKILL md)"
+printf 'from pathlib import Path\nskills = list(Path('"'"'.'"'"').rglob('"'"'%s'"'"'))\n' "$skill" >"$discover_root/python.py"
+printf 'for body in "$SKILLS_DIR"/*/%s; do echo "$body"; done\n' "$skill" >"$discover_root/shell.sh"
+printf 'find "$SKILLS_DIR" -maxdepth 2 -name %s\n' "$skill" >"$discover_root/find.sh"
+printf 'for d in "$ROOT"/*/; do\n  [ -f "${d}%s" ] && echo "$d"\ndone\n' "$skill" >"$discover_root/globfiletest.sh"
+printf 'from pathlib import Path\nfor path in Path('"'"'.'"'"').iterdir():\n    body = path / '"'"'%s'"'"'\n    if body.is_file():\n        print(body)\n' "$skill" >"$discover_root/iterdir.py"
+for bypass in "$discover_root"/*; do
+	py_case "root discovery bypass $(basename "$bypass")" scripts/check-root-discovery.py "$bypass"
+done
+rm -rf "$discover_root"
+
+for host in claude-code gemini copilot auggie opencode; do
+	py_case "catalog-query host $host" scripts/catalog-query.py --root "$REPO_ROOT" --host "$host"
+done
+for host in codex claude-code gemini copilot auggie opencode; do
+	py_case "catalog-query extended $host" scripts/catalog-query.py --root "$REPO_ROOT" --host "$host" \
+		--include-lifecycle experimental --include-lifecycle deprecated
+done
+
+ALT_ALL="$(mktemp -d)"
+mkdir -p "$ALT_ALL/03-configure-generate"
+cp -R "$REPO_ROOT/03-configure-generate/ai-catapult-init" "$ALT_ALL/03-configure-generate/ai-catapult-init"
+cat >"$ALT_ALL/catalog.json" <<'JSON'
+{
+  "schema_version": "1.0",
+  "phases": ["03-configure-generate"],
+  "skills": [
+    {
+      "name": "ai-catapult-init",
+      "source_path": "03-configure-generate/ai-catapult-init",
+      "owner_phase": "03-configure-generate",
+      "applies_to_phases": ["03-configure-generate"],
+      "lifecycle": "stable",
+      "supported_hosts": ["codex", "claude-code", "gemini", "copilot", "auggie", "opencode"]
+    }
+  ]
+}
+JSON
+alt_install() {
+	local label="$1" host="$2"
+	shift 2
+	pin "scripts/$host" || return
+	local lhome rhome
+	lhome="$(mktemp -d)"
+	rhome="$(mktemp -d)"
+	LEFT=(invoke_sh "parity-argv0/$host" "$WT/scripts/$host" "$@")
+	RIGHT=(invoke_sh "parity-argv0/$host" "$REPO_ROOT/scripts/$host" "$@")
+	SKILLS_CATALOG_ROOT="$ALT_ALL" run_pair "$label" "$lhome" "$rhome"
+	unset SKILLS_CATALOG_ROOT
+	rm -rf "$lhome" "$rhome"
+}
+alt_install "install-claude SKILLS_CATALOG_ROOT" install-claude-code.sh --user
+alt_install "install-auggie SKILLS_CATALOG_ROOT" install-auggie.sh --all
+alt_install "install-gemini SKILLS_CATALOG_ROOT" install-gemini.sh --link
+COPILOT_ALT_L="$(mktemp -d)/repo"
+COPILOT_ALT_R="$(mktemp -d)/repo"
+mkdir -p "$COPILOT_ALT_L" "$COPILOT_ALT_R"
+pin scripts/install-copilot.sh || true
+LEFT=(invoke_sh parity-argv0/install-copilot.sh "$WT/scripts/install-copilot.sh" --repo "$COPILOT_ALT_L")
+RIGHT=(invoke_sh parity-argv0/install-copilot.sh "$REPO_ROOT/scripts/install-copilot.sh" --repo "$COPILOT_ALT_R")
+lwatch="$(mktemp -d)"
+rwatch="$(mktemp -d)"
+SKILLS_CATALOG_ROOT="$ALT_ALL" run_pair "install-copilot SKILLS_CATALOG_ROOT" "$lwatch" "$rwatch"
+unset SKILLS_CATALOG_ROOT
+if tree_same "$COPILOT_ALT_L" "$COPILOT_ALT_R"; then
+	ok "install-copilot SKILLS_CATALOG_ROOT written files"
+else
+	bad "install-copilot SKILLS_CATALOG_ROOT written files"
+fi
+rm -rf "$ALT_ALL" "$COPILOT_ALT_L" "$COPILOT_ALT_R" "$lwatch" "$rwatch"
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"
