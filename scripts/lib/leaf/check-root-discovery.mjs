@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { optionHeading } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 assertNodeVersion();
@@ -26,12 +27,25 @@ function expand(raw) {
     }
     return found;
 }
-export function main(argv) {
-    const flagged = argv.find((flag) => flag.startsWith("-"));
-    if (flagged !== undefined) {
-        process.stderr.write(`usage: check-root-discovery.py [-h] [paths ...]\ncheck-root-discovery.py: error: unrecognized arguments: ${flagged}\n`);
-        return 2;
+function writeDiscoveryHelp() {
+    process.stdout.write(`usage: check-root-discovery.py [-h] [paths ...]\n\npositional arguments:\n  paths\n\n${optionHeading()}\n  -h, --help  show this help message and exit\n`);
+}
+function helpStatus(argv) {
+    if (!argv.includes("--help") && !argv.includes("-h")) {
+        return undefined;
     }
+    writeDiscoveryHelp();
+    return 0;
+}
+function rejectFlag(argv) {
+    const flagged = argv.find((flag) => flag.startsWith("-"));
+    if (flagged === undefined) {
+        return undefined;
+    }
+    process.stderr.write(`usage: check-root-discovery.py [-h] [paths ...]\ncheck-root-discovery.py: error: unrecognized arguments: ${flagged}\n`);
+    return 2;
+}
+function scan(argv) {
     const roots = argv.length > 0 ? argv : ["scripts", "tests"];
     const failures = [];
     for (const path of roots.flatMap((raw) => expand(raw))) {
@@ -55,6 +69,9 @@ export function main(argv) {
         return 1;
     }
     return 0;
+}
+export function main(argv) {
+    return helpStatus(argv) ?? rejectFlag(argv) ?? scan(argv);
 }
 if (invokedDirectly(import.meta.url)) {
     process.exit(main(process.argv.slice(2)));

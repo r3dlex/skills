@@ -52,23 +52,36 @@ function take(args: QueryArgs, flag: string, value: string | undefined): boolean
   return true;
 }
 
+function splitEquals(token: string): { flag: string; inline?: string } {
+  const eq = token.indexOf("=");
+  if (token.startsWith("--") && eq > 2) {
+    return { flag: token.slice(0, eq), inline: token.slice(eq + 1) };
+  }
+  return { flag: token };
+}
+
 function parse(argv: readonly string[], fallbackRoot: string): QueryArgs | number {
   const args: QueryArgs = { root: fallbackRoot, lifecycles: [] };
   const unknown: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
-    const flag = argv[index] ?? "";
+    const token = argv[index] ?? "";
+    const parts = splitEquals(token);
+    const flag = parts.flag;
     if (!OPTIONS.has(flag)) {
-      unknown.push(flag);
+      unknown.push(token);
       continue;
     }
-    const value = argv[index + 1];
+    const inline = parts.inline;
+    const value = inline !== undefined ? inline : argv[index + 1];
     if (value === undefined) {
       return argparseFail(`argument ${flag}: expected one argument`);
     }
     if (!take(args, flag, value)) {
       return argparseFail(`unrecognized arguments: ${flag}`);
     }
-    index += 1;
+    if (inline === undefined) {
+      index += 1;
+    }
   }
   if (args.host === undefined) {
     return argparseFail("the following arguments are required: --host");

@@ -74,5 +74,17 @@
       "exit_code": 0,
       "observed": "PASS=221 FAIL=0 after those three matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains."
     }
+  },
+  "cure5": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=251 FAIL=7 before a malformed updated date was aged from epoch 0, before --host=value was accepted, before root-discovery --help exited 0, and while retired-module red legs still accepted a stand-in divergence. The installer lifecycle matrix and the reachable stale, fresh, and real-lock advisory comparisons already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=258 FAIL=0 after those four matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains. Prior pairs were not dropped."
+    }
   }
 }

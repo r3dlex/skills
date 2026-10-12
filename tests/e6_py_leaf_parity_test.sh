@@ -245,6 +245,33 @@ run_legacy_tool() {
 	fi
 }
 
+retired_pair() {
+	local path="$1" lwatch="$2" rwatch="$3" lout="$4" rout="$5" lerr="$6" rerr="$7"
+	local fix="$REPO_ROOT/tests/fixtures/e6-py-leaf"
+	case "$path" in
+	scripts/catalog.py)
+		HOME="$lwatch" PYTHONPATH="$WT/scripts" python3 "$fix/catalog_driver.py" "$REPO_ROOT" >"$lout" 2>"$lerr"
+		lrc=$?
+		HOME="$rwatch" node "$fix/catalog_port.mjs" "$REPO_ROOT" >"$rout" 2>"$rerr"
+		rrc=$?
+		;;
+	scripts/traceability_schema.py)
+		local graph='{"schema_version":"1.1","nodes":[],"edges":[]}'
+		HOME="$lwatch" PYTHONPATH="$WT/scripts" python3 "$fix/trace_driver.py" "$graph" >"$lout" 2>"$lerr"
+		lrc=$?
+		HOME="$rwatch" node "$fix/trace_port.mjs" "$graph" >"$rout" 2>"$rerr"
+		rrc=$?
+		;;
+	scripts/validate_skill_frontmatter.py)
+		local skill="$REPO_ROOT/03-configure-generate/ai-catapult-init/SKILL.md"
+		HOME="$lwatch" PYTHONPATH="$WT/scripts" python3 "$fix/frontmatter_driver.py" "$skill" >"$lout" 2>"$lerr"
+		lrc=$?
+		HOME="$rwatch" node "$fix/frontmatter_port.mjs" "$skill" >"$rout" 2>"$rerr"
+		rrc=$?
+		;;
+	esac
+}
+
 run_ts_candidate() {
 	local path="$1" watch="$2" out="$3" err="$4"
 	shift 4
@@ -288,18 +315,25 @@ red_leg() {
 		mkdir -p "$repo_l" "$repo_r"
 	fi
 	set +e
-	if [[ -n "$repo_l" ]]; then
-		run_legacy_tool "$path" "$lwatch" "$lout" "$lerr" --repo "$repo_l"
-	else
-		run_legacy_tool "$path" "$lwatch" "$lout" "$lerr"
-	fi
-	lrc=$?
-	if [[ -n "$repo_r" ]]; then
-		run_ts_candidate "$path" "$rwatch" "$rout" "$rerr" --repo "$repo_r"
-	else
-		run_ts_candidate "$path" "$rwatch" "$rout" "$rerr"
-	fi
-	rrc=$?
+	case "$path" in
+	scripts/catalog.py | scripts/traceability_schema.py | scripts/validate_skill_frontmatter.py)
+		retired_pair "$path" "$lwatch" "$rwatch" "$lout" "$rout" "$lerr" "$rerr"
+		;;
+	*)
+		if [[ -n "$repo_l" ]]; then
+			run_legacy_tool "$path" "$lwatch" "$lout" "$lerr" --repo "$repo_l"
+		else
+			run_legacy_tool "$path" "$lwatch" "$lout" "$lerr"
+		fi
+		lrc=$?
+		if [[ -n "$repo_r" ]]; then
+			run_ts_candidate "$path" "$rwatch" "$rout" "$rerr" --repo "$repo_r"
+		else
+			run_ts_candidate "$path" "$rwatch" "$rout" "$rerr"
+		fi
+		rrc=$?
+		;;
+	esac
 	set +e
 	if [[ "$rrc" -eq 9 ]]; then
 		bad "$label red-leg fabricated status 9"
@@ -312,6 +346,16 @@ red_leg() {
 		printf 'x' >>"$rout"
 		seeded=1
 	fi
+	case "$path" in
+	scripts/catalog.py | scripts/traceability_schema.py | scripts/validate_skill_frontmatter.py)
+		if [[ "$seeded" -eq 0 ]]; then
+			bad "$label red-leg stand-in is not the retired module"
+			rm -rf "$lwatch" "$rwatch"
+			rm -f "$lout" "$rout" "$lerr" "$rerr"
+			return
+		fi
+		;;
+	esac
 	judge "$label red-leg status=$rrc seeded=$seeded" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch" expect-diverge
 	rm -rf "$lwatch" "$rwatch"
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
@@ -369,6 +413,7 @@ py_case "catalog-query missing value" scripts/catalog-query.py --host
 py_case "catalog-query unknown lifecycle" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --include-lifecycle unknown
 py_case "catalog-query help" scripts/catalog-query.py --help
 py_case "catalog-query help short" scripts/catalog-query.py -h
+py_case "catalog-query equals host" scripts/catalog-query.py --root "$REPO_ROOT" --host=codex --skill=research
 env_py "catalog-query NODE_OPTIONS" scripts/catalog-query.py --root "$REPO_ROOT" --host codex
 PROJ_L="$(mktemp)"
 PROJ_R="$(mktemp)"
@@ -401,6 +446,8 @@ py_case "markdown links help short" scripts/check-markdown-links.py -h
 env_py "markdown links NODE_OPTIONS" scripts/check-markdown-links.py --root "$REPO_ROOT"
 py_case "root discovery repo" scripts/check-root-discovery.py
 py_case "root discovery unknown flag" scripts/check-root-discovery.py --nope
+py_case "root discovery help" scripts/check-root-discovery.py --help
+py_case "root discovery help short" scripts/check-root-discovery.py -h
 env_py "root discovery NODE_OPTIONS" scripts/check-root-discovery.py
 py_case "skill docs check" scripts/generate-skill-docs.py --check
 py_case "skill docs unknown flag" scripts/generate-skill-docs.py --nope
@@ -487,6 +534,19 @@ sh_case "sync staleness stale" scripts/check-sync-staleness.sh "$ARGV0_SYNC" --l
 sh_case "sync staleness bogus" scripts/check-sync-staleness.sh "$ARGV0_SYNC" --bogus
 env_sh "sync staleness NODE_OPTIONS" scripts/check-sync-staleness.sh "$ARGV0_SYNC" --bogus
 rm -f "$LOCK"
+FORK_SHA="$(git rev-parse HEAD)"
+STALE_DATE="$(date -v-$((49 + 7))d -u +%Y-%m-%d 2>/dev/null || date -u -d "-$((49 + 7)) days" +%Y-%m-%d)"
+FRESH_DATE="$(date -v-$((49 - 1))d -u +%Y-%m-%d 2>/dev/null || date -u -d "-$((49 - 2)) days" +%Y-%m-%d)"
+REACH="$(mktemp)"
+printf 'source: mattpocock/skills\nvia: r3dlex/skills\npinned_sha: %s\nupdated: %s\nsync_script: scripts/sync-upstream.sh\n' "$FORK_SHA" "$STALE_DATE" >"$REACH"
+sh_case "sync staleness reachable stale" scripts/check-sync-staleness.sh "$ARGV0_SYNC" --lock "$REACH" --mode advisory --repo-root "$REPO_ROOT"
+printf 'source: mattpocock/skills\nvia: r3dlex/skills\npinned_sha: %s\nupdated: %s\nsync_script: scripts/sync-upstream.sh\n' "$FORK_SHA" "$FRESH_DATE" >"$REACH"
+sh_case "sync staleness reachable fresh" scripts/check-sync-staleness.sh "$ARGV0_SYNC" --lock "$REACH" --mode advisory --repo-root "$REPO_ROOT"
+sh_case "sync staleness real lock advisory" scripts/check-sync-staleness.sh "$ARGV0_SYNC" --mode advisory --repo-root "$REPO_ROOT"
+MALFORMED_LOCK="$(mktemp)"
+printf 'source: mattpocock/skills\nvia: r3dlex/skills\npinned_sha: 0000000000000000000000000000000000000001\nupdated: not-a-date\nsync_script: scripts/sync-upstream.sh\n' >"$MALFORMED_LOCK"
+sh_case "sync staleness malformed date" scripts/check-sync-staleness.sh "$ARGV0_SYNC" --lock "$MALFORMED_LOCK" --mode hard --repo-root "$REPO_ROOT"
+rm -f "$REACH" "$MALFORMED_LOCK"
 
 for host in install-codex.sh install-auggie.sh install-gemini.sh install-claude-code.sh install-copilot.sh; do
 	sh_case "$host usage" "scripts/$host" "parity-argv0/$host" --bogus
@@ -1416,6 +1476,64 @@ else
 	bad "install-copilot SKILLS_CATALOG_ROOT written files"
 fi
 rm -rf "$ALT_ALL" "$COPILOT_ALT_L" "$COPILOT_ALT_R" "$lwatch" "$rwatch"
+
+# Lifecycle matrix from tests/lifecycle_installers_test.sh. Compares status,
+# streams, and written files for every host the anchor covers.
+LIFE_ROOT="$REPO_ROOT/tests/fixtures/catalog-lifecycle"
+lifecycle_home() {
+	local label="$1" host="$2"
+	shift 2
+	pin "scripts/$host" || return
+	local lhome rhome
+	lhome="$(mktemp -d)"
+	rhome="$(mktemp -d)"
+	LEFT=(invoke_sh "parity-argv0/$host" "$WT/scripts/$host" "$@")
+	RIGHT=(invoke_sh "parity-argv0/$host" "$REPO_ROOT/scripts/$host" "$@")
+	SKILLS_CATALOG_ROOT="$LIFE_ROOT" run_pair "$label" "$lhome" "$rhome"
+	unset SKILLS_CATALOG_ROOT
+	rm -rf "$lhome" "$rhome"
+}
+lifecycle_copilot() {
+	local label="$1"
+	shift
+	pin scripts/install-copilot.sh || return
+	local lrepo rrepo lhome rhome
+	lrepo="$(mktemp -d)/repo"
+	rrepo="$(mktemp -d)/repo"
+	mkdir -p "$lrepo" "$rrepo"
+	lhome="$(mktemp -d)"
+	rhome="$(mktemp -d)"
+	LEFT=(invoke_sh parity-argv0/install-copilot.sh "$WT/scripts/install-copilot.sh" --repo "$lrepo" "$@")
+	RIGHT=(invoke_sh parity-argv0/install-copilot.sh "$REPO_ROOT/scripts/install-copilot.sh" --repo "$rrepo" "$@")
+	SKILLS_CATALOG_ROOT="$LIFE_ROOT" run_pair "$label" "$lhome" "$rhome"
+	unset SKILLS_CATALOG_ROOT
+	if tree_same "$lrepo" "$rrepo"; then
+		ok "$label written files"
+	else
+		bad "$label written files"
+	fi
+	rm -rf "$(dirname "$lrepo")" "$(dirname "$rrepo")" "$lhome" "$rhome"
+}
+for host in install-codex.sh install-claude-code.sh install-gemini.sh install-auggie.sh; do
+	case "$host" in
+	install-codex.sh | install-auggie.sh) bulk=(--all) ;;
+	install-claude-code.sh) bulk=(--user) ;;
+	install-gemini.sh) bulk=(--link) ;;
+	*) bulk=() ;;
+	esac
+	lifecycle_home "$host lifecycle default" "$host" "${bulk[@]}"
+	lifecycle_home "$host lifecycle experimental then deprecated" "$host" "${bulk[@]}" --include-lifecycle experimental --include-lifecycle deprecated
+	lifecycle_home "$host lifecycle deprecated then experimental" "$host" "${bulk[@]}" --include-lifecycle deprecated --include-lifecycle experimental
+	lifecycle_home "$host lifecycle unknown" "$host" --include-lifecycle unknown
+	lifecycle_home "$host lifecycle missing" "$host" --include-lifecycle
+done
+lifecycle_copilot "install-copilot.sh lifecycle default"
+lifecycle_copilot "install-copilot.sh lifecycle experimental then deprecated" --include-lifecycle experimental --include-lifecycle deprecated
+lifecycle_copilot "install-copilot.sh lifecycle deprecated then experimental" --include-lifecycle deprecated --include-lifecycle experimental
+lifecycle_home "install-copilot.sh lifecycle unknown" install-copilot.sh --include-lifecycle unknown
+lifecycle_home "install-copilot.sh lifecycle missing" install-copilot.sh --include-lifecycle
+lifecycle_home "install-codex lifecycle reject experimental" install-codex.sh --skill experimental-skill
+lifecycle_home "install-codex lifecycle admit experimental" install-codex.sh --skill experimental-skill --include-lifecycle experimental
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"

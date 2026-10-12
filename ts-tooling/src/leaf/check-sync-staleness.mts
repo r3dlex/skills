@@ -60,7 +60,9 @@ function reachable(root: string, sha: string): boolean {
 function ageDays(updated: string): number {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(updated);
   if (match === null) {
-    return 0;
+    // The shell falls through to epoch 0 when date(1) cannot parse the field.
+    const ancient = Math.floor(Date.now() / 1000 / 86400);
+    return ancient > 0 ? ancient : 0;
   }
   const lock = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   const delta = Math.floor((Date.now() - lock) / 86400000);
