@@ -1346,8 +1346,8 @@ for readme_script in scripts/readme-generate.sh 03-configure-generate/ai-catapul
 		--primary-surface '<skill>/SKILL.md frontmatter' \
 		--mental-model "The host discovers metadata, then loads one matching workflow." \
 		--install-command "./install-skills.sh" \
-		--first-success-command 'agent "$diagnose example failure"' \
-		--success-evidence "the agent loads diagnose/SKILL.md"
+		--first-success-command 'agent "example failure"' \
+		--success-evidence "the agent loads the matching workflow"
 done
 
 readme_restricted() {
