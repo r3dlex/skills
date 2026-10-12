@@ -676,22 +676,19 @@ for fixture in standalone umbrella; do
 		trace_graph "traceability_schema $ver $fixture" "$graph"
 	done
 done
-unknown="$(
-	python3 - <<'PY'
-import json
-from pathlib import Path
-graph = json.loads(Path("reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json").read_text())
-graph["nodes"].append({
-    "id": "bogus:standalone-root:nope",
-    "type": "bogus-type",
-    "title": "unknown type",
-    "status": "active",
-    "repo_id": "standalone-root",
-    "path": "README.md",
-})
-print(json.dumps(graph))
-PY
-)"
+unknown="$(node --input-type=module -e '
+import { readFileSync } from "node:fs";
+const graph = JSON.parse(readFileSync("reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json", "utf8"));
+graph.nodes.push({
+  id: "bogus:standalone-root:nope",
+  type: "bogus-type",
+  title: "unknown type",
+  status: "active",
+  repo_id: "standalone-root",
+  path: "README.md",
+});
+process.stdout.write(JSON.stringify(graph));
+')"
 trace_graph "traceability_schema unknown node" "$unknown"
 
 POLLUTE_REL="reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json"
@@ -699,21 +696,21 @@ POLLUTE_BAK="$(mktemp)"
 wt_bak="$(mktemp)"
 cp "$REPO_ROOT/$POLLUTE_REL" "$POLLUTE_BAK"
 cp "$WT/$POLLUTE_REL" "$wt_bak"
-python3 - "$REPO_ROOT/$POLLUTE_REL" "$WT/$POLLUTE_REL" <<'PY'
-import json
-import sys
-for path in sys.argv[1:]:
-    graph = json.loads(open(path).read())
-    graph["nodes"].append({
-        "id": "bogus:standalone-root:shipped",
-        "type": "definitely-not-a-type",
-        "title": "x",
-        "status": "active",
-        "repo_id": "standalone-root",
-        "path": "README.md",
-    })
-    open(path, "w").write(json.dumps(graph, indent=2) + "\n")
-PY
+node --input-type=module -e '
+import { readFileSync, writeFileSync } from "node:fs";
+for (const path of process.argv.slice(1)) {
+  const graph = JSON.parse(readFileSync(path, "utf8"));
+  graph.nodes.push({
+    id: "bogus:standalone-root:shipped",
+    type: "definitely-not-a-type",
+    title: "x",
+    status: "active",
+    repo_id: "standalone-root",
+    path: "README.md",
+  });
+  writeFileSync(path, `${JSON.stringify(graph, null, 2)}\n`);
+}
+' "$REPO_ROOT/$POLLUTE_REL" "$WT/$POLLUTE_REL"
 LEFT=(python3 "$WT/scripts/validate-final-package.py")
 RIGHT=(python3 "$REPO_ROOT/scripts/validate-final-package.py")
 module_case "final package polluted unknown node"
