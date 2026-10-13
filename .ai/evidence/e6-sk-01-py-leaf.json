@@ -217,5 +217,23 @@
       "exit_code": 0,
       "observed": "PASS=422 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The pre-isolation comparison uses the absolute interpreter. PYTHONPATH is applied to the shim only, because the anchor argparse imports shutil. The four reference/golden-* files and scripts/check-legacy-freeze.sh were restored to the publication bytes. The renderer emits those published freeze bytes so that out-of-scope file stays unedited. The local-ci source pins were refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure16": {
+    "assurance": "agent-self",
+    "collateral": "The four golden mirrors were copied from the in-scope prek.toml and .github/workflows/ci-prek.yml bytes. That copy is collateral of the goal's prek registration, not a new product feature and not a scope expansion. The in-scope registration bytes were not reverted. scripts/check-legacy-freeze.sh was not edited. Nothing else in the golden trees changed.",
+    "command": "./scripts/verify-golden-dir.sh . reference/golden-root && ./scripts/verify-golden-dir.sh . reference/golden-skills",
+    "red": {
+      "exit_code": 1,
+      "observed": "CONTENT MISMATCH for .github/workflows/ci-prek.yml and prek.toml against both reference/golden-root and reference/golden-skills. Every other golden file was OK. Those four files were the only verify-golden-dir failures."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS: All checks passed for both reference/golden-root and reference/golden-skills after the four copies matched the in-scope prek registration and node-install bytes. bash tests/final-validation-gate_test.sh then printed final validation gate passed."
+    },
+    "parity": {
+      "command": "bash tests/e6_py_leaf_parity_test.sh",
+      "exit_code": 0,
+      "observed": "PASS=422 FAIL=0 after the four golden mirrors matched the in-scope bytes. Prior pairs were not dropped. The consumer ci-prek.yml template still matches the publication anchor. verify-golden skills and verify-golden root passed."
+    }
   }
 }
