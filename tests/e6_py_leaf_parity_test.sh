@@ -444,6 +444,8 @@ py_case "catalog-query abbreviated help equals no" scripts/catalog-query.py --ro
 py_case "catalog-query short help explicit" scripts/catalog-query.py --root "$REPO_ROOT" --host codex -hfoo
 py_case "catalog-query ambiguous host before help" scripts/catalog-query.py --root "$REPO_ROOT" --h codex --help
 py_case "catalog-query missing root before help" scripts/catalog-query.py --root --bogus --help
+py_case "catalog-query help before ambiguous host" scripts/catalog-query.py --help --h codex
+py_case "catalog-query ambiguous host before missing root" scripts/catalog-query.py --root --h codex --help
 py_case "catalog-query help after terminator" scripts/catalog-query.py --host codex -- --help
 py_case "catalog-query help after terminator with root" scripts/catalog-query.py --root "$REPO_ROOT" --host codex -- --help
 py_case "catalog-query root after terminator" scripts/catalog-query.py --host codex -- --root "$REPO_ROOT"

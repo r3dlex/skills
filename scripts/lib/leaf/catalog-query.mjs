@@ -73,6 +73,20 @@ function ambiguousOption(flag) {
     const matches = matchingOptions(flag);
     return matches.length > 1 ? matches.join(", ") : undefined;
 }
+// Argparse classifies every token before any action. An ambiguous option exits
+// before help and before a missing-argument check.
+function firstAmbiguous(argv) {
+    for (const token of argv) {
+        if (token === "--") {
+            return undefined;
+        }
+        const matches = ambiguousOption(splitEquals(token).flag);
+        if (matches !== undefined) {
+            return { token, matches };
+        }
+    }
+    return undefined;
+}
 function missingArgument(inline, next) {
     return inline === undefined && (next === undefined || optionLike(next));
 }
@@ -269,6 +283,10 @@ function consume(token, next, args) {
     return applyFlag(args, classified.flag, classified.inline, next);
 }
 function parse(argv, fallbackRoot) {
+    const early = firstAmbiguous(argv);
+    if (early !== undefined) {
+        return argparseFail(`ambiguous option: ${early.token} could match ${early.matches}`);
+    }
     const args = { root: fallbackRoot, lifecycles: [] };
     const unknown = [];
     for (let index = 0; index < argv.length; index += 1) {

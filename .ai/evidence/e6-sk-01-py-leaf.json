@@ -248,5 +248,17 @@
       "observed": "PASS=428 FAIL=0 after those six comparisons matched the publication anchor on status and streams. -hfoo follows the live python3 argparse: 3.9 reports ignored explicit argument and exits 2; 3.12 prints help and exits 0. The local-ci source pin for the parity test was refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped. The four golden mirrors, prek.toml, and .github/workflows/ci-prek.yml were not edited."
     },
     "red_leg": "The six named comparisons are the failing-first implementation tests for this cure: each failed before the parser change and passed after. The existing per-tool red_leg still seeds a one-byte stdout divergence when the no-arg invocation already matches, and it treats a real no-arg divergence as expect-diverge success. Making that red_leg a failing-first implementation test for every tool needs a corpus of pre-fix divergences that this cure does not have. Several tools already diverge on the no-arg invocation for reasons outside the named gaps. Treating those as failures would be unnamed scope. No fake status was invented."
+  },
+  "cure18": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=428 FAIL=2 before catalog-query.py --help --h codex exited 2 as ambiguous --h, and before catalog-query.py --root --h codex --help reported ambiguous option: --h could match --help, --host instead of a missing root argument. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=430 FAIL=0 after those two comparisons matched the publication anchor on status and streams. The parser pre-scans argv and fails on the first ambiguous abbreviation before help or a missing-argument diagnostic, and stops that scan at --. The local-ci source pin for the parity test was refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped. The four golden mirrors, prek.toml, and .github/workflows/ci-prek.yml were not edited."
+    }
   }
 }
