@@ -1,5 +1,5 @@
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { helpRequested, optionLike, writeHelp } from "./argparse-help.mjs";
@@ -106,14 +106,74 @@ function projectionProbe(): string {
   return `${lines.join("\n")}\n`;
 }
 
+const PYTHON_FALLBACKS = [
+  "/usr/bin/python3",
+  "/usr/local/bin/python3",
+  "/opt/homebrew/bin/python3",
+  "/Library/Developer/CommandLineTools/usr/bin/python3",
+];
+
+function looksLikePython(path: string): boolean {
+  const base = path.slice(path.lastIndexOf("/") + 1);
+  return /^python(?:\d+(?:\.\d+)*)?$/i.test(base);
+}
+
+function parentPython(): string | undefined {
+  const fromProc = join("/proc", String(process.ppid), "exe");
+  if (existsSync(fromProc)) {
+    const linked = readlinkSync(fromProc);
+    if (looksLikePython(linked)) {
+      return linked;
+    }
+  }
+  try {
+    const comm = execFileSync("/bin/ps", ["-ww", "-p", String(process.ppid), "-o", "comm="], {
+      encoding: "utf8",
+    }).trim();
+    if (looksLikePython(comm) && existsSync(comm)) {
+      return comm;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+function probeInterpreters(): string[] {
+  const found: string[] = [];
+  const parent = parentPython();
+  if (parent !== undefined) {
+    found.push(parent);
+  }
+  for (const candidate of PYTHON_FALLBACKS) {
+    if (existsSync(candidate)) {
+      found.push(candidate);
+    }
+  }
+  return found;
+}
+
+function probeTrace(probe: string, projectionPath: string): string {
+  const ran = spawnSync("python3", [probe, projectionPath], { encoding: "utf8" });
+  if (!isEnoent(ran.error)) {
+    return ran.stderr ?? "";
+  }
+  for (const candidate of probeInterpreters()) {
+    const again = spawnSync(candidate, [probe, projectionPath], { encoding: "utf8" });
+    if (!isEnoent(again.error)) {
+      return again.stderr ?? "";
+    }
+  }
+  return "";
+}
+
 function projectionMissing(root: string, projectionPath: string): string {
   const dir = mkdtempSync(join(tmpdir(), "catalog-query-"));
   const probe = join(dir, "probe.py");
   try {
     writeFileSync(probe, projectionProbe());
-    const ran = spawnSync("python3", [probe, projectionPath], { encoding: "utf8" });
     const script = join(realpathSync(root), "scripts/catalog-query.py");
-    return ran.stderr.replaceAll(probe, script);
+    return probeTrace(probe, projectionPath).replaceAll(probe, script);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -132,29 +192,42 @@ function writeProjection(path: string, text: string, root: string): number {
   }
 }
 
+function applyFlag(
+  args: QueryArgs,
+  flag: string,
+  inline: string | undefined,
+  next: string | undefined,
+): { status: number } | { skip: number } {
+  if (missingArgument(inline, next)) {
+    return { status: argparseFail(`argument ${flag}: expected one argument`) };
+  }
+  const value = inline ?? next;
+  if (!take(args, flag, value)) {
+    return { status: argparseFail(`unrecognized arguments: ${flag}`) };
+  }
+  return { skip: inline === undefined ? 1 : 0 };
+}
+
 function parse(argv: readonly string[], fallbackRoot: string): QueryArgs | number {
   const args: QueryArgs = { root: fallbackRoot, lifecycles: [] };
   const unknown: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index] ?? "";
+    if (token === "--") {
+      unknown.push(...argv.slice(index));
+      break;
+    }
     const parts = splitEquals(token);
     const flag = resolveOption(parts.flag);
     if (flag === undefined) {
       unknown.push(token);
       continue;
     }
-    const inline = parts.inline;
-    const next = argv[index + 1];
-    if (missingArgument(inline, next)) {
-      return argparseFail(`argument ${flag}: expected one argument`);
+    const applied = applyFlag(args, flag, parts.inline, argv[index + 1]);
+    if ("status" in applied) {
+      return applied.status;
     }
-    const value = inline ?? next;
-    if (!take(args, flag, value)) {
-      return argparseFail(`unrecognized arguments: ${flag}`);
-    }
-    if (inline === undefined) {
-      index += 1;
-    }
+    index += applied.skip;
   }
   if (args.host === undefined) {
     return argparseFail("the following arguments are required: --host");

@@ -440,6 +440,8 @@ py_case "catalog-query abbreviated host" scripts/catalog-query.py --ho codex --r
 py_case "catalog-query abbreviated help" scripts/catalog-query.py --he
 py_case "catalog-query help after terminator" scripts/catalog-query.py --host codex -- --help
 py_case "catalog-query help after terminator with root" scripts/catalog-query.py --root "$REPO_ROOT" --host codex -- --help
+py_case "catalog-query root after terminator" scripts/catalog-query.py --host codex -- --root "$REPO_ROOT"
+py_case "catalog-query skill after terminator" scripts/catalog-query.py --root "$REPO_ROOT" --host codex -- --skill northstar
 py_case "catalog-query empty projection" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --projection=
 env_py "catalog-query NODE_OPTIONS" scripts/catalog-query.py --root "$REPO_ROOT" --host codex
 PROJ_L="$(mktemp)"
@@ -1893,6 +1895,48 @@ projection_missing_dir() {
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
 }
 projection_missing_dir "catalog-query projection missing directory" /nonexistent-blind137-dir/projection.json
+
+# Absolute interpreter, PATH has node and not python3. The anchor still exits 1
+# with FileNotFoundError. The checkout-root mask is the only stream edit.
+projection_missing_without_python3() {
+	local label="$1" dest="$2"
+	pin scripts/catalog-query.py || return
+	local py node bin lwatch rwatch lout rout lerr rerr lrc rrc
+	py="$(python3 -c 'import sys; print(sys.executable)')"
+	node="$(command -v node)"
+	bin="$(mktemp -d)"
+	ln -s "$node" "$bin/node"
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	HOME="$lwatch" "$py" -c '
+import os, subprocess, sys
+env = os.environ.copy()
+env["PATH"] = sys.argv[1]
+raise SystemExit(subprocess.run([sys.executable, sys.argv[2], *sys.argv[3:]], env=env).returncode)
+' "$bin" "$WT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex --projection "$dest" >"$lout" 2>"$lerr"
+	lrc=$?
+	HOME="$rwatch" "$py" -c '
+import os, subprocess, sys
+env = os.environ.copy()
+env["PATH"] = sys.argv[1]
+raise SystemExit(subprocess.run([sys.executable, sys.argv[2], *sys.argv[3:]], env=env).returncode)
+' "$bin" "$REPO_ROOT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex --projection "$dest" >"$rout" 2>"$rerr"
+	rrc=$?
+	set +e
+	mask_checkout_root "$WT" "$lerr"
+	mask_checkout_root "$REPO_ROOT" "$rerr"
+	mask_checkout_root "$WT" "$lout"
+	mask_checkout_root "$REPO_ROOT" "$rout"
+	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+	rm -rf "$bin" "$lwatch" "$rwatch"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+projection_missing_without_python3 "catalog-query projection missing directory without python3" /nonexistent-blind137-dir/projection.json
 cascade_refuse() {
 	local label="$1" mode="${2:-schema}" rel bak wt_bak lout rout lerr rerr lrc rrc lwatch rwatch
 	local audit_rel audit_bak wt_audit_bak

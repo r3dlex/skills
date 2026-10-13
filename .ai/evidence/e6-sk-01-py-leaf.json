@@ -193,5 +193,17 @@
       "exit_code": 0,
       "observed": "PASS=416 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The local-ci source pin for the parity test was refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure14": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=416 FAIL=3 before catalog-query.py --host codex -- --root <repo> and --root <repo> --host codex -- --skill northstar kept the suffix after --, and before a projection write with python3 absent from PATH matched the anchor. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=419 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The local-ci source pin for the parity test was refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }
