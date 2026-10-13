@@ -187,10 +187,26 @@ function writeProjection(path, text, root) {
         return 1;
     }
 }
-function shortHelpArgument(token) {
+let concatenatedHelpExit;
+// 3.9 rejects -hfoo. 3.12+ prints help and exits 0. Match the python3 on PATH.
+function concatenatedHelpExitsZero() {
+    if (concatenatedHelpExit !== undefined) {
+        return concatenatedHelpExit;
+    }
+    const probed = spawnSync("python3", ["-c", "import argparse,sys\ntry:\n argparse.ArgumentParser().parse_args(['-hfoo'])\nexcept SystemExit as exc:\n sys.exit(0 if exc.code in (None, 0) else exc.code)\n"], { encoding: "utf8" });
+    concatenatedHelpExit = probed.status === 0;
+    return concatenatedHelpExit;
+}
+function shortHelpClass(token) {
     if (!token.startsWith("-h") || token.startsWith("--") || token.length <= 2) {
         return undefined;
     }
+    if (token.indexOf("=") === 2 || !concatenatedHelpExitsZero()) {
+        return "ignored";
+    }
+    return "help";
+}
+function shortHelpValue(token) {
     const eq = token.indexOf("=");
     return eq === 2 ? token.slice(eq + 1) : token.slice(2);
 }
@@ -201,9 +217,12 @@ function classifyToken(token) {
     if (token === "-h" || token === "--help") {
         return { kind: "help" };
     }
-    const shortHelp = shortHelpArgument(token);
-    if (shortHelp !== undefined) {
-        return { kind: "ignored", value: shortHelp };
+    const shortHelp = shortHelpClass(token);
+    if (shortHelp === "help") {
+        return { kind: "help" };
+    }
+    if (shortHelp === "ignored") {
+        return { kind: "ignored", value: shortHelpValue(token) };
     }
     const parts = splitEquals(token);
     const ambiguous = ambiguousOption(parts.flag);
