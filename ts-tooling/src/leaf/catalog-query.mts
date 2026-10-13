@@ -63,6 +63,10 @@ function splitEquals(token: string): { flag: string; inline?: string } {
   return { flag: token };
 }
 
+function matchingOptions(flag: string): string[] {
+  return ["--help", ...OPTIONS].filter((option) => option.startsWith(flag));
+}
+
 function resolveOption(flag: string): string | undefined {
   if (OPTIONS.has(flag)) {
     return flag;
@@ -70,8 +74,16 @@ function resolveOption(flag: string): string | undefined {
   if (!flag.startsWith("--") || flag.length < 3) {
     return undefined;
   }
-  const matches = [...OPTIONS].filter((option) => option.startsWith(flag));
+  const matches = matchingOptions(flag);
   return matches.length === 1 ? matches[0] : undefined;
+}
+
+function ambiguousOption(flag: string): string | undefined {
+  if (OPTIONS.has(flag) || !flag.startsWith("--") || flag.length < 3) {
+    return undefined;
+  }
+  const matches = matchingOptions(flag);
+  return matches.length > 1 ? matches.join(", ") : undefined;
 }
 
 function missingArgument(inline: string | undefined, next: string | undefined): boolean {
@@ -80,6 +92,10 @@ function missingArgument(inline: string | undefined, next: string | undefined): 
 
 function isEnoent(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
+function isOsError(error: unknown): boolean {
+  return error instanceof Error && "code" in error && typeof error.code === "string";
 }
 
 function projectionProbe(): string {
@@ -184,7 +200,7 @@ function writeProjection(path: string, text: string, root: string): number {
     writeFileSync(path, text);
     return 0;
   } catch (error) {
-    if (!isEnoent(error)) {
+    if (!isOsError(error)) {
       throw error;
     }
     process.stderr.write(projectionMissing(root, path));
@@ -218,6 +234,10 @@ function parse(argv: readonly string[], fallbackRoot: string): QueryArgs | numbe
       break;
     }
     const parts = splitEquals(token);
+    const ambiguous = ambiguousOption(parts.flag);
+    if (ambiguous !== undefined) {
+      return argparseFail(`ambiguous option: ${parts.flag} could match ${ambiguous}`);
+    }
     const flag = resolveOption(parts.flag);
     if (flag === undefined) {
       unknown.push(token);

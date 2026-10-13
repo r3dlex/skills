@@ -437,6 +437,7 @@ py_case "catalog-query help" scripts/catalog-query.py --help
 py_case "catalog-query help short" scripts/catalog-query.py -h
 py_case "catalog-query equals host" scripts/catalog-query.py --root "$REPO_ROOT" --host=codex --skill=research
 py_case "catalog-query abbreviated host" scripts/catalog-query.py --ho codex --root "$REPO_ROOT"
+py_case "catalog-query ambiguous host" scripts/catalog-query.py --root "$REPO_ROOT" --h codex
 py_case "catalog-query abbreviated help" scripts/catalog-query.py --he
 py_case "catalog-query help after terminator" scripts/catalog-query.py --host codex -- --help
 py_case "catalog-query help after terminator with root" scripts/catalog-query.py --root "$REPO_ROOT" --host codex -- --help
@@ -1895,6 +1896,34 @@ projection_missing_dir() {
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
 }
 projection_missing_dir "catalog-query projection missing directory" /nonexistent-blind137-dir/projection.json
+projection_missing_dir "catalog-query projection not a directory" /dev/null/projection.json
+
+# Explicit interpreter. shutil.py on PYTHONPATH runs before the shim isolates.
+# The publication anchor is the clean invocation: its argparse imports shutil,
+# so the same shadow is not an anchor oracle. The shim must match that oracle.
+preisolation_shutil() {
+	pin scripts/catalog-query.py || return
+	local py shadow lwatch rwatch lout rout lerr rerr lrc rrc
+	py="$(python3 -c 'import sys; print(sys.executable)')"
+	shadow="$(mktemp -d)"
+	printf '%s\n' 'print("BLIND137_SHADOW", flush=True)' >"$shadow/shutil.py"
+	lwatch="$(mktemp -d)"
+	rwatch="$(mktemp -d)"
+	lout="$(mktemp)"
+	rout="$(mktemp)"
+	lerr="$(mktemp)"
+	rerr="$(mktemp)"
+	set +e
+	HOME="$lwatch" "$py" "$WT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex >"$lout" 2>"$lerr"
+	lrc=$?
+	HOME="$rwatch" PYTHONPATH="$shadow" "$py" "$REPO_ROOT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex >"$rout" 2>"$rerr"
+	rrc=$?
+	set +e
+	judge "catalog-query pre-isolation shutil" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
+	rm -rf "$shadow" "$lwatch" "$rwatch"
+	rm -f "$lout" "$rout" "$lerr" "$rerr"
+}
+preisolation_shutil
 
 # Absolute interpreter, PATH has node and not python3. The anchor still exits 1
 # with FileNotFoundError. The checkout-root mask is the only stream edit.

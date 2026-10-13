@@ -24,11 +24,15 @@ function allowLines(names) {
 export function renderBash(entrypoint, names) {
     assertAllowNames(names);
     const allows = [...BASE_ALLOW, ...names];
+    // Published goal-00 shim. This goal does not edit that out-of-scope file.
+    const publishedFreeze = entrypoint === "lib/check-legacy-freeze.mjs" && names.length === 0;
     const lines = [
         "#!/usr/bin/env bash",
         "# generated compat-shim — rendered from the bash template; do not edit",
         "set -euo pipefail",
-        'here="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"',
+        publishedFreeze
+            ? 'here="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"'
+            : 'here="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"',
         `entry="$here/${entrypoint}"`,
         'if [[ ! -f "$entry" ]]; then',
         "\tprintf 'node_unavailable\\n' >&2",
@@ -59,9 +63,13 @@ export function renderBash(entrypoint, names) {
         "\t;;",
         "esac",
         'if [[ ${#env_args[@]} -gt 0 ]]; then',
-        '\texec /usr/bin/env -i "${env_args[@]}" "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"',
+        publishedFreeze
+            ? '\texec /usr/bin/env -i "${env_args[@]}" "$node_bin" --disable-proto=throw "$entry" "$@"'
+            : '\texec /usr/bin/env -i "${env_args[@]}" "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"',
         "fi",
-        'exec /usr/bin/env -i "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"',
+        publishedFreeze
+            ? 'exec /usr/bin/env -i "$node_bin" --disable-proto=throw "$entry" "$@"'
+            : 'exec /usr/bin/env -i "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"',
         "",
     ];
     return lines.join("\n");
@@ -74,13 +82,15 @@ export function renderPython(entrypoint, names) {
     const allow = pythonAllow(names);
     return `#!/usr/bin/env -S python3 -I -B
 # generated compat-shim — rendered from the python3 template; do not edit
-import os
-import shutil
-import subprocess
 import sys
 
 if sys.flags.isolated != 1 or not sys.dont_write_bytecode:
-    os.execv(sys.executable, [sys.executable, "-I", "-B", *sys.argv])
+    import posix
+    posix.execv(sys.executable, [sys.executable, "-I", "-B", *sys.argv])
+
+import os
+import shutil
+import subprocess
 
 ALLOW = ${allow}
 ENTRY_REL = ${JSON.stringify(entrypoint)}

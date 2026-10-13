@@ -205,5 +205,17 @@
       "exit_code": 0,
       "observed": "PASS=419 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The local-ci source pin for the parity test was refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
     }
+  },
+  "cure15": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=419 FAIL=3 before catalog-query.py --root <repo> --h codex was refused as ambiguous, before a projection write to /dev/null/projection.json exited 1 with NotADirectoryError, and before an explicit interpreter with shutil.py on PYTHONPATH matched the publication anchor. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=422 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The pre-isolation comparison uses the absolute interpreter. PYTHONPATH is applied to the shim only, because the anchor argparse imports shutil. The four reference/golden-* files and scripts/check-legacy-freeze.sh were restored to the publication bytes. The renderer emits those published freeze bytes so that out-of-scope file stays unedited. The local-ci source pins were refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
   }
 }

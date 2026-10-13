@@ -1,12 +1,14 @@
 #!/usr/bin/env -S python3 -I -B
 # generated compat-shim — rendered from the python3 template; do not edit
-import os
-import shutil
-import subprocess
 import sys
 
 if sys.flags.isolated != 1 or not sys.dont_write_bytecode:
-    os.execv(sys.executable, [sys.executable, "-I", "-B", *sys.argv])
+    import posix
+    posix.execv(sys.executable, [sys.executable, "-I", "-B", *sys.argv])
+
+import os
+import shutil
+import subprocess
 
 ALLOW = ["PATH","HOME","LANG","LC_ALL","TMPDIR"]
 ENTRY_REL = "lib/leaf/scan-secret-material.mjs"
