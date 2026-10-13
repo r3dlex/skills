@@ -49,7 +49,11 @@ export function failCatalog(error) {
     return 2;
 }
 if (invokedDirectly(import.meta.url)) {
-    const parsed = parseCatalogArgs(process.argv.slice(2));
+    const argv = process.argv.slice(2);
+    if (argv.length === 0) {
+        process.exit(0);
+    }
+    const parsed = parseCatalogArgs(argv);
     if (typeof parsed === "number") {
         process.exit(parsed);
     }

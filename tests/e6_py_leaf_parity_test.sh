@@ -439,6 +439,11 @@ py_case "catalog-query equals host" scripts/catalog-query.py --root "$REPO_ROOT"
 py_case "catalog-query abbreviated host" scripts/catalog-query.py --ho codex --root "$REPO_ROOT"
 py_case "catalog-query ambiguous host" scripts/catalog-query.py --root "$REPO_ROOT" --h codex
 py_case "catalog-query abbreviated help" scripts/catalog-query.py --he
+py_case "catalog-query help equals no" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --help=no
+py_case "catalog-query abbreviated help equals no" scripts/catalog-query.py --root "$REPO_ROOT" --host codex --he=no
+py_case "catalog-query short help explicit" scripts/catalog-query.py --root "$REPO_ROOT" --host codex -hfoo
+py_case "catalog-query ambiguous host before help" scripts/catalog-query.py --root "$REPO_ROOT" --h codex --help
+py_case "catalog-query missing root before help" scripts/catalog-query.py --root --bogus --help
 py_case "catalog-query help after terminator" scripts/catalog-query.py --host codex -- --help
 py_case "catalog-query help after terminator with root" scripts/catalog-query.py --root "$REPO_ROOT" --host codex -- --help
 py_case "catalog-query root after terminator" scripts/catalog-query.py --host codex -- --root "$REPO_ROOT"
@@ -1016,6 +1021,7 @@ install_pair() {
 	rm -rf "$lwatch" "$rwatch"
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
 }
+sh_case "catalog-install no arguments" scripts/catalog-install.sh parity-argv0/catalog-install.sh
 install_pair "catalog-install missing value" --include-lifecycle
 install_pair "catalog-install unknown lifecycle shim" --include-lifecycle nope
 NODE_OPTIONS=--throw-deprecation install_pair "catalog-install NODE_OPTIONS" --include-lifecycle nope

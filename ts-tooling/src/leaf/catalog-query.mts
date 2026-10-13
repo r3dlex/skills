@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { helpRequested, optionLike, writeHelp } from "./argparse-help.mjs";
+import { optionLike, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { CatalogError, loadCatalog, projection, select } from "./catalog-model.mjs";
@@ -208,6 +208,48 @@ function writeProjection(path: string, text: string, root: string): number {
   }
 }
 
+type Classified =
+  | { kind: "terminator" }
+  | { kind: "help" }
+  | { kind: "ignored"; value: string }
+  | { kind: "ambiguous"; flag: string; matches: string }
+  | { kind: "unknown" }
+  | { kind: "option"; flag: string; inline: string | undefined };
+
+function shortHelpArgument(token: string): string | undefined {
+  if (!token.startsWith("-h") || token.startsWith("--") || token.length <= 2) {
+    return undefined;
+  }
+  const eq = token.indexOf("=");
+  return eq === 2 ? token.slice(eq + 1) : token.slice(2);
+}
+
+function classifyToken(token: string): Classified {
+  if (token === "--") {
+    return { kind: "terminator" };
+  }
+  if (token === "-h" || token === "--help") {
+    return { kind: "help" };
+  }
+  const shortHelp = shortHelpArgument(token);
+  if (shortHelp !== undefined) {
+    return { kind: "ignored", value: shortHelp };
+  }
+  const parts = splitEquals(token);
+  const ambiguous = ambiguousOption(parts.flag);
+  if (ambiguous !== undefined) {
+    return { kind: "ambiguous", flag: parts.flag, matches: ambiguous };
+  }
+  const flag = resolveOption(parts.flag);
+  if (flag === "--help") {
+    return parts.inline === undefined ? { kind: "help" } : { kind: "ignored", value: parts.inline };
+  }
+  if (flag === undefined) {
+    return { kind: "unknown" };
+  }
+  return { kind: "option", flag, inline: parts.inline };
+}
+
 function applyFlag(
   args: QueryArgs,
   flag: string,
@@ -224,30 +266,49 @@ function applyFlag(
   return { skip: inline === undefined ? 1 : 0 };
 }
 
+function consume(
+  token: string,
+  next: string | undefined,
+  args: QueryArgs,
+): { status: number } | { skip: number } | { unknown: true } | { stop: true } {
+  const classified = classifyToken(token);
+  if (classified.kind === "terminator") {
+    return { stop: true };
+  }
+  if (classified.kind === "help") {
+    writeHelp(USAGE, CATALOG_HELP_OPTIONS);
+    return { status: 0 };
+  }
+  if (classified.kind === "ignored") {
+    return { status: argparseFail(`argument -h/--help: ignored explicit argument '${classified.value}'`) };
+  }
+  if (classified.kind === "ambiguous") {
+    return { status: argparseFail(`ambiguous option: ${classified.flag} could match ${classified.matches}`) };
+  }
+  if (classified.kind === "unknown") {
+    return { unknown: true };
+  }
+  return applyFlag(args, classified.flag, classified.inline, next);
+}
+
 function parse(argv: readonly string[], fallbackRoot: string): QueryArgs | number {
   const args: QueryArgs = { root: fallbackRoot, lifecycles: [] };
   const unknown: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index] ?? "";
-    if (token === "--") {
+    const consumed = consume(token, argv[index + 1], args);
+    if ("stop" in consumed) {
       unknown.push(...argv.slice(index));
       break;
     }
-    const parts = splitEquals(token);
-    const ambiguous = ambiguousOption(parts.flag);
-    if (ambiguous !== undefined) {
-      return argparseFail(`ambiguous option: ${parts.flag} could match ${ambiguous}`);
+    if ("status" in consumed) {
+      return consumed.status;
     }
-    const flag = resolveOption(parts.flag);
-    if (flag === undefined) {
+    if ("unknown" in consumed) {
       unknown.push(token);
       continue;
     }
-    const applied = applyFlag(args, flag, parts.inline, argv[index + 1]);
-    if ("status" in applied) {
-      return applied.status;
-    }
-    index += applied.skip;
+    index += consumed.skip;
   }
   if (args.host === undefined) {
     return argparseFail("the following arguments are required: --host");
@@ -281,10 +342,6 @@ function emitQuery(parsed: QueryArgs, root: string): number {
 }
 
 export function main(argv: readonly string[], root = repoRoot(import.meta.url)): number {
-  if (helpRequested(argv, OPTIONS)) {
-    writeHelp(USAGE, CATALOG_HELP_OPTIONS);
-    return 0;
-  }
   const parsed = parse(argv, root);
   if (typeof parsed === "number") {
     return parsed;
