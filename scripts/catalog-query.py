@@ -1,28 +1,36 @@
-#!/usr/bin/env python3
-"""Shell-friendly query surface for catalog consumers."""
-import argparse, json, sys
-from pathlib import Path
-from catalog import CatalogError, LIFECYCLES, load_catalog, projection, select
+#!/usr/bin/env -S python3 -I -B
+# generated compat-shim — rendered from the python3 template; do not edit
+import sys
 
-def main() -> int:
-    p = argparse.ArgumentParser()
-    p.add_argument("--root", default=str(Path(__file__).resolve().parent.parent))
-    p.add_argument("--host", required=True)
-    p.add_argument("--include-lifecycle", action="append", default=[])
-    p.add_argument("--skill")
-    p.add_argument("--projection")
-    args = p.parse_args()
-    unknown = set(args.include_lifecycle) - LIFECYCLES
-    if unknown:
-        print(f"unknown lifecycle: {sorted(unknown)[0]}", file=sys.stderr); return 2
-    try:
-        payload = load_catalog(Path(args.root))
-        entries = select(payload, args.host, set(args.include_lifecycle), args.skill)
-    except CatalogError as exc:
-        print(exc, file=sys.stderr); return 2
-    if args.projection:
-        Path(args.projection).write_text(json.dumps(projection(payload, entries), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    for entry in entries:
-        print(f"{entry['name']}\t{entry['source_path']}")
-    return 0
-if __name__ == "__main__": raise SystemExit(main())
+if sys.flags.isolated != 1 or not sys.dont_write_bytecode:
+    import posix
+    posix.execv(sys.executable, [sys.executable, "-I", "-B", *sys.argv])
+
+import os
+import shutil
+import subprocess
+
+ALLOW = ["PATH","HOME","LANG","LC_ALL","TMPDIR"]
+ENTRY_REL = "lib/leaf/catalog-query.mjs"
+
+
+def refuse(code: str, status: int) -> None:
+    sys.stderr.write(code + "\n")
+    raise SystemExit(status)
+
+
+here = os.path.dirname(os.path.abspath(__file__))
+entry = os.path.join(here, ENTRY_REL)
+if not os.path.isfile(entry):
+    refuse("node_unavailable", 127)
+node_bin = shutil.which("node")
+if node_bin is None:
+    refuse("node_unavailable", 127)
+assert node_bin is not None
+env = {name: os.environ[name] for name in ALLOW if name in os.environ}
+probed = subprocess.run([node_bin, "--version"], check=False, capture_output=True, text=True, env=env)
+if probed.returncode != 0:
+    refuse("node_unavailable", 127)
+if not probed.stdout.strip().startswith("v26."):
+    refuse("node_version_unsupported", 126)
+os.execve(node_bin, [node_bin, "--disable-proto=throw", entry, *sys.argv[1:]], env)

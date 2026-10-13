@@ -1,5 +1,41 @@
-#!/bin/bash
-# Repository convenience wrapper. The distributable skill owns the implementation.
+#!/usr/bin/env bash
+# generated compat-shim — rendered from the bash template; do not edit
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$SCRIPT_DIR/../03-configure-generate/ai-catapult-init/scripts/readme-generate.sh" "$@"
+here="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+entry="$here/lib/leaf/readme-generate.mjs"
+if [[ ! -f "$entry" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+node_bin="$(command -v node 2>/dev/null || true)"
+if [[ -z "$node_bin" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+env_args=()
+if [[ "${PATH+x}" == x ]]; then env_args+=("PATH=$PATH"); fi
+if [[ "${HOME+x}" == x ]]; then env_args+=("HOME=$HOME"); fi
+if [[ "${LANG+x}" == x ]]; then env_args+=("LANG=$LANG"); fi
+if [[ "${LC_ALL+x}" == x ]]; then env_args+=("LC_ALL=$LC_ALL"); fi
+if [[ "${TMPDIR+x}" == x ]]; then env_args+=("TMPDIR=$TMPDIR"); fi
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	version="$(/usr/bin/env -i "${env_args[@]}" "$node_bin" --version 2>/dev/null)" || version=""
+else
+	version="$(/usr/bin/env -i "$node_bin" --version 2>/dev/null)" || version=""
+fi
+if [[ -z "$version" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+case "$version" in
+v26.*)
+	;;
+*)
+	printf 'node_version_unsupported\n' >&2
+	exit 126
+	;;
+esac
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	exec /usr/bin/env -i "${env_args[@]}" "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"
+fi
+exec /usr/bin/env -i "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"

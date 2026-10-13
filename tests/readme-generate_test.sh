@@ -499,7 +499,7 @@ force_sha=$(sha256_file README.md)
 # Perl's shasum is not installed.
 linux_path="$TMPDIR/linux-bin"
 mkdir -p "$linux_path"
-for command_name in awk cat chmod cp date dirname grep mkdir mktemp mv python3 rm sed sha256sum stat tr wc; do
+for command_name in awk cat chmod cp date dirname grep mkdir mktemp mv node python3 rm sed sha256sum stat tr wc; do
   ln -s "$(command -v "$command_name")" "$linux_path/$command_name"
 done
 set +e
@@ -523,7 +523,7 @@ printf '# Reviewed without a provider\n' > README.md
 no_sha_source=$(sha256_file README.md)
 no_sha_path="$TMPDIR/no-sha-bin"
 mkdir -p "$no_sha_path"
-for command_name in awk cat chmod cp date dirname grep mkdir mktemp mv rm sed stat tr wc; do
+for command_name in awk cat chmod cp date dirname grep mkdir mktemp mv node rm sed stat tr wc; do
   ln -s "$(command -v "$command_name")" "$no_sha_path/$command_name"
 done
 set +e

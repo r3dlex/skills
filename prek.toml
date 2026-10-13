@@ -12,3 +12,31 @@ language = "system"
 files = '\.rules\.ts$'
 exclude = '^reference/golden-(skills|root)/'
 pass_filenames = false
+
+[[repos.hooks]]
+id = "ts-noemit"
+name = "TypeScript strict noEmit"
+entry = "bash -c 'set -euo pipefail; root=$(git rev-parse --show-toplevel); test -d \"$root/ts-tooling\"; cd \"$root/ts-tooling\"; npx tsc --noEmit --project tsconfig.json'"
+language = "system"
+pass_filenames = false
+
+[[repos.hooks]]
+id = "ts-eslint"
+name = "TypeScript eslint"
+entry = "bash -c 'set -euo pipefail; shopt -s globstar nullglob; root=$(git rev-parse --show-toplevel); cd \"$root/ts-tooling\"; files=(src/*.mts src/**/*.mts); test ${#files[@]} -gt 0; npx eslint --max-warnings 0 \"${files[@]}\"'"
+language = "system"
+pass_filenames = false
+
+[[repos.hooks]]
+id = "ts-build-drift"
+name = "TypeScript build drift"
+entry = "bash -c 'set -euo pipefail; root=$(git rev-parse --show-toplevel); test -d \"$root/ts-tooling\"; test -f \"$root/ts-tooling/tsconfig.build.json\"; drift=$(mktemp -d); rsync -a --exclude node_modules --exclude build \"$root/ts-tooling\" \"$drift/\"; ln -s \"$root/ts-tooling/node_modules\" \"$drift/ts-tooling/node_modules\"; (cd \"$drift/ts-tooling\" && npx tsc --project tsconfig.build.json --pretty false); diff -rq \"$drift/scripts/lib\" \"$root/scripts/lib\"; rm -rf \"$drift\"'"
+language = "system"
+pass_filenames = false
+
+[[repos.hooks]]
+id = "legacy-freeze"
+name = "Legacy freeze ratchet"
+entry = "bash -c 'set -euo pipefail; root=$(git rev-parse --show-toplevel); cd \"$root\"; test -f scripts/lib/check-legacy-freeze.mjs; command -v ruff >/dev/null; command -v mypy >/dev/null; command -v xenon >/dev/null; command -v shellcheck >/dev/null; command -v shfmt >/dev/null; node scripts/lib/check-legacy-freeze.mjs'"
+language = "system"
+pass_filenames = false

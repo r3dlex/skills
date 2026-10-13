@@ -1,0 +1,264 @@
+{
+  "assurance": "agent-self",
+  "goal_id": "e6-sk-01-py-leaf",
+  "green": {
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "exit_code": 0,
+    "observed": "PASS=113 FAIL=0 after each converted script was compared to the publication anchor on status, stdout, stderr, and written files, with one seeded-divergence red leg per script"
+  },
+  "red": {
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "exit_code": 1,
+    "observed": "PASS=89 FAIL=27 before installer argv0, argparse usage, README mode order, and written-file scope matched the anchor"
+  },
+  "red_legs": [
+    "scripts/catalog-query.py",
+    "scripts/catalog.py",
+    "scripts/check-markdown-links.py",
+    "scripts/check-root-discovery.py",
+    "scripts/generate-skill-docs.py",
+    "scripts/scan-secret-material.py",
+    "scripts/traceability_schema.py",
+    "scripts/validate-cascade-fixtures.py",
+    "scripts/validate-final-package.py",
+    "scripts/validate-skill-catalog.py",
+    "scripts/validate_skill_frontmatter.py",
+    "scripts/catalog-install.sh",
+    "scripts/check-codex-parity.sh",
+    "scripts/check-opencode-parity.sh",
+    "scripts/check-sync-staleness.sh",
+    "scripts/install-auggie.sh",
+    "scripts/install-claude-code.sh",
+    "scripts/install-codex.sh",
+    "scripts/install-copilot.sh",
+    "scripts/install-gemini.sh",
+    "scripts/readme-generate.sh",
+    "scripts/regen-host-golden.sh",
+    "scripts/verify-golden-dir.sh",
+    "04-validate-handoff/eval-a-skill/scaffold-eval.py",
+    "03-configure-generate/ai-catapult-init/scripts/readme-generate.sh"
+  ],
+  "cure": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=109 FAIL=27 before symlink targets were compared and while each red leg still fabricated status 9. The added traceability, polluted-package, catalog, frontmatter, and catalog-install comparisons already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=136 FAIL=0 after tree comparison included symlink targets and each red leg ran the TypeScript candidate. Recorded candidate statuses were 0, 1, or 2; none was a fabricated 9. Comparator failures were real candidate divergences or a one-byte seed of that candidate's captured stdout. A following format-only edit makes shfmt -d clean; it does not change the comparison."
+    }
+  },
+  "cure3": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=170 FAIL=11 before README success, audit, augment, and guarded-force writes matched the anchor, before a broken markdown link path was realpathed, and while a node_unavailable or node_version_unsupported mismatch still counted as a successful divergence. Host, lifecycle, root-discovery bypass, and SKILLS_CATALOG_ROOT comparisons already matched. Restricted-PATH SHA refusal already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=181 FAIL=0 after those comparisons matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains."
+    }
+  },
+  "cure4": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "ledger": "Aligned the importer lists with the tracked fixture drivers and recorded importer_target 6255da27afeee8c2e9f3582793e74fbc5ff68bf3. Did not drop a comparison. The anchor ledger schema does not own importers; the empty lists were the false claim.",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=214 FAIL=7 before --help exited 0, before secret scanning followed file symlinks, and before the readme-stamp mask rewrote only audit JSON, audit/backup filenames, stdout, and stderr. Trajectory scaffolding, the missing-schema graph, and the README refusal corpus already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=221 FAIL=0 after those three matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains."
+    }
+  },
+  "cure5": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=251 FAIL=7 before a malformed updated date was aged from epoch 0, before --host=value was accepted, before root-discovery --help exited 0, and while retired-module red legs still accepted a stand-in divergence. The installer lifecycle matrix and the reachable stale, fresh, and real-lock advisory comparisons already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=258 FAIL=0 after those four matched. Recorded candidate statuses were not a fabricated 9. A node refusal is not a successful divergence. Symlink-target comparison remains. Prior pairs were not dropped."
+    }
+  },
+  "cure6": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=352 FAIL=11 before scaffold --help exited 0, before a missing flag value was expected one argument, before schema versions garbage, 1.0x, and 1 were rejected, before a dangling edge used the anchor mapping text, and before an invalid cascade plan emitted the anchor traceback. Catalog-wide parity, scaffold rerun, encoded license conflicts, and the sha256sum-only README path already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=363 FAIL=0 after those refusals matched the publication anchor on status and streams. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure7": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=363 FAIL=4 before a plan with safety.no_first_run_apply_without_confirmation false was refused, and before --skill --nope, --kind --nope, and --host --nope matched the anchor diagnostic. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=367 FAIL=0 after those refusals matched the publication anchor on status and streams. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure8": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=367 FAIL=5 before safety.no_duplicate_child_items false and safety.no_secret_material false were refused, before an unavailable multi-repo-cascade optional branch was refused, and before --skill=sample and a leading --nope matched the anchor. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=372 FAIL=0 after those comparisons matched the publication anchor on status and streams. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure9": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=372 FAIL=8 before first_run_confirmation_required false was refused, before scaffold, catalog-query, markdown-links, root-discovery, skill-docs, and skill-catalog reported every unrecognized argument, and before the consumer ci-prek.yml template matched the publication anchor bytes. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=380 FAIL=0 after those comparisons matched the publication anchor on status and streams. The consumer template was restored to the anchor bytes, not rewritten to a new template. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure10": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=388 FAIL=5 before a nonempty child_items, confirmation_token_pattern .*, and a missing audit.jsonl were refused, and before catalog-query --ho and the root-discovery -- terminator matched the anchor. The CLAUDE-only governance fallback and the skill-catalog archetype already matched. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=393 FAIL=0 after those comparisons matched the publication anchor on status and streams. The skill-catalog fixture command does not quote the retired diagnose identity. The local-ci source pin was refreshed to the committed test bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure11": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=396 FAIL=7 before a wrong cascade_id, an empty audit log, a missing reconciliation report, and an unknown adapter operation were refused, before invalid UTF-8 was skipped, before unset HOME refused install-codex, and while a subshell comparison failure still returned 0. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=404 FAIL=0 after those comparisons matched the publication anchor on status and streams. The isolated invalid-UTF8 file exits 0 on both sides. A comparison failure in the scanner subshell increments FAIL and returns non-zero. The local-ci source pins for the parity test and the secret scanner were refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure12": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "freeze": {
+      "command": "bash scripts/check-legacy-freeze.sh .",
+      "red": {
+        "exit_code": 1,
+        "observed": "unlisted file: tests/e6_py_leaf_parity_test.sh"
+      },
+      "green": {
+        "exit_code": 0,
+        "observed": "legacy-freeze: pass after listing tests/e6_py_leaf_parity_test.sh as an in-flight eligible test driver, owner e6-sk-05-test-harness, in_flight 137. The freeze checker was not weakened."
+      }
+    },
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=404 FAIL=7 before catalog-query --he and --host codex --projection= matched the anchor, before a wrong matrix_path, an empty reconciliation report, removal of audit status match, and adapter apply.status created-or-linked were refused, and before final-package scanning of ghp_ plus an invalid UTF-8 byte plus thirty A characters was refused. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=411 FAIL=0 after those comparisons matched the publication anchor on status and streams. The parity driver is listed in the ledger the way the other in-flight test drivers are listed. The local-ci source pins for the parity test and the freeze baseline were refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure13": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=411 FAIL=5 before help scanning stopped at --, before check-markdown-links.py --root=<repo> and --root --nope matched the anchor, and before a projection write to /nonexistent-blind137-dir/projection.json was refused. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=416 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The local-ci source pin for the parity test was refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure14": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=416 FAIL=3 before catalog-query.py --host codex -- --root <repo> and --root <repo> --host codex -- --skill northstar kept the suffix after --, and before a projection write with python3 absent from PATH matched the anchor. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=419 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The local-ci source pin for the parity test was refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure15": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=419 FAIL=3 before catalog-query.py --root <repo> --h codex was refused as ambiguous, before a projection write to /dev/null/projection.json exited 1 with NotADirectoryError, and before an explicit interpreter with shutil.py on PYTHONPATH matched the publication anchor. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=422 FAIL=0 after those comparisons matched the publication anchor on status and streams. The projection traceback comparison uses the existing checkout-root mask and no other byte. The pre-isolation comparison uses the absolute interpreter. PYTHONPATH is applied to the shim only, because the anchor argparse imports shutil. The four reference/golden-* files and scripts/check-legacy-freeze.sh were restored to the publication bytes. The renderer emits those published freeze bytes so that out-of-scope file stays unedited. The local-ci source pins were refreshed to the committed bytes. The freeze entry was not relisted or unlisted. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped."
+    }
+  },
+  "cure16": {
+    "assurance": "agent-self",
+    "collateral": "The four golden mirrors were copied from the in-scope prek.toml and .github/workflows/ci-prek.yml bytes. That copy is collateral of the goal's prek registration, not a new product feature and not a scope expansion. The in-scope registration bytes were not reverted. scripts/check-legacy-freeze.sh was not edited. Nothing else in the golden trees changed.",
+    "command": "./scripts/verify-golden-dir.sh . reference/golden-root && ./scripts/verify-golden-dir.sh . reference/golden-skills",
+    "red": {
+      "exit_code": 1,
+      "observed": "CONTENT MISMATCH for .github/workflows/ci-prek.yml and prek.toml against both reference/golden-root and reference/golden-skills. Every other golden file was OK. Those four files were the only verify-golden-dir failures."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS: All checks passed for both reference/golden-root and reference/golden-skills after the four copies matched the in-scope prek registration and node-install bytes. bash tests/final-validation-gate_test.sh then printed final validation gate passed."
+    },
+    "parity": {
+      "command": "bash tests/e6_py_leaf_parity_test.sh",
+      "exit_code": 0,
+      "observed": "PASS=422 FAIL=0 after the four golden mirrors matched the in-scope bytes. Prior pairs were not dropped. The consumer ci-prek.yml template still matches the publication anchor. verify-golden skills and verify-golden root passed."
+    }
+  },
+  "cure17": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=422 FAIL=6 before catalog-query.py --root <repo> --host codex --help=no, --he=no, and -hfoo reported ignored explicit argument, before --root <repo> --h codex --help exited 2 as ambiguous --h, before --root --bogus --help exited 2 for a missing root argument, and before bash scripts/catalog-install.sh with no arguments exited 0 with empty streams. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=428 FAIL=0 after those six comparisons matched the publication anchor on status and streams. -hfoo follows the live python3 argparse: 3.9 reports ignored explicit argument and exits 2; 3.12 prints help and exits 0. The local-ci source pin for the parity test was refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped. The four golden mirrors, prek.toml, and .github/workflows/ci-prek.yml were not edited."
+    },
+    "red_leg": "The six named comparisons are the failing-first implementation tests for this cure: each failed before the parser change and passed after. The existing per-tool red_leg still seeds a one-byte stdout divergence when the no-arg invocation already matches, and it treats a real no-arg divergence as expect-diverge success. Making that red_leg a failing-first implementation test for every tool needs a corpus of pre-fix divergences that this cure does not have. Several tools already diverge on the no-arg invocation for reasons outside the named gaps. Treating those as failures would be unnamed scope. No fake status was invented."
+  },
+  "cure18": {
+    "assurance": "agent-self",
+    "command": "bash tests/e6_py_leaf_parity_test.sh",
+    "red": {
+      "exit_code": 1,
+      "observed": "PASS=428 FAIL=2 before catalog-query.py --help --h codex exited 2 as ambiguous --h, and before catalog-query.py --root --h codex --help reported ambiguous option: --h could match --help, --host instead of a missing root argument. Prior pairs already matched."
+    },
+    "green": {
+      "exit_code": 0,
+      "observed": "PASS=430 FAIL=0 after those two comparisons matched the publication anchor on status and streams. The parser pre-scans argv and fails on the first ambiguous abbreviation before help or a missing-argument diagnostic, and stops that scan at --. The local-ci source pin for the parity test was refreshed to the committed bytes. Recorded candidate statuses were not a fabricated 9. A refusal is not a success unless the status and the output class match the anchor. Prior pairs were not dropped. The four golden mirrors, prek.toml, and .github/workflows/ci-prek.yml were not edited."
+    }
+  }
+}

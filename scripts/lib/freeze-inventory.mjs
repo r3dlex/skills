@@ -125,12 +125,15 @@ function addedProblem(entry) {
     }
     return `growth: ${entry.class} ${entry.path}`;
 }
+function plannedConversion(prior, next) {
+    return prior === "eligible" && (next === "compat-shim" || next === "test-wrapper");
+}
 function priorProblems(entry, prior, present) {
     if (prior === undefined) {
         const added = addedProblem(entry);
         return added === null ? [] : [added];
     }
-    if (prior.class === entry.class) {
+    if (prior.class === entry.class || plannedConversion(prior.class, entry.class)) {
         return [];
     }
     const problems = [`reclassified: ${entry.path}`];

@@ -1,17 +1,42 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# generated compat-shim — rendered from the bash template; do not edit
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; SKILLS_DIR="${SKILLS_CATALOG_ROOT:-$SCRIPT_DIR/..}"
-source "$SCRIPT_DIR/catalog-install.sh"; parse_catalog_args "$@" || exit $?; set -- "${CATALOG_REST[@]}"
-mode="${1:---consolidated}"; target="${2:-$SCRIPT_DIR/../..}"; [[ "$mode" != --repo ]] || { [[ $# -eq 2 ]] || exit 1; mode=--consolidated; }
-case "$mode" in --consolidated|--per-skill|--all) ;; *) echo "Usage: $0 [--consolidated | --per-skill | --all | --repo <path>] [--include-lifecycle <value>]" >&2; exit 1;; esac
-projection=$(mktemp); trap 'rm -f "$projection"' EXIT; rows="$(catalog_rows copilot --projection "$projection")" || exit $?; mkdir -p "$target/.github"; mv "$projection" "$target/.github/skills-catalog.json"
-consolidated() { local out="$target/.github/copilot-instructions.md" repo_name; repo_name=$(basename "$target"); cat > "$out" <<EOF
-# Copilot Instructions — $repo_name
-
-This file contains agent-facing instructions synthesized from the skills library.
-
-EOF
- while IFS=$'\t' read -r name source; do [[ -n "$name" ]] || continue; printf '## %s\n\n' "$name" >> "$out"; while IFS= read -r line; do echo "  $line" >> "$out"; done < <(flattened_skill_body "$SKILLS_DIR/$source/SKILL.md"); echo "" >> "$out"; done <<< "$rows"; }
-per_skill() { local out="$target/.github/copilot-instructions" description; mkdir -p "$out"; while IFS=$'\t' read -r name source; do [[ -n "$name" ]] || continue; description=$(skill_description "$SKILLS_DIR/$source/SKILL.md"); { echo "# $name"; echo ''; echo "$description"; echo ''; flattened_skill_body "$SKILLS_DIR/$source/SKILL.md"; } > "$out/$name.md"; done <<< "$rows"; }
-if [[ "$mode" == --consolidated || "$mode" == --all ]]; then consolidated; fi
-if [[ "$mode" == --per-skill || "$mode" == --all ]]; then per_skill; fi
+here="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+entry="$here/lib/leaf/install-copilot.mjs"
+if [[ ! -f "$entry" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+node_bin="$(command -v node 2>/dev/null || true)"
+if [[ -z "$node_bin" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+env_args=()
+if [[ "${PATH+x}" == x ]]; then env_args+=("PATH=$PATH"); fi
+if [[ "${HOME+x}" == x ]]; then env_args+=("HOME=$HOME"); fi
+if [[ "${LANG+x}" == x ]]; then env_args+=("LANG=$LANG"); fi
+if [[ "${LC_ALL+x}" == x ]]; then env_args+=("LC_ALL=$LC_ALL"); fi
+if [[ "${TMPDIR+x}" == x ]]; then env_args+=("TMPDIR=$TMPDIR"); fi
+if [[ "${SKILLS_CATALOG_ROOT+x}" == x ]]; then env_args+=("SKILLS_CATALOG_ROOT=$SKILLS_CATALOG_ROOT"); fi
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	version="$(/usr/bin/env -i "${env_args[@]}" "$node_bin" --version 2>/dev/null)" || version=""
+else
+	version="$(/usr/bin/env -i "$node_bin" --version 2>/dev/null)" || version=""
+fi
+if [[ -z "$version" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+case "$version" in
+v26.*)
+	;;
+*)
+	printf 'node_version_unsupported\n' >&2
+	exit 126
+	;;
+esac
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	exec /usr/bin/env -i "${env_args[@]}" "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"
+fi
+exec /usr/bin/env -i "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"

@@ -30,8 +30,13 @@ ok()  { echo "  PASS: $1"; PASS=$((PASS+1)); }
 bad() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
 # shellcheck disable=SC1091
-if ! source scripts/catalog-install.sh >/dev/null 2>&1 \
-   || ! declare -f flattened_skill_body >/dev/null 2>&1; then
+flatten() {
+  node --input-type=module - "$1" <<'JS'
+import { flattenedSkillBody } from "./scripts/lib/leaf/flatten-skill.mjs";
+process.stdout.write(flattenedSkillBody(process.argv[2]));
+JS
+}
+if ! flatten "$REPO_ROOT/02-govern-plan/northstar/SKILL.md" >/dev/null 2>&1; then
   bad "flattened_skill_body is sourceable from scripts/catalog-install.sh"
   echo ""; echo "Results: PASS=$PASS FAIL=$FAIL"; exit 1
 fi
@@ -52,7 +57,7 @@ ok "flattened_skill_body is sourceable from scripts/catalog-install.sh"
 reach() {
   local path="$1" label="$2" pattern="$3"
   local flat bullets
-  flat="$(flattened_skill_body "$path" 2>/dev/null)"
+  flat="$(flatten "$path" 2>/dev/null)"
 
   if [[ -z "$flat" ]]; then
     bad "$label (projection was empty)"
@@ -95,7 +100,7 @@ reach "$NORTHSTAR" "northstar: grill-me reaches all hosts"          'grill-me'
 # If a sidecar path ever starts surviving, the flattener changed and the
 # path-free-bullet discipline these slices were written around is moot. That is
 # worth knowing loudly rather than discovering later.
-flat="$(flattened_skill_body "$AUTOBAHN" 2>/dev/null)"
+flat="$(flatten "$AUTOBAHN" 2>/dev/null)"
 if grep -q "modules/" <<<"$flat"; then
   bad "the flattener still strips sidecar paths (a modules/ path survived — re-check decision 13)"
 else

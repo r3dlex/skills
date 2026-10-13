@@ -1,45 +1,36 @@
-#!/usr/bin/env python3
-"""Regenerate bounded catalog navigation in root and phase documentation."""
-import argparse, re, sys
-from pathlib import Path
-from catalog import load_catalog
-START='<!-- GENERATED:SKILL-CATALOG:START -->'; END='<!-- GENERATED:SKILL-CATALOG:END -->'
-def description(path):
- text=path.read_text(); m=re.search(r'^description:\s*[\'\"]?(.*?)[\'\"]?\s*$',text,re.M); return m.group(1).rstrip("'\"") if m else ''
-def replace(path, body, check):
- region=f'{START}\n{body.rstrip()}\n{END}'
- old=path.read_text() if path.exists() else ''
- if START in old and END in old: new=old[:old.index(START)]+region+old[old.index(END)+len(END):]
- else: new=old.rstrip()+('\n\n' if old.strip() else '')+region+'\n'
- if check:
-  if new != old: print(f'generated catalog drift: {path}',file=sys.stderr); return False
- else: path.parent.mkdir(parents=True,exist_ok=True); path.write_text(new)
- return True
-def main():
- p=argparse.ArgumentParser(); p.add_argument('--check',action='store_true'); a=p.parse_args(); root=Path(__file__).resolve().parent.parent; c=load_catalog(root)
- rows=['| Skill | When to use | Lifecycle | Owner phase |','|---|---|---|---|']
- for e in sorted(c['skills'],key=lambda x:x['name']):
-  desc=description(root/e['source_path']/'SKILL.md').replace('|','\\|')
-  rows.append(f"| [`{e['name']}`]({e['source_path']}/SKILL.md) | {desc} | `{e['lifecycle']}` | `{e['owner_phase']}` |")
- ok=replace(root/'README.md','\n'.join(rows),a.check) & replace(root/'AGENTS.md','\n'.join(rows),a.check)
- # Fourth target: the ask-ai-catapult router's tier-1 inventory. Generated, never
- # hand-maintained — a hand-written list of every catalog skill rots silently, and
- # routing against a stale roster is worse than routing against none. Lives in the
- # router's sidecar rather than its SKILL.md because the body has a 100-line budget.
- inv=[]
- for phase in c['phases']:
-  entries=sorted((x for x in c['skills'] if x['owner_phase']==phase),key=lambda x:x['name'])
-  if not entries: continue
-  inv.append(f'## {phase}'); inv.append('')
-  for e in entries:
-   desc=description(root/e['source_path']/'SKILL.md').replace('|','\\|')
-   inv.append(f"- **`{e['name']}`** — {desc}")
-  inv.append('')
- router=root/'01-discover-decide'/'ask-ai-catapult'/'CATALOG.md'
- if router.parent.is_dir(): ok=replace(router,'\n'.join(inv),a.check) & ok
- for phase in c['phases']:
-  lines=[f'# {phase}','', '| Skill | Applies to phases |','|---|---|']
-  for e in sorted((x for x in c['skills'] if x['owner_phase']==phase),key=lambda x:x['name']): lines.append(f"| [`{e['name']}`](../{e['source_path']}/SKILL.md) | {', '.join(e['applies_to_phases'])} |")
-  ok=replace(root/phase/'README.md','\n'.join(lines),a.check) & ok
- return 0 if ok else 1
-if __name__=='__main__': raise SystemExit(main())
+#!/usr/bin/env -S python3 -I -B
+# generated compat-shim — rendered from the python3 template; do not edit
+import sys
+
+if sys.flags.isolated != 1 or not sys.dont_write_bytecode:
+    import posix
+    posix.execv(sys.executable, [sys.executable, "-I", "-B", *sys.argv])
+
+import os
+import shutil
+import subprocess
+
+ALLOW = ["PATH","HOME","LANG","LC_ALL","TMPDIR"]
+ENTRY_REL = "lib/leaf/generate-skill-docs.mjs"
+
+
+def refuse(code: str, status: int) -> None:
+    sys.stderr.write(code + "\n")
+    raise SystemExit(status)
+
+
+here = os.path.dirname(os.path.abspath(__file__))
+entry = os.path.join(here, ENTRY_REL)
+if not os.path.isfile(entry):
+    refuse("node_unavailable", 127)
+node_bin = shutil.which("node")
+if node_bin is None:
+    refuse("node_unavailable", 127)
+assert node_bin is not None
+env = {name: os.environ[name] for name in ALLOW if name in os.environ}
+probed = subprocess.run([node_bin, "--version"], check=False, capture_output=True, text=True, env=env)
+if probed.returncode != 0:
+    refuse("node_unavailable", 127)
+if not probed.stdout.strip().startswith("v26."):
+    refuse("node_version_unsupported", 126)
+os.execve(node_bin, [node_bin, "--disable-proto=throw", entry, *sys.argv[1:]], env)

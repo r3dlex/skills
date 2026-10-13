@@ -1,0 +1,1 @@
+{"version":3,"file":"repo-root.mjs","sourceRoot":"","sources":["../../../ts-tooling/src/leaf/repo-root.mts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,OAAO,EAAE,MAAM,WAAW,CAAC;AAC7C,OAAO,EAAE,aAAa,EAAE,MAAM,UAAU,CAAC;AAEzC,MAAM,UAAU,QAAQ,CAAC,OAAe;IACtC,OAAO,OAAO,CAAC,OAAO,CAAC,aAAa,CAAC,OAAO,CAAC,CAAC,EAAE,UAAU,CAAC,CAAC;AAC9D,CAAC"}

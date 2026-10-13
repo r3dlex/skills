@@ -1,10 +1,42 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# generated compat-shim — rendered from the bash template; do not edit
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; SKILLS_DIR="${SKILLS_CATALOG_ROOT:-$SCRIPT_DIR/..}"; DEST="$HOME/.gemini/skills"
-source "$SCRIPT_DIR/catalog-install.sh"; parse_catalog_args "$@" || exit $?; set -- "${CATALOG_REST[@]}"
-case "${1:-}" in --install|--link|--all|"") ;; *) echo "Usage: $0 [--install | --link | --all] [--include-lifecycle <value>]" >&2; exit 1;; esac
-projection=$(mktemp); trap 'rm -f "$projection"' EXIT; rows="$(catalog_rows gemini --projection "$projection")" || exit $?; mkdir -p "$DEST"; mv "$projection" "$DEST/catalog.json"
-while IFS=$'\t' read -r name source; do
- [[ -n "$name" ]] || continue; skill="$SKILLS_DIR/$source/SKILL.md"; description=$(skill_description "$skill")
- { echo "# $name"; echo ""; echo "$description"; echo ""; echo "---"; echo ""; flattened_skill_body "$skill"; } > "$DEST/$name.md"; echo "  ✓ $name"
-done <<< "$rows"
+here="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+entry="$here/lib/leaf/install-gemini.mjs"
+if [[ ! -f "$entry" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+node_bin="$(command -v node 2>/dev/null || true)"
+if [[ -z "$node_bin" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+env_args=()
+if [[ "${PATH+x}" == x ]]; then env_args+=("PATH=$PATH"); fi
+if [[ "${HOME+x}" == x ]]; then env_args+=("HOME=$HOME"); fi
+if [[ "${LANG+x}" == x ]]; then env_args+=("LANG=$LANG"); fi
+if [[ "${LC_ALL+x}" == x ]]; then env_args+=("LC_ALL=$LC_ALL"); fi
+if [[ "${TMPDIR+x}" == x ]]; then env_args+=("TMPDIR=$TMPDIR"); fi
+if [[ "${SKILLS_CATALOG_ROOT+x}" == x ]]; then env_args+=("SKILLS_CATALOG_ROOT=$SKILLS_CATALOG_ROOT"); fi
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	version="$(/usr/bin/env -i "${env_args[@]}" "$node_bin" --version 2>/dev/null)" || version=""
+else
+	version="$(/usr/bin/env -i "$node_bin" --version 2>/dev/null)" || version=""
+fi
+if [[ -z "$version" ]]; then
+	printf 'node_unavailable\n' >&2
+	exit 127
+fi
+case "$version" in
+v26.*)
+	;;
+*)
+	printf 'node_version_unsupported\n' >&2
+	exit 126
+	;;
+esac
+if [[ ${#env_args[@]} -gt 0 ]]; then
+	exec /usr/bin/env -i "${env_args[@]}" "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"
+fi
+exec /usr/bin/env -i "SHIM_ARGV0=$0" "$node_bin" --disable-proto=throw "$entry" "$@"

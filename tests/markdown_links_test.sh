@@ -33,7 +33,11 @@ MD
 printf 'detail\n' > "$tmp/phase-b/beta/detail.md"
 PYTHONPATH=scripts python3 scripts/check-markdown-links.py --root "$tmp"
 rm "$tmp/phase-b/beta/detail.md"
-if PYTHONPATH=scripts python3 scripts/check-markdown-links.py --root "$tmp" >/dev/null 2>&1; then
-  echo "link guard accepted a broken catalog-mapped flat skill link" >&2
+set +e
+link_output=$(PYTHONPATH=scripts python3 scripts/check-markdown-links.py --root "$tmp" 2>&1)
+link_rc=$?
+set -e
+if [[ "$link_rc" -ne 1 || "$link_output" == *node_unavailable* || "$link_output" == *node_version_unsupported* || "$link_output" != *broken* ]]; then
+  echo "link guard refusal was not status 1 with the broken-link diagnostic: rc=$link_rc $link_output" >&2
   exit 1
 fi

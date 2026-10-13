@@ -26,6 +26,7 @@ python3 - <<'PY'
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(".")
@@ -184,28 +185,52 @@ assert re.search(r"accepts?[^.]*1\.1|>=\s*1\.1|>=\s*`1\.1`", module), (
 print("PASS: module documents schema 1.1 and new types")
 
 # --- 5. The SHARED validator the shipped script calls enforces the contract ---
-# scripts/validate-final-package.py imports scripts/traceability_schema.py, so
-# asserting against the shared module proves the runtime check (not just this
+# scripts/validate-final-package.py execs scripts/lib/leaf/traceability.mjs, so
+# asserting against that module proves the runtime check (not just this
 # in-test reference validator) enforces the type enum + schema_version. Doc,
 # runtime, and test cannot drift.
-import importlib.util
+import subprocess
 
-shared_path = ROOT / "scripts/traceability_schema.py"
-assert shared_path.is_file(), "shipped shared validator scripts/traceability_schema.py must exist"
-spec = importlib.util.spec_from_file_location("traceability_schema", shared_path)
-shared = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(shared)
+shared_path = ROOT / "scripts/lib/leaf/traceability.mjs"
+assert shared_path.is_file(), "shipped shared validator scripts/lib/leaf/traceability.mjs must exist"
+
+def shared_validate(graph):
+    path = Path(tempfile.mkstemp(suffix=".json")[1])
+    try:
+        path.write_text(json.dumps(graph))
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e",
+             "import { readFileSync } from 'node:fs';"
+             "import { validateGraph } from './scripts/lib/leaf/traceability.mjs';"
+             "validateGraph(JSON.parse(readFileSync(process.argv[1], 'utf8')));",
+             str(path)],
+            capture_output=True, text=True)
+    finally:
+        path.unlink(missing_ok=True)
+    detail = (result.stderr or result.stdout or "validate_graph failed").strip()
+    if result.returncode != 0:
+        if result.returncode != 1 or "node_unavailable" in detail or "node_version_unsupported" in detail:
+            raise SystemExit(f"shared validator refusal was not status 1: rc={result.returncode} {detail}")
+        raise ValueError(detail)
+
+def shared_known_types():
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e",
+         "import { KNOWN_TYPES } from './scripts/lib/leaf/traceability.mjs';"
+         "process.stdout.write(JSON.stringify([...KNOWN_TYPES]));"],
+        capture_output=True, text=True, check=True)
+    return set(json.loads(result.stdout))
 
 # 5a. v1.0 + both 1.1 fixtures PASS the shared validator.
 for fixture in ("standalone", "umbrella"):
     v10 = json.loads((ROOT / "reference/fixtures/v3" / fixture / ".ai/traceability/graph.json").read_text())
-    shared.validate_graph(v10)  # raises ValueError on violation
+    shared_validate(v10)  # raises ValueError on violation
     v11 = json.loads((ROOT / "reference/fixtures/v3" / fixture / ".ai/traceability/graph-1.1.json").read_text())
-    shared.validate_graph(v11)
+    shared_validate(v11)
 print("PASS: shared validator accepts v1.0 AND both 1.1 fixtures")
 
 # 5b. The shared validator's enum/schema rules match the in-test reference enum.
-assert shared.KNOWN_TYPES == KNOWN_TYPES, "shared validator enum drifted from reference enum"
+assert shared_known_types() == KNOWN_TYPES, "shared validator enum drifted from reference enum"
 
 # 5c. An unknown node type FAILS the shared validator.
 bad_type = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph-1.1.json").read_text())
@@ -214,8 +239,11 @@ bad_type["nodes"].append({
     "status": "active", "repo_id": "standalone-root", "path": "README.md",
 })
 try:
-    shared.validate_graph(bad_type)
-except ValueError:
+    shared_validate(bad_type)
+except ValueError as exc:
+    if "unknown node type" not in str(exc):
+        print(f"FAIL: shared validator refusal was not the unknown-type diagnostic: {exc}")
+        sys.exit(1)
     print("PASS: shared validator rejects unknown node type")
 else:
     print("FAIL: shared validator accepted unknown node type")
@@ -225,12 +253,35 @@ else:
 no_ver = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph.json").read_text())
 no_ver.pop("schema_version", None)
 try:
-    shared.validate_graph(no_ver)
-except ValueError:
+    shared_validate(no_ver)
+except ValueError as exc:
+    if "graph missing schema_version" not in str(exc):
+        print(f"FAIL: shared validator refusal was not the missing-schema diagnostic: {exc}")
+        sys.exit(1)
     print("PASS: shared validator rejects missing schema_version")
 else:
     print("FAIL: shared validator accepted graph with no schema_version")
     sys.exit(1)
+
+# 5e. Malformed schema versions fail with the anchor diagnostic, not any error.
+base = json.loads((ROOT / "reference/fixtures/v3/standalone/.ai/traceability/graph.json").read_text())
+for label, version, expected in (
+    ("garbage", "garbage", "invalid literal for int() with base 10: 'garbage'"),
+    ("1.0x", "1.0x", "invalid literal for int() with base 10: '0x'"),
+    ("1", "1", "unsupported schema_version 1"),
+):
+    malformed = json.loads(json.dumps(base))
+    malformed["schema_version"] = version
+    try:
+        shared_validate(malformed)
+    except ValueError as exc:
+        if expected not in str(exc):
+            print(f"FAIL: shared validator malformed {label} was not the anchor diagnostic: {exc}")
+            sys.exit(1)
+        print(f"PASS: shared validator rejects malformed schema_version {label}")
+    else:
+        print(f"FAIL: shared validator accepted malformed schema_version {label}")
+        sys.exit(1)
 PY
 
 # --- 6. The SHIPPED validate-final-package.py rejects an unknown node type -----
@@ -256,16 +307,16 @@ open(p, "w").write(json.dumps(g, indent=2) + "\n")
 PY
 
 set +e
-python3 scripts/validate-final-package.py >/dev/null 2>&1
+shipped_output=$(python3 scripts/validate-final-package.py 2>&1)
 shipped_exit=$?
 set -e
 restore
 trap - EXIT
 
-if [ "$shipped_exit" -ne 0 ]; then
+if [ "$shipped_exit" -eq 1 ] && [[ "$shipped_output" != *node_unavailable* && "$shipped_output" != *node_version_unsupported* && "$shipped_output" == *"unknown node type"* ]]; then
   echo "PASS: shipped validate-final-package.py rejects an unknown traceability node type"
 else
-  echo "FAIL: shipped validate-final-package.py accepted an unknown traceability node type"
+  echo "FAIL: shipped validate-final-package.py refusal was not status 1 with the unknown-type diagnostic: rc=$shipped_exit $shipped_output"
   exit 1
 fi
 

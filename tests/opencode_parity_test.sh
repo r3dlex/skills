@@ -83,10 +83,12 @@ Fallback (opencode/plain markdown): print the options as a numbered list and
 ask the user to reply with a number in prose.
 EOF
 
-if bash "$CHECK" "$tmpdir/unmarked.md" >/dev/null 2>&1; then
-  bad "unmarked AskUserQuestion fixture fails opencode parity (got exit 0)"
+unmarked_out="$(bash "$CHECK" "$tmpdir/unmarked.md" 2>&1)"
+unmarked_rc=$?
+if [[ "$unmarked_rc" -eq 1 && "$unmarked_out" != *node_unavailable* && "$unmarked_out" != *node_version_unsupported* && "$unmarked_out" == *unmarked* ]]; then
+  ok "unmarked AskUserQuestion fixture exits 1 with the unmarked diagnostic"
 else
-  ok "unmarked AskUserQuestion fixture fails opencode parity (non-zero exit)"
+  bad "unmarked AskUserQuestion fixture exits 1 with the unmarked diagnostic (rc=$unmarked_rc)"
 fi
 
 if bash "$CHECK" "$tmpdir/marked.md" >/dev/null 2>&1; then
