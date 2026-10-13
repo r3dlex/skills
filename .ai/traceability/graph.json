@@ -316,6 +316,21 @@
       "source": "handoff:skills:e6-skills-ts-01:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
       "target": "plan:skills:e6-skills-ts-01:e6-sk-01-py-leaf:672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:e6-skills-ts-02",
+      "target": "prd:skills:e6-skills-ts-02",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:e6-skills-ts-02",
+      "target": "handoff:skills:e6-skills-ts-02:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:e6-skills-ts-02:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
+      "target": "plan:skills:e6-skills-ts-02:e6-sk-02-v1-port:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -1229,6 +1244,55 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "e6-sk-01-py-leaf",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:e6-skills-ts-02",
+        "handoff:skills:e6-skills-ts-02:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015"
+      ],
+      "id": "prd:skills:e6-skills-ts-02",
+      "path": "docs/specifications/ACTIVE/e6-skills-ts-02.md",
+      "repo_id": "skills",
+      "sha256": "f9d9273a7f7993ff02a7f166a8bc08c0ee53697ea1f8a42ea919ee0267c91363",
+      "status": "active",
+      "title": "E6 successor 02: v1 port to TypeScript (`skills`, plan `e6-skills-ts-02`)",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e6-skills-ts-02"
+      ],
+      "id": "issue:skills:e6-skills-ts-02",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/e6-skills-ts-02.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "E6 successor 02 (`skills`, plan `e6-skills-ts-02`) — local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e6-skills-ts-02",
+        "plan:skills:e6-skills-ts-02:e6-sk-02-v1-port:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015"
+      ],
+      "id": "handoff:skills:e6-skills-ts-02:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
+      "path": ".ai/handoff/readiness-v2/e6-skills-ts-02/b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "e6-skills-ts-02",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:e6-skills-ts-02:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015"
+      ],
+      "goal_revision": "203011c2b6309e8e055dbe00bb0e15fb9760a6d01eaf8601cb59e8ca6e9c0f09",
+      "id": "plan:skills:e6-skills-ts-02:e6-sk-02-v1-port:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
+      "path": ".ai/handoff/readiness-v2/e6-skills-ts-02/b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "e6-sk-02-v1-port",
       "type": "plan"
     }
   ],

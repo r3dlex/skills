@@ -397,6 +397,38 @@
         "sha256": "6a58ec32a6c5c63e8fe1e2e77e127dedf0a1e19c42421f05c9d0314d713a976f"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-ts-02/b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015/goals.json",
+          "sha256": "46adca51fe794414cdeef7aeb4e958172d96d6b092e431a48c2970d65e58877b"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-ts-02/b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015/graph.json",
+          "sha256": "f54eb4cc7a02d47c0428b92b86253b9f2ec2ad5274bf7208455c0c4d70b0fe15"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-ts-02/b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015/handoff.md",
+          "sha256": "4aeca0267f1bb8e824c2dfff1fa6ae3cf1cd227f95dd17b6d83d784d597f8cd0"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/e6-skills-ts-02/b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015/sidecar.json"
+        }
+      },
+      "generation": "b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
+      "handoff_path": ".ai/handoff/readiness-v2/e6-skills-ts-02/b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015/handoff.md",
+      "id": "northstar-plan-e6-skills-ts-02",
+      "mode": "live",
+      "plan_id": "e6-skills-ts-02",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/e6-skills-ts-02.md",
+        "sha256": "f9d9273a7f7993ff02a7f166a8bc08c0ee53697ea1f8a42ea919ee0267c91363"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [

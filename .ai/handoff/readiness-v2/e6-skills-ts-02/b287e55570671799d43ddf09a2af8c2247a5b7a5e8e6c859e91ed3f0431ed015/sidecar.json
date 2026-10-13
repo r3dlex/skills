@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "e6-sk-02-v1-port": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: the v1 port is not started and no line-coverage percentage is recorded; legacy-safe TDD is required. Predecessor e6-sk-01-py-leaf merged as 10a650db711f5a3fd91315ee70ac94990ce0fe7d, which is origin/main (PR #137, 2026-10-13T21:18:15Z). Chain predecessor e6-sk-00-ledger merged as a389a52528d58ba209203f582e6735c3e40fa145 (PR #135, 2026-10-11T18:52:28Z) and is an ancestor. This registration grants no execution authority. Policy digest d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962 voids old approvals; a fresh own-plan approval is still required before implementation admission and is not minted here. Blast radius: the v1 contract and validator port, ADR-0016 amendment, contract-run.sh switch, both v1 manifests, and the ported v1 tests. Unknown readiness is not execution authority.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e6-skills-ts-02",
+  "schema": "readiness-sidecar/1"
+}

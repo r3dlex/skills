@@ -1,0 +1,77 @@
+{
+  "attachments": {
+    "agent_self": "No human approved this plan. This publication mints no approval tag. Policy digest d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962 voids old approvals. A fresh own-plan approval is still required before implementation admission, and is not sought or minted here. This publication does not dispatch implementation.",
+    "decisions": "D1-D13 are cited from docs/specifications/ACTIVE/e6-skills-legacy-ts-conversion.md (sha256 981f1f80182180c02837d9eabba4f15f6383725bab89e67d713fc69dc4e01834) and are not restated. This spec copies that file's planned text for e6-sk-02-v1-port and the common successor acceptance. It changes that text only for facts observed at base 10a650db711f5a3fd91315ee70ac94990ce0fe7d, and says so in the spec. The only text fills are the publication rule's predecessor naming in AC-1 and the goal id in the evidence path of AC-4.",
+    "parent_plan": "e6-skills-legacy-ts generation 3f81925f38377c3e90d6df19f75796c5652b1eb379161b1dc638dbcd38dd6c35 is registered and active. e6-skills-ts-01 generation 672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae is registered and active. This plan does not replace either entry. The parent spec is bound and is not edited. Goal id stays e6-sk-02-v1-port. Plan id e6-skills-ts-02 is the id the publication rule reserves for this goal. Goals 03-07 are not registered here. e6-sk-01-py-leaf is not registered here.",
+    "predecessor_pin": "Dependency edge: this goal names e6-sk-01-py-leaf's merge commit 10a650db711f5a3fd91315ee70ac94990ce0fe7d. dependencies is empty because a bundle cannot depend on a goal of another plan (bundle_dependency_unknown); the edge is this prose plus AC-1, not a bundle dependency. The parent publication rule requires this plan to be published only after that merge commit reaches origin/main. Re-observed 2026-10-13T21:58:06Z: that commit is origin/main. It is the squash of PR #137, parent 6255da27afeee8c2e9f3582793e74fbc5ff68bf3, head e353a388d3445f02ee7092e33c4d7344c612d9bb, merged 2026-10-13T21:18:15Z. The head is not a pin. The chain predecessor e6-sk-00-ledger merged as a389a52528d58ba209203f582e6735c3e40fa145, the squash of PR #135, parent c886433d8950e5b4cb5563d02933b82644edf194, head 5f4a9202253861a0bba6582434479ccd7e951b05, merged 2026-10-11T18:52:28Z, and that commit is an ancestor. AC-1 names both merge commits, re-observed by git ancestry at prereq-check, beside O8 f5e338b92bb754c2bfffdf542b498530258fdbc0 (PR #125, already an ancestor). This publication does not waive the rule.",
+    "publication_posture": "Born readiness-contract/2, live mode. Publication grants no implementation authority. The parent rule publishes this plan only after e6-sk-01-py-leaf's merge commit reaches origin/main, because scope is reserved from publication to merge. Deferring a planning PR's merge does not satisfy that rule. Re-observed 2026-10-13T21:58:06Z: that merge commit is 10a650db711f5a3fd91315ee70ac94990ce0fe7d and it is origin/main. Goal 01's registered scope included .ai/ci/local-ci.json, .ai/rules/legacy-freeze-baseline.json, .shellcheckrc, mypy.ini, prek.toml, ruff.toml and ts-tooling; that reservation ended at the merge. This publication does not claim the first prek.toml change; that was goal 01's planned text. Policy digest d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962 voids old approvals. A fresh own-plan approval is still required before implementation admission. This publication does not seek it and does not mint approval/e6-skills-ts-02/<generation>.",
+    "regime": "readiness-contract/2, live mode, one goal. The sidecar keeps every stage unknown, coverage unknown and legacy-safe TDD. This publication amends no policy and mints no approval. Readiness is unknown."
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "Dispatch gate. O8 and the merge commit of every predecessor goal are ancestors of origin/main, re-observed by git ancestry at prereq-check time. The cross-plan rule applies; held, uncredited goals are exempt. Beside O8, this goal names its predecessors' merge commits. Observed at base 10a650db711f5a3fd91315ee70ac94990ce0fe7d: O8 is f5e338b92bb754c2bfffdf542b498530258fdbc0, the merge commit of PR #125 on branch feat/ach-skills-gate-workspace-ACH-S-08, and it is an ancestor. The publication-rule previous goal e6-sk-01-py-leaf of plan e6-skills-ts-01 (generation 672d3afe85eb2aa66c50098820ea2cba54c7124256521125acc4316777cf74ae) is merged as 10a650db711f5a3fd91315ee70ac94990ce0fe7d, the squash of PR #137, parent 6255da27afeee8c2e9f3582793e74fbc5ff68bf3, head e353a388d3445f02ee7092e33c4d7344c612d9bb, merged 2026-10-13T21:18:15Z, and that merge commit is origin/main. The chain predecessor e6-sk-00-ledger of plan e6-skills-legacy-ts (generation 3f81925f38377c3e90d6df19f75796c5652b1eb379161b1dc638dbcd38dd6c35) is merged as a389a52528d58ba209203f582e6735c3e40fa145, the squash of PR #135, parent c886433d8950e5b4cb5563d02933b82644edf194, head 5f4a9202253861a0bba6582434479ccd7e951b05, merged 2026-10-11T18:52:28Z, and that merge commit is an ancestor of origin/main. The dependency is recorded here and is not a bundle dependency, because a bundle cannot depend on a goal of another plan. The held-goal exemption does not waive this publication order.",
+        "Same-PR maintenance (D7). The PR deletes the ledger entries it converts, attaches the D5 checks to every converted or surviving file it touches, removes configuration its conversion makes dead, and re-pins, adds or removes the .ai/ci/local-ci.json sources keys and workflow hashes its changes require. It never edits the local-ci.json verification list or the workflow inventory (reserved for goal 06), and never edits af-06's declaration. A stale pin left for a later goal is red.",
+        "Negative tests (D8). Every negative test over a converted entrypoint asserts its refusal code; none is satisfied by node_unavailable.",
+        "TDD evidence. .ai/evidence/e6-sk-02-v1-port.json records an observed red then green for the same commands. bash tests/run-tests.sh, prek run --all-files and git diff --check pass at the PR head. No coverage percentage is invented.",
+        "ADR-0016 amendment (D2), in its Decision and Verification sections. It includes the explicit statement that, by user decision of 2026-10-08, the port changes v1's emitted bytes for malformed input inside interpreter-diagnostic, and that every other v1 byte is identical. It records the commit-and-path anchors, the node:-only import rule, and that a tsc upgrade changing executed v1 bytes is an ADR-0016 event.",
+        "Differential proof before the switch (D8). tests/e6_v1_parity_test.sh runs the frozen Python and the TS port on the eleven-scenario golden corpus; every scenario of the v1 Python tests; a generated corpus reaching every v1 refusal code, every verification.py refusal, every interpreter-diagnostic site and both branches of line 785; and every registered v1 generation of skills, root, ai-catapult and ai-factory (D2). Outputs are byte-identical with only interpreter-diagnostic masked. Canonical JSON, digests and generation have dedicated fixtures. The evidence records corpus size, per-code coverage and per-site coverage.",
+        "Freeze-test transition as in D2, with the mask applied after the switch too.",
+        "Switch. contract-run.sh routes every non-v2 operation to the TS port. Both v1 readiness-dependency.json copies change together, pin the executed artifacts and stay producer-consumer equal. The unsupported, incomplete and fingerprint-mismatch refusals stay fail-closed, with tests. prereq-check.sh, readiness-check.sh, migrate-handoff.sh, the v1 path of handoff-write.sh and contract-run.sh keep their names, arguments and outputs. The validator is ported once, with no second allowlist.",
+        "The executed v1 artifacts and exports are as in D2.",
+        "Ported v1 tests. The tests that import readiness_contract directly or through readiness_worktree_test are ported, with each case mapped and the assertion count kept. Narrowed form (commitment carried from the superseded e6-sk-02 AC7): tests/ach_s01_readiness_policy_test.sh and tests/xskp_p5_readiness_policy_test.sh are ported in the narrowed form B2 leaves them, after B2's goal PR merges, and the port keeps that narrowing exactly: each test still verifies its retained policy bytes against its pinned digest; \"every source digest is current\" is asserted for a live policy only, never for a retained snapshot; the contract-acceptance simulation relaxes only source-digest currency (as it already relaxes repository-root equality); the retained JSON files (.ai/handoff/xskp-p5-readiness-policy.retained.json, .ai/handoff/ach-skills-contract-v2/s01-readiness-policy-v1.retained.json) are never edited. The port neither widens nor narrows these assertions; a change to them needs its own decision and both review lanes. B2 fallback: if the TSWC coordinator records B2 as withdrawn, or its plan entry is retired, goal 02 ports the two tests in their form on main at its base. tests/readiness_v2_identity_test.py re-pins only V1_WORKTREE_PINS. Both v2 manifests re-pin the contract-run.sh digest; their file set is unchanged.",
+        "Provenance. The D13 procedure passes, steps 1\u20137."
+      ],
+      "dependencies": [],
+      "id": "e6-sk-02-v1-port",
+      "issue_ref": "issue:skills:e6-skills-ts-02",
+      "scope": [
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/e6-sk-02-v1-port.json",
+        ".ai/rules/legacy-freeze-baseline.json",
+        ".shellcheckrc",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency.json",
+        "04-validate-handoff/autobahn/contract-run.sh",
+        "04-validate-handoff/autobahn/lib",
+        "04-validate-handoff/autobahn/modules/readiness.md",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "04-validate-handoff/autobahn/readiness-dependency.json",
+        "docs/architecture/adr/0016-git-native-plan-approval.md",
+        "mypy.ini",
+        "prek.toml",
+        "ruff.toml",
+        "tests/ach_s01_readiness_policy_test.sh",
+        "tests/autobahn_worktree_driver_integration_test.py",
+        "tests/autobahn_worktree_driver_integration_test.sh",
+        "tests/e6_v1_parity_test.sh",
+        "tests/fixtures/e6-v1-port",
+        "tests/readiness_contract_test.py",
+        "tests/readiness_contract_test.sh",
+        "tests/readiness_mapped_test.py",
+        "tests/readiness_mapped_test.sh",
+        "tests/readiness_scoped_test.py",
+        "tests/readiness_scoped_test.sh",
+        "tests/readiness_v1_freeze_test.sh",
+        "tests/readiness_v2_identity_test.py",
+        "tests/readiness_worktree_test.py",
+        "tests/readiness_worktree_test.sh",
+        "tests/xskp_p5_readiness_policy_test.sh",
+        "ts-tooling"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "e6-skills-ts-02",
+  "issue_ref": "issue:skills:e6-skills-ts-02",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/e6-skills-ts-02.md"
+  }
+}
