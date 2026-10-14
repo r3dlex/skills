@@ -179,7 +179,8 @@ expect "copied matrix: omc resolves to claude-code in a temporary root" copied_a
 ALIASED="$TMP/aliased"
 make_root "$ALIASED" '"codex", "omc"'
 validator_refuses() {
-	! python3 scripts/validate-skill-catalog.py --root "$ALIASED" >"$TMP/v.out" 2>"$TMP/v.err"
+	python3 scripts/validate-skill-catalog.py --root "$ALIASED" >"$TMP/v.out" 2>"$TMP/v.err"
+	[[ $? -eq 1 && ! -s "$TMP/v.out" ]] && grep -q 'invalid supported_hosts for research' "$TMP/v.err" && ! grep -q 'node_unavailable\|node_version_unsupported' "$TMP/v.err"
 }
 model_refuses() {
 	query_root "$ALIASED" codex
@@ -218,6 +219,7 @@ negative "also entry that is not an alias of its host" codex -e 's/"also": \["om
 negative "consumer missing for a payload host" codex -e '/"gemini": {/d'
 negative "schema other than host-matrix/1" codex -e 's/"host-matrix\/1"/"host-matrix\/2"/'
 negative "installer outside scripts/" codex -e 's#"scripts/install-gemini.sh"#"bin/install-gemini.sh"#'
+negative "installer escaping scripts/ by traversal" codex -e 's#"scripts/install-gemini.sh"#"scripts/../../outside.sh"#'
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL"

@@ -106,6 +106,13 @@ function readAliases(value: unknown, hosts: ReadonlySet<string>): Record<string,
   return aliases;
 }
 
+// A relative path strictly inside scripts/: no absolute prefix, no empty segment
+// and no "." or ".." segment, so an installer can never name a file outside it.
+function containedInstaller(installer: string): boolean {
+  const parts = installer.split("/");
+  return parts[0] === "scripts" && parts.length > 1 && parts.every((part) => part !== "" && part !== "." && part !== "..");
+}
+
 function readInstaller(host: string, record: Plain): string | null {
   if (!Object.hasOwn(record, "installer")) {
     throw new HostMatrixError(`consumers.${host} is missing installer`);
@@ -114,7 +121,7 @@ function readInstaller(host: string, record: Plain): string | null {
   if (installer === null) {
     return null;
   }
-  if (typeof installer !== "string" || !installer.startsWith("scripts/")) {
+  if (typeof installer !== "string" || !containedInstaller(installer)) {
     throw new HostMatrixError(`consumers.${host}.installer must be null or a path under scripts/`);
   }
   return installer;
