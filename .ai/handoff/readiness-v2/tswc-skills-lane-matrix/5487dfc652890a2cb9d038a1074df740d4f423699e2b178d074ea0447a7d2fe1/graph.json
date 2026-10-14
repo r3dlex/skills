@@ -1,0 +1,57 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h1:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h3:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h4:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    }
+  ],
+  "generation": "5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+  "goal_ids": [
+    "tswc-sk-e5-h1",
+    "tswc-sk-e5-h3",
+    "tswc-sk-e5-h4"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "5ad8b5638c5cac4c684d3fa243fc152d7abbeac9911313dfde0cbadf715bd9f4",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h1:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "5508caf6a277ae1c1fc931e0c096e5a612142fb818f1b61ea90b587df511b9e6",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h3:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    },
+    {
+      "goal_revision": "74bae5c0dbdba2b21b413ae3acc4c689c514358602e0497536b8cd568eebf444",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h4:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "tswc-skills-lane-matrix",
+  "schema_version": "1.1"
+}
