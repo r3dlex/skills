@@ -1,6 +1,6 @@
 # ADR-0016: Git-native plan approval
 
-- Status: Accepted for ACH-S-01 (readiness-contract/2); amended by ACH-S-02 (K3, K3b approval modes)
+- Status: Accepted for ACH-S-01 (readiness-contract/2); amended by ACH-S-02 (K3, K3b approval modes); amended by e6-sk-02-v1-port (interpreter-diagnostic)
 - Date: 2026-10-03
 - Amends: [ADR-0014](0014-versioned-readiness-transfer.md), clause "No signing platform or generic policy expression engine is introduced"
 - Specification: `ACH-20261002` (umbrella sha256 `fded0858d0c3aa2ba06cdc9b6d716053cb92dd82a3afa22e6a13774e30f6ddd5`), decisions U1–U3, R2, R2b, K1, K2, G1–G3, O1–O4, O7, O9
@@ -36,9 +36,31 @@ P3 and P7).
   creates the keys and the anchor.
 
 This replaces ADR-0014's "no signing platform" clause for readiness-contract/2
-only. v1 is unchanged, and its bytes and outputs are frozen. A pure validator
+only. v1's outputs stay frozen, except for one named normalization class,
+`interpreter-diagnostic`. By user decision of 2026-10-08, the port changes v1's
+emitted bytes for malformed input inside `interpreter-diagnostic`, and every
+other v1 byte is identical: exit status, keys and their order, codes, statuses,
+scopes and every contract-authored message. A pure validator
 (`readiness_contract_v2.py`) decides from facts. A pinned read-only observer
 (`observer.py`) gathers those facts and re-observes them at merge time.
+
+v1's implementation is ported once, by `e6-sk-02-v1-port`, to TypeScript. The
+port is admitted only by the differential proof against the frozen Python. The
+reference is anchored by commit and path, then checked by blob id and sha256.
+
+| File (under `04-validate-handoff/autobahn/lib`) | Anchor commit | Blob id | sha256 |
+|---|---|---|---|
+| `readiness_contract.py` | `92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3` | `0afbebf2bebe81546270e3d1c9ee2499cd16b6d0` | `30cfb9bf7436ff1f6b14c0b16542a62a6893321f5eface820c827ae4ec600166` |
+| `verification.py` | `92865142328863cc0d6d5e3aa36d6a9eb3d6e7d3` | `6e47e69a7b8dc8e55f6e89d60f2ff7c156363a8e` | `572819a9c8a1039173c5483d0f7f9a33362588d197e27731bb97b5dd78d33524` |
+
+After the port, the freeze binds the port's executed bytes plus the output
+corpus. The executed v1 artifacts are the compiled modules
+`lib/engine.mjs`, `lib/json.mjs`, `lib/readiness_contract.mjs` and
+`lib/verification.mjs` under `04-validate-handoff/autobahn`, the files both v1
+manifests name. They import only `node:` builtins and each other, so no file
+outside the pins can change v1 behavior. A TypeScript compiler upgrade that
+changes their emitted bytes is an ADR-0016 event: it needs a new amendment and
+is never a routine bump.
 
 ### Assurance (K1, K2)
 
@@ -197,8 +219,8 @@ head fails. No detective control covers this until ACH-S-06's audit.
   approval refusal of AC-2.
 - `tests/readiness_v2_certificate_test.py` covers the certificate and the
   re-observing merge.
-- `tests/readiness_v1_freeze_test.sh` proves that v1 bytes and outputs are
-  unchanged.
+- `tests/readiness_v1_freeze_test.sh` proves output-equivalence, masked only
+  for `interpreter-diagnostic`, and pins the executed v1 artifacts.
 - `tests/readiness_v2_approval_modes_test.py` covers the three modes, the
   agent-self form and its refusals, and assurance rendering (K3).
 - `tests/readiness_v2_policy_amend_test.py` covers the amendment kind, rule (d)

@@ -8,30 +8,46 @@ case "${1:-}" in
   admit-v2|publish-v2|approval-request|certify-v2|merge-v2|context-build|inventory-v1|audit-merges|export-evidence)
     exec bash "$HERE/contract-run-v2.sh" "$@" ;;
 esac
-exec python3 -I -B - "$HERE" "$@" <<'PY'
-import hashlib, json, pathlib, sys
-root = pathlib.Path(sys.argv[1])
-try:
-    manifest = json.loads((root / 'readiness-dependency.json').read_text())
-    peer = root.parent / 'northstar'
-    if not peer.is_dir():
-        peer = root.parent.parent / '02-govern-plan/northstar'
-    if json.loads((peer / 'readiness-dependency.json').read_text()) != manifest:
-        raise ValueError('producer/consumer fingerprint mismatch')
-    if manifest['schema'] != 'readiness-contract/1':
-        raise ValueError('unsupported helper release')
-    for name, expected in manifest['files'].items():
-        if name not in ('lib/readiness_contract.py', 'lib/verification.py', 'schemas/readiness-contract.json'):
-            raise ValueError('unsupported helper dependency')
-        if hashlib.sha256((root / name).read_bytes()).hexdigest() != expected:
-            raise ValueError('helper fingerprint mismatch')
-    if set(manifest['files']) != {'lib/readiness_contract.py', 'lib/verification.py', 'schemas/readiness-contract.json'}:
-        raise ValueError('incomplete helper dependency')
-except (OSError, KeyError, ValueError) as error:
-    print(json.dumps({'error': 'dependency_failed:' + str(error), 'dispatch_authorized': False, 'execution_ready': False, 'authority_verification': 'external-required'}))
-    sys.exit(1)
-sys.path.insert(0, str(root / 'lib'))
-import readiness_contract
-sys.argv = [str(root / 'lib/readiness_contract.py'), *sys.argv[2:]]
-sys.exit(readiness_contract.main())
-PY
+# Pin check before the entry point loads. A mutated module must not be parsed first.
+AUTOBAHN="$HERE" node --disable-proto=throw -e '
+const {createHash} = require("node:crypto");
+const {existsSync, readFileSync} = require("node:fs");
+const {resolve} = require("node:path");
+const root = process.env.AUTOBAHN;
+const allowed = ["lib/engine.mjs", "lib/json.mjs", "lib/readiness_contract.mjs", "lib/verification.mjs"];
+function fail(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  process.stdout.write(JSON.stringify({
+    authority_verification: "external-required",
+    dispatch_authorized: false,
+    error: "dependency_failed:" + message,
+    execution_ready: false,
+  }, null, 2) + "\n");
+  process.exit(1);
+}
+function canon(value) {
+  if (Array.isArray(value)) return "[" + value.map(canon).join(",") + "]";
+  if (value && typeof value === "object") {
+    return "{" + Object.keys(value).sort().map((key) => JSON.stringify(key) + ":" + canon(value[key])).join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+try {
+  const manifest = JSON.parse(readFileSync(resolve(root, "readiness-dependency.json"), "utf8"));
+  let peer = resolve(root, "../northstar");
+  if (!existsSync(peer)) peer = resolve(root, "../../02-govern-plan/northstar");
+  const peerManifest = JSON.parse(readFileSync(resolve(peer, "readiness-dependency.json"), "utf8"));
+  if (canon(peerManifest) !== canon(manifest)) throw new Error("producer/consumer fingerprint mismatch");
+  if (manifest.schema !== "readiness-contract/1") throw new Error("unsupported helper release");
+  const files = manifest.files || {};
+  for (const [name, expected] of Object.entries(files)) {
+    if (!allowed.includes(name)) throw new Error("unsupported helper dependency");
+    const digest = createHash("sha256").update(readFileSync(resolve(root, name))).digest("hex");
+    if (digest !== expected) throw new Error("helper fingerprint mismatch");
+  }
+  if (Object.keys(files).sort().join("\n") !== allowed.slice().sort().join("\n")) throw new Error("incomplete helper dependency");
+} catch (error) {
+  fail(error);
+}
+'
+exec node --disable-proto=throw "$HERE/lib/readiness_contract.mjs" "$@"

@@ -1,0 +1,68 @@
+{
+  "goal_id": "e6-sk-02-v1-port",
+  "assurance": "agent-self",
+  "no_human_approved": true,
+  "cure": "Removed EOF blank lines, rejected an unknown --stage with exit 2, and escaped non-ASCII as UTF-16 code units so emoji canonical bytes match Python.",
+  "red": {
+    "command": "bash tests/e6_v1_parity_test.sh",
+    "exit_code": 1,
+    "recorded_before_green": true
+  },
+  "green": {
+    "command": "bash tests/e6_v1_parity_test.sh",
+    "exit_code": 0,
+    "result": "PASS=32 FAIL=0",
+    "corpus_cases": 24,
+    "codes": [
+      "admission_failed",
+      "authority_unavailable",
+      "goal_not_ready",
+      "policy_context_invalid"
+    ],
+    "sites": [
+      "admission_failed",
+      "generation root northstar-plan-xskp-p1-registry-core-isolated",
+      "generation root northstar-plan-xskp-p1-registry-core-routing",
+      "interpreter-diagnostic-malformed-json"
+    ]
+  },
+  "also_observed": {
+    "readiness_contract_test": {
+      "red": "bash tests/readiness_contract_test.sh FAILED failures=13 errors=1",
+      "green": {
+        "command": "bash tests/readiness_contract_test.sh",
+        "exit_code": 0,
+        "result": "Ran 36 tests OK"
+      }
+    },
+    "freeze": {
+      "command": "bash tests/readiness_v1_freeze_test.sh",
+      "result": "PASS=19 FAIL=0"
+    }
+  },
+  "d13": {
+    "passed": false,
+    "reason": "Steps 3 and 4 did not finish. The first base-copy audit-merges of e6-skills-ts-02 exited 0 with provenance base-copy. Later gh pr list calls hit GraphQL API rate limit already exceeded and refused hosted_api_unavailable:pr list. ach-skills-contract-v2 timed out at 180s. This is not a pass.",
+    "reference": {
+      "lane": "base-copy",
+      "commit": "848a3dd6375d3552ea118914d4584d39aaa351ba",
+      "checkout": "detached origin/main worktree"
+    },
+    "candidate": {
+      "lane": "source-lane",
+      "commit": "uncommitted port on 848a3dd6375d3552ea118914d4584d39aaa351ba",
+      "driver": "non-git copy of the worktree autobahn and northstar drivers"
+    },
+    "step_2_v1_generation": {
+      "northstar-plan-xskp-p5-skill-producers": "4a064a42f246 matches canonical(bundle)",
+      "northstar-plan-ach-skills-contract-v2": "ba4a7996ca50 matches canonical(bundle)"
+    },
+    "step_5": "bash tests/e6_v1_parity_test.sh exit 0; eleven golden scenarios plus registered v1 planning replays",
+    "normalizations": [
+      "issued_at",
+      "observed_at",
+      "scratch-path placeholder",
+      "interpreter-diagnostic"
+    ]
+  }
+}

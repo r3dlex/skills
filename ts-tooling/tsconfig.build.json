@@ -5,5 +5,6 @@
     "outDir": "../scripts/lib",
     "rootDir": "src"
   },
-  "include": ["src/**/*.mts"]
+  "include": ["src/**/*.mts"],
+  "exclude": ["src/v1/**/*.mts"]
 }
