@@ -346,6 +346,31 @@
       "source": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
       "target": "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:tswc-skills-lane-matrix",
+      "target": "prd:skills:tswc-skills-lane-matrix",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:tswc-skills-lane-matrix",
+      "target": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h1:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h3:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h4:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -1357,6 +1382,81 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "migrated-own-verification-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:tswc-skills-lane-matrix",
+        "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "id": "prd:skills:tswc-skills-lane-matrix",
+      "path": "docs/specifications/ACTIVE/typescript-wikiskill-convergence-tswc-skills-lane-matrix.md",
+      "repo_id": "skills",
+      "sha256": "a4263c61feec10fdbb1f568c08f2d4485d9d27f0326fa494a6c79b241e75620f",
+      "status": "active",
+      "title": "TSWC skills successor: harness matrix (`skills`, plan `tswc-skills-lane-matrix`)",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:tswc-skills-lane-matrix"
+      ],
+      "id": "issue:skills:tswc-skills-lane-matrix",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/tswc-skills-lane-matrix.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "TSWC skills successor (`skills`, plan `tswc-skills-lane-matrix`) — local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:tswc-skills-lane-matrix",
+        "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h1:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+        "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h3:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+        "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h4:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "id": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "tswc-skills-lane-matrix",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "goal_revision": "5ad8b5638c5cac4c684d3fa243fc152d7abbeac9911313dfde0cbadf715bd9f4",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h1:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "tswc-sk-e5-h1",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "goal_revision": "5508caf6a277ae1c1fc931e0c096e5a612142fb818f1b61ea90b587df511b9e6",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h3:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "tswc-sk-e5-h3",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "goal_revision": "74bae5c0dbdba2b21b413ae3acc4c689c514358602e0497536b8cd568eebf444",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h4:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "tswc-sk-e5-h4",
       "type": "plan"
     }
   ],

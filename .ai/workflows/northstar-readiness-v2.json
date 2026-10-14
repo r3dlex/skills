@@ -461,6 +461,38 @@
         "sha256": "15dfc02b69f63ca8b85776a1220ea94cc3def57f1d52d1e0e97522694b0c571c"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+          "sha256": "b5a323eaf560b5e08cce3e10dccaac17e5ee9895285ba238c7dfbcca5ef72573"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/graph.json",
+          "sha256": "0178fbedf37004abc7a57d0998a8c8e2f1419cc66c021a5c3db87be521bab5d0"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/handoff.md",
+          "sha256": "b3876d3a40b47f15ad607450afa2e6820ac766a5f17a6dbeac0d89c33fd00827"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/sidecar.json"
+        }
+      },
+      "generation": "5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "handoff_path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/handoff.md",
+      "id": "northstar-plan-tswc-skills-lane-matrix",
+      "mode": "live",
+      "plan_id": "tswc-skills-lane-matrix",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/typescript-wikiskill-convergence-tswc-skills-lane-matrix.md",
+        "sha256": "a4263c61feec10fdbb1f568c08f2d4485d9d27f0326fa494a6c79b241e75620f"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [
