@@ -1,0 +1,7 @@
+{
+  "goal_id": "tswc-sk-e5-h1",
+  "red": {
+    "command": "bash tests/host_matrix_test.sh",
+    "exit_code": 1
+  }
+}

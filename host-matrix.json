@@ -1,0 +1,17 @@
+{
+  "schema": "host-matrix/1",
+  "payload_hosts": ["auggie", "claude-code", "codex", "copilot", "gemini", "opencode"],
+  "aliases": { "omc": "claude-code", "omx": "codex" },
+  "consumers": {
+    "claude-code": { "installer": "scripts/install-claude-code.sh", "also": ["omc"] },
+    "codex": { "installer": "scripts/install-codex.sh", "also": ["omx"] },
+    "gemini": { "installer": "scripts/install-gemini.sh" },
+    "auggie": { "installer": "scripts/install-auggie.sh" },
+    "copilot": { "installer": "scripts/install-copilot.sh" },
+    "opencode": { "installer": null, "delivery": "ai-catapult payload merge into the OpenCode config root (skills/ and command/); never the OpenCode v2 plugin array" }
+  },
+  "excluded": {
+    "omo-ai": "no payload, mechanism or entrypoint contract (M-6); re-admission needs a contract and a new generation",
+    "oh-my-openagent": "OpenCode-plugin adapter, retired and quarantined (root AGENTS.md); OpenCode payload names stay disjoint from root tests/fixtures/omo-names.json"
+  }
+}

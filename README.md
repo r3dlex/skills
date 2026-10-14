@@ -39,6 +39,9 @@ reproduce-minimize-hypothesize-instrument-fix loop.
 | Auggie | `./scripts/install-auggie.sh --all` | `~/.auggie/rules/` |
 | Gemini | `./scripts/install-gemini.sh --all` | `~/.gemini/skills/` |
 | GitHub Copilot | `./scripts/install-copilot.sh --repo /path/to/repo` | `/path/to/repo/.github/` |
+| OMC (oh-my-claudecode) | consumes the Claude Code payload: `./scripts/install-claude-code.sh --user` (`--host omc` is an alias of `claude-code`) | `~/.claude/skills/omc-learned/` |
+| OMX (oh-my-codex) | consumes the Codex payload: `./scripts/install-codex.sh --all` (`--host omx` is an alias of `codex`) | `~/.codex/skills/` |
+| OpenCode CLI v2 | no skills-repo installer: the `opencode` payload is delivered by ai-catapult's payload merge, never through the OpenCode v2 plugin array | OpenCode config root (via ai-catapult) |
 
 Codex and Claude Code recursively install each selected skill directory,
 including references and bundled scripts. Auggie, Gemini, and GitHub Copilot
@@ -46,6 +49,7 @@ receive host-specific flattened or synthesized projections suited to their
 instruction surfaces. `tests/install_cross_host_parity_test.sh` verifies both
 recursive-copy parity and the distinct projection shapes.
 The canonical README generator is available only in the recursive Claude Code and Codex installations.
+`host-matrix.json` is the host matrix (payload hosts, the `omc` and `omx` aliases, and the excluded names): `omo-ai` is not a host (it has no contract), and the `oh-my-openagent` OpenCode-plugin adapter is quarantined.
 
 ## How the catalog works
 
