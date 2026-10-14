@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "migrated-own-verification-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Load-bearing v2 publication proof changes in a brownfield repository; coverage is not independently measured. Preserve frozen v1 bytes, strict ordinary missing-script refusals and actual runtime verification. Use disposable fixtures and honest red-green evidence after separate original-author admission.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "skills-migrated-own-verification-repair",
+  "schema": "readiness-sidecar/1"
+}
