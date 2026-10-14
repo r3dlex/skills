@@ -429,6 +429,38 @@
         "sha256": "f9d9273a7f7993ff02a7f166a8bc08c0ee53697ea1f8a42ea919ee0267c91363"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/goals.json",
+          "sha256": "1b863035ca03707b39dc5fd22ed4afefd95377d0d32a581c9db8c05064ca854e"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/graph.json",
+          "sha256": "d2b5d120914427ec068c60cd6fcd7270731c1fd7bfb2423c903bbe08c2af2bc1"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/handoff.md",
+          "sha256": "21800ba3e92943bae2e10e71aa7620bd2d270d411100b26675e50602ee261e0f"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/sidecar.json"
+        }
+      },
+      "generation": "1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "handoff_path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/handoff.md",
+      "id": "northstar-plan-skills-migrated-own-verification-repair",
+      "mode": "live",
+      "plan_id": "skills-migrated-own-verification-repair",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/skills-migrated-own-verification-repair.md",
+        "sha256": "15dfc02b69f63ca8b85776a1220ea94cc3def57f1d52d1e0e97522694b0c571c"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [

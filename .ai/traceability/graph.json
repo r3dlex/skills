@@ -331,6 +331,21 @@
       "source": "handoff:skills:e6-skills-ts-02:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
       "target": "plan:skills:e6-skills-ts-02:e6-sk-02-v1-port:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:skills-migrated-own-verification-repair",
+      "target": "prd:skills:skills-migrated-own-verification-repair",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:skills-migrated-own-verification-repair",
+      "target": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "target": "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -1293,6 +1308,55 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "e6-sk-02-v1-port",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:skills-migrated-own-verification-repair",
+        "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2"
+      ],
+      "id": "prd:skills:skills-migrated-own-verification-repair",
+      "path": "docs/specifications/ACTIVE/skills-migrated-own-verification-repair.md",
+      "repo_id": "skills",
+      "sha256": "15dfc02b69f63ca8b85776a1220ea94cc3def57f1d52d1e0e97522694b0c571c",
+      "status": "active",
+      "title": "Migrated own-script verification publication repair",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:skills-migrated-own-verification-repair"
+      ],
+      "id": "issue:skills:skills-migrated-own-verification-repair",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/skills-migrated-own-verification-repair.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "Prove migrated own-script publication without weakening verification — local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:skills-migrated-own-verification-repair",
+        "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2"
+      ],
+      "id": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "skills-migrated-own-verification-repair",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2"
+      ],
+      "goal_revision": "9705af2df842530a66b7b67f32087a82de5ca2d15050e89cfa617bafa2e0f19b",
+      "id": "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "migrated-own-verification-01",
       "type": "plan"
     }
   ],
