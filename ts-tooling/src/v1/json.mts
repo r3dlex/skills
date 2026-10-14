@@ -66,7 +66,6 @@ function quote(value: string): string {
 }
 
 function escaped(ch: string): string {
-  const code = ch.charCodeAt(0);
   if (ch === "\"") {
     return "\\\"";
   }
@@ -82,10 +81,13 @@ function escaped(ch: string): string {
   if (ch === "\t") {
     return "\\t";
   }
-  if (code < 0x20 || code > 0x7e) {
-    return `\\u${code.toString(16).padStart(4, "0")}`;
+  let out = "";
+  for (let index = 0; index < ch.length; index += 1) {
+    const code = ch.charCodeAt(index);
+    const unit = ch[index] ?? "";
+    out += code < 0x20 || code > 0x7e ? `\\u${code.toString(16).padStart(4, "0")}` : unit;
   }
-  return ch;
+  return out;
 }
 
 function numberText(value: number): string {

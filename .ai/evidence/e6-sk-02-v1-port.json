@@ -2,6 +2,7 @@
   "goal_id": "e6-sk-02-v1-port",
   "assurance": "agent-self",
   "no_human_approved": true,
+  "cure": "Removed EOF blank lines, rejected an unknown --stage with exit 2, and escaped non-ASCII as UTF-16 code units so emoji canonical bytes match Python.",
   "red": {
     "command": "bash tests/e6_v1_parity_test.sh",
     "exit_code": 1,

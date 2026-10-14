@@ -74,6 +74,5 @@ if (invokedDirectly()) {
     process.exit(126);
   }
   checkPins(dirname(dirname(fileURLToPath(import.meta.url))));
-    process.exit(main(process.argv.slice(2)));
+  process.exit(main(process.argv.slice(2)));
 }
-

@@ -832,6 +832,9 @@ export function main(argv: string[]): number {
     return gaps.length > 0 && !planning ? 1 : 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith("invalid choice:")) {
+      return 2;
+    }
     process.stdout.write(dumps({ schema: VERSION, error: message, execution_ready: false, dispatch_authorized: false, authority_verification: "external-required" }) + "\n");
     return 1;
   }
@@ -865,7 +868,11 @@ function parseArgs(argv: string[]): Args {
       index = assignFlag(args, flag, value, index);
     }
   }
+  const stages = ["planning", "preparation", "implementation", "merge"];
+  if (!stages.includes(args.stage ?? "")) {
+    const shown = args.stage ?? "";
+    process.stderr.write("error: argument --stage: invalid choice: '" + shown + "' (choose from 'planning', 'preparation', 'implementation', 'merge')\n");
+    throw new Invalid("invalid choice: --stage " + shown);
+  }
   return args;
 }
-
-

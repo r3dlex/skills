@@ -41,8 +41,8 @@ PINS = {
     '04-validate-handoff/autobahn/lib/readiness_contract.py': '30cfb9bf7436ff1f6b14c0b16542a62a6893321f5eface820c827ae4ec600166',
     '04-validate-handoff/autobahn/lib/verification.py': '572819a9c8a1039173c5483d0f7f9a33362588d197e27731bb97b5dd78d33524',
     '04-validate-handoff/autobahn/schemas/readiness-contract.json': 'f05119f6d00d2d2cf58270c81073e70016d2644042e3f8185ac0371ef88aa384',
-    '04-validate-handoff/autobahn/readiness-dependency.json': '4212bf824cf6ced685ee2798681eae47f57af0fd9076977735c1524e8d2c97bf',
-    '02-govern-plan/northstar/readiness-dependency.json': '4212bf824cf6ced685ee2798681eae47f57af0fd9076977735c1524e8d2c97bf',
+    '04-validate-handoff/autobahn/readiness-dependency.json': 'b6a202d30e52f64e5b020652bbecbc7e40772972077234be2120b5a896ba7552',
+    '02-govern-plan/northstar/readiness-dependency.json': 'b6a202d30e52f64e5b020652bbecbc7e40772972077234be2120b5a896ba7552',
 }
 P5 = '.ai/handoff/readiness-v1/xskp-p5-skill-producers/4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c/goals.json'
 P5_SHA256 = '8089c7c77e5aadb62c1a003fb7b30c78465ceb65541fc5b7927b3e2a0bd58cff'
