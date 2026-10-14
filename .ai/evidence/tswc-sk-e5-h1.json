@@ -1,7 +1,99 @@
 {
+  "alias_noncollision": {
+    "against": "root tests/fixtures/omo-names.json (13 skills, 5 commands) sha256 fd9b62ee01d416435d1f073a87261ee4eac6927c15f39a4dcf936ccdce1bb792",
+    "catalog_skill_names": "none of the ten names is a catalog.json skill name (asserted by tests/host_matrix_test.sh)",
+    "intersection": [],
+    "names": [
+      "auggie",
+      "claude-code",
+      "codex",
+      "copilot",
+      "gemini",
+      "opencode",
+      "omc",
+      "omx",
+      "omo-ai",
+      "oh-my-openagent"
+    ]
+  },
+  "assurance": "agent-self",
+  "base": "4fa211b9e166983e50836a5b5b213de2acefb97a",
+  "gates": {
+    "commit": "0b51c7f1be41b8ac8ba0036cd021035b4ae1bcc5",
+    "git diff --check": {
+      "exit_code": 0,
+      "range": "4fa211b9e166983e50836a5b5b213de2acefb97a..HEAD and the working tree"
+    },
+    "note": "observed at the implementation commit; the following evidence-only commit adds this file, which no verification command, hook or test reads. Re-runs at the final PR head are in the lane receipts.",
+    "prek run --all-files": {
+      "bash": "/opt/homebrew/bin/bash 5.3.20 first on PATH (lane shell only; globstar for ts-eslint)",
+      "exit_code": 0,
+      "hooks": "validate-rules, ts-noemit, ts-eslint, ts-build-drift, legacy-freeze passed in every workspace"
+    },
+    "verification": {
+      "bash tests/run-tests.sh": {
+        "with /usr/bin/python3 3.9.6 on PATH": "exit 1: exactly two pre-existing assertions in tests/readiness_v2_certificate_test.sh (environment allowlist) fail because the macOS xcrun python3 shim injects CPATH, LIBRARY_PATH, MANPATH and SDKROOT; red on origin/main on this host too (recorded by the e6-sk-00 and e6-sk-01 lanes); unrelated to this goal, which edits no readiness file",
+        "with Homebrew python3.14 first on PATH": "see lane receipts (run-gates.sh --phase local-validation); hosted Linux CI is the truth"
+      },
+      "driver": "04-validate-handoff/autobahn/ci-gate.sh --verify --goal-record <tswc-sk-e5-h1 record>",
+      "passed": [
+        "bash tests/catalog_contract_test.sh",
+        "bash tests/codex_parity_test.sh",
+        "bash tests/opencode_parity_test.sh",
+        "bash tests/install_cross_host_parity_test.sh",
+        "bash tests/host_default_golden_test.sh",
+        "bash tests/lifecycle_installers_test.sh",
+        "bash tests/e6_py_leaf_parity_test.sh",
+        "bash tests/ts_tooling_test.sh",
+        "bash tests/legacy_freeze_test.sh",
+        "bash tests/markdown_links_test.sh",
+        "bash tests/skill-catalog_test.sh",
+        "prek run --all-files",
+        "git diff --check"
+      ]
+    }
+  },
+  "generation": "5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
   "goal_id": "tswc-sk-e5-h1",
-  "red": {
+  "green": {
+    "at": "2026-10-14T22:06:50Z",
     "command": "bash tests/host_matrix_test.sh",
-    "exit_code": 1
+    "commit": "0b51c7f1be41b8ac8ba0036cd021035b4ae1bcc5",
+    "exit_code": 0,
+    "observed": "Results: PASS=55 FAIL=0 for the same command on the committed implementation tree (matrix, resolver, alias-aware catalog-query, compiled leaf files, README rows). Recorded by tdd-evidence.sh --record-green on a committed tree with no untracked files; --verify exit 0."
+  },
+  "legacy_safe_tdd": true,
+  "negative_fixtures": [
+    "alias whose target is not a payload host",
+    "alias equal to a payload host",
+    "omo-ai listed as a payload host",
+    "omo-ai listed as an alias",
+    "oh-my-openagent listed as an alias",
+    "alias equal to a catalog skill name",
+    "payload_hosts missing a HOSTS member",
+    "excluded key equal to a payload host",
+    "also entry that is not an alias of its host",
+    "consumer missing for a payload host",
+    "schema other than host-matrix/1",
+    "installer outside scripts/"
+  ],
+  "omo_guard": {
+    "at": "2026-10-14T22:44:08Z",
+    "command": "python3 tests/opencode_omo_coexistence_test.py -v",
+    "cwd": "isolated umbrella worktree of r3dlex/ai-tool-workspace at origin/main aaa44dc48290d807634cbcaa0754444b3e8d8bd4 with nested detached worktrees skills/ (this goal, commit 0b51c7f1be41b8ac8ba0036cd021035b4ae1bcc5) and ai-catapult/ (origin/main 8815f1940c0125c2f7fa3ca24149a3779d613139); no shared child checkout was switched",
+    "exit_code": 0,
+    "fixture_sha256": "fd9b62ee01d416435d1f073a87261ee4eac6927c15f39a4dcf936ccdce1bb792",
+    "mode": "default (offline); no network; no fixture copy enters skills",
+    "note": "the root test checks opencode-declared skill names and command names, not host aliases; the bare invocation without arguments raises IndexError in its own main() (pre-existing root behaviour, not edited here), so -v is passed to run the suite. The re-run at the final PR head is recorded in the lane receipts.",
+    "result": "Ran 10 tests OK",
+    "test_sha256": "476ec53c9fa57f7369e57f0ddf5b1f8eec50d39ef481b00f814a194eaafffe8a"
+  },
+  "plan_id": "tswc-skills-lane-matrix",
+  "red": {
+    "at": "2026-10-14T22:00:23Z",
+    "command": "bash tests/host_matrix_test.sh",
+    "commit": "575fd8ac32a487753f3ad472c922762673e135b7",
+    "exit_code": 1,
+    "observed": "Results: PASS=8 FAIL=47. Committed tree with only the new test: host-matrix.json absent, --host omc and --host omx exit 2 (unknown host), the copied-matrix case and every negative fixture red; the unknown-host, absent-matrix and validator refusals already green. Recorded by 04-validate-handoff/autobahn/tdd-evidence.sh --record-red on a committed tree with no untracked files."
   }
 }
