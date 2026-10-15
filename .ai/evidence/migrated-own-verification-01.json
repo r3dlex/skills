@@ -1,0 +1,15 @@
+{
+  "assurance": "agent-self",
+  "goal_id": "migrated-own-verification-01",
+  "green": {
+    "command": "bash tests/northstar_v2_publish_test.sh && bash tests/readiness_v2_migrate_test.sh",
+    "exit_code": 0,
+    "observed": "publish seam OK (42 tests), migrate seam OK (23 tests) after the marker vocabulary, the pure proof, the marked route with its sealed records, the record artifact and the reconstruction at every ingress landed; the certificate seam adds 5 passing marked cases and keeps only the two host-only environment-allowlist failures of this macOS xcrun python3 (SDKROOT/CPATH/LIBRARY_PATH/MANPATH injection), identical at the base; hosted Linux CI is the truth for that seam"
+  },
+  "red": {
+    "command": "bash tests/northstar_v2_publish_test.sh && bash tests/readiness_v2_migrate_test.sh",
+    "exit_code": 1,
+    "observed": "publish seam FAILED (errors=14): the 13 marked-route cases error with AttributeError (readiness_contract_v2 has no V1_GEN/MARKER vocabulary at the base) plus the local-ci pin case; migrate seam FAILED (errors=8): the 7 marker-contract cases error the same way plus the pin case; the certificate seam (not in this command) errors on its 5 marked routing/runtime cases at the base"
+  },
+  "scope_note": "the two red legs and the same two green legs ran under the frozen bundled driver copy at origin/main (4fa211b9); production files were stashed for the red leg and restored byte-identically before the green leg"
+}

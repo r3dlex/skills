@@ -53,7 +53,9 @@ equals `git ls-remote` (`target_ref_rewound`). Under the publication lock it the
    registered generations never meet: literal scope paths (`bundle_scope_unsafe`), `bash
    tests/...` verification scripts present at the base (`verification_not_at_base`), no
    goal branch shared with another active plan (`goal_branch_collision`), and a working-tree
-   registry equal to the target's (`publication_base_mismatch`);
+   registry equal to the target's (`publication_base_mismatch`). A bundle migrated from a
+   registered v1 generation may carry the optional marker below, which defers only the
+   planning-time existence checks of its proved own scripts;
 2. builds the simulated post-merge target: a throwaway repository that borrows the root's
    objects read-only, whose `origin/<target>` and detached HEAD are one deterministic commit
    of the target plus exactly the registry, the generation files and the spec copy;
@@ -77,6 +79,80 @@ approver principal, agent-self an agent-approval principal) and hold a certifier
 reviewer that are distinct agent principals. Otherwise planning reports
 `anchor_role_capability_missing`, which blocks. Publishing therefore needs the real anchor
 on the publisher host.
+
+### Migrated own-script verification (the optional marker)
+
+A bundle migrated from a registered v1 generation may carry
+`attachments.migrated_own_script_verification` (`migrated-own-script-verification/1`:
+`registration`, `generation`, `legacy_bundle{path, sha256}`, `scripts[{goal_id,
+verification_index, path}]`). It is an untrusted request to verify provenance, never proof or
+permission, and it defers exactly one thing: the planning-time existence checks of the selected
+own scripts — the strict command validation of `prepare_publication` and the base check
+`verification_not_at_base` — for leaves absent from the resolved base tree. Every other command
+of the bundle, and a selected leaf present at the base, validates exactly as before.
+
+- **Shape and linkage (pinned validator, every bundle ingress).** `validate_bundle` validates a
+  present marker on presence and never refuses presence itself: exactly the five fields; each
+  script entry names one existing goal and one in-range integer `verification_index` (a Boolean
+  refuses) whose preserved command is narrowly `bash tests/<name>.sh` — the executable and the
+  script argument only, no quoting — joined to a literal cwd, whose path equals the entry path
+  and is an exact literal scope entry of that goal and of no other; duplicates refuse. The
+  reserved name anywhere else — nested in attachments, in a goal, a verification entry, a sidecar,
+  the bundle itself, or in any non-object value — refuses (`bundle_unknown_field`,
+  `bundle_field_invalid`). Duplicate raw keys refuse in every parser (unique-key JSON only). A
+  legacy payload carrying the reserved name anywhere refuses before projection
+  (`migration_legacy_unsupported`): the migration never silently drops or copies it.
+- **Proof (pinned observer, the marked route).** The publication resolves `origin/<target>` as
+  the immutable base and reads from it the v1 registry and the legacy payload: exactly one active
+  registration must match the marker's registration, the candidate's plan id, the generation, the
+  payload path and digest, and the payload bytes (`migration_legacy_unregistered`). It observes
+  fresh eligibility through the hosted adapter exactly as `inventory-v1` does (an in-flight,
+  ambiguous, unobservable or completed legacy refuses `migration_fate_refused`), and the candidate
+  minus its marker must equal the supported migration projection of the legacy payload under
+  that observation, legacy attachments verbatim (`migration_legacy_unsupported`); the goals the
+  observation serves are derived from the sealed `fate` and `merged` records through the
+  explicit join (`pr` ↔ `number`, `merge_commit` ↔ `merge_commit`, `reached` true;
+  `migration_b5_invalid`). A cwd must be a tree at the base (`verification_not_at_base`); a
+  missing interpreter or an unreadable cwd refuses (`verification_invalid`). Only the admission-
+  complete writer and the publish-v2 replay carry this proof source (observer-owned plumbing,
+  never a caller flag); a bare `publish-v2` over a marked bundle refuses
+  (`target_ref_unobservable`).
+- **The view.** The proved missing leaves validate through the frozen shared validator in a
+  disposable view: a temporary tree holding one inert, empty, non-executable placeholder per
+  leaf, so the validator's parsing, allowlist, metacharacter, traversal, containment and
+  executable rules still apply. The view runs nothing, touches no repository, never reaches a gate
+  workspace, and is removed; an allocation or cleanup failure refuses `operation_failed`.
+- **Sealed records and the decision (C1.5).** Observation ends when three records are sealed —
+  `fresh_eligibility` (`merged[{number, head_ref, merge_commit, reached}]`, `open_prs[{number,
+  head_ref}]`, `branches[{ref, merged}]`, `unobservable`, `fate`), `real_root_safety[]`
+  (`goal_id`, `verification_index`, `executable_available`, `cwd_readable`, `script_readable`,
+  `refusal_code`) and `spec_policy_bytes` (`policy_source`, `policy_bytes`, `live_bytes`,
+  `live_policy2`, `mode`, `amends`, `spec_bytes`, `spec_missing`, `policy_sha256`,
+  `spec_sha256`). Decision construction then reads only the seal and the historical bytes and
+  performs no subprocess, environment or filesystem read; its single exit is
+  `publication_bytes`. Every context's clock is the base commit's committer timestamp.
+- **The record (AC-4).** A marked publication writes `migrated-own-script-verification.json`
+  into its generation and registers it as the `migrated_own_script_verification` artifact: the
+  three sealed records, the deferral report (`deferred[{goal, verification_index, path, status:
+  deferred, source, recovery}]`, ordered by the legacy goal position, the verification index and
+  the path), `base`, `clock`, `authority: none…` and `readiness: unknown`. The result carries the
+  same record; stderr lists each deferred leaf. A deferral is a planning placeholder: never a
+  passed verification check, never execution readiness, never authority.
+- **Refusals.** Every marked-route failure is one canonical code — the validator's own code, or
+  `operation_failed` for any other error — with no exception message, OS text, path or resolved
+  executable (`verification_invalid` carries the goal id only); the refusal record
+  (`{base, clock, refusals[{code}], authority, readiness}`) is in the result. A refusal writes
+  nothing.
+- **Replay and reconstruction.** The publish-v2 replay of the planning PR reads the head's
+  record and reconstructs: it recomputes the decision from the recorded `fresh_eligibility` and
+  `real_root_safety` — never re-querying the adapter — and the record must match byte for byte.
+  Every registered generation load (admission, routing, the sidecar-tighten lane) and the
+  approval sidecar lookup reconstruct the marker's proof from the generation's record, the v1
+  registry and the legacy payload at the ref and the recorded spec digest; a tampered or missing
+  record refuses (`generation_artifact_mismatch`), and a marked generation's approval lookup never
+  swallows a malformed historical sidecar as absent. Landed scripts change runtime verification
+  only: the pre-commit gates, the gate workspace and the certificate still run the preserved
+  command against the real script (AC-5).
 
 ## Inputs on the target
 
@@ -414,7 +490,14 @@ candidate of one v1 generation's unmerged goals to stdout and never writes:
   disappear from the goal list; their dependencies are listed under
   `dropped_dependencies`. B5 ancestry is not checked here — that is the
   executing repository's admission. `bundle_*` and `sidecar_*` refusals pass
-  through from the pinned validators.
+  through from the pinned validators. A legacy payload carrying the reserved name
+  `migrated_own_script_verification` anywhere — an attachment the verbatim copy would
+  collide with, or an unsupported goal field the reduction would silently drop — refuses
+  before projection (`migration_legacy_unsupported`).
+- A migrated goal whose preserved `bash tests/<name>.sh` command names a script the
+  goal itself will land may be published with the optional marker described under
+  [Planning publication](#migrated-own-script-verification-the-optional-marker); the
+  marker is added to the candidate at publication time, never by this transform.
 - The sidecar resets readiness to unknown at every stage and carries each v1
   goal's `coverage_status`, `coverage_percent` (when measured), `legacy_safe_tdd`
   and `legacy_risk_reason`.
