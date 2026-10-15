@@ -70,17 +70,25 @@ no_skill_collision() {
 expect "no payload host, alias or excluded name equals a catalog skill name" no_skill_collision
 
 # --- alias resolution at the repository root -----------------------------------
+# same_output pins the exit status both invocations must produce (0 for a view,
+# 2 for a refused --skill) before comparing bytes: equal statuses and equal
+# bytes alone would accept a shared runtime failure such as node_unavailable
+# 127. A non-empty want_err is the exact stderr the invocation must print.
 same_output() {
-	local label="$1" alias="$2" host="$3" arc hrc
-	shift 3
+	local label="$1" alias="$2" host="$3" want="$4" want_err="$5" arc hrc
+	shift 5
 	"${QUERY[@]}" --host "$alias" "$@" >"$TMP/a.out" 2>"$TMP/a.err"
 	arc=$?
 	"${QUERY[@]}" --host "$host" "$@" >"$TMP/h.out" 2>"$TMP/h.err"
 	hrc=$?
-	if [[ "$arc" -eq "$hrc" ]] && cmp -s "$TMP/a.out" "$TMP/h.out" && cmp -s "$TMP/a.err" "$TMP/h.err"; then
-		ok "$label (exit $arc)"
+	if [[ "$arc" -ne "$want" || "$hrc" -ne "$want" ]]; then
+		bad "$label (exit $arc vs $hrc, wanted $want): $(head -n 1 "$TMP/a.err")"
+	elif ! cmp -s "$TMP/a.out" "$TMP/h.out" || ! cmp -s "$TMP/a.err" "$TMP/h.err"; then
+		bad "$label (alias and $host output differ at exit $want)"
+	elif [[ -n "$want_err" && "$(cat "$TMP/a.err")" != "$want_err" ]]; then
+		bad "$label (exit $want, stderr $(head -n 1 "$TMP/a.err"))"
 	else
-		bad "$label (exit $arc vs $hrc)"
+		ok "$label (exit $arc)"
 	fi
 }
 same_projection() {
@@ -99,12 +107,12 @@ same_projection() {
 }
 for pair in "omc claude-code" "omx codex"; do
 	read -r alias host <<<"$pair"
-	same_output "$alias rows equal $host rows (default view)" "$alias" "$host"
-	same_output "$alias rows equal $host rows (experimental)" "$alias" "$host" --include-lifecycle experimental
-	same_output "$alias rows equal $host rows (deprecated)" "$alias" "$host" --include-lifecycle deprecated
-	same_output "$alias rows equal $host rows (experimental and deprecated)" "$alias" "$host" --include-lifecycle experimental --include-lifecycle deprecated
-	same_output "$alias --skill research equals $host" "$alias" "$host" --skill research
-	same_output "$alias --skill nope refuses like $host" "$alias" "$host" --skill nope
+	same_output "$alias rows equal $host rows (default view)" "$alias" "$host" 0 ""
+	same_output "$alias rows equal $host rows (experimental)" "$alias" "$host" 0 "" --include-lifecycle experimental
+	same_output "$alias rows equal $host rows (deprecated)" "$alias" "$host" 0 "" --include-lifecycle deprecated
+	same_output "$alias rows equal $host rows (experimental and deprecated)" "$alias" "$host" 0 "" --include-lifecycle experimental --include-lifecycle deprecated
+	same_output "$alias --skill research equals $host" "$alias" "$host" 0 "" --skill research
+	same_output "$alias --skill nope refuses like $host" "$alias" "$host" 2 "unknown skill for $host: nope" --skill nope
 	same_projection "$alias projection bytes equal $host (default view)" "$alias" "$host"
 	same_projection "$alias projection bytes equal $host (every lifecycle)" "$alias" "$host" --include-lifecycle experimental --include-lifecycle deprecated
 done
