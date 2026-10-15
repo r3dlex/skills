@@ -184,6 +184,56 @@ copied_alias() {
 }
 expect "copied matrix: omc resolves to claude-code in a temporary root" copied_alias
 
+# --- prototype-key JSON keys (`__proto__`) -------------------------------------
+# A `__proto__` key in host-matrix.json is an ordinary JSON key and must survive as
+# an own property of the loaded dictionaries: the alias must resolve (plain Node
+# would otherwise drop it into the prototype), the skill-name collision check must
+# fire on it, and the production shim's `node --disable-proto=throw` must not turn
+# any of it into `catalog query failed`.
+PROTO="$TMP/proto"
+make_root "$PROTO" "$ALL_HOSTS"
+proto_alias() {
+	sed -e 's/"omx": "codex"/"omx": "codex", "__proto__": "codex"/' "$MATRIX" >"$PROTO/host-matrix.json"
+	! cmp -s "$MATRIX" "$PROTO/host-matrix.json" || return 1
+	query_root "$PROTO" __proto__ || return 1
+	cp "$TMP/r.out" "$TMP/proto.out"
+	query_root "$PROTO" codex && cmp -s "$TMP/proto.out" "$TMP/r.out"
+}
+expect "__proto__ alias is preserved and resolves to codex rows" proto_alias
+
+proto_excluded() {
+	sed -e 's/"omo-ai": "/"__proto__": "probe", "omo-ai": "/' "$MATRIX" >"$PROTO/host-matrix.json"
+	! cmp -s "$MATRIX" "$PROTO/host-matrix.json" || return 1
+	query_root "$PROTO" codex && [[ -s "$TMP/r.out" ]]
+}
+expect "excluded key __proto__ is preserved and the matrix loads" proto_excluded
+
+PROTO_SKILL="$TMP/proto-skill"
+proto_collision() {
+	mkdir -p "$PROTO_SKILL/$SKILL_SOURCE"
+	sed 's/^name: .*/name: __proto__/' "$REPO_ROOT/$SKILL_SOURCE/SKILL.md" >"$PROTO_SKILL/$SKILL_SOURCE/SKILL.md"
+	cat >"$PROTO_SKILL/catalog.json" <<JSON
+{
+  "schema_version": "1.0",
+  "phases": ["01-discover-decide", "02-govern-plan"],
+  "skills": [
+    {
+      "name": "__proto__",
+      "source_path": "$SKILL_SOURCE",
+      "owner_phase": "01-discover-decide",
+      "applies_to_phases": ["01-discover-decide", "02-govern-plan"],
+      "lifecycle": "stable",
+      "supported_hosts": [$ALL_HOSTS]
+    }
+  ]
+}
+JSON
+	sed -e 's/"omx": "codex"/"omx": "codex", "__proto__": "codex"/' "$MATRIX" >"$PROTO_SKILL/host-matrix.json"
+	query_root "$PROTO_SKILL" codex
+	[[ $? -eq 2 && ! -s "$TMP/r.out" && "$(cat "$TMP/r.err")" == "host_matrix_invalid: alias __proto__ is a catalog skill name" ]]
+}
+expect "__proto__ alias colliding with a skill name is refused host_matrix_invalid" proto_collision
+
 ALIASED="$TMP/aliased"
 make_root "$ALIASED" '"codex", "omc"'
 validator_refuses() {
