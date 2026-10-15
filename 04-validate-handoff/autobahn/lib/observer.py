@@ -1304,11 +1304,13 @@ def publish_checks(root, base, prepared):
 # untyped helpers are reached through the typed views at the end of the module.
 
 class Refused(Invalid):
-    """A marked-route refusal: one canonical code, an optional static detail (bundle content only, never
-    exception text), the context clock, and its record - the refusal bytes - serialized once."""
+    """A marked-route refusal: one canonical code, the context clock, and its record - the refusal bytes -
+    serialized once. The refusal output carries the code and nothing else: no exception type or message,
+    no OS-derived text and no path (C1.4), so refusal_detail is the code itself."""
 
-    def __init__(self, code_text: str, base: Any, clock: Any, detail: str = '') -> None:
-        super().__init__(code_text + (':' + detail if detail else ''))
+    def __init__(self, code_text: str, base: Any, clock: Any) -> None:
+        super().__init__(code_text)
+        self.refusal_detail = code_text
         self.record = v2.marker_refusal(code_text, base, clock)
         self.bytes = publication_bytes(self.record)  # type: ignore[no-untyped-call]
         self.refusal_fields = {v2.MARKER: self.record}
@@ -1450,27 +1452,36 @@ def validation_view(bundle: Any, deferred: list[Any]) -> None:
                 frozen_validation(view, goal['id'], entries)
 
 
+def real_root_leaf(root: Any, selection: Any) -> bool:
+    """Whether the selected leaf exists at the real root, whatever its type: a dangling or escaping symlink
+    counts, because the frozen validator is then the one that must refuse it there (AC-2/AC-3)."""
+    return os.path.lexists(str(root / selection.path))
+
+
 def validate_marked_commands(root: Any, bundle: Any, selections: list[Any], absent: dict[str, Any]) -> None:
     """Strict shared command validation of a marked bundle (AC-3): every unmarked entry and every selected
     entry present at the base validate against the real root first, exactly as prepare_publication
-    validates them; only the selected leaves absent at the base take the view."""
-    deferred = [s for s in selections if absent[s.path]]
-    held = {(s.goal_id, s.index) for s in deferred}
+    validates them; a selected leaf absent at the base but present at the real root - whatever its type -
+    validates there too, so the frozen validator's containment and readability refusals still apply to it;
+    only a leaf absent at both the base and the real root takes the disposable view."""
+    view = [s for s in selections if absent[s.path] and not real_root_leaf(root, s)]
+    held = {(v.goal_id, v.index) for v in view}
     for goal in bundle['goals']:
         plain = [entry for index, entry in enumerate(goal['verification']) if (goal['id'], index) not in held]
         if plain:
             frozen_validation(root, goal['id'], plain)
-    if deferred:
-        validation_view(bundle, deferred)
+    if view:
+        validation_view(bundle, view)
 
 
 def seal_marked_publication(root: Any, args: Any, bundle: Any, selections: list[Any], proof: dict[str, Any],
                             clock: str) -> dict[str, Any]:
     """Observation of a marked publication, sealed before any decision byte: the historical proof bytes at
-    the resolved base, the frozen validator over every command, and the three capture records - fresh
-    eligibility and real-root safety observed here by a publication (the hosted adapter, the real root) or
-    reconstructed from the recorded record by a replay, and the spec/policy capture read here. Nothing
-    after the seal reads anything."""
+    the resolved base and, for a fresh publication, the frozen validator over every command, the fresh
+    eligibility observed here through the hosted adapter, the real-root safety of every selection and the
+    spec/policy capture read here. A replay instead takes all three sealed records - fresh_eligibility,
+    real_root_safety and spec_policy_bytes - from the recorded record: it re-runs no frozen validation, uses
+    no view and reads no spec or policy path (C1.5/C1.7). Nothing after the seal reads anything."""
     repository, base, marker = proof['repository'], proof['base'], v2.marker_of(bundle)
     if not isinstance(marker, dict):
         raise v2.refused('migration_legacy_unsupported', v2.MARKER)
@@ -1480,17 +1491,19 @@ def seal_marked_publication(root: Any, args: Any, bundle: Any, selections: list[
     v2.ok(legacy_bytes is not None, 'migration_legacy_unregistered', 'no legacy payload at the base')
     legacy = _parse_json(legacy_bytes, 'legacy')
     facts = base_tree_facts(repository, base, selections)
-    validate_marked_commands(root, bundle, selections, facts['absent'])
     if proof['recorded'] is None:
+        validate_marked_commands(root, bundle, selections, facts['absent'])
         adapter = proof['adapter'] if proof['adapter'] is not None else _hosted_adapter(repository)
         eligibility: Any = hosted_eligibility(repository, proof['ref'], adapter, v2.legacy_goal_ids(legacy))
         safety: Any = [safety_row(root, selection) for selection in selections]
+        capture: Any = spec_policy_capture(root, bundle, args.policy_candidate)
     else:
         record = v2.validate_marker_record(proof['recorded'], marker)
         eligibility, safety = record['fresh_eligibility'], record['real_root_safety']
+        capture = record['spec_policy_bytes']
     return {'base': base, 'clock': clock, 'registry_v1': _parse_json(registry_bytes, 'v1_registry'), 'legacy': legacy,
             'legacy_sha256': _sha256(legacy_bytes), 'base_tree': facts, 'fresh_eligibility': eligibility,
-            'real_root_safety': safety, 'spec_policy_bytes': spec_policy_capture(root, bundle, args.policy_candidate)}
+            'real_root_safety': safety, 'spec_policy_bytes': capture}
 
 
 def sealed_mode(bundle: Any, candidate: Any, live_bytes: Any, live2: Any) -> str:
@@ -1542,13 +1555,6 @@ def decide_marked_publication(bundle: Any, sidecar: Any, selections: list[Any], 
     return prepared
 
 
-def refusal_detail(error: Any) -> str:
-    """The static detail of an inner refusal: the text after its code, except for git_failed, the one
-    frozen helper this route calls whose detail is OS-derived."""
-    text = str(error).split(':', 1)
-    return text[1] if len(text) > 1 and text[0] != 'git_failed' else ''
-
-
 def prepare_marked_publication(root: Any, args: Any, bundle: Any, sidecar: Any, selections: list[Any],
                                proof: Any) -> dict[str, Any]:
     """The marked publication route (AC-3): the proof source is the observer's own plumbing - the
@@ -1556,8 +1562,7 @@ def prepare_marked_publication(root: Any, args: Any, bundle: Any, sidecar: Any, 
     a bare publish-v2 without one refuses. The context clock is resolved first, observation is sealed, then
     the decision is constructed; every failure becomes one canonical refusal (the C1.4 map)."""
     if proof is None:
-        raise Refused('target_ref_unobservable', None, None,
-                      'a marked publication proves its source against the resolved origin/<target> base; a bare publish-v2 observes none')
+        raise Refused('target_ref_unobservable', None, None)
     base = proof['base']
     try:
         clock = context_clock(proof['repository'], base)
@@ -1569,7 +1574,7 @@ def prepare_marked_publication(root: Any, args: Any, bundle: Any, sidecar: Any, 
     except Refused:
         raise
     except Invalid as error:
-        raise Refused(_code(error), base, clock, refusal_detail(error)) from None
+        raise Refused(_code(error), base, clock) from None
     except (OSError, KeyError, TypeError, ValueError):
         raise Refused('operation_failed', base, clock) from None
 
@@ -3627,7 +3632,8 @@ def run(argv, now=None, adapter=None):
     except Exception as error:  # noqa: BLE001 - every failure is a refusal, never a crash or an exit 0
         code_text = v2.code(error) if isinstance(error, Invalid) else 'operation_failed'
         code = EXIT_FAIL_CLOSED if args.operation == 'merge-v2' else 1
-        result = dict({'schema': v2.VERSION, 'refusals': [{'code': code_text, 'detail': '%s: %s' % (type(error).__name__, error)}]},
+        detail = getattr(error, 'refusal_detail', '%s: %s' % (type(error).__name__, error))
+        result = dict({'schema': v2.VERSION, 'refusals': [{'code': code_text, 'detail': detail}]},
                       **getattr(error, 'refusal_fields', {}))  # a marked-route Refused carries its canonical record
     if args.operation in LOGGED and code != EXIT_V1:
         log_exit(args.operation, getattr(args, 'root', None), code, result, getattr(args, 'goal_id', None),

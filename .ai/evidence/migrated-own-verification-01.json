@@ -1,15 +1,209 @@
 {
   "assurance": "agent-self",
+  "compared": [
+    {
+      "case_id": "eligible-unstarted",
+      "route": "writer",
+      "sha256": "e7585e660422ebf3d0c4681fe4dc7c184bbf754212e9e5a69a51640aae348f39",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-unstarted",
+      "route": "replay",
+      "sha256": "e7585e660422ebf3d0c4681fe4dc7c184bbf754212e9e5a69a51640aae348f39",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-unstarted",
+      "route": "retry",
+      "sha256": "e7585e660422ebf3d0c4681fe4dc7c184bbf754212e9e5a69a51640aae348f39",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-unstarted",
+      "route": "worktree",
+      "sha256": "e7585e660422ebf3d0c4681fe4dc7c184bbf754212e9e5a69a51640aae348f39",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-present-scripts",
+      "route": "writer",
+      "sha256": "db7812e75ba33266f05171e3dc98fe97ff1625594fe334f1555b6d90ad379925",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-present-scripts",
+      "route": "replay",
+      "sha256": "db7812e75ba33266f05171e3dc98fe97ff1625594fe334f1555b6d90ad379925",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-present-scripts",
+      "route": "retry",
+      "sha256": "db7812e75ba33266f05171e3dc98fe97ff1625594fe334f1555b6d90ad379925",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-present-scripts",
+      "route": "worktree",
+      "sha256": "db7812e75ba33266f05171e3dc98fe97ff1625594fe334f1555b6d90ad379925",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-partly-merged",
+      "route": "writer",
+      "sha256": "5ebfc160a55f16440fbd365f03d42921e06e4b979a9dc736f4dd7a06ffe450b5",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-partly-merged",
+      "route": "replay",
+      "sha256": "5ebfc160a55f16440fbd365f03d42921e06e4b979a9dc736f4dd7a06ffe450b5",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-partly-merged",
+      "route": "retry",
+      "sha256": "5ebfc160a55f16440fbd365f03d42921e06e4b979a9dc736f4dd7a06ffe450b5",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "eligible-partly-merged",
+      "route": "worktree",
+      "sha256": "5ebfc160a55f16440fbd365f03d42921e06e4b979a9dc736f4dd7a06ffe450b5",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-registration",
+      "route": "writer",
+      "sha256": "1dc5c88b0d63fb330297b7001409e25f3b65039af496b495dce381a3a922e7a6",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-registration",
+      "route": "replay",
+      "sha256": "1dc5c88b0d63fb330297b7001409e25f3b65039af496b495dce381a3a922e7a6",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-registration",
+      "route": "retry",
+      "sha256": "1dc5c88b0d63fb330297b7001409e25f3b65039af496b495dce381a3a922e7a6",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-registration",
+      "route": "worktree",
+      "sha256": "1dc5c88b0d63fb330297b7001409e25f3b65039af496b495dce381a3a922e7a6",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-legacy-digest",
+      "route": "writer",
+      "sha256": "eb7ca253157ee339a1ed54ed4d5a4e648fb1695ad4b0b19791f726fccc5716e6",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-legacy-digest",
+      "route": "replay",
+      "sha256": "eb7ca253157ee339a1ed54ed4d5a4e648fb1695ad4b0b19791f726fccc5716e6",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-legacy-digest",
+      "route": "retry",
+      "sha256": "eb7ca253157ee339a1ed54ed4d5a4e648fb1695ad4b0b19791f726fccc5716e6",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-legacy-digest",
+      "route": "worktree",
+      "sha256": "eb7ca253157ee339a1ed54ed4d5a4e648fb1695ad4b0b19791f726fccc5716e6",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-projection",
+      "route": "writer",
+      "sha256": "a582fa62f3082d651f90f71c05bfdebf1c56e4a294d85b26069cca4c2f719d54",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-projection",
+      "route": "replay",
+      "sha256": "a582fa62f3082d651f90f71c05bfdebf1c56e4a294d85b26069cca4c2f719d54",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-projection",
+      "route": "retry",
+      "sha256": "a582fa62f3082d651f90f71c05bfdebf1c56e4a294d85b26069cca4c2f719d54",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-forged-projection",
+      "route": "worktree",
+      "sha256": "a582fa62f3082d651f90f71c05bfdebf1c56e4a294d85b26069cca4c2f719d54",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-in-flight-eligibility",
+      "route": "writer",
+      "sha256": "d7444bedb264cd0eea88adc8bca2884c727aeb5ad9e047e3818b37f7f38594ba",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-in-flight-eligibility",
+      "route": "replay",
+      "sha256": "d7444bedb264cd0eea88adc8bca2884c727aeb5ad9e047e3818b37f7f38594ba",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-in-flight-eligibility",
+      "route": "retry",
+      "sha256": "d7444bedb264cd0eea88adc8bca2884c727aeb5ad9e047e3818b37f7f38594ba",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-in-flight-eligibility",
+      "route": "worktree",
+      "sha256": "d7444bedb264cd0eea88adc8bca2884c727aeb5ad9e047e3818b37f7f38594ba",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-missing-executable",
+      "route": "writer",
+      "sha256": "1adff14ea59c6a2a9b16f6c154004fe721469c65b54c0db6671ad4bac20a6398",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-missing-executable",
+      "route": "replay",
+      "sha256": "1adff14ea59c6a2a9b16f6c154004fe721469c65b54c0db6671ad4bac20a6398",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-missing-executable",
+      "route": "retry",
+      "sha256": "1adff14ea59c6a2a9b16f6c154004fe721469c65b54c0db6671ad4bac20a6398",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    },
+    {
+      "case_id": "negative-missing-executable",
+      "route": "worktree",
+      "sha256": "1adff14ea59c6a2a9b16f6c154004fe721469c65b54c0db6671ad4bac20a6398",
+      "test": "tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes"
+    }
+  ],
+  "compared_note": "compared[] is the fixture-by-route matrix: 8 fixture cases (eligible unstarted / present-scripts / partly-merged, and the marked-route negatives forged-registration, forged-legacy-digest, forged-projection, in-flight-eligibility, missing-executable) x the four route contexts (admission-complete writer, bare publication replay, idempotent retry, same-repository worktree path), each pair a sha256 over the full decision or refusal bytes. The pinned test re-derives every pair, asserts the four byte strings of one case are identical, and verifies the recorded pairs and their equality class; re-record with MIGRATED_MATRIX_RECORD=1 after a fixture change (the recorded values are one run's base commit and fixture key bytes).",
   "goal_id": "migrated-own-verification-01",
   "green": {
-    "command": "bash tests/northstar_v2_publish_test.sh && bash tests/readiness_v2_migrate_test.sh",
-    "exit_code": 0,
-    "observed": "publish seam OK (42 tests), migrate seam OK (23 tests) after the marker vocabulary, the pure proof, the marked route with its sealed records, the record artifact and the reconstruction at every ingress landed; the certificate seam adds 5 passing marked cases and keeps only the two host-only environment-allowlist failures of this macOS xcrun python3 (SDKROOT/CPATH/LIBRARY_PATH/MANPATH injection), identical at the base; hosted Linux CI is the truth for that seam"
+    "command": "python3 -B -m unittest -v tests.northstar_v2_publish_test tests.readiness_v2_migrate_test",
+    "exit_code": 0
   },
   "red": {
-    "command": "bash tests/northstar_v2_publish_test.sh && bash tests/readiness_v2_migrate_test.sh",
+    "command": "python3 -B -m unittest -v tests.northstar_v2_publish_test tests.readiness_v2_migrate_test",
     "exit_code": 1,
-    "observed": "publish seam FAILED (errors=14): the 13 marked-route cases error with AttributeError (readiness_contract_v2 has no V1_GEN/MARKER vocabulary at the base) plus the local-ci pin case; migrate seam FAILED (errors=8): the 7 marker-contract cases error the same way plus the pin case; the certificate seam (not in this command) errors on its 5 marked routing/runtime cases at the base"
+    "observed": "at the goal base (the eight production files at origin/main 4fa211b9, the tests at the cure head) the one invocation ran 70 tests from both seams: 34 errors + 1 failure - every marked-route case errors on the absent marker vocabulary and the pin checks re-derive the base manifests/local-ci - and the publish and migration legs ran in the one process, so the failing publish leg cannot hide whether the migrate leg ran. The certificate seam is not in this command."
   },
-  "scope_note": "the two red legs and the same two green legs ran under the frozen bundled driver copy at origin/main (4fa211b9); production files were stashed for the red leg and restored byte-identically before the green leg"
+  "scope_note": "the red leg ran with the eight production files at the goal base origin/main (4fa211b9) and the tests at the cure head; the green leg ran on the restored cure head bytes; the command is one wrapper-free `python3 -B -m unittest` invocation over the two seams, never &&-chained, so a failing publish leg cannot hide whether the migrate leg ran"
 }

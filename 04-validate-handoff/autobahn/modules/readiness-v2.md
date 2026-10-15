@@ -120,8 +120,12 @@ of the bundle, and a selected leaf present at the base, validates exactly as bef
 - **The view.** The proved missing leaves validate through the frozen shared validator in a
   disposable view: a temporary tree holding one inert, empty, non-executable placeholder per
   leaf, so the validator's parsing, allowlist, metacharacter, traversal, containment and
-  executable rules still apply. The view runs nothing, touches no repository, never reaches a gate
-  workspace, and is removed; an allocation or cleanup failure refuses `operation_failed`.
+  executable rules still apply. A selected leaf absent at the base but present at the real root
+  is validated at the real root instead, whatever its type, so an escaping symlink, a dangling
+  symlink or any other existing unsafe leaf is refused there (`verification_invalid`); only a
+  leaf absent at both the base and the real root takes the view. The view runs nothing, touches
+  no repository, never reaches a gate workspace, and is removed; an allocation or cleanup failure
+  refuses `operation_failed`.
 - **Sealed records and the decision (C1.5).** Observation ends when three records are sealed —
   `fresh_eligibility` (`merged[{number, head_ref, merge_commit, reached}]`, `open_prs[{number,
   head_ref}]`, `branches[{ref, merged}]`, `unobservable`, `fate`), `real_root_safety[]`
@@ -140,12 +144,14 @@ of the bundle, and a selected leaf present at the base, validates exactly as bef
   passed verification check, never execution readiness, never authority.
 - **Refusals.** Every marked-route failure is one canonical code — the validator's own code, or
   `operation_failed` for any other error — with no exception message, OS text, path or resolved
-  executable (`verification_invalid` carries the goal id only); the refusal record
+  executable (`verification_invalid` carries the goal id only); the refusal output's `detail` is
+  that same code and nothing else, and the refusal record
   (`{base, clock, refusals[{code}], authority, readiness}`) is in the result. A refusal writes
   nothing.
 - **Replay and reconstruction.** The publish-v2 replay of the planning PR reads the head's
-  record and reconstructs: it recomputes the decision from the recorded `fresh_eligibility` and
-  `real_root_safety` — never re-querying the adapter — and the record must match byte for byte.
+  record and reconstructs all three sealed records — `fresh_eligibility`, `real_root_safety` and
+  `spec_policy_bytes` — from it: it re-queries no adapter, re-runs neither the frozen validator
+  nor its disposable view, and reads no spec or policy path; the record must match byte for byte.
   Every registered generation load (admission, routing, the sidecar-tighten lane) and the
   approval sidecar lookup reconstruct the marker's proof from the generation's record, the v1
   registry and the legacy payload at the ref and the recorded spec digest; a tampered or missing

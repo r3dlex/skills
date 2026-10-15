@@ -1430,7 +1430,11 @@ def verdict_of(context):
 
 
 def compare_supplied(kind, supplied, rebuilt):
-    """A supplied artifact is only ever compared with the rebuilt one, never used."""
+    """A supplied artifact is only ever compared with the rebuilt one, never used. The reserved marker
+    name is refused on presence before the volatile-key projection can hide it: a supplied artifact is
+    one of the bundle-ingress routes, and presence-based validation comes first (AC-1)."""
+    placed = reserved_placements(supplied)
+    ok(not placed, 'supplied_%s_mismatch' % kind, 'the reserved name at ' + (placed[0] if placed else ''))
     check(projection(supplied) == projection(rebuilt), 'supplied_%s_mismatch' % kind,
           'differs from the rebuilt %s; supplied artifacts never carry authority' % kind)
 
