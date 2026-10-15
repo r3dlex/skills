@@ -19,39 +19,43 @@
   "assurance": "agent-self",
   "base": "4fa211b9e166983e50836a5b5b213de2acefb97a",
   "gates": {
-    "commit": "0b51c7f1be41b8ac8ba0036cd021035b4ae1bcc5",
+    "ci-gate --verify": {
+      "exit_code": 0,
+      "result": "every verification[] command of the goal record passed: bash tests/catalog_contract_test.sh, codex_parity_test.sh, opencode_parity_test.sh, install_cross_host_parity_test.sh, host_default_golden_test.sh, lifecycle_installers_test.sh, e6_py_leaf_parity_test.sh, ts_tooling_test.sh, legacy_freeze_test.sh, markdown_links_test.sh, skill-catalog_test.sh, run-tests.sh, prek run --all-files, git diff --check"
+    },
+    "command": "bash 04-validate-handoff/autobahn/run-gates.sh --root . --goal-record <tswc-sk-e5-h1 goal record extracted from goals.json> --phase local-validation",
+    "earlier_runs_at_0b51c7f1": "prek run --all-files exit 0; ci-gate --verify: 13 of 14 commands passed under the /usr/bin/python3 shim, run-tests.sh failing only the two certificate environment-allowlist assertions described above (environment, not this diff)",
+    "environment": {
+      "bash": "GNU bash 5.3.20 (/opt/homebrew/bin, first on PATH for globstar in the prek ts-eslint hook)",
+      "host": "macOS (aarch64), working tree porcelain-clean before and after the run",
+      "node": "v26.11.1",
+      "prek": "0.5.2",
+      "python3": "Python 3.9.6 at /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3 (the system interpreter invoked directly, first on PATH through a lane-local symlink; the /usr/bin/python3 xcrun shim of the same interpreter injects CPATH, LIBRARY_PATH, MANPATH and SDKROOT and thereby fails two pre-existing environment-allowlist assertions in tests/readiness_v2_certificate_test.sh on origin/main as well; Homebrew 3.12.15 and 3.14 instead make the anchored differential corpus diverge on argparse/traceback nuances)"
+    },
+    "exit_code": 0,
+    "finished": "2026-10-15T00:34:22Z",
     "git diff --check": {
       "exit_code": 0,
-      "range": "4fa211b9e166983e50836a5b5b213de2acefb97a..HEAD and the working tree"
+      "range": "4fa211b9e166983e50836a5b5b213de2acefb97a..380cc96e44229763d19eb46fc79209aafc72a5ff and the working tree"
     },
-    "note": "observed at the implementation commit; the following evidence-only commit adds this file, which no verification command, hook or test reads. Re-runs at the final PR head are in the lane receipts.",
-    "prek run --all-files": {
-      "bash": "/opt/homebrew/bin/bash 5.3.20 first on PATH (lane shell only; globstar for ts-eslint)",
+    "lint-gate": {
       "exit_code": 0,
-      "hooks": "validate-rules, ts-noemit, ts-eslint, ts-build-drift, legacy-freeze passed in every workspace"
+      "result": "lint-gate: policy=prek; clean (prek) \u2014 validate-rules, ts-noemit, ts-eslint, ts-build-drift, legacy-freeze passed in every workspace"
     },
-    "verification": {
-      "bash tests/run-tests.sh": {
-        "with /usr/bin/python3 3.9.6 on PATH": "exit 1: exactly two pre-existing assertions in tests/readiness_v2_certificate_test.sh (environment allowlist) fail because the macOS xcrun python3 shim injects CPATH, LIBRARY_PATH, MANPATH and SDKROOT; red on origin/main on this host too (recorded by the e6-sk-00 and e6-sk-01 lanes); unrelated to this goal, which edits no readiness file",
-        "with Homebrew python3.14 first on PATH": "see lane receipts (run-gates.sh --phase local-validation); hosted Linux CI is the truth"
-      },
-      "driver": "04-validate-handoff/autobahn/ci-gate.sh --verify --goal-record <tswc-sk-e5-h1 record>",
-      "passed": [
-        "bash tests/catalog_contract_test.sh",
-        "bash tests/codex_parity_test.sh",
-        "bash tests/opencode_parity_test.sh",
-        "bash tests/install_cross_host_parity_test.sh",
-        "bash tests/host_default_golden_test.sh",
-        "bash tests/lifecycle_installers_test.sh",
-        "bash tests/e6_py_leaf_parity_test.sh",
-        "bash tests/ts_tooling_test.sh",
-        "bash tests/legacy_freeze_test.sh",
-        "bash tests/markdown_links_test.sh",
-        "bash tests/skill-catalog_test.sh",
-        "prek run --all-files",
-        "git diff --check"
-      ]
-    }
+    "local safe CI subset": {
+      "bash tests/run-tests.sh": "OVERALL: PASSED \u2014 Shell Script Tests Results: PASS=268 FAIL=0 SKIP=0 (includes tests/e6_py_leaf_parity_test.sh Results: PASS=430 FAIL=0 and tests/host_matrix_test.sh Results: PASS=56 FAIL=0); Skill Structure Tests Results: PASS=196 FAIL=0 WARN=0 SKIP=0",
+      "contract": ".ai/ci/local-ci.json local-ci/2 verification: bash tests/run-tests.sh, bash tests/local_lint.sh, bash tests/local_security_scan.sh",
+      "exit_code": 0,
+      "result": "local-ci: supporting local checks passed (not hosted-CI equivalence)"
+    },
+    "result_line": "run-gates: local validation passed for tswc-sk-e5-h1 \u2014 not merge admission or authority",
+    "started": "2026-10-14T23:42:53Z",
+    "tdd-evidence": {
+      "exit_code": 0,
+      "result": "tdd-evidence: tswc-sk-e5-h1 has red-then-green evidence"
+    },
+    "tested_tree": "380cc96e44229763d19eb46fc79209aafc72a5ff",
+    "tree_note": "the commit that adds this evidence file differs from 380cc96e44229763d19eb46fc79209aafc72a5ff only by .ai/evidence/tswc-sk-e5-h1.json (verify: git diff --stat 380cc96e44229763d19eb46fc79209aafc72a5ff HEAD lists exactly that file); no verification command, prek hook or test reads this file. An evidence file cannot record a run of the commit that adds it."
   },
   "generation": "5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
   "goal_id": "tswc-sk-e5-h1",
@@ -75,16 +79,18 @@
     "also entry that is not an alias of its host",
     "consumer missing for a payload host",
     "schema other than host-matrix/1",
-    "installer outside scripts/"
+    "installer outside scripts/",
+    "installer escaping scripts/ by traversal"
   ],
   "omo_guard": {
-    "at": "2026-10-14T22:44:08Z",
+    "at": "2026-10-14T23:43:14Z",
     "command": "python3 tests/opencode_omo_coexistence_test.py -v",
-    "cwd": "isolated umbrella worktree of r3dlex/ai-tool-workspace at origin/main aaa44dc48290d807634cbcaa0754444b3e8d8bd4 with nested detached worktrees skills/ (this goal, commit 0b51c7f1be41b8ac8ba0036cd021035b4ae1bcc5) and ai-catapult/ (origin/main 8815f1940c0125c2f7fa3ca24149a3779d613139); no shared child checkout was switched",
+    "cwd": "isolated umbrella worktree of r3dlex/ai-tool-workspace at origin/main aaa44dc48290d807634cbcaa0754444b3e8d8bd4 with nested detached worktrees skills/ (this goal, commit 380cc96e44229763d19eb46fc79209aafc72a5ff) and ai-catapult/ (origin/main 8815f1940c0125c2f7fa3ca24149a3779d613139); no shared child checkout was switched",
+    "earlier_run": "identical result (Ran 10 tests OK, exit 0) at 2026-10-14T22:44:08Z with skills at 0b51c7f1be41b8ac8ba0036cd021035b4ae1bcc5",
     "exit_code": 0,
     "fixture_sha256": "fd9b62ee01d416435d1f073a87261ee4eac6927c15f39a4dcf936ccdce1bb792",
     "mode": "default (offline); no network; no fixture copy enters skills",
-    "note": "the root test checks opencode-declared skill names and command names, not host aliases; the bare invocation without arguments raises IndexError in its own main() (pre-existing root behaviour, not edited here), so -v is passed to run the suite. The re-run at the final PR head is recorded in the lane receipts.",
+    "note": "the root test checks opencode-declared skill names and command names, not host aliases (see alias_noncollision); the bare invocation without arguments raises IndexError inside the test's own main() (pre-existing root behaviour, not edited here), so -v is passed to run the suite",
     "result": "Ran 10 tests OK",
     "test_sha256": "476ec53c9fa57f7369e57f0ddf5b1f8eec50d39ef481b00f814a194eaafffe8a"
   },
@@ -95,5 +101,15 @@
     "commit": "575fd8ac32a487753f3ad472c922762673e135b7",
     "exit_code": 1,
     "observed": "Results: PASS=8 FAIL=47. Committed tree with only the new test: host-matrix.json absent, --host omc and --host omx exit 2 (unknown host), the copied-matrix case and every negative fixture red; the unknown-host, absent-matrix and validator refusals already green. Recorded by 04-validate-handoff/autobahn/tdd-evidence.sh --record-red on a committed tree with no untracked files."
+  },
+  "review_round_1_cure": {
+    "commit": "380cc96e44229763d19eb46fc79209aafc72a5ff",
+    "findings_cured": [
+      "AC-2 installer containment: consumers[*].installer must be a relative path strictly inside scripts/ (first segment scripts, at least two segments, no empty, . or .. segment); scripts/../../outside.sh is refused host_matrix_invalid; negative fixture added",
+      "E6 D8 negative test: tests/host_matrix_test.sh validator_refuses asserts exit 1, empty stdout and the diagnostic \"invalid supported_hosts for research\" on stderr and refuses node_unavailable / node_version_unsupported",
+      "AC-9 evidence: the gate run below is commit-bound and self-contained"
+    ],
+    "host_matrix_test_at_cure": "bash tests/host_matrix_test.sh -> Results: PASS=56 FAIL=0, exit 0",
+    "parent": "740e35cf1d93d49b85ce2f059999ae26e7d9abc0"
   }
 }
