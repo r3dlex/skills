@@ -64,7 +64,14 @@ function readPayloadHosts(value) {
     return hosts;
 }
 function readAliases(value, hosts) {
-    const aliases = {};
+    // A Map, converted with Object.fromEntries at the boundary: assigning into a
+    // `{}` would route the JSON key `__proto__` through the prototype setter, so a
+    // declared alias would silently vanish (plain Node) or raise ERR_PROTO_ACCESS
+    // under the production shim's `node --disable-proto=throw` — bypassing the
+    // skill-name collision check at best and turning its host_matrix_invalid
+    // refusal into `catalog query failed` at worst. Object.fromEntries defines real
+    // own properties, `__proto__` included.
+    const aliases = new Map();
     for (const [alias, target] of Object.entries(plain(value, "aliases"))) {
         const resolved = nonEmptyString(target, `aliases.${alias}`);
         if (hosts.has(alias)) {
@@ -76,9 +83,9 @@ function readAliases(value, hosts) {
         if (!hosts.has(resolved)) {
             throw new HostMatrixError(`alias ${alias} targets ${resolved}, which is not a payload host`);
         }
-        aliases[alias] = resolved;
+        aliases.set(alias, resolved);
     }
-    return aliases;
+    return Object.fromEntries(aliases);
 }
 // A relative path strictly inside scripts/: no absolute prefix, no empty segment
 // and no "." or ".." segment, so an installer can never name a file outside it.
@@ -141,7 +148,10 @@ function readConsumers(value, hosts, aliases) {
     return consumers;
 }
 function readExcluded(value, hosts, aliases) {
-    const excluded = {};
+    // Same own-property construction as readAliases, for the same reason: the
+    // excluded keys are JSON keys too, and `excluded.__proto__` must not vanish
+    // into the prototype setter (or raise under --disable-proto=throw).
+    const excluded = new Map();
     for (const [name, reason] of Object.entries(plain(value, "excluded"))) {
         if (hosts.has(name)) {
             throw new HostMatrixError(`excluded ${name} is a payload host`);
@@ -149,9 +159,9 @@ function readExcluded(value, hosts, aliases) {
         if (Object.hasOwn(aliases, name)) {
             throw new HostMatrixError(`excluded ${name} is an alias`);
         }
-        excluded[name] = nonEmptyString(reason, `excluded.${name}`);
+        excluded.set(name, nonEmptyString(reason, `excluded.${name}`));
     }
-    return excluded;
+    return Object.fromEntries(excluded);
 }
 function rejectSkillNames(names, skillNames, what) {
     for (const name of names) {
