@@ -139,18 +139,12 @@ class WorkspaceIntegrityTests(GateWorkspaceTests):
     """AC-W3: HEAD, index and tracked bytes are re-checked after every gate; undeclared paths
     refuse; a clean git-only gate is issued."""
 
-    def test_a_gate_rewriting_a_tracked_file_is_refused(self):
-        c = GateWorkspaceFixture(self.base, '#!/bin/sh\necho hacked > src/app.txt\nexit 0\n')
-        exit_code, result = c.certify()
-        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
-        self.assertIn('worktree_changed_during_gates', codes(result))
-        self.assertIn('gate_workspace_tracked_changed:src/app.txt', self.refused_details(result))
-
     def test_a_gate_change_undone_by_a_later_gate_is_refused(self):
-        """The re-check runs between the gates, not once after all four. The goal's verification
-        command runs in the local safe CI subset gate and again in the ci-gate gate: a first run
-        that rewrites a tracked file and a second that restores it cannot present a clean final
-        state; the refusal is raised by the first gate and names the changed path."""
+        """AC-W3: the re-check runs after each gate, not once after all four. The goal's
+        verification command runs in the local safe CI subset gate and again in the ci-gate
+        gate: a first run that rewrites a tracked file and a second that restores it cannot
+        present a clean final state; the refusal is raised by the first gate and names the
+        changed path."""
         seen = self.base / 'gate-seen-once'
         check = ('#!/bin/sh\n'
                  'if [ ! -f %s ]; then printf "seen\\n" > %s; printf "hacked\\n" > src/app.txt\n'
