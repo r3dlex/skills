@@ -1546,11 +1546,14 @@ def issue_agent_approval(root, gen, fields, publication, origin):
                'signs': True, 'provenance': origin}
 
 
-def run_local_gates(root, goal, tmp):
+def run_local_gates(root, goal, tmp, after_gate=None):
     # Gate scripts start their embedded Python isolated (python3 -I -B); they run with the gate
     # workspace as their working directory and receive it through --root, so every path a gate
     # observes is the workspace's physical path, and a gate's git reaches only the workspace's
-    # own git directory.
+    # own git directory. after_gate, when given, runs between the gates — after each gate
+    # completes and before the next starts (ADR-0017's after-every-gate re-check); a falsy
+    # return stops the remaining gates, because a workspace known to be unfaithful must not run
+    # another gate against it.
     home = Path(tmp) / 'home'
     record = Path(tmp) / 'goal.json'
     record.write_text(json.dumps({'id': goal['id'], 'verification': goal['verification']}))
@@ -1564,6 +1567,8 @@ def run_local_gates(root, goal, tmp):
         if outcome.returncode:
             sys.stderr.write(outcome.stdout.decode(errors='replace') + outcome.stderr.decode(errors='replace'))
         results.append({'name': name, 'exit': outcome.returncode})
+        if after_gate is not None and not after_gate(name):
+            break
     return results
 
 
@@ -1970,15 +1975,22 @@ def run_gates_in_workspace(root, gen, goal, pr, head, op):
             if refusals:
                 write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op, bootstrap, [], [], [])
                 return gates, refusals, provenance
-            gates = run_local_gates(workspace, goal, tmp)
-            for _ in gates:
+            def after_gate(_name):
+                """ADR-0017's re-check between the gates — not once after all four: a gate that
+                changed the workspace refuses (or, its identity gone, refuses unavailable) and
+                stops the remaining gates, so a later gate cannot undo the evidence."""
+                nonlocal refusals
                 if not workspace_identity_ok(workspace, identity):
                     refusals.append('gate_workspace_unavailable')
-                    break
-                for violation in workspace_violations(workspace, head,
-                                                      declared=declaration['dependencies'] + declaration['outputs'],
-                                                      home=home):
+                    return False
+                violations = workspace_violations(workspace, head,
+                                                  declared=declaration['dependencies'] + declaration['outputs'],
+                                                  home=home)
+                for violation in violations:
                     refusals += ['worktree_changed_during_gates', violation]
+                return not violations
+
+            gates = run_local_gates(workspace, goal, tmp, after_gate=after_gate)
             if git_metadata_snapshot(root) != metadata:
                 refusals.append('git_metadata_changed_during_gates')
             inputs = [{'path': name, 'sha256': digest}

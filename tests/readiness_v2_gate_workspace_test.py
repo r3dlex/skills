@@ -146,6 +146,22 @@ class WorkspaceIntegrityTests(GateWorkspaceTests):
         self.assertIn('worktree_changed_during_gates', codes(result))
         self.assertIn('gate_workspace_tracked_changed:src/app.txt', self.refused_details(result))
 
+    def test_a_gate_change_undone_by_a_later_gate_is_refused(self):
+        """The re-check runs between the gates, not once after all four. The goal's verification
+        command runs in the local safe CI subset gate and again in the ci-gate gate: a first run
+        that rewrites a tracked file and a second that restores it cannot present a clean final
+        state; the refusal is raised by the first gate and names the changed path."""
+        seen = self.base / 'gate-seen-once'
+        check = ('#!/bin/sh\n'
+                 'if [ ! -f %s ]; then printf "seen\\n" > %s; printf "hacked\\n" > src/app.txt\n'
+                 'else printf "v1\\n" > src/app.txt; fi\nexit 0\n' % (seen, seen))
+        c = GateWorkspaceFixture(self.base, check)
+        exit_code, result = c.certify()
+        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
+        self.assertFalse(result['issued'])
+        self.assertIn('worktree_changed_during_gates', codes(result))
+        self.assertIn('gate_workspace_tracked_changed:src/app.txt', self.refused_details(result))
+
     def test_a_gate_running_only_git_diff_check_and_ls_files_is_issued(self):
         c = GateWorkspaceFixture(self.base, '#!/bin/sh\ngit diff --check\ngit ls-files >/dev/null\nexit 0\n')
         exit_code, result = c.certify()
