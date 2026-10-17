@@ -1,0 +1,156 @@
+{
+  "alias_noncollision": {
+    "against": "root tests/fixtures/omo-names.json (13 skills, 5 commands) sha256 fd9b62ee01d416435d1f073a87261ee4eac6927c15f39a4dcf936ccdce1bb792",
+    "catalog_skill_names": "none of the ten names is a catalog.json skill name (asserted by tests/host_matrix_test.sh)",
+    "intersection": [],
+    "names": [
+      "auggie",
+      "claude-code",
+      "codex",
+      "copilot",
+      "gemini",
+      "opencode",
+      "omc",
+      "omx",
+      "omo-ai",
+      "oh-my-openagent"
+    ]
+  },
+  "assurance": "agent-self",
+  "base": "4fa211b9e166983e50836a5b5b213de2acefb97a",
+  "gates": {
+    "ci-gate --verify": {
+      "exit_code": 0,
+      "result": "ci-gate: all verification[] commands passed (bash tests/catalog_contract_test.sh, codex_parity_test.sh, opencode_parity_test.sh, install_cross_host_parity_test.sh, host_default_golden_test.sh, lifecycle_installers_test.sh, e6_py_leaf_parity_test.sh, ts_tooling_test.sh, legacy_freeze_test.sh, markdown_links_test.sh, skill-catalog_test.sh, run-tests.sh, prek run --all-files, git diff --check); run-tests.sh output recorded in the local-ci subset entry (OVERALL: PASSED; Shell Script Tests 268/0 incl. e6_py_leaf_parity 430/0 and host_matrix 56/0; Skill Structure Tests 196/0)"
+    },
+    "command": "bash 04-validate-handoff/autobahn/run-gates.sh --root . --goal-record <tswc-sk-e5-h1 goal record extracted from goals.json> --phase local-validation",
+    "earlier_runs": {
+      "at_0b51c7f1": "first run: 13 of 14 verification commands passed under the /usr/bin/python3 shim, run-tests.sh failing only the two certificate environment-allowlist assertions (environment, not this diff)",
+      "at_380cc96e": "round-1 cure run: local validation passed (2026-10-14T23:42:53Z\u20132026-10-15T00:34:22Z); log run-gates-local-validation-380cc96.log",
+      "blocked_attempt_at_9029104": "run-gates-local-validation-9029104.log (sha256 fc1b407da442fc484033fc10ed3e4cef1b9b59f9a75193c59e7309b3cbade268): rc=1, ci-gate --verify BLOCKED \u2014 the Homebrew python@3.15 linked at 05:02:18Z shadowed the lane python3 inside tests/e6_py_leaf_parity_test.sh (hardcoded /opt/homebrew/bin prepend); host restored 06:2xZ (brew unlink python@3.15), this run is the re-run at the same commit"
+    },
+    "environment": {
+      "bash": "GNU bash 5.3.20 (/opt/homebrew/bin, first on PATH for globstar in the prek ts-eslint hook)",
+      "host": "macOS (aarch64), working tree porcelain-clean before and after the run",
+      "node": "v26.11.1",
+      "prek": "0.5.2",
+      "python3": "Python 3.9.6 at /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3 (the system interpreter invoked directly, first on PATH through a lane-local symlink; the /usr/bin/python3 xcrun shim of the same interpreter injects CPATH, LIBRARY_PATH, MANPATH and SDKROOT and thereby fails two pre-existing environment-allowlist assertions in tests/readiness_v2_certificate_test.sh on origin/main as well; Homebrew 3.12.15 and 3.14, and the 3.15 installed mid-run on 2026-10-15, instead make the anchored differential corpus diverge on argparse/traceback nuances)"
+    },
+    "exit_code": 0,
+    "finished": "2026-10-15T07:14:14Z",
+    "lint-gate": {
+      "exit_code": 0,
+      "result": "lint-gate: policy=prek; clean (prek) \u2014 validate-rules, ts-noemit, ts-eslint, ts-build-drift, legacy-freeze passed in every workspace"
+    },
+    "local safe CI subset": {
+      "bash tests/run-tests.sh": {
+        "command": "bash tests/run-tests.sh",
+        "exit_code": 0,
+        "overall": "OVERALL: PASSED",
+        "shell_script_tests": "Results: PASS=268  FAIL=0  SKIP=0",
+        "skill_structure_tests": "Results: PASS=196  FAIL=0  WARN=0  SKIP=0"
+      },
+      "contract": ".ai/ci/local-ci.json local-ci/2 verification: bash tests/run-tests.sh, bash tests/local_lint.sh, bash tests/local_security_scan.sh",
+      "exit_code": 0,
+      "result": "local-ci: supporting local checks passed (not hosted-CI equivalence)"
+    },
+    "result_line": "run-gates: local validation passed for tswc-sk-e5-h1 \u2014 not merge admission or authority",
+    "started": "2026-10-15T06:21:28Z",
+    "tdd-evidence": {
+      "exit_code": 0,
+      "result": "tdd-evidence: tswc-sk-e5-h1 has red-then-green evidence"
+    },
+    "tested_tree": "9029104d72d1bee7cb54a00f5294dbb4c5617e41",
+    "tree_note": "the commit that adds this evidence file differs from 9029104d72d1bee7cb54a00f5294dbb4c5617e41 only by .ai/evidence/tswc-sk-e5-h1.json (verify: git diff --stat 9029104d72d1bee7cb54a00f5294dbb4c5617e41 HEAD lists exactly that file); no verification command, prek hook or test reads this file. An evidence file cannot record a run of the commit that adds it."
+  },
+  "generation": "5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+  "goal_id": "tswc-sk-e5-h1",
+  "green": {
+    "at": "2026-10-14T22:06:50Z",
+    "command": "bash tests/host_matrix_test.sh",
+    "commit": "0b51c7f1be41b8ac8ba0036cd021035b4ae1bcc5",
+    "exit_code": 0,
+    "observed": "Results: PASS=55 FAIL=0 for the same command on the committed implementation tree (matrix, resolver, alias-aware catalog-query, compiled leaf files, README rows). Recorded by tdd-evidence.sh --record-green on a committed tree with no untracked files; --verify exit 0."
+  },
+  "legacy_safe_tdd": true,
+  "negative_fixtures": [
+    "alias whose target is not a payload host",
+    "alias equal to a payload host",
+    "omo-ai listed as a payload host",
+    "omo-ai listed as an alias",
+    "oh-my-openagent listed as an alias",
+    "alias equal to a catalog skill name",
+    "payload_hosts missing a HOSTS member",
+    "excluded key equal to a payload host",
+    "also entry that is not an alias of its host",
+    "consumer missing for a payload host",
+    "schema other than host-matrix/1",
+    "installer outside scripts/",
+    "installer escaping scripts/ by traversal"
+  ],
+  "omo_guard": {
+    "at": "2026-10-15T04:31:03Z",
+    "command": "python3 tests/opencode_omo_coexistence_test.py -v",
+    "cwd": "isolated umbrella worktree of r3dlex/ai-tool-workspace at origin/main 077cb6bd152f5ba38904b35b5c4f82d4d629e840 (both pinned bytes re-verified) with nested detached worktrees skills/ (this goal, commit 9029104d72d1bee7cb54a00f5294dbb4c5617e41) and ai-catapult/ (origin/main 8815f1940c0125c2f7fa3ca24149a3779d613139); no shared child checkout was switched; umbrella 077cb6bd differs from the round-1 run's aaa44dc4 only in root content that does not touch the pinned guard bytes",
+    "earlier_run": "identical result (Ran 10 tests OK, exit 0) at 2026-10-14T22:44:08Z with skills at 0b51c7f1be41b8ac8ba0036cd021035b4ae1bcc5",
+    "exit_code": 0,
+    "fixture_sha256": "fd9b62ee01d416435d1f073a87261ee4eac6927c15f39a4dcf936ccdce1bb792",
+    "log": "receipts-tswc-sk-e5-h1-impl-20261014/omo-guard-9029104.log",
+    "log_sha256": "a1912a75bc1396a7b365a0d197d234dfe164e7eddbe398b6864230ea6f11cfd5",
+    "mode": "default (offline); no network; no fixture copy enters skills",
+    "note": "the root test checks opencode-declared skill names and command names, not host aliases (see alias_noncollision); the bare invocation without arguments raises IndexError inside the test's own main() (pre-existing root behaviour, not edited here), so -v is passed to run the suite",
+    "result": "Ran 10 tests OK",
+    "test_sha256": "476ec53c9fa57f7369e57f0ddf5b1f8eec50d39ef481b00f814a194eaafffe8a"
+  },
+  "plan_id": "tswc-skills-lane-matrix",
+  "red": {
+    "at": "2026-10-14T22:00:23Z",
+    "command": "bash tests/host_matrix_test.sh",
+    "commit": "575fd8ac32a487753f3ad472c922762673e135b7",
+    "exit_code": 1,
+    "observed": "Results: PASS=8 FAIL=47. Committed tree with only the new test: host-matrix.json absent, --host omc and --host omx exit 2 (unknown host), the copied-matrix case and every negative fixture red; the unknown-host, absent-matrix and validator refusals already green. Recorded by 04-validate-handoff/autobahn/tdd-evidence.sh --record-red on a committed tree with no untracked files."
+  },
+  "review_round_1_cure": {
+    "commit": "380cc96e44229763d19eb46fc79209aafc72a5ff",
+    "findings_cured": [
+      "AC-2 installer containment: consumers[*].installer must be a relative path strictly inside scripts/ (first segment scripts, at least two segments, no empty, . or .. segment); scripts/../../outside.sh is refused host_matrix_invalid; negative fixture added",
+      "E6 D8 negative test: tests/host_matrix_test.sh validator_refuses asserts exit 1, empty stdout and the diagnostic \"invalid supported_hosts for research\" on stderr and refuses node_unavailable / node_version_unsupported",
+      "AC-9 evidence: the gate run below is commit-bound and self-contained"
+    ],
+    "host_matrix_test_at_cure": "bash tests/host_matrix_test.sh -> Results: PASS=56 FAIL=0, exit 0",
+    "parent": "740e35cf1d93d49b85ce2f059999ae26e7d9abc0"
+  },
+  "review_round_2_cure": {
+    "commit": "9029104d72d1bee7cb54a00f5294dbb4c5617e41",
+    "cured": "same_output pins the exit status both invocations must produce (0 for a view, 2 for a refused --skill) and, for the --skill nope case, the exact stderr \"unknown skill for <resolved-host>: nope\", alongside byte equality; the failure branch reports both observed statuses, the wanted status and the first stderr line",
+    "discrimination": {
+      "control_pre_cure": {
+        "command": "same masked environment, pre-cure test file (git worktree at c4a84785)",
+        "exit_code": 1,
+        "log": "receipts-tswc-sk-e5-h1-impl-20261014/probe-r2-old-c4a84785-node-masked.log",
+        "log_sha256": "ed6c2fce3b3c3857b6338574dd24b1ac0404499bcfa06f4e3c412841dbc2b9f2",
+        "observed": "Results: PASS=30 FAIL=26; the same two --skill nope comparisons PASS (exit 127) \u2014 the finding reproduced first-hand",
+        "tree": "c4a84785e96248cd3e59782a4fd1038d63cdcdd8"
+      },
+      "green": {
+        "command": "/opt/homebrew/bin/bash tests/host_matrix_test.sh under the lane PATH (node present)",
+        "exit_code": 0,
+        "log": "receipts-tswc-sk-e5-h1-impl-20261014/probe-r2-new-9029104-lane-path.log",
+        "log_sha256": "aeff0c5ba3656be4289076cf031e3d7df22df346cad29a23da117598c8a8edcf",
+        "observed": "Results: PASS=56 FAIL=0",
+        "tree": "9029104d72d1bee7cb54a00f5294dbb4c5617e41"
+      },
+      "red": {
+        "command": "PATH=/usr/bin:/bin:/usr/sbin:/sbin /opt/homebrew/bin/bash tests/host_matrix_test.sh (node masked; every shim invocation refuses node_unavailable, exit 127)",
+        "exit_code": 1,
+        "log": "receipts-tswc-sk-e5-h1-impl-20261014/probe-r2-new-9029104-node-masked.log",
+        "log_sha256": "35a59992b6bb288303976bf8f77d5ce5012d79ec5d116dd6f5c48e30cc0a568c",
+        "observed": "Results: PASS=18 FAIL=38; both --skill nope comparisons FAIL: 'omc --skill nope refuses like claude-code (exit 127 vs 127, wanted 2): node_unavailable' and the omx counterpart; all ten positive equality calls also FAIL (wanted 0)",
+        "tree": "9029104d72d1bee7cb54a00f5294dbb4c5617e41"
+      }
+    },
+    "finding": "tests/host_matrix_test.sh same_output accepted a shared runtime failure: equal statuses and byte-identical output alone satisfied the --skill nope negative case (and the positive equality cases) with both invocations emitting node_unavailable and exiting 127 (blind Critic round 2, artifact .omc/artifacts/ask/codex-you-are-the-independent-blind-critic-for-one-implementation--2026-10-15T00-44-04-496Z.md, sha256 ebcf406ee1f00aba680c1f2f1e9fafbcfcca985304071d9d05b0bcdacf083f43)",
+    "host_matrix_test_at_cure": "bash tests/host_matrix_test.sh -> Results: PASS=56 FAIL=0, exit 0",
+    "parent": "c4a84785e96248cd3e59782a4fd1038d63cdcdd8"
+  }
+}
