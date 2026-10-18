@@ -234,6 +234,15 @@ JSON
 }
 expect "__proto__ alias colliding with a skill name is refused host_matrix_invalid" proto_collision
 
+proto_also() {
+	sed -e 's/"also": \["omc"\]/"also": ["__proto__"]/' "$MATRIX" >"$PROTO/host-matrix.json"
+	! cmp -s "$MATRIX" "$PROTO/host-matrix.json" || return 1
+	query_root "$PROTO" codex
+	[[ $? -eq 2 && ! -s "$TMP/r.out" ]] &&
+		[[ "$(cat "$TMP/r.err")" == "host_matrix_invalid: consumers.claude-code.also names __proto__, which is not an alias of claude-code" ]]
+}
+expect "also naming __proto__ when it is not an alias is refused host_matrix_invalid" proto_also
+
 ALIASED="$TMP/aliased"
 make_root "$ALIASED" '"codex", "omc"'
 validator_refuses() {
