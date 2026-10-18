@@ -19,49 +19,114 @@
   "assurance": "agent-self",
   "base": "4fa211b9e166983e50836a5b5b213de2acefb97a",
   "gates": {
-    "ci-gate --verify": {
-      "exit_code": 0,
-      "result": "ci-gate: all verification[] commands passed (bash tests/catalog_contract_test.sh, codex_parity_test.sh, opencode_parity_test.sh, install_cross_host_parity_test.sh, host_default_golden_test.sh, lifecycle_installers_test.sh, e6_py_leaf_parity_test.sh, ts_tooling_test.sh, legacy_freeze_test.sh, markdown_links_test.sh, skill-catalog_test.sh, run-tests.sh, prek run --all-files, git diff --check); run-tests.sh output recorded in the local-ci subset entry (OVERALL: PASSED; Shell Script Tests 268/0 incl. e6_py_leaf_parity 430/0 and host_matrix 56/0; Skill Structure Tests 196/0)"
+    "at_head": {
+      "hosted_ci": {
+        "check_runs_log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/check-runs-edf5c7d.json",
+        "check_runs_log_sha256": "51ab52e826a2a3f0a4da76112c1d3979a76b8be0a6d0e767dbfabde8cd17b9f2",
+        "checks_log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/ci-checks-edf5c7d.txt",
+        "checks_log_sha256": "795b169bf7d4ae5c8b81e0d0378ebd4bc72c08558a5364c2b804e2c4054698fa",
+        "head_sha": "edf5c7dc264f66e51a01c024ba9de19be2a0f2be",
+        "jobs": {
+          "Pre-commit Hooks": "pass \u2014 run 39104231345, prek run --all-files",
+          "Repository Secret Scan": "pass \u2014 run 39104231445",
+          "Test Suite (Linux ARM64, ubuntu-24.04-arm)": "pass \u2014 run 39104231338, tests/run-tests.sh",
+          "Test Suite (ubuntu-latest, x86_64)": "pass \u2014 run 39104231338, tests/run-tests.sh"
+        },
+        "note": "all check-runs bound to head_sha edf5c7dc264f66e51a01c024ba9de19be2a0f2be",
+        "runs": {
+          "AI SDLC Pre-commit Checks": 39104231345,
+          "CI": 39104231338,
+          "Security": 39104231445
+        }
+      },
+      "targeted_local": {
+        "bash -n + shellcheck -S error + shfmt -d tests/host_matrix_test.sh": {
+          "exit_code": 0,
+          "log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/shell-lint.log",
+          "log_sha256": "c172573ee13a9ef3da803a1bd2def52962f9b002954c9970c3c8a90b02319c50",
+          "observed": "all rc 0"
+        },
+        "bash tests/host_matrix_test.sh": {
+          "exit_code": 0,
+          "log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/green-host-matrix.log",
+          "log_sha256": "84987a5d14f2ed788f5a9cae18ab89d0df8ffbe72a72beb16fbf54fea1bb09f7",
+          "observed": "Results: PASS=60 FAIL=0"
+        },
+        "cd ts-tooling && npx eslint --max-warnings 0 'src/*.mts' 'src/**/*.mts'": {
+          "exit_code": 0,
+          "log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/eslint.log",
+          "log_sha256": "5f5fa88656e977d1c8398da444d980b30d722480b8af6857ca412700660e9abe",
+          "observed": "rc 0, no output"
+        },
+        "cd ts-tooling && npx tsc --noEmit --project tsconfig.json": {
+          "exit_code": 0,
+          "log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/tsc-noemit.log",
+          "log_sha256": "344ad3f25f2524f3ad1f005f0d6b17002a0b3aa7ee050f8aa518292f6dd9c19e",
+          "observed": "rc 0, no output"
+        },
+        "fresh npx tsc --project tsconfig.build.json in a mktemp copy, diff -rq against committed scripts/lib": {
+          "exit_code": 0,
+          "log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/build-drift.log",
+          "log_sha256": "2a837dcc08b277d1208ae95eeeae4a64afe0692d5cd535becdf1dd7f523de97f",
+          "observed": "diff -rq reports no differences, rc 0"
+        },
+        "git diff --check origin/main...HEAD": {
+          "exit_code": 0,
+          "log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/diff-check.log",
+          "log_sha256": "0bee6832d305c130fda14e598c40eeec5a37496866daaa59197e42d64bbd604a",
+          "observed": "no whitespace errors"
+        }
+      }
     },
     "command": "bash 04-validate-handoff/autobahn/run-gates.sh --root . --goal-record <tswc-sk-e5-h1 goal record extracted from goals.json> --phase local-validation",
-    "earlier_runs": {
-      "at_0b51c7f1": "first run: 13 of 14 verification commands passed under the /usr/bin/python3 shim, run-tests.sh failing only the two certificate environment-allowlist assertions (environment, not this diff)",
-      "at_380cc96e": "round-1 cure run: local validation passed (2026-10-14T23:42:53Z\u20132026-10-15T00:34:22Z); log run-gates-local-validation-380cc96.log",
-      "blocked_attempt_at_9029104": "run-gates-local-validation-9029104.log (sha256 fc1b407da442fc484033fc10ed3e4cef1b9b59f9a75193c59e7309b3cbade268): rc=1, ci-gate --verify BLOCKED \u2014 the Homebrew python@3.15 linked at 05:02:18Z shadowed the lane python3 inside tests/e6_py_leaf_parity_test.sh (hardcoded /opt/homebrew/bin prepend); host restored 06:2xZ (brew unlink python@3.15), this run is the re-run at the same commit"
-    },
-    "environment": {
-      "bash": "GNU bash 5.3.20 (/opt/homebrew/bin, first on PATH for globstar in the prek ts-eslint hook)",
-      "host": "macOS (aarch64), working tree porcelain-clean before and after the run",
-      "node": "v26.11.1",
-      "prek": "0.5.2",
-      "python3": "Python 3.9.6 at /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3 (the system interpreter invoked directly, first on PATH through a lane-local symlink; the /usr/bin/python3 xcrun shim of the same interpreter injects CPATH, LIBRARY_PATH, MANPATH and SDKROOT and thereby fails two pre-existing environment-allowlist assertions in tests/readiness_v2_certificate_test.sh on origin/main as well; Homebrew 3.12.15 and 3.14, and the 3.15 installed mid-run on 2026-10-15, instead make the anchored differential corpus diverge on argparse/traceback nuances)"
-    },
-    "exit_code": 0,
-    "finished": "2026-10-15T07:14:14Z",
-    "lint-gate": {
-      "exit_code": 0,
-      "result": "lint-gate: policy=prek; clean (prek) \u2014 validate-rules, ts-noemit, ts-eslint, ts-build-drift, legacy-freeze passed in every workspace"
-    },
-    "local safe CI subset": {
-      "bash tests/run-tests.sh": {
-        "command": "bash tests/run-tests.sh",
+    "last_full_wrapper_run": {
+      "ci-gate --verify": {
         "exit_code": 0,
-        "overall": "OVERALL: PASSED",
-        "shell_script_tests": "Results: PASS=268  FAIL=0  SKIP=0",
-        "skill_structure_tests": "Results: PASS=196  FAIL=0  WARN=0  SKIP=0"
+        "result": "ci-gate: all verification[] commands passed (bash tests/catalog_contract_test.sh, codex_parity_test.sh, opencode_parity_test.sh, install_cross_host_parity_test.sh, host_default_golden_test.sh, lifecycle_installers_test.sh, e6_py_leaf_parity_test.sh, ts_tooling_test.sh, legacy_freeze_test.sh, markdown_links_test.sh, skill-catalog_test.sh, run-tests.sh, prek run --all-files, git diff --check); run-tests.sh output recorded in the local-ci subset entry (OVERALL: PASSED; Shell Script Tests 268/0 incl. e6_py_leaf_parity 430/0 and host_matrix 56/0; Skill Structure Tests 196/0)"
       },
-      "contract": ".ai/ci/local-ci.json local-ci/2 verification: bash tests/run-tests.sh, bash tests/local_lint.sh, bash tests/local_security_scan.sh",
+      "command": "bash 04-validate-handoff/autobahn/run-gates.sh --root . --goal-record <tswc-sk-e5-h1 goal record extracted from goals.json> --phase local-validation",
+      "earlier_runs": {
+        "at_0b51c7f1": "first run: 13 of 14 verification commands passed under the /usr/bin/python3 shim, run-tests.sh failing only the two certificate environment-allowlist assertions (environment, not this diff)",
+        "at_380cc96e": "round-1 cure run: local validation passed (2026-10-14T23:42:53Z\u20132026-10-15T00:34:22Z); log run-gates-local-validation-380cc96.log",
+        "blocked_attempt_at_9029104": "run-gates-local-validation-9029104.log (sha256 fc1b407da442fc484033fc10ed3e4cef1b9b59f9a75193c59e7309b3cbade268): rc=1, ci-gate --verify BLOCKED \u2014 the Homebrew python@3.15 linked at 05:02:18Z shadowed the lane python3 inside tests/e6_py_leaf_parity_test.sh (hardcoded /opt/homebrew/bin prepend); host restored 06:2xZ (brew unlink python@3.15), this run is the re-run at the same commit"
+      },
+      "environment": {
+        "bash": "GNU bash 5.3.20 (/opt/homebrew/bin, first on PATH for globstar in the prek ts-eslint hook)",
+        "host": "macOS (aarch64), working tree porcelain-clean before and after the run",
+        "node": "v26.11.1",
+        "prek": "0.5.2",
+        "python3": "Python 3.9.6 at /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3 (the system interpreter invoked directly, first on PATH through a lane-local symlink; the /usr/bin/python3 xcrun shim of the same interpreter injects CPATH, LIBRARY_PATH, MANPATH and SDKROOT and thereby fails two pre-existing environment-allowlist assertions in tests/readiness_v2_certificate_test.sh on origin/main as well; Homebrew 3.12.15 and 3.14, and the 3.15 installed mid-run on 2026-10-15, instead make the anchored differential corpus diverge on argparse/traceback nuances)"
+      },
       "exit_code": 0,
-      "result": "local-ci: supporting local checks passed (not hosted-CI equivalence)"
+      "finished": "2026-10-15T07:14:14Z",
+      "lint-gate": {
+        "exit_code": 0,
+        "result": "lint-gate: policy=prek; clean (prek) \u2014 validate-rules, ts-noemit, ts-eslint, ts-build-drift, legacy-freeze passed in every workspace"
+      },
+      "local safe CI subset": {
+        "bash tests/run-tests.sh": {
+          "command": "bash tests/run-tests.sh",
+          "exit_code": 0,
+          "overall": "OVERALL: PASSED",
+          "shell_script_tests": "Results: PASS=268  FAIL=0  SKIP=0",
+          "skill_structure_tests": "Results: PASS=196  FAIL=0  WARN=0  SKIP=0"
+        },
+        "contract": ".ai/ci/local-ci.json local-ci/2 verification: bash tests/run-tests.sh, bash tests/local_lint.sh, bash tests/local_security_scan.sh",
+        "exit_code": 0,
+        "result": "local-ci: supporting local checks passed (not hosted-CI equivalence)"
+      },
+      "result_line": "run-gates: local validation passed for tswc-sk-e5-h1 \u2014 not merge admission or authority",
+      "started": "2026-10-15T06:21:28Z",
+      "tdd-evidence": {
+        "exit_code": 0,
+        "result": "tdd-evidence: tswc-sk-e5-h1 has red-then-green evidence"
+      },
+      "tested_tree": "9029104d72d1bee7cb54a00f5294dbb4c5617e41",
+      "tree_note": "historical: that run was recorded in the evidence-only commit 2a1cfe17, which then differed from 9029104d only by .ai/evidence/tswc-sk-e5-h1.json. That binding does not cover the later round-3 (2c9d7db) or round-4 (edf5c7dc) code changes; gates.at_head records what was run at this head."
     },
-    "result_line": "run-gates: local validation passed for tswc-sk-e5-h1 \u2014 not merge admission or authority",
-    "started": "2026-10-15T06:21:28Z",
-    "tdd-evidence": {
-      "exit_code": 0,
-      "result": "tdd-evidence: tswc-sk-e5-h1 has red-then-green evidence"
-    },
-    "tested_tree": "9029104d72d1bee7cb54a00f5294dbb4c5617e41",
-    "tree_note": "the commit that adds this evidence file differs from 9029104d72d1bee7cb54a00f5294dbb4c5617e41 only by .ai/evidence/tswc-sk-e5-h1.json (verify: git diff --stat 9029104d72d1bee7cb54a00f5294dbb4c5617e41 HEAD lists exactly that file); no verification command, prek hook or test reads this file. An evidence file cannot record a run of the commit that adds it."
+    "local_wrapper_note": "the full run-gates.sh --phase local-validation wrapper was NOT re-run at this head: its verification[] commands write fixed shared /tmp probe paths, and this bounded recovery was instructed not to touch shared /tmp. At the exact code head edf5c7dc264f66e51a01c024ba9de19be2a0f2be the three AC-9 commands are covered by hosted CI (tests/run-tests.sh on x86_64 and arm64; prek run --all-files) plus a local git diff --check, and the targeted local gates below were run at this head. The last full local wrapper run remains the one at 9029104 recorded under last_full_wrapper_run. This is a stated limitation, not a claim of a local full-suite pass at this head.",
+    "tested_tree": "edf5c7dc264f66e51a01c024ba9de19be2a0f2be",
+    "tree_note": "the commit that adds this evidence file differs from edf5c7dc264f66e51a01c024ba9de19be2a0f2be only by .ai/evidence/tswc-sk-e5-h1.json (verify: git diff --stat edf5c7dc264f66e51a01c024ba9de19be2a0f2be HEAD lists exactly that file); no verification command, prek hook or test reads this file. An evidence file cannot record a run of the commit that adds it."
   },
   "generation": "5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
   "goal_id": "tswc-sk-e5-h1",
@@ -86,7 +151,9 @@
     "consumer missing for a payload host",
     "schema other than host-matrix/1",
     "installer outside scripts/",
-    "installer escaping scripts/ by traversal"
+    "installer escaping scripts/ by traversal",
+    "alias __proto__ colliding with a catalog skill name",
+    "also entry naming __proto__ when it is not an alias"
   ],
   "omo_guard": {
     "at": "2026-10-15T04:31:03Z",
@@ -152,5 +219,78 @@
     "finding": "tests/host_matrix_test.sh same_output accepted a shared runtime failure: equal statuses and byte-identical output alone satisfied the --skill nope negative case (and the positive equality cases) with both invocations emitting node_unavailable and exiting 127 (blind Critic round 2, artifact .omc/artifacts/ask/codex-you-are-the-independent-blind-critic-for-one-implementation--2026-10-15T00-44-04-496Z.md, sha256 ebcf406ee1f00aba680c1f2f1e9fafbcfcca985304071d9d05b0bcdacf083f43)",
     "host_matrix_test_at_cure": "bash tests/host_matrix_test.sh -> Results: PASS=56 FAIL=0, exit 0",
     "parent": "c4a84785e96248cd3e59782a4fd1038d63cdcdd8"
+  },
+  "review_round_3_cure": {
+    "commit": "2c9d7dbdc03f673e6eed17c6093566bec073e70c",
+    "cured": "readAliases and readExcluded build a Map and return Object.fromEntries(...): a JSON key like `__proto__` becomes a real own property, so it resolves as an alias, the skill-name collision check fires, and no ERR_PROTO_ACCESS escapes as `catalog query failed`. readConsumers is unchanged (its raw keys must be payload hosts, so it already refuses fail-closed before any write). .d.mts unchanged (no export changed).",
+    "finding": "ts-tooling/src/leaf/host-matrix.mts:104 \u2014 the alias dictionary built with `{}` could not preserve the JSON key `__proto__`: plain Node dropped the alias into the prototype, bypassing the skill-name collision check, and the production shim (`node --disable-proto=throw`) raised ERR_PROTO_ACCESS, so the catalog query exited 2 with `catalog query failed` instead of a `host_matrix_invalid` refusal (blind Critic round 3, artifact .omc/artifacts/ask/codex-you-are-the-independent-blind-critic-for-one-implementation--2026-10-15T07-45-17-835Z.md, sha256 c1bcd05a4e8d7cee2463a1c7138a3fd5ca9dec2529b5c8ca6df4e52f52f6029e)",
+    "fixtures_added": [
+      "a __proto__ alias is preserved and resolves to the target host rows (exit 0)",
+      "an excluded __proto__ key is preserved and the matrix loads (exit 0)",
+      "a __proto__ alias colliding with a catalog skill named __proto__ is refused with exactly `host_matrix_invalid: alias __proto__ is a catalog skill name` (exit 2)"
+    ],
+    "green": {
+      "command": "bash tests/host_matrix_test.sh",
+      "exit_code": 0,
+      "log": "receipts-tswc-sk-e5-h1-impl-20261014/r4-green-test.log",
+      "log_sha256": "bd4fa8656aa96f76d165c928f23dab2ae5130b6240a50e00eff56ef33633df6c",
+      "observed": "Results: PASS=59 FAIL=0",
+      "tree": "2c9d7dbdc03f673e6eed17c6093566bec073e70c"
+    },
+    "host_matrix_test_at_cure": "bash tests/host_matrix_test.sh -> Results: PASS=59 FAIL=0, exit 0",
+    "log_provenance": "the red/green/probe logs were recorded pre-merge in the lane at af84bb83/b0e55fe6; those two commits were cherry-picked unchanged onto this branch (3f840e7/2c9d7db) after the origin/main merge, so the tested patches are identical",
+    "parent": "05283529cf789265ffd8d2adb9ae0552240f599e",
+    "plain_node_probe": {
+      "command": "node (no --disable-proto flag) importing the compiled scripts/lib/leaf/host-matrix.mjs",
+      "log": "receipts-tswc-sk-e5-h1-impl-20261014/probe-r4-plain-node-postcure.log",
+      "log_sha256": "b05451b90492c26aa24c470df18a4b66fe256651852a6aec72924c53e35aa268",
+      "post_cure": "collision root refused: `host_matrix_invalid: alias __proto__ is a catalog skill name`; plain root: Object.keys(aliases) = [\"omc\",\"omx\",\"__proto__\"], Object.hasOwn(aliases, \"__proto__\") = true, aliases[\"__proto__\"] = codex",
+      "pre_cure_control": "collision root loaded with no refusal, Object.keys(aliases) = [\"omc\",\"omx\"]; plain root dropped the key (Object.hasOwn false)"
+    },
+    "red": {
+      "command": "bash tests/host_matrix_test.sh, pre-cure committed module",
+      "exit_code": 1,
+      "log": "receipts-tswc-sk-e5-h1-impl-20261014/r4-red-test.log",
+      "log_sha256": "e9a856cdc1368686c4354c43880c7f71e0eeb8df33bea36b206b92880ebeccdb",
+      "observed": "Results: PASS=56 FAIL=3 \u2014 the three new fixtures FAIL; all 56 earlier assertions green",
+      "tree": "3f840e7e6257489dac1f019e722c7accc0847202"
+    },
+    "red_first_commit": "3f840e7e6257489dac1f019e722c7accc0847202"
+  },
+  "review_round_3_cure_followup": {
+    "commit": "edf5c7dc264f66e51a01c024ba9de19be2a0f2be",
+    "cured": "readAlso checks Object.hasOwn(aliases, alias) before reading the value, so an undeclared key (`__proto__` included) refuses fail-closed with the exact diagnostic `host_matrix_invalid: consumers.claude-code.also names __proto__, which is not an alias of claude-code` under plain Node, under `node --disable-proto=throw` and through scripts/catalog-query.py. Compiled scripts/lib/leaf/host-matrix.mjs rebuilt; .d.mts unchanged.",
+    "finding": "blind Critic round 3, F1 (AC-2) at 2c9d7db: ts-tooling/src/leaf/host-matrix.mts readAlso read `aliases[alias]` without Object.hasOwn. A consumers[*].also entry naming `__proto__` when `__proto__` is not a declared alias reached the inherited Object.prototype accessor; under the production shim (`node --disable-proto=throw`) that raised ERR_PROTO_ACCESS, so the catalog query printed `catalog query failed` instead of the required `host_matrix_invalid` diagnostic (exit 2 either way). Artifact: MERGE-DRIVE-20261018/pr143/review-critic/verdict.md and f1-repro.out",
+    "fixtures_added": [
+      "an also entry naming __proto__ when __proto__ is not a declared alias is refused with exactly `host_matrix_invalid: consumers.claude-code.also names __proto__, which is not an alias of claude-code` (exit 2)"
+    ],
+    "green": {
+      "command": "bash tests/host_matrix_test.sh",
+      "exit_code": 0,
+      "log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/green-host-matrix.log",
+      "log_sha256": "84987a5d14f2ed788f5a9cae18ab89d0df8ffbe72a72beb16fbf54fea1bb09f7",
+      "observed": "Results: PASS=60 FAIL=0",
+      "tree": "edf5c7dc264f66e51a01c024ba9de19be2a0f2be"
+    },
+    "host_matrix_test_at_cure": "bash tests/host_matrix_test.sh -> Results: PASS=60 FAIL=0, exit 0",
+    "parent": "2c9d7dbdc03f673e6eed17c6093566bec073e70c",
+    "production_shim_probe": {
+      "command": "bash MERGE-DRIVE-20261018/pr143/review-critic/f1-repro.sh <worktree>",
+      "log_post_cure": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/f1-repro-cure.log",
+      "log_post_cure_sha256": "23dad3b92ed1d329ba30b2549b3d8d6cf08866d778868f90437461fdf6b6ce35",
+      "log_pre_cure": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/f1-repro-prefix.log",
+      "log_pre_cure_sha256": "820ded549bde65ab7d09b1de121dd281c89ddb6041da12d70b4a36f78e4a3884",
+      "post_cure": "exit 2, stderr `host_matrix_invalid: consumers.claude-code.also names __proto__, which is not an alias of claude-code` in plain Node, under node --disable-proto=throw and through scripts/catalog-query.py; error class HostMatrixError",
+      "pre_cure": "exit 2, stderr `catalog query failed` through scripts/catalog-query.py and under node --disable-proto=throw; error class Error ERR_PROTO_ACCESS"
+    },
+    "red": {
+      "command": "bash tests/host_matrix_test.sh at the red-first commit with the pre-cure compiled module (scripts/lib/leaf/host-matrix.mjs from 2c9d7db)",
+      "exit_code": 1,
+      "log": "receipts-merge-readiness-20261017/MERGE-DRIVE-20261018/pr143/fix2/red-host-matrix-prefix-module.log",
+      "log_sha256": "01ea4d694d39dfe04c4578f88d4fedeaf6ec81e12d5dcacdce9720075f87728c",
+      "observed": "Results: PASS=59 FAIL=1 \u2014 the new also:__proto__ fixture FAILs; all 59 earlier assertions green",
+      "tree": "2cfea3803c13934b85e28f1cc3f24bd86d91a2b2"
+    },
+    "red_first_commit": "2cfea3803c13934b85e28f1cc3f24bd86d91a2b2"
   }
 }
