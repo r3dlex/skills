@@ -1522,7 +1522,7 @@ export function main(argv) {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (message.startsWith("invalid choice:")) {
+        if (message.startsWith("invalid choice:") || message.startsWith("usage:")) {
             return 2;
         }
         process.stdout.write(dumps({ schema: VERSION, error: message, execution_ready: false, dispatch_authorized: false, authority_verification: "external-required" }) + "\n");
@@ -1560,6 +1560,11 @@ function parseFlags(args, argv) {
     for (let index = 1; index < argv.length; index += 1) {
         const flag = argv[index] ?? "";
         const value = argv[index + 1];
+        if (flag.startsWith("--") && (value === undefined || value.startsWith("--"))) {
+            const message = "usage: readiness_contract <admit|publish|migrate> [options]\nerror: argument " + flag + ": expected one argument";
+            process.stderr.write(message + "\n");
+            throw new Invalid(message);
+        }
         if (flag === "--goal-id" && value !== undefined) {
             args.goal_id = [...(args.goal_id ?? []), value];
             index += 1;
