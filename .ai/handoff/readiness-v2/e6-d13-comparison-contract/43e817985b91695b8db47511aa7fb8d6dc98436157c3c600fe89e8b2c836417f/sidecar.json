@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "e6-d13-cc-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "HELD unpublished plan; no human approval of draft/code and no readiness conclusion. Coverage unmeasured, legacy-safe TDD planned. Red leg: bash tests/e6_d13_comparison_test.sh with test and all P1/M01-M34/O01-O09/C01-C15 fixture definitions present, compiled scripts/lib/d13-compare.mjs absent, expected exit1; same-command green only after separately admitted implementation. No fixture/capture/test execution occurred here. Seven original add-only scope entries: new module, three compiled outputs, fixture directory, Bash test and evidence. Goal02 owns its separate raw retention/evidence; not this author. Recomputed consistency is not capture authenticity or live-remote trust. Independent qualified collection/completion/custody evidence, future publication/approval/admission, current windows and all exact-head gates remain required. No source/HPG/H1/lib/hook/local-CI/policy/registry/bound-spec scope release.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e6-d13-comparison-contract",
+  "schema": "readiness-sidecar/1"
+}

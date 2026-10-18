@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:e6-d13-comparison-contract:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "target": "plan:skills:e6-d13-comparison-contract:e6-d13-cc-01:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "type": "plans"
+    }
+  ],
+  "generation": "43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+  "goal_ids": [
+    "e6-d13-cc-01"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:e6-d13-comparison-contract:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "1e9112db90a0d3db8f81197b3e8589d9c0ae66e22ac39d9684bef3a74b205363",
+      "id": "plan:skills:e6-d13-comparison-contract:e6-d13-cc-01:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "e6-d13-comparison-contract",
+  "schema_version": "1.1"
+}
