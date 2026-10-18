@@ -35,11 +35,12 @@ import tempfile
 import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
+from typing import Any, Callable
 
 import local_ci_contract as local_ci
 import readiness_contract_v2 as v2
 from readiness_contract import Invalid, canonical, read as read_json, worktree_observation
-from verification import validate as validate_commands, VerificationError
+from verification import validate as validate_commands, find_executable, VerificationError
 
 HERE = Path(__file__).resolve().parents[1]
 PASS_THROUGH = ('PATH', 'LANG', 'LC_ALL', 'TMPDIR', 'SSH_AUTH_SOCK', 'GH_TOKEN')
@@ -634,6 +635,8 @@ def load_generation(root, ref, handoff):
     live_policy = v2.validate_policy(parse_json(live_bytes, 'policy')) if mode == 'policy-amendment' and live2 else None
     spec = show(root, ref, bundle['spec']['path'])
     v2.check(spec is not None, 'spec_missing', bundle['spec']['path'])
+    if v2.marked(bundle):
+        marked_generation(root, ref, bundle, entry)
     digests = {'bundle_sha256': v2.bundle_sha256(bundle), 'spec_sha256': v2.sha256(spec),
                'policy_sha256': v2.sha256(policy_bytes), 'anchor_sha256': policy['approval']['anchor_sha256']}
     added = git_text(root, 'log', '--format=%H', '--diff-filter=A', ref, '--', prefix + '/goals.json').split()
@@ -678,7 +681,8 @@ def goal_merges(root, ref, gen, goal_id, adapter, pattern=None):
 
 
 def find_sidecar_v0(root, ref, path, digest, bundle):
-    """The approved sidecar is the committed, valid version whose digest the approval names."""
+    """The approved sidecar is the committed, valid version whose digest the approval names. A marked
+    generation's lookup never swallows a malformed version as absent."""
     for commit in git_text(root, 'log', '--format=%H', ref, '--', path).split():
         data = show(root, commit, path)
         try:
@@ -686,6 +690,8 @@ def find_sidecar_v0(root, ref, path, digest, bundle):
             if sidecar is not None and canonical(sidecar) == digest:
                 return v2.validate_sidecar(sidecar, bundle)
         except Invalid:
+            if v2.marked(bundle):
+                raise
             continue
     return None
 
@@ -1095,47 +1101,14 @@ def publication_bytes(value):
     return (json.dumps(value, indent=2, sort_keys=True) + '\n').encode()
 
 
-def prepare_publication(root, args):
-    """Everything publish-v2 writes, computed without writing: validation, the generation defaults,
-    the generation files and the registry entry. The real write, the replay lane and the planning
-    simulation all use this one computation."""
-    bundle = v2.validate_bundle(read_json(args.bundle))
-    sidecar = v2.sidecar_defaults(bundle, read_json(args.sidecar))
-    held = [gid for gid, entry in sorted(sidecar['goals'].items()) if 'blocked' in entry['readiness'].values()]
-    v2.check(not held, 'publication_hold_refused', ','.join(held))
-    for goal in bundle['goals']:
-        try:
-            validate_commands(root, goal['verification'])
-        except VerificationError as error:
-            v2.refuse('verification_invalid', '%s: %s' % (goal['id'], error))
-    live = root / v2.POLICY
-    live_bytes = live.read_bytes() if live.is_file() else None
-    try:
-        live2 = live_bytes is not None and json.loads(live_bytes).get('schema') == v2.POLICY_SCHEMA
-    except (ValueError, AttributeError):
-        live2 = False
-    if args.policy_candidate:
-        if live2:
-            # While policy/2 is live a candidate is a policy amendment: one goal scoping the fixed path.
-            v2.check(len(bundle['goals']) == 1 and v2.policy_goals(bundle), 'bootstrap_policy_live')
-            v2.validate_amendment(bundle, True, v2.validate_policy(parse_json(Path(args.policy_candidate).read_bytes(), 'policy')),
-                                  v2.validate_policy(parse_json(live_bytes, 'policy')))
-            mode = 'policy-amendment'
-        else:
-            v2.validate_bootstrap(bundle, live_policy2=False)
-            mode = 'bootstrap'
-        policy_bytes = Path(args.policy_candidate).read_bytes()
-    else:
-        v2.check(live2, 'policy2_not_live')
-        policy_bytes = live_bytes
-        v2.validate_live_scope(bundle)
-        mode = 'live'
+def assemble_publication(bundle: Any, sidecar: Any, mode: str, policy_bytes: Any, live_bytes: Any, spec_bytes: Any,
+                         extra: Any = ()) -> dict[str, Any]:
+    """Everything publish-v2 writes for validated inputs, computed without writing: the generation, its
+    files and the registry entry. `extra` adds immutable files by artifact name ({name: (filename, bytes)});
+    a marked publication adds its decision record this way."""
     policy = v2.validate_policy(parse_json(policy_bytes, 'policy'))
     v2.check(policy['repository']['id'] == bundle['repository']['id'], 'policy_repository_mismatch')
     v2.check(policy['approval']['anchor_sha256'] is not None, 'anchor_unset')
-    spec = root / bundle['spec']['path']
-    v2.check(spec.is_file() and not spec.is_symlink(), 'spec_missing', bundle['spec']['path'])
-    spec_bytes = spec.read_bytes()
     digests = {'bundle_sha256': v2.bundle_sha256(bundle), 'spec_sha256': v2.sha256(spec_bytes),
                'policy_sha256': v2.sha256(policy_bytes), 'anchor_sha256': policy['approval']['anchor_sha256']}
     amends = v2.sha256(live_bytes) if mode == 'policy-amendment' else None
@@ -1164,6 +1137,9 @@ def prepare_publication(root, args):
     artifacts['sidecar'] = {'path': prefix + '/sidecar.json'}
     if mode in v2.POLICY_MODES:
         artifacts['policy_candidate'] = {'path': prefix + '/policy-candidate.json', 'sha256': digests['policy_sha256']}
+    for name, (filename, data) in sorted(dict(extra).items()):
+        files[filename] = data
+        artifacts[name] = {'path': prefix + '/' + filename, 'sha256': _sha256(data)}
     entry = {'schema': v2.VERSION, 'id': 'northstar-plan-' + bundle['id'], 'plan_id': bundle['id'],
              'generation': generation, 'mode': mode, 'status': 'active', 'handoff_path': prefix + '/handoff.md',
              'artifacts': artifacts, 'spec': {'path': bundle['spec']['path'], 'sha256': digests['spec_sha256']},
@@ -1172,6 +1148,50 @@ def prepare_publication(root, args):
         entry['amends_policy_sha256'] = amends  # M1: the live policy this amendment amends
     return {'bundle': bundle, 'policy': policy, 'generation': generation, 'prefix': prefix, 'files': files,
             'entry': entry, 'spec': spec_bytes}
+
+
+def prepare_publication(root, args, proof=None):
+    """Everything publish-v2 writes, computed without writing: validation, the generation defaults,
+    the generation files and the registry entry. The real write, the replay lane and the planning
+    simulation all use this one computation. A bundle carrying the migrated own-script verification
+    marker takes the marked route with the observer-owned proof source (never a caller flag)."""
+    bundle = v2.validate_bundle(read_json(args.bundle))
+    sidecar = v2.sidecar_defaults(bundle, read_json(args.sidecar))
+    held = [gid for gid, entry in sorted(sidecar['goals'].items()) if 'blocked' in entry['readiness'].values()]
+    v2.check(not held, 'publication_hold_refused', ','.join(held))
+    selections = v2.validate_marker(bundle)
+    if selections:
+        return prepare_marked_publication(root, args, bundle, sidecar, selections, proof)
+    for goal in bundle['goals']:
+        try:
+            validate_commands(root, goal['verification'])
+        except VerificationError as error:
+            v2.refuse('verification_invalid', '%s: %s' % (goal['id'], error))
+    live = root / v2.POLICY
+    live_bytes = live.read_bytes() if live.is_file() else None
+    try:
+        live2 = live_bytes is not None and json.loads(live_bytes).get('schema') == v2.POLICY_SCHEMA
+    except (ValueError, AttributeError):
+        live2 = False
+    if args.policy_candidate:
+        if live2:
+            # While policy/2 is live a candidate is a policy amendment: one goal scoping the fixed path.
+            v2.check(len(bundle['goals']) == 1 and v2.policy_goals(bundle), 'bootstrap_policy_live')
+            v2.validate_amendment(bundle, True, v2.validate_policy(parse_json(Path(args.policy_candidate).read_bytes(), 'policy')),
+                                  v2.validate_policy(parse_json(live_bytes, 'policy')))
+            mode = 'policy-amendment'
+        else:
+            v2.validate_bootstrap(bundle, live_policy2=False)
+            mode = 'bootstrap'
+        policy_bytes = Path(args.policy_candidate).read_bytes()
+    else:
+        v2.check(live2, 'policy2_not_live')
+        policy_bytes = live_bytes
+        v2.validate_live_scope(bundle)
+        mode = 'live'
+    spec = root / bundle['spec']['path']
+    v2.check(spec.is_file() and not spec.is_symlink(), 'spec_missing', bundle['spec']['path'])
+    return assemble_publication(bundle, sidecar, mode, policy_bytes, live_bytes, spec.read_bytes())
 
 
 def registry_after(registry, entry):
@@ -1223,12 +1243,12 @@ def write_publication(root, prepared):
     os.replace(temporary, registry_path)  # registry last: the sole visibility pointer
 
 
-def op_publish(args, now, adapter):
+def op_publish(args, now, adapter, proof=None):
     if getattr(args, 'admit_planning', False):
         # handoff-write.sh with a v2 bundle. The replay lane passes bare arguments and never gets here.
-        return op_publish_planning(args, now)
+        return op_publish_planning(args, now, adapter)
     root = Path(args.root).resolve(strict=True)
-    prepared = prepare_publication(root, args)
+    prepared = prepare_publication(root, args, proof)
     with publication_lock(root):
         write_publication(root, prepared)
     entry = prepared['entry']
@@ -1251,17 +1271,358 @@ def fresh_target(root, target):
 
 def publish_checks(root, base, prepared):
     """Publish-time checks, for handoff-write.sh only (registered generations never meet them): scope
-    entries are plain literal paths, and every bash tests/... verification script exists at the base."""
+    entries are plain literal paths, and every bash tests/... verification script exists at the base,
+    except the leaves a marked publication proved and deferred (prepared['deferred'])."""
+    deferred = prepared.get('deferred', ())
     for goal in prepared['bundle']['goals']:
         unsafe = [name for name in goal['scope'] if not v2.literal_path(name)]
         v2.check(not unsafe, 'bundle_scope_unsafe', '%s: %s' % (goal['id'], json.dumps(unsafe)))
-        for entry in goal['verification']:
+        for index, entry in enumerate(goal['verification']):
+            if (goal['id'], index) in deferred:
+                continue
             cwd, text = ('.', entry) if isinstance(entry, str) else (entry['cwd'], entry['command'])
             argv = shlex.split(text)
             script = posixpath.normpath(posixpath.join(cwd, argv[1])) if len(argv) > 1 and argv[0] == 'bash' else ''
             v2.check(not script.startswith('tests/') or git(root, 'cat-file', '-e', '%s:%s' % (base, script),
                                                              check=False).returncode == 0,
                      'verification_not_at_base', '%s: %s is not in %s' % (goal['id'], script, base))
+
+
+# --- migrated own-script verification: the marked publication route (AC-1 to AC-4) -----------------
+#
+# A bundle whose attachments carry the reserved marker asks the publisher to defer the planning-time
+# existence check of exactly the selected own scripts. The pure validator owns the marker's shape and
+# goal linkage; this route owns the facts. Observation comes first and is sealed - the historical proof
+# bytes at the resolved immutable base (v1 registry, legacy payload, tree facts), the frozen shared
+# validator over every command (the proved missing leaves in a disposable view), and the three capture
+# records of C1.5: fresh eligibility and real-root safety, observed here by a publication and
+# reconstructed from the recorded record by the bare replay, and the spec/policy capture. Decision
+# construction then reads only the seal and exits once through publication_bytes. Every failure is
+# one canonical refusal code (the C1.4 map), timed by the context clock, with no exception or OS text.
+#
+# New code in this frozen legacy module is strict-typed (E6 D5 under the ledger ratchet): the frozen
+# untyped helpers are reached through the typed views at the end of the module.
+
+class Refused(Invalid):
+    """A marked-route refusal: one canonical code, the context clock, and its record - the refusal bytes -
+    serialized once. The refusal output carries the code and nothing else: no exception type or message,
+    no OS-derived text and no path (C1.4), so refusal_detail is the code itself."""
+
+    def __init__(self, code_text: str, base: Any, clock: Any) -> None:
+        super().__init__(code_text)
+        self.refusal_detail = code_text
+        self.record = v2.marker_refusal(code_text, base, clock)
+        self.bytes = publication_bytes(self.record)  # type: ignore[no-untyped-call]
+        self.refusal_fields = {v2.MARKER: self.record}
+
+
+def marked_proof_source(repository: Any, base: Any, ref: str, adapter: Any, recorded: Any) -> dict[str, Any]:
+    """The observer-owned proof source of a marked publication: the real bound Git repository, the resolved
+    immutable base, origin/<target>, the hosted adapter of a fresh publication (None for a replay) and the
+    recorded record a replay reconstructs from (None for a fresh publication). Never a caller flag."""
+    return {'repository': Path(repository), 'base': base, 'ref': ref, 'adapter': adapter, 'recorded': recorded}
+
+
+def marked_report(prepared: Any) -> dict[str, Any]:
+    """The decision record of a marked publication, for the publication result; nothing for an unmarked one."""
+    return {v2.MARKER: prepared[v2.MARKER]} if v2.MARKER in prepared else {}
+
+
+def context_clock(repository: Any, base: str) -> str:
+    """The context clock: the resolved immutable base commit's committer timestamp, the rule the planning
+    simulation applies when it pins GIT_COMMITTER_DATE from `show -s --format=%ct` of the base."""
+    seconds = int(_git_text(repository, 'show', '-s', '--format=%ct', base))
+    return datetime.fromtimestamp(seconds, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def hosted_eligibility(repository: Any, ref: str, adapter: Any, goal_ids: list[str]) -> dict[str, Any]:
+    """The sealed fresh-eligibility record (C1.5): the hosted merged and open PRs and the origin branches
+    as v1_inventory observes them, reduced to the recorded fields, merge-commit ancestry against ref, the
+    unobservable reason, and the inventory_fate result for the legacy goals."""
+    unobservable: Any = None
+    merged: Any = []
+    open_prs: Any = []
+    branches: Any = []
+    try:
+        merged, open_prs, branches = adapter.merged_prs(ROUTE_LIMIT), adapter.open_prs(ROUTE_LIMIT), adapter.branches()
+        if len(merged) >= ROUTE_LIMIT or len(open_prs) >= ROUTE_LIMIT:
+            unobservable = 'hosted_list_truncated'
+    except Invalid as error:
+        unobservable = _code(error)
+    merged = [{'number': p.get('number'), 'head_ref': p.get('head_ref'), 'merge_commit': p.get('merge_commit'),
+               'reached': _ancestry(repository, p.get('merge_commit'), ref)} for p in merged]
+    open_prs = [{'number': p.get('number'), 'head_ref': p.get('head_ref')} for p in open_prs]
+    branches = [{'ref': b.get('ref'), 'merged': _ancestry(repository, b.get('sha'), ref) is True} for b in branches]
+    fate = _fate(goal_ids, merged, open_prs, branches, unobservable)
+    return {'merged': merged, 'open_prs': open_prs, 'branches': branches, 'unobservable': unobservable, 'fate': fate}
+
+
+def resolves(path: Any, directory: bool) -> bool:
+    """Whether the frozen validator's strict resolve of this path succeeds and lands on a directory (a cwd)
+    or a regular file (a script). The error text is never kept."""
+    try:
+        found = path.resolve(strict=True)
+    except OSError:
+        return False
+    return bool(found.is_dir() if directory else found.is_file())
+
+
+def safety_row(root: Any, selection: Any) -> dict[str, Any]:
+    """One real-root safety row (C1.5): what the frozen validator's own resolution sees at the real root -
+    the executable through find_executable, the cwd resolve and the script resolve - as booleans, plus the
+    code it would refuse with when any of the three failed. No path, argv or message is stored."""
+    words = selection.command.strip().split(' ')
+    cwd = root if selection.cwd == '.' else root / selection.cwd
+    cwd_readable = selection.cwd == '.' or resolves(cwd, True)
+    script_readable = resolves(cwd / words[1], False) if len(words) > 1 else None
+    available = _find_executable(words[0], cwd if cwd_readable else root) is not None
+    refusal = None if available and cwd_readable and script_readable is not False else 'verification_invalid'
+    return {'goal_id': selection.goal_id, 'verification_index': selection.index, 'executable_available': available,
+            'cwd_readable': cwd_readable, 'script_readable': script_readable, 'refusal_code': refusal}
+
+
+def utf8(data: Any) -> Any:
+    """Bytes as the text the record carries, or None. Undecodable bytes raise ValueError (operation_failed)."""
+    return None if data is None else data.decode('utf-8')
+
+
+def live_policy_capture(root: Any) -> tuple[Any, bool]:
+    """(the live policy bytes or None, whether they are a readiness-policy/2), read as prepare_publication
+    reads them, in every mode."""
+    live = root / v2.POLICY
+    live_bytes = live.read_bytes() if live.is_file() else None
+    try:
+        return live_bytes, bool(live_bytes is not None and json.loads(live_bytes).get('schema') == v2.POLICY_SCHEMA)
+    except (ValueError, AttributeError):
+        return live_bytes, False
+
+
+def spec_policy_capture(root: Any, bundle: Any, policy_candidate: Any) -> dict[str, Any]:
+    """The sealed spec/policy capture record (C1.5): the live policy bytes in every mode, the candidate or
+    live bytes the generation binds, live_policy2, the mode and amends derived from them exactly as
+    prepare_publication derives them, the spec bytes and both digests - each read once, here."""
+    live_bytes, live2 = live_policy_capture(root)
+    policy_bytes = Path(policy_candidate).read_bytes() if policy_candidate else live_bytes
+    source = 'candidate' if policy_candidate else 'live'
+    mode = 'live' if source == 'live' else 'policy-amendment' if live2 else 'bootstrap'
+    spec = root / bundle['spec']['path']
+    spec_missing = not spec.is_file() or spec.is_symlink()
+    spec_bytes = None if spec_missing else spec.read_bytes()
+    return {'policy_source': source, 'policy_bytes': utf8(policy_bytes), 'live_bytes': utf8(live_bytes),
+            'live_policy2': live2, 'mode': mode, 'amends': _sha256(live_bytes) if mode == 'policy-amendment' else None,
+            'spec_bytes': utf8(spec_bytes), 'spec_missing': spec_missing,
+            'policy_sha256': None if policy_bytes is None else _sha256(policy_bytes),
+            'spec_sha256': None if spec_bytes is None else _sha256(spec_bytes)}
+
+
+def base_tree_facts(repository: Any, base: str, selections: list[Any]) -> dict[str, Any]:
+    """Historical facts from the resolved immutable base commit's exact objects (AC-2): which selected leaves
+    are absent there (`git cat-file -e`, the publish_checks primitive) and whether each cwd is a tree there."""
+    absent = {s.path: _git(repository, 'cat-file', '-e', '%s:%s' % (base, s.path), check=False).returncode != 0
+              for s in selections}
+    trees = {s.cwd: _git(repository, 'cat-file', '-t', '%s:%s' % (base, s.cwd), check=False).stdout.decode().strip() == 'tree'
+             for s in selections if s.cwd != '.'}
+    return {'absent': absent, 'cwd_tree': trees}
+
+
+def frozen_validation(root: Any, goal_id: str, entries: list[Any]) -> None:
+    """The frozen shared validator over some of one goal's entries. Its refusal becomes the canonical code
+    with the goal id - never the validator's message, which carries OS text."""
+    try:
+        _command_validation(root, entries)
+    except VerificationError:
+        raise v2.refused('verification_invalid', goal_id) from None
+
+
+def validation_view(bundle: Any, deferred: list[Any]) -> None:
+    """A disposable v2-only validation view for the proved missing leaves (AC-3): a temporary tree holding
+    one inert, empty, non-executable placeholder per leaf, its cwd with it, so the frozen validator's
+    parsing, allowlist, metacharacter, traversal, containment and executable rules still apply to their
+    commands. The view is not a fixture, a script, a receipt or a gate workspace: it runs nothing, touches
+    no repository, and is removed here; an allocation or cleanup failure surfaces as OSError."""
+    with tempfile.TemporaryDirectory(prefix='observer-view-') as tmp:
+        view = Path(tmp).resolve()
+        for selection in deferred:
+            placeholder = view / selection.path
+            placeholder.parent.mkdir(parents=True, exist_ok=True)
+            placeholder.write_bytes(b'')
+        for goal in bundle['goals']:
+            entries = [goal['verification'][s.index] for s in deferred if s.goal_id == goal['id']]
+            if entries:
+                frozen_validation(view, goal['id'], entries)
+
+
+def real_root_leaf(root: Any, selection: Any) -> bool:
+    """Whether the selected leaf exists at the real root, whatever its type: a dangling or escaping symlink
+    counts, because the frozen validator is then the one that must refuse it there (AC-2/AC-3)."""
+    return os.path.lexists(str(root / selection.path))
+
+
+def validate_marked_commands(root: Any, bundle: Any, selections: list[Any], absent: dict[str, Any]) -> None:
+    """Strict shared command validation of a marked bundle (AC-3): every unmarked entry and every selected
+    entry present at the base validate against the real root first, exactly as prepare_publication
+    validates them; a selected leaf absent at the base but present at the real root - whatever its type -
+    validates there too, so the frozen validator's containment and readability refusals still apply to it;
+    only a leaf absent at both the base and the real root takes the disposable view."""
+    view = [s for s in selections if absent[s.path] and not real_root_leaf(root, s)]
+    held = {(v.goal_id, v.index) for v in view}
+    for goal in bundle['goals']:
+        plain = [entry for index, entry in enumerate(goal['verification']) if (goal['id'], index) not in held]
+        if plain:
+            frozen_validation(root, goal['id'], plain)
+    if view:
+        validation_view(bundle, view)
+
+
+def seal_marked_publication(root: Any, args: Any, bundle: Any, selections: list[Any], proof: dict[str, Any],
+                            clock: str) -> dict[str, Any]:
+    """Observation of a marked publication, sealed before any decision byte: the historical proof bytes at
+    the resolved base and, for a fresh publication, the frozen validator over every command, the fresh
+    eligibility observed here through the hosted adapter, the real-root safety of every selection and the
+    spec/policy capture read here. A replay instead takes all three sealed records - fresh_eligibility,
+    real_root_safety and spec_policy_bytes - from the recorded record: it re-runs no frozen validation, uses
+    no view and reads no spec or policy path (C1.5/C1.7). Nothing after the seal reads anything."""
+    repository, base, marker = proof['repository'], proof['base'], v2.marker_of(bundle)
+    if not isinstance(marker, dict):
+        raise v2.refused('migration_legacy_unsupported', v2.MARKER)
+    registry_bytes = _show(repository, base, v2.V1_REGISTRY)
+    legacy_bytes = _show(repository, base, marker['legacy_bundle']['path'])
+    v2.ok(registry_bytes is not None, 'migration_legacy_unregistered', 'no v1 registry at the base')
+    v2.ok(legacy_bytes is not None, 'migration_legacy_unregistered', 'no legacy payload at the base')
+    legacy = _parse_json(legacy_bytes, 'legacy')
+    facts = base_tree_facts(repository, base, selections)
+    if proof['recorded'] is None:
+        validate_marked_commands(root, bundle, selections, facts['absent'])
+        adapter = proof['adapter'] if proof['adapter'] is not None else _hosted_adapter(repository)
+        eligibility: Any = hosted_eligibility(repository, proof['ref'], adapter, v2.legacy_goal_ids(legacy))
+        safety: Any = [safety_row(root, selection) for selection in selections]
+        capture: Any = spec_policy_capture(root, bundle, args.policy_candidate)
+    else:
+        record = v2.validate_marker_record(proof['recorded'], marker)
+        eligibility, safety = record['fresh_eligibility'], record['real_root_safety']
+        capture = record['spec_policy_bytes']
+    return {'base': base, 'clock': clock, 'registry_v1': _parse_json(registry_bytes, 'v1_registry'), 'legacy': legacy,
+            'legacy_sha256': _sha256(legacy_bytes), 'base_tree': facts, 'fresh_eligibility': eligibility,
+            'real_root_safety': safety, 'spec_policy_bytes': capture}
+
+
+def sealed_mode(bundle: Any, candidate: Any, live_bytes: Any, live2: Any) -> str:
+    """The generation's mode from sealed bytes, with the checks prepare_publication applies as it reads
+    them (observer.py prepare_publication): an amendment while policy/2 is live, a bootstrap otherwise,
+    or a live-scope generation (O9, M1). The candidate bytes are read once, at capture, and fed here to
+    both the amendment validation and the generation."""
+    if candidate is not None:
+        if live2:
+            v2.ok(len(bundle['goals']) == 1 and _policy_goals(bundle), 'bootstrap_policy_live')
+            _validate_amendment(bundle, True, _validate_policy(_parse_json(candidate, 'policy')),
+                                _validate_policy(_parse_json(live_bytes, 'policy')))
+            return 'policy-amendment'
+        _validate_bootstrap(bundle, live_policy2=False)
+        return 'bootstrap'
+    v2.ok(live2, 'policy2_not_live')
+    _validate_live_scope(bundle)
+    return 'live'
+
+
+def decide_marked_publication(bundle: Any, sidecar: Any, selections: list[Any], sealed: dict[str, Any]) -> dict[str, Any]:
+    """Decision construction of a marked publication (C1.5): from the seal to the single exit it reads the
+    sealed records and the historical bytes only - no subprocess, environment or filesystem read. It derives
+    the mode as prepare_publication does from the sealed spec/policy capture, refuses a real-root safety
+    failure or a cwd absent at the base (AC-2), proves the marker against the sealed fresh eligibility
+    (AC-1), defers exactly the selected leaves absent at the base (AC-3), and assembles the immutable files
+    - the decision record included - and the registry entry (AC-4)."""
+    capture, marker = sealed['spec_policy_bytes'], v2.marker_of(bundle)
+    candidate = capture['policy_bytes'].encode() if capture['policy_source'] == 'candidate' else None
+    live_bytes = None if capture['live_bytes'] is None else capture['live_bytes'].encode()
+    mode = sealed_mode(bundle, candidate, live_bytes, capture['live_policy2'])
+    v2.ok(not capture['spec_missing'], 'spec_missing', bundle['spec']['path'])
+    for row in sealed['real_root_safety']:
+        v2.ok(row['cwd_readable'] and row['executable_available'], 'verification_invalid',
+              '%s[%d]' % (row['goal_id'], row['verification_index']))
+    for selection in selections:
+        v2.ok(selection.cwd == '.' or sealed['base_tree']['cwd_tree'][selection.cwd], 'verification_not_at_base',
+              '%s: %s is not a tree at %s' % (selection.goal_id, selection.cwd, sealed['base']))
+    v2.marker_proof(bundle, sealed['legacy'], sealed['legacy_sha256'], sealed['registry_v1'], sealed['fresh_eligibility'],
+                    capture['spec_sha256'])
+    deferred = v2.deferral_entries(selections, sealed['legacy'], marker, sealed['base_tree']['absent'])
+    record = v2.marker_record(sealed['base'], sealed['clock'], marker, sealed['fresh_eligibility'],
+                              sealed['real_root_safety'], capture, deferred)
+    prepared = assemble_publication(bundle, sidecar, mode, candidate if candidate is not None else live_bytes, live_bytes,
+                                    capture['spec_bytes'].encode(),
+                                    {v2.MARKER: (v2.MARKER_RECORD, publication_bytes(record))})  # type: ignore[no-untyped-call]
+    prepared['deferred'] = {(item['goal'], item['verification_index']) for item in deferred}
+    prepared[v2.MARKER] = record
+    return prepared
+
+
+def prepare_marked_publication(root: Any, args: Any, bundle: Any, sidecar: Any, selections: list[Any],
+                               proof: Any) -> dict[str, Any]:
+    """The marked publication route (AC-3): the proof source is the observer's own plumbing - the
+    admission-complete writer's fresh base and adapter, or the replay lane's base and recorded record - and
+    a bare publish-v2 without one refuses. The context clock is resolved first, observation is sealed, then
+    the decision is constructed; every failure becomes one canonical refusal (the C1.4 map)."""
+    if proof is None:
+        raise Refused('target_ref_unobservable', None, None)
+    base = proof['base']
+    try:
+        clock = context_clock(proof['repository'], base)
+    except Invalid as error:
+        raise Refused(_code(error), base, None) from None
+    try:
+        sealed = seal_marked_publication(root, args, bundle, selections, proof, clock)
+        return decide_marked_publication(bundle, sidecar, selections, sealed)
+    except Refused:
+        raise
+    except Invalid as error:
+        raise Refused(_code(error), base, clock) from None
+    except (OSError, KeyError, TypeError, ValueError):
+        raise Refused('operation_failed', base, clock) from None
+
+
+def marked_generation(root: Any, rev: str, bundle: Any, entry: Any) -> None:
+    """A registered marked generation at rev (load_generation, the sidecar-tighten lane): historical
+    reconstruction of its proof from recorded bytes only - the generation's record artifact, the v1 registry
+    and the legacy payload at rev, and the recorded spec digest - never a fresh observation. The record binds
+    this marker and the entry's own spec and policy digests."""
+    marker = v2.marker_of(bundle)
+    prefix = '%s/%s/%s' % (v2.GEN, entry.get('plan_id'), entry.get('generation'))
+    reference = (entry.get('artifacts') or {}).get(v2.MARKER) or {}
+    v2.ok(reference.get('path') == prefix + '/' + v2.MARKER_RECORD, 'generation_artifact_mismatch', v2.MARKER)
+    data = _show(root, rev, reference['path'])
+    v2.ok(data is not None, 'generation_artifact_mismatch', v2.MARKER)
+    v2.ok(_sha256(data) == reference.get('sha256'), 'generation_artifact_mismatch', v2.MARKER)
+    record = v2.validate_marker_record(_parse_json(data, v2.MARKER), marker)
+    capture = v2.exact_fields(record['spec_policy_bytes'], v2.SPEC_POLICY_FIELDS, 'bundle_field_invalid', v2.MARKER_RECORD)
+    v2.ok(capture['spec_sha256'] == (entry.get('spec') or {}).get('sha256'), 'generation_artifact_mismatch', 'spec_sha256')
+    v2.ok(capture['policy_sha256'] == entry.get('policy_sha256'), 'generation_artifact_mismatch', 'policy_sha256')
+    bound = v2.exact_fields(record['legacy_bundle'], {'path', 'sha256'}, 'bundle_field_invalid', v2.MARKER_RECORD)
+    registry_bytes, legacy_bytes = _show(root, rev, v2.V1_REGISTRY), _show(root, rev, bound['path'])
+    v2.ok(registry_bytes is not None, 'migration_legacy_unregistered', 'no v1 registry at ' + rev[:12])
+    v2.ok(legacy_bytes is not None, 'migration_legacy_unregistered', 'no legacy payload at ' + rev[:12])
+    v2.marker_proof(bundle, _parse_json(legacy_bytes, 'legacy'), _sha256(legacy_bytes),
+                    _parse_json(registry_bytes, 'v1_registry'), record['fresh_eligibility'], capture['spec_sha256'])
+
+
+def marked_sidecar_generation(root: Any, ref: str, name: str, bundle: Any) -> None:
+    """The sidecar-tighten lane over a marked generation reconstructs its proof from the registered entry's
+    recorded bytes at ref (tightening never derives fresh eligibility); an unmarked generation is untouched."""
+    if not v2.marked(bundle):
+        return
+    plan_id, generation = name.split('/')[-3:-1]
+    entries = [p for p in _registry_plans(root, ref)
+               if isinstance(p, dict) and p.get('plan_id') == plan_id and p.get('generation') == generation]
+    v2.ok(len(entries) == 1, 'handoff_missing_or_ambiguous', name)
+    marked_generation(root, ref, bundle, entries[0])
+
+
+def replay_proof(root: Any, base: str, ref: str, bundle: Any, files: dict[str, Any]) -> dict[str, Any]:
+    """The replay lane's proof source: the real repository and the up-to-date base, with the PR head's
+    recorded record for a marked bundle (reconstruction) and no adapter - the replay recomputes nothing fresh."""
+    recorded = None
+    if v2.marked(bundle):
+        v2.ok('record' in files, 'generation_artifact_mismatch', v2.MARKER_RECORD)
+        recorded = _parse_json(files['record'].read_bytes(), v2.MARKER)
+    return marked_proof_source(root, base, ref, None, recorded)
 
 
 def goal_branch_collisions(root, ref, prepared):
@@ -1313,16 +1674,17 @@ def simulate_post_merge(root, base, target, overlay, scratch, policy):
     return synthetic
 
 
-def op_publish_planning(args, now):
+def op_publish_planning(args, now, adapter=None):
     """AC-7, P5: v2 publication is planning-stage admission against the simulated post-merge target,
     origin/<target> plus exactly this publication. Planning is complete only when every remaining gap
-    is the approval gap or a deferred kind; otherwise nothing is written."""
+    is the approval gap or a deferred kind; otherwise nothing is written. A marked bundle proves its
+    source against this root at the fresh base, with the hosted adapter for its fresh eligibility."""
     root = observed_root(args.root)
     origin = checked_provenance(root, args.target)
     ref = target_ref(args.target)
     base = fresh_target(root, args.target)
     with publication_lock(root):
-        prepared = prepare_publication(root, args)
+        prepared = prepare_publication(root, args, marked_proof_source(root, base, ref, adapter, None))
         publish_checks(root, base, prepared)
         goal_branch_collisions(root, ref, prepared)
         # One generation per planning PR, on the target's registry: never on an unmerged local one.
@@ -1348,7 +1710,7 @@ def op_publish_planning(args, now):
         result = {'schema': 'northstar-publication/2', 'planning_complete': report['planning']['planning_complete'],
                   'published': None, 'generation': prepared['generation'], 'planning': report['planning'],
                   'gates': report['gates'], 'authority': v2.NO_AUTHORITY, 'target': ref, 'target_revision': base,
-                  'provenance': origin}
+                  'provenance': origin, **marked_report(prepared)}
         if not result['planning_complete']:
             result['refusals'] = [{'code': 'planning_incomplete', 'detail': '%d blocking gaps; nothing was written'
                                    % len(report['planning']['blocking'])}]
@@ -2410,6 +2772,7 @@ def sidecar_lane(root, ref, pull, changed):
     regular_reserved(objects, pull['head'], changed)
     for name in changed:
         bundle = v2.validate_bundle(parse_json(show(root, ref, name.rsplit('/', 1)[0] + '/goals.json'), 'bundle'))
+        marked_sidecar_generation(root, ref, name, bundle)
         try:
             head = v2.validate_sidecar(parse_json(show(objects, pull['head'], name), 'sidecar'), bundle)
             for rev in (pull['base'], ref):
@@ -2442,7 +2805,8 @@ def replay_lane(root, ref, pull, adapter, busy=None):
     with tempfile.TemporaryDirectory(prefix='observer-replay-') as tmp:
         scratch, inputs = Path(tmp) / 'tree', Path(tmp) / 'inputs'
         inputs.mkdir()
-        names = {'bundle': 'goals.json', 'sidecar': 'sidecar.json', 'policy_candidate': 'policy-candidate.json'}
+        names = {'bundle': 'goals.json', 'sidecar': 'sidecar.json', 'policy_candidate': 'policy-candidate.json',
+                 'record': v2.MARKER_RECORD}
         files = {}
         for key, filename in names.items():
             data = show(objects, pull['head'], added[0] + '/' + filename)
@@ -2463,7 +2827,7 @@ def replay_lane(root, ref, pull, adapter, busy=None):
         replay = argparse.Namespace(root=str(scratch), bundle=str(files['bundle']), sidecar=str(files['sidecar']),
                                     policy_candidate=str(files['policy_candidate']) if 'policy_candidate' in files else None)
         try:
-            op_publish(replay, None, adapter)
+            op_publish(replay, None, adapter, replay_proof(root, base, ref, bundle, files))
         except (Invalid, OSError, KeyError, TypeError, ValueError) as error:
             v2.refuse('v2_scope_outside_goal', 'the reserved paths are not a publish-v2 replay: %s' % error)
         replayed = scratch_entries(root, scratch)
@@ -3277,7 +3641,9 @@ def run(argv, now=None, adapter=None):
     except Exception as error:  # noqa: BLE001 - every failure is a refusal, never a crash or an exit 0
         code_text = v2.code(error) if isinstance(error, Invalid) else 'operation_failed'
         code = EXIT_FAIL_CLOSED if args.operation == 'merge-v2' else 1
-        result = {'schema': v2.VERSION, 'refusals': [{'code': code_text, 'detail': '%s: %s' % (type(error).__name__, error)}]}
+        detail = getattr(error, 'refusal_detail', '%s: %s' % (type(error).__name__, error))
+        result = dict({'schema': v2.VERSION, 'refusals': [{'code': code_text, 'detail': detail}]},
+                      **getattr(error, 'refusal_fields', {}))  # a marked-route Refused carries its canonical record
     if args.operation in LOGGED and code != EXIT_V1:
         log_exit(args.operation, getattr(args, 'root', None), code, result, getattr(args, 'goal_id', None),
                  getattr(args, 'pr', None))
@@ -3308,6 +3674,10 @@ def main(argv):
         for kind in ('blocking', 'approval', 'deferred'):
             for line in v2.render_gaps(planning[kind]):
                 print('%s %s' % (kind, line), file=sys.stderr)
+        for item in (result.get(v2.MARKER) or {}).get('deferred', []):
+            # Own-script leaves the marked publication deferred: planning placeholders, never passed checks.
+            print('deferred own-script %s verification[%d] %s (no authority; readiness unknown)'
+                  % (item['goal'], item['verification_index'], item['path']), file=sys.stderr)
     elif result.get('gaps') and result.get('admitted') is False:
         # Proceed semantics: one consolidated report of every missing input, and no authority.
         print('readiness-contract/2: blocked - %d missing inputs (no authority)' % len(result['gaps']), file=sys.stderr)
@@ -3316,3 +3686,25 @@ def main(argv):
     if result.get('refusals'):
         print('readiness-contract/2: refused (%s)' % ', '.join(r['code'] for r in result['refusals']), file=sys.stderr)
     return code
+
+
+# Typed views of the frozen untyped helpers for the marked publication route. New code in this legacy
+# module is strict-typed (E6 D5: `mypy --strict` for new or changed legacy Python, pinned by the ledger
+# ratchet); the frozen helpers themselves stay as they are. Bound after every definition they name.
+_show: Callable[..., Any] = show
+_git: Callable[..., Any] = git
+_git_text: Callable[..., str] = git_text
+_ancestry: Callable[..., Any] = ancestry
+_parse_json: Callable[..., Any] = parse_json
+_registry_plans: Callable[..., Any] = registry_plans
+_command_validation: Callable[..., Any] = validate_commands
+_find_executable: Callable[..., Any] = find_executable
+_hosted_adapter: Callable[..., Any] = hosted_adapter_factory
+_sha256: Callable[..., str] = v2.sha256
+_code: Callable[..., str] = v2.code
+_fate: Callable[..., Any] = v2.inventory_fate
+_policy_goals: Callable[..., Any] = v2.policy_goals
+_validate_policy: Callable[..., Any] = v2.validate_policy
+_validate_amendment: Callable[..., Any] = v2.validate_amendment
+_validate_bootstrap: Callable[..., Any] = v2.validate_bootstrap
+_validate_live_scope: Callable[..., Any] = v2.validate_live_scope

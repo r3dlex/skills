@@ -307,6 +307,7 @@ def validate_bundle(bundle):
             check(dependency in ids, 'bundle_dependency_unknown', '%s->%s' % (goal['id'], dependency))
     for gid in ids:
         check(gid not in ancestors(bundle, gid), 'bundle_dependency_cycle', gid)
+    validate_marker(bundle)
     return bundle
 
 
@@ -546,6 +547,7 @@ def migrate_main(legacy, legacy_sha256, registry_v1, inventory, spec_sha256):
     check(fate.get('fate') in ('unstarted', 'partly-merged'), 'migration_fate_refused', fate.get('fate'))
     check(isinstance(legacy.get('spec'), dict) and legacy['spec'].get('sha256') == spec_sha256,
           'migration_spec_drifted', 'the spec on the target no longer matches the v1 binding')
+    unreserved_legacy(legacy)
     b5_inputs = []
     for item in fate.get('merged') or []:
         check(isinstance(item, dict) and set(item) == {'goal', 'pr', 'merge_commit'} and string(item.get('goal'))
@@ -589,6 +591,354 @@ def migrate_main(legacy, legacy_sha256, registry_v1, inventory, spec_sha256):
             'extensions': {'legacy_original': legacy, 'legacy_sha256': legacy_sha256, 'b5_inputs': b5_inputs},
             'next': 'Write bundle and sidecar to files; publish them with northstar/handoff-write.sh '
                     '(planning admission); merge the planning PR; one new plan approval binds the new generation'}
+
+
+# --- migrated own-script verification (the optional publication-time marker) ---------
+#
+# A marker is an untrusted request to verify provenance, never proof or permission. This pure
+# module owns its shape and goal linkage (validate_marker, from validate_bundle at every bundle
+# ingress), the migration proof over sealed observations (marker_proof), the deferral report and
+# the canonical decision and refusal records; the observer owns every fact. New code in this frozen
+# legacy module is strict-typed (E6 D5, `mypy --strict` for new or changed legacy Python under the
+# ledger ratchet), so JSON values are narrowed with isinstance and the frozen untyped helpers are
+# reached through `ok`, `refused` and explicit ignores.
+
+V1_GEN = '.ai/handoff/readiness-v1'
+MARKER = 'migrated_own_script_verification'
+MARKER_SCHEMA = 'migrated-own-script-verification/1'
+MARKER_RECORD = 'migrated-own-script-verification.json'
+MARKER_RECORD_SCHEMA = 'migrated-own-script-verification-record/1'
+MARKER_FIELDS = {'schema', 'registration', 'generation', 'legacy_bundle', 'scripts'}
+MARKER_SCRIPT_FIELDS = {'goal_id', 'verification_index', 'path'}
+ELIGIBILITY_FIELDS = {'merged', 'open_prs', 'branches', 'unobservable', 'fate'}
+FATE_FIELDS = {'fate', 'action', 'merged', 'unmerged', 'in_flight', 'ambiguous', 'refused'}
+SAFETY_FIELDS = {'goal_id', 'verification_index', 'executable_available', 'cwd_readable', 'script_readable',
+                 'refusal_code'}
+SPEC_POLICY_FIELDS = {'policy_source', 'policy_bytes', 'live_bytes', 'live_policy2', 'mode', 'amends', 'spec_bytes',
+                      'spec_missing', 'policy_sha256', 'spec_sha256'}
+DEFERRAL_FIELDS = {'goal', 'verification_index', 'path', 'status', 'source', 'recovery'}
+MARKER_RECORD_FIELDS = {'schema', 'base', 'clock', 'registration', 'generation', 'legacy_bundle', 'fresh_eligibility',
+                        'real_root_safety', 'spec_policy_bytes', 'deferred', 'authority', 'readiness'}
+MARKER_REFUSAL_FIELDS = {'schema', 'base', 'clock', 'refusals', 'authority', 'readiness'}
+DEFERRAL_RECOVERY = ("the goal's own implementation lands this script; every runtime verification (pre-commit, the "
+                     "pre-merge gate workspace and the certificate) still requires the real script to exist and pass "
+                     "under the preserved command")
+
+
+def refused(code_text: str, detail: object = '') -> Invalid:
+    """The Invalid that refuse() raises, built for strict-typed callers that narrow after raising it."""
+    return Invalid(code_text + (':' + str(detail) if detail != '' else ''))
+
+
+def ok(condition: object, code_text: str, detail: object = '') -> None:
+    """check() for strict-typed callers."""
+    if not condition:
+        raise refused(code_text, detail)
+
+
+def exact_fields(value: object, fields: set[str], code_text: str, where: str) -> dict[str, object]:
+    """An object with exactly these fields, narrowed, or a refusal."""
+    if not isinstance(value, dict) or set(value) != fields:
+        raise refused(code_text, where)
+    return value
+
+
+def literal(name: object) -> bool:
+    return bool(literal_path(name))  # type: ignore[no-untyped-call]
+
+
+def reserved_placements(value: object, path: str = '') -> list[str]:
+    """Every key path at which the reserved marker name occurs, at any depth of objects and lists."""
+    found: list[str] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            here = '%s/%s' % (path, key) if path else str(key)
+            if key == MARKER:
+                found.append(here)
+            found += reserved_placements(item, here)
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            found += reserved_placements(item, '%s[%d]' % (path, index))
+    return found
+
+
+def marked(bundle: object) -> bool:
+    """Whether the reserved name is present in a bundle's attachments, whatever its value: presence
+    triggers validation, never refusal by itself."""
+    attachments = bundle.get('attachments') if isinstance(bundle, dict) else None
+    return isinstance(attachments, dict) and MARKER in attachments
+
+
+def marker_of(bundle: object) -> object:
+    """The present reserved marker of a bundle (its value, of any type), or None when absent."""
+    attachments = bundle.get('attachments') if isinstance(bundle, dict) else None
+    return attachments.get(MARKER) if isinstance(attachments, dict) else None
+
+
+class Selection:
+    """One selected own-script leaf: its goal and the goal's position in the bundle, the preserved
+    verification index, the repository-relative script path, and the preserved cwd and command."""
+
+    def __init__(self, goal_id: str, position: int, index: int, path: str, cwd: str, command: str) -> None:
+        self.goal_id, self.position, self.index, self.path, self.cwd, self.command = \
+            goal_id, position, index, path, cwd, command
+
+    def key(self) -> tuple[int, int, str]:
+        return self.position, self.index, self.path
+
+
+def preserved_command(entry: object) -> tuple[str, str]:
+    """(cwd, command text) of one preserved verification entry, in either preserved form."""
+    if isinstance(entry, str):
+        return '.', entry
+    if isinstance(entry, dict):
+        return str(entry['cwd']), str(entry['command'])
+    raise refused('bundle_field_invalid', 'verification')
+
+
+def deferred_script(cwd: str, text: str, where: str) -> str:
+    """The repository-relative script path of a narrowly `bash tests/<name>.sh` command: exactly the
+    executable and the script argument, with no quoting or escaping, so the frozen validator's shlex
+    sees the same two words; joined to a literal cwd as publish_checks joins it. Any other form refuses."""
+    words = text.strip().split(' ')
+    script = words[1] if len(words) == 2 else ''
+    ok(words[:1] == ['bash'] and script.startswith('tests/') and script.endswith('.sh'), 'bundle_field_invalid',
+       where + ' command form')
+    ok(literal(script) and not any(char in script for char in '\'"\\'), 'bundle_field_invalid', where + ' command form')
+    ok(cwd == '.' or literal(cwd), 'bundle_field_invalid', where + ' cwd')
+    return script if cwd == '.' else cwd + '/' + script
+
+
+def marker_selection(goals: object, item: object, where: str) -> Selection:
+    """One marker script entry (AC-2): an existing goal, an in-range integer verification index (never a
+    Boolean), the narrow command form, a literal path equal to the command's script path that is an exact
+    scope entry of that goal and of no other goal."""
+    found = exact_fields(item, MARKER_SCRIPT_FIELDS, 'bundle_field_invalid', where)
+    if not isinstance(goals, list):
+        raise refused('bundle_field_invalid', where)
+    positions = {goal['id']: position for position, goal in enumerate(goals)}
+    ok(found['goal_id'] in positions, 'bundle_field_invalid', where + '.goal_id')
+    goal = goals[positions[found['goal_id']]]
+    index = found['verification_index']
+    ok(type(index) is int, 'bundle_field_invalid', where + '.verification_index')
+    if not isinstance(index, int) or not 0 <= index < len(goal['verification']):
+        raise refused('bundle_field_invalid', where + '.verification_index')
+    cwd, text = preserved_command(goal['verification'][index])
+    path = found['path']
+    ok(literal(path), 'bundle_field_invalid', where + '.path')
+    ok(path == deferred_script(cwd, text, where), 'bundle_field_invalid', where + '.path')
+    ok(path in goal['scope'], 'bundle_field_invalid', where + ' scope')
+    ok(not [other['id'] for other in goals if other is not goal and path in other['scope']], 'bundle_field_invalid',
+       where + ' belongs to another goal')
+    return Selection(str(goal['id']), positions[found['goal_id']], index, str(path), cwd, text)
+
+
+def matches(value: object, pattern: 're.Pattern[str]') -> bool:
+    return isinstance(value, str) and bool(pattern.fullmatch(value))
+
+
+def marker_fields(marker: object, plan_id: object) -> dict[str, object]:
+    """The five marker fields (AC-1): the schema constant, an id-shaped registration, a full generation
+    digest and the legacy payload binding at its canonical path with a full digest."""
+    found = exact_fields(marker, MARKER_FIELDS, 'bundle_field_invalid', MARKER + ' fields')
+    ok(found['schema'] == MARKER_SCHEMA, 'bundle_field_invalid', MARKER + '.schema')
+    ok(matches(found['registration'], ID), 'bundle_field_invalid', MARKER + '.registration')
+    ok(matches(found['generation'], SHA), 'bundle_field_invalid', MARKER + '.generation')
+    legacy = exact_fields(found['legacy_bundle'], {'path', 'sha256'}, 'bundle_field_invalid', MARKER + '.legacy_bundle')
+    ok(legacy['path'] == '%s/%s/%s/goals.json' % (V1_GEN, plan_id, found['generation']), 'bundle_field_invalid',
+       MARKER + '.legacy_bundle.path')
+    ok(matches(legacy['sha256'], SHA), 'bundle_field_invalid', MARKER + '.legacy_bundle.sha256')
+    return found
+
+
+def marker_scripts(goals: object, scripts: object) -> list[Selection]:
+    """The marker's script entries as ordered selections; a duplicate (goal, index) pair or path refuses."""
+    if not isinstance(scripts, list) or not scripts:
+        raise refused('bundle_field_invalid', MARKER + '.scripts')
+    selections = [marker_selection(goals, item, '%s.scripts[%d]' % (MARKER, number)) for number, item in enumerate(scripts)]
+    pairs = [(selection.goal_id, selection.index) for selection in selections]
+    paths = [selection.path for selection in selections]
+    ok(len(set(pairs)) == len(pairs), 'bundle_field_invalid', MARKER + '.scripts duplicate')
+    ok(len(set(paths)) == len(paths), 'bundle_field_invalid', MARKER + '.scripts duplicate')
+    return sorted(selections, key=Selection.key)
+
+
+def validate_marker(bundle: object) -> list[Selection]:
+    """Shape and goal linkage of the optional marker (AC-1, AC-2), on presence, at every bundle ingress.
+    The reserved name anywhere but attachments.<MARKER> refuses; a present marker has exactly its five
+    fields. Returns the selections ordered by goal position, verification index and path (empty when
+    unmarked)."""
+    misplaced = [place for place in reserved_placements(bundle) if place != 'attachments/' + MARKER]
+    ok(not misplaced, 'bundle_unknown_field', misplaced[0] if misplaced else '')
+    if not marked(bundle) or not isinstance(bundle, dict):
+        return []
+    found = marker_fields(marker_of(bundle), bundle['id'])
+    return marker_scripts(bundle['goals'], found['scripts'])
+
+
+def unreserved_legacy(legacy: object) -> None:
+    """A legacy payload carrying the reserved name anywhere - an attachment the verbatim copy would
+    collide with, or a legacy goal field the reduced projection would silently drop - refuses before
+    projection (AC-2)."""
+    placed = reserved_placements(legacy)
+    ok(not placed, 'migration_legacy_unsupported', 'reserved name at ' + placed[0] if placed else '')
+
+
+def legacy_goal_ids(legacy: object) -> list[str]:
+    """The goal ids of a legacy payload, or a refusal when it has no goal list."""
+    goals = legacy.get('goals') if isinstance(legacy, dict) else None
+    if not isinstance(goals, list):
+        raise refused('migration_legacy_unsupported', 'goals')
+    return [str(goal['id']) for goal in goals]
+
+
+def served_goals(eligibility: object) -> list[str]:
+    """AC-4 (C1.5): the goals a sealed fresh-eligibility observation serves, derived from its captured
+    `fate` and `merged` fields through the explicit join - the `merged` item whose number equals the
+    item's pr and whose merge_commit equals the item's merge_commit has reached True - never a new
+    observation and never a re-run of inventory_fate."""
+    record = validate_eligibility(eligibility)
+    fate = exact_fields(record['fate'], FATE_FIELDS, 'bundle_field_invalid', MARKER_RECORD + ' fate')
+    merged, items, unmerged = record['merged'], fate['merged'], fate['unmerged']
+    if not isinstance(merged, list) or not isinstance(items, list) or not isinstance(unmerged, list):
+        raise refused('migration_b5_invalid', 'fresh_eligibility lists')
+    served: list[str] = []
+    for item in items:
+        joined = [pull for pull in merged
+                  if pull.get('number') == item.get('pr') and pull.get('merge_commit') == item.get('merge_commit')]
+        ok(len(joined) == 1 and joined[0].get('reached') is True, 'migration_b5_invalid', json.dumps(item, sort_keys=True))
+        served.append(str(item['goal']))
+    ok(not set(served) & set(unmerged), 'migration_b5_invalid', 'served goals listed as unmerged')
+    return served
+
+
+def registered_legacy(registry_v1: object, marker: object, plan_id: object, legacy_sha256: str) -> None:
+    """AC-1: exactly one active v1 registration matches the marker's registration, the candidate's plan,
+    the marker's generation and its legacy payload path and digest, and the payload bytes hash to it."""
+    if not isinstance(registry_v1, dict) or not isinstance(marker, dict):
+        raise refused('migration_legacy_unregistered', MARKER)
+    entries = [entry for entry in registry_v1.get('plans') or []
+               if isinstance(entry, dict) and entry.get('id') == marker['registration']]
+    ok(len(entries) == 1, 'migration_legacy_unregistered', marker['registration'])
+    entry, bound = entries[0], marker['legacy_bundle']
+    ok(entry.get('status') == 'active', 'migration_legacy_unregistered', 'registration not active')
+    ok(entry.get('plan_id') == plan_id, 'migration_legacy_unregistered', 'registration plan')
+    ok(entry.get('generation') == marker['generation'], 'migration_legacy_unregistered', 'registration generation')
+    artifact = (entry.get('artifacts') or {}).get('bundle') or {}
+    ok(artifact.get('path') == bound['path'], 'migration_legacy_unregistered', 'legacy payload path')
+    ok(artifact.get('sha256') == bound['sha256'], 'migration_legacy_unregistered', 'legacy payload digest')
+    ok(legacy_sha256 == bound['sha256'], 'migration_legacy_unregistered', 'legacy payload bytes')
+
+
+def projection_matches(bundle: object, projected: object, served: list[str]) -> None:
+    """The candidate minus its marker equals the projection's bundle, its other attachments are the legacy
+    attachments verbatim, and the served goals are exactly the projection's B5 inputs."""
+    if not isinstance(bundle, dict) or not isinstance(projected, dict):
+        raise refused('migration_legacy_unsupported', MARKER)
+    candidate = {key: value for key, value in bundle.items() if key != 'attachments'}
+    expected = {key: value for key, value in projected['bundle'].items() if key != 'attachments'}
+    ok(candidate == expected, 'migration_legacy_unsupported', 'the candidate is not the supported projection')
+    carried = {key: value for key, value in bundle['attachments'].items() if key != MARKER}
+    ok(carried == projected['bundle'].get('attachments', {}), 'migration_legacy_unsupported',
+       'legacy attachments are not carried verbatim')
+    ok(sorted(served) == sorted(item['goal'] for item in projected['extensions']['b5_inputs']), 'migration_b5_invalid',
+       'served goals')
+
+
+def marker_proof(bundle: object, legacy: object, legacy_sha256: str, registry_v1: object, eligibility: object,
+                 spec_sha256: object) -> object:
+    """AC-1: the marked candidate minus its marker is exactly the supported migration projection of the
+    proved legacy generation under the sealed fresh eligibility, with the legacy attachments verbatim, and
+    the goals the observation serves are exactly the projection's B5 inputs. Pure: migrate_main refuses
+    the ineligible, unregistered, drifted or malformed cases with its existing codes. Returns the projection."""
+    marker = marker_of(bundle)
+    if not isinstance(marker, dict) or not isinstance(bundle, dict) or not isinstance(legacy, dict):
+        raise refused('migration_legacy_unsupported', MARKER)
+    registered_legacy(registry_v1, marker, bundle['id'], legacy_sha256)
+    served = served_goals(eligibility)
+    fate = exact_fields(validate_eligibility(eligibility)['fate'], FATE_FIELDS, 'bundle_field_invalid', 'fate')
+    record = dict({'id': marker['registration'], 'plan_id': legacy.get('id'), 'generation': marker['generation'],
+                   'goals': legacy_goal_ids(legacy)}, **fate)
+    projected = migrate_main(legacy, legacy_sha256, registry_v1, {'entries': [record]}, spec_sha256)  # type: ignore[no-untyped-call]
+    ok(projected['from']['registration'] == marker['registration'], 'migration_legacy_unregistered', 'registration')
+    ok(projected['from']['generation'] == marker['generation'], 'migration_legacy_unregistered', 'generation')
+    projection_matches(bundle, projected, served)
+    return projected
+
+
+def deferral_entries(selections: list[Selection], legacy: object, marker: object, absent: object) -> list[dict[str, object]]:
+    """One deferral per selected leaf absent from the base tree - goal, verification index, path, legacy
+    source and recovery - ordered by the original preserved legacy goal position, the original verification
+    index and the normalized path. A deferral is never a passed check and never execution readiness."""
+    if not isinstance(legacy, dict) or not isinstance(marker, dict) or not isinstance(absent, dict):
+        raise refused('migration_legacy_unsupported', MARKER)
+    positions = {goal['id']: position for position, goal in enumerate(legacy['goals'])}
+    ordered = sorted((positions[selection.goal_id], selection.index, selection.path, selection.goal_id)
+                     for selection in selections if absent[selection.path])
+    source = {'registry': V1_REGISTRY, 'registration': marker['registration'], 'generation': marker['generation'],
+              'legacy_bundle': dict(marker['legacy_bundle'])}
+    return [{'goal': goal_id, 'verification_index': index, 'path': path, 'status': 'deferred', 'source': source,
+             'recovery': DEFERRAL_RECOVERY} for _, index, path, goal_id in ordered]
+
+
+def validate_eligibility(eligibility: object) -> dict[str, object]:
+    """The sealed fresh-eligibility record's shape: its five fields and the seven fields of its fate."""
+    record = exact_fields(eligibility, ELIGIBILITY_FIELDS, 'bundle_field_invalid', MARKER_RECORD + ' fresh_eligibility')
+    exact_fields(record['fate'], FATE_FIELDS, 'bundle_field_invalid', MARKER_RECORD + ' fate')
+    ok(all(isinstance(record[name], list) for name in ('merged', 'open_prs', 'branches')), 'bundle_field_invalid',
+       MARKER_RECORD + ' fresh_eligibility lists')
+    return record
+
+
+def validate_marker_record(record: object, marker: object) -> dict[str, object]:
+    """The canonical decision record of a marked publication: exactly its fields, bound to this marker,
+    with the three sealed capture records in their exact shapes, no authority and readiness unknown."""
+    if not isinstance(marker, dict):
+        raise refused('bundle_field_invalid', MARKER_RECORD)
+    found = exact_fields(record, MARKER_RECORD_FIELDS, 'bundle_field_invalid', MARKER_RECORD + ' fields')
+    ok(found['schema'] == MARKER_RECORD_SCHEMA, 'bundle_field_invalid', MARKER_RECORD + '.schema')
+    ok(matches(found['base'], REVISION), 'bundle_field_invalid', MARKER_RECORD + '.base')
+    ok(matches(found['clock'], STAMP), 'bundle_field_invalid', MARKER_RECORD + '.clock')
+    for name in ('registration', 'generation', 'legacy_bundle'):
+        ok(found[name] == marker[name], 'bundle_field_invalid', '%s.%s' % (MARKER_RECORD, name))
+    validate_eligibility(found['fresh_eligibility'])
+    safety = found['real_root_safety']
+    if not isinstance(safety, list):
+        raise refused('bundle_field_invalid', MARKER_RECORD + '.real_root_safety')
+    for row in safety:
+        exact_fields(row, SAFETY_FIELDS, 'bundle_field_invalid', MARKER_RECORD + ' real_root_safety')
+    exact_fields(found['spec_policy_bytes'], SPEC_POLICY_FIELDS, 'bundle_field_invalid', MARKER_RECORD + ' spec_policy_bytes')
+    deferred = found['deferred']
+    if not isinstance(deferred, list):
+        raise refused('bundle_field_invalid', MARKER_RECORD + '.deferred')
+    for item in deferred:
+        exact_fields(item, DEFERRAL_FIELDS, 'bundle_field_invalid', MARKER_RECORD + ' deferred')
+    ok(found['authority'] == NO_AUTHORITY and found['readiness'] == 'unknown', 'bundle_field_invalid',
+       MARKER_RECORD + ' authority')
+    return found
+
+
+def marker_record(base: str, clock: str, marker: object, eligibility: object, safety: object, spec_policy: object,
+                  deferred: object) -> dict[str, object]:
+    """The canonical decision record of one marked publication (AC-4): the sealed capture records (C1.5)
+    and the deferral report, timed by the context clock, with no authority and readiness unknown."""
+    if not isinstance(marker, dict):
+        raise refused('bundle_field_invalid', MARKER)
+    record: dict[str, object] = {'schema': MARKER_RECORD_SCHEMA, 'base': base, 'clock': clock,
+                                 'registration': marker['registration'], 'generation': marker['generation'],
+                                 'legacy_bundle': dict(marker['legacy_bundle']), 'fresh_eligibility': eligibility,
+                                 'real_root_safety': safety, 'spec_policy_bytes': spec_policy, 'deferred': deferred,
+                                 'authority': NO_AUTHORITY, 'readiness': 'unknown'}
+    return validate_marker_record(record, marker)
+
+
+def marker_refusal(code_text: str, base: object, clock: object) -> dict[str, object]:
+    """The canonical refusal record of one marked route: the C1.4 code only - no exception message, no
+    OS-derived text, no path - timed by the context clock, with no authority and readiness unknown."""
+    record: dict[str, object] = {'schema': MARKER_RECORD_SCHEMA, 'base': base, 'clock': clock,
+                                 'refusals': [{'code': code_text}], 'authority': NO_AUTHORITY, 'readiness': 'unknown'}
+    ok(set(record) == MARKER_REFUSAL_FIELDS, 'bundle_field_invalid', MARKER_RECORD)
+    return record
 
 
 # --- plan approval (plan-approval/1) ------------------------------------------
@@ -1080,7 +1430,11 @@ def verdict_of(context):
 
 
 def compare_supplied(kind, supplied, rebuilt):
-    """A supplied artifact is only ever compared with the rebuilt one, never used."""
+    """A supplied artifact is only ever compared with the rebuilt one, never used. The reserved marker
+    name is refused on presence before the volatile-key projection can hide it: a supplied artifact is
+    one of the bundle-ingress routes, and presence-based validation comes first (AC-1)."""
+    placed = reserved_placements(supplied)
+    ok(not placed, 'supplied_%s_mismatch' % kind, 'the reserved name at ' + (placed[0] if placed else ''))
     check(projection(supplied) == projection(rebuilt), 'supplied_%s_mismatch' % kind,
           'differs from the rebuilt %s; supplied artifacts never carry authority' % kind)
 
