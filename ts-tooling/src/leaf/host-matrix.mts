@@ -137,7 +137,12 @@ function readInstaller(host: string, record: Plain): string | null {
 function readAlso(host: string, value: unknown, aliases: Readonly<Record<string, string>>): string[] {
   const also = uniqueNames(value, `consumers.${host}.also`);
   for (const alias of also) {
-    if (aliases[alias] !== host) {
+    // Object.hasOwn, not a truthiness test: when the key is not a declared alias,
+    // `aliases[alias]` is an inherited property — for `__proto__` the accessor
+    // throws ERR_PROTO_ACCESS under the production shim's --disable-proto=throw,
+    // so `also` would surface as `catalog query failed` instead of a
+    // host_matrix_invalid refusal.
+    if (!Object.hasOwn(aliases, alias) || aliases[alias] !== host) {
       throw new HostMatrixError(`consumers.${host}.also names ${alias}, which is not an alias of ${host}`);
     }
   }
