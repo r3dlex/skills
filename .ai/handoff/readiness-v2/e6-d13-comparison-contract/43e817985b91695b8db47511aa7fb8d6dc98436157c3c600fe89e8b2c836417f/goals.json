@@ -1,0 +1,56 @@
+{
+  "attachments": {
+    "agent_self": "HELD r3 text only. No human approved this draft or code. The principal acknowledged one bounded recovery and one pair, not its contents. No publication, approval, admission or implementation authority. No validator/gate/driver/test execution in this recovery.",
+    "coexistence": "Seven original all-new literal paths at skills inspection pin 4fa211b9e166983e50836a5b5b213de2acefb97a. Goal02 ts-tooling directory prefix is disclosed; exact-file coexistence follows the registered lane-matrix spec lines 261-271, never two open PRs on one file. No HPG/H1/lib/manifest/policy/local-CI/hook/ledger/source release. Historical scope observations are not a current window grant.",
+    "consumer_edge": "Consumer e6-sk-02-v1-port, plan e6-skills-ts-02, immutable generation b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015, AC-11 remains unchanged. Spec Consumer check section is normative: recompute the entire report from retained digest-bound raw inputs; verify exact registered comparison generation/spec, actual goal completion/merge/tool blob and ancestry; fresh check only at a future lawfully integrated consumer head carrying checker/test and current evidence. Landing on main does not rerun old PR checks. Hosted/local evidence must bind that actual head. Independent completion/capture custody/live-freshness review is mandatory and not authenticated by public hashes or a green consistency check. dependencies stays [] because this edge points from the separate consumer plan and cross-plan bundle dependencies are unsupported.",
+    "d8_boundary": "D8 proof, refusal/diagnostic/method/consumer corpora, source qualification, historical tag verification and hosted reds remain goal02 obligations. Old-head feasibility is not final-head proof. Equal evidence_incomplete/evidence_conflict refusals remain refusals; no historical objects, tags, signed bytes or missing certificates rewritten.",
+    "e6_parent": "D1-D13 remain bound to docs/specifications/ACTIVE/e6-skills-legacy-ts-conversion.md SHA256 981f1f80182180c02837d9eabba4f15f6383725bab89e67d713fc69dc4e01834. Exactly depth-one /provenance is excluded by byte span and independently asserted; permitted_sites remains empty; every other payload/stderr/exit/written-file difference remains compared. This changes evaluation of one disagreement; literal D13 did not already permit it. No E6 successor ID/order change.",
+    "principal_decision": "Separate reviewed add-only comparison contract, not a parent-D13 mask amendment: root .omc/plans/hitl-answers-20261014.md D13 addendum 2026-10-14T21:15:10Z. Scoped recovery/consumer raw retention direction: .omc/plans/c2-bounded-recovery-acknowledgement-20261015.md. No goal-02 spec edit, PR139 resumption or fabricated capture/signature.",
+    "publication_posture": "Unpublished HELD snapshot. Future docs/specifications/ACTIVE/e6-d13-comparison-contract.md and .ai/work-intake/e6-d13-comparison-contract.md are not created here. Registration requires a separately authorized serialized publication window; own-plan approval/admission remains later. Source gw-* still waits for actual HPG landing under human SQ3; H1/HPG source custody and PR139/130 preserved. No root131 failed-gate fallback.",
+    "regime": "readiness-contract/2 live-mode proposal only; sidecar stages/coverage unknown; legacy-safe TDD. No generation assigned. Knowledge kind plan, unpublished held. Review can accept only HELD draft text, never convergence/admission or implementation readiness. Any pair failure parks; no automatic r4.",
+    "retention_and_observation": "Goal02 alone owns proposed raw-run retention below tests/fixtures/e6-v1-port/d13/<run-id> subject to security/scope checks, not this goal's seven-path scope. Retain every raw stdout/stderr/metadata/written map and before/after file snapshot, including on refusal. No secrets or redaction disguised as originals. Replay archived absolute paths as recorded labels only. Offline --observe unconditionally resolves every exact requested local ref/repository/root, pins its revision for registry/policy reads and re-observes for mutation. Local refs do not prove current remote freshness. Qualify external collection/live evidence independently or HOLD; no new network/API/source writer.",
+    "tsf_04": "D5 strict stack and no legacy growth retained. New source is TS with committed compiled output; test is plain Bash, no Python. If TSF-04 applies, replacement ownership remains retained E6 goals05/07 under registered tswc-rt-a6 reconciliation (root historical generation 9961f82712b61b09428490e489d5523517895fec598131d36623a2eca8499e0a)."
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "Dispatch/coexistence: re-observe O8 f5e338b92bb754c2bfffdf542b498530258fdbc0 ancestry and exact-file coexistence at future admission. This is not an E6 successor or a source-authority waiver.",
+        "Tool/constants: implement the three interfaces, exits and fixed constants in the spec; no network/driver/write; only bounded local Git for observation and consumer lineage. No superseded-report bypass or sibling source edit.",
+        "Projection: exact depth-one member span only, nested bytes preserved, permitted sites empty, caller masks malformed, all other payload/stderr/exit bytes compared. Equal generic refusals stay refusals.",
+        "Assertions: implement every lane, target/ref/repository/registry/site, operation/plan/argv, outcome, written-map, ordering, quiescence and raw-binding assertion; exact deterministic whole-report derivation and recomputation.",
+        "Fixtures: P1; M01-M34; O01-O09 and C01-C15 in the spec Fixture inventory. Truthful linked candidate: common-dir-candidate fails, observe-git passes; separate false-metadata case: observe-git fails. Positive consumer uses the actual temporary-Git --observe report and digest-bound run, not injected flags/hashes. All fixture artifacts are labelled synthetic; none supplies real capture authenticity.",
+        "TDD: fixtures and test present, compiled module absent, same command bash tests/e6_d13_comparison_test.sh red exit1 then green after lawful implementation. Record per-case assertion outcomes and checker SHA256 in .ai/evidence/e6-d13-cc-01.json; run all five verification commands at the eventual PR head. Nothing is run or certified in this held planning lane.",
+        "Strict stack: D5 strict tsc, eslint complexity10/cognitive15, no-floating-promises, zero warnings/suppressions, build drift; plain Bash test passes shellcheck -S error, shfmt -d and bash -n. No Python/legacy growth or bridge. If TSF-04 applies, retain E6 goals05/07 as replacement owner under the registered tswc-rt-a6 reconciliation; do not invent an exemption.",
+        "Consumer edge: implement all six consumer-check conditions and the fresh future consumer-head enforcement point; exact registered generation/spec, actual goal merge/tool blob and ancestry, raw/report consistency, independent completion/capture custody/live-freshness review. Missing trust evidence holds the consumer even when mechanical checks pass. No PR139 continuation here."
+      ],
+      "dependencies": [],
+      "id": "e6-d13-cc-01",
+      "issue_ref": "issue:skills:e6-d13-comparison-contract",
+      "scope": [
+        ".ai/evidence/e6-d13-cc-01.json",
+        "scripts/lib/d13-compare.d.mts",
+        "scripts/lib/d13-compare.mjs",
+        "scripts/lib/d13-compare.mjs.map",
+        "tests/e6_d13_comparison_test.sh",
+        "tests/fixtures/e6-d13-cc",
+        "ts-tooling/src/d13-compare.mts"
+      ],
+      "verification": [
+        "bash tests/ts_tooling_test.sh",
+        "bash tests/legacy_freeze_test.sh",
+        "bash tests/run-tests.sh",
+        "prek run --all-files",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "e6-d13-comparison-contract",
+  "issue_ref": "issue:skills:e6-d13-comparison-contract",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/e6-d13-comparison-contract.md"
+  }
+}
