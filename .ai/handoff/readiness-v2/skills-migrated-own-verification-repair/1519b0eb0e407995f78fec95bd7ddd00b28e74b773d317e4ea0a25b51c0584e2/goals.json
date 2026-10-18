@@ -1,0 +1,57 @@
+{
+  "attachments": {
+    "custody": "Original publisher-repair product author retained. This preparation owns only isolated planning artifacts; publication/manifest/source and later Autobahn custody require their own original-parent release.",
+    "planning_status": "DRAFT: pending Northstar intake/adversarial closure, sequential independent Ralplan review and exact publication allocation; no execution authority.",
+    "source_evidence": "One completed HPG verification_not_at_base refusal and the existing ordinary refusal regression at tests/northstar_v2_publish_test.py:402; no repeat HPG publication is assigned.",
+    "verification_posture": "This repair candidate has no own-script deferral marker. Every verification script already exists at initial base 656d64e1759a27f97248d50bf613e8d31839fde5; actual publication and execution must refresh/recheck their real base."
+  },
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "AC-1: independently prove the marker's active exact v1 registry/payload/spec/repository binding and supported preserved unmerged-goal projection; unknown, forged, in-flight, retired or drifted evidence does not qualify; validate every present reserved marker at every bundle-ingress route on presence and independently of missing-script detection \u2014 refuse on validation failure, including an all-present forged marker, with ordinary zero-publication-write behavior, while preserving valid provenance and genuine runtime success.",
+        "AC-2: defer only a marked preserved bash tests/<name>.sh command's exact missing leaf, linked by its original goal and verification index to an exact literal same-goal scope path; reject malformed/duplicate/unsafe/out-of-scope selection, missing cwd and missing tools; reject wrong-type, nested/misplaced, Boolean-as-integer-index and duplicate-key/last-key-wins reserved-marker forms, and refuse reserved names in legacy attachments and unsupported legacy fields before projection instead of silently dropping or copying them.",
+        "AC-3: address both strict prepare_publication command validation and publish_checks base existence only through the reviewed v2-only planning/replay path; preserve ordinary refusal behavior and all frozen v1/shared validator bytes; create no actual source stub or execution evidence; plumb proof inputs (real bound Git repository, resolved immutable base, v1 registry, legacy payload) into publication and bare-replay validation from trusted observer-owned source with no caller proof flag, Boolean, scratch-root fallback or caller-supplied inventory file, and refuse a marked publication that cannot independently rebuild its source facts while keeping the unmarked bare replay unchanged.",
+        "AC-4: hash-bind the optional marker, explicitly report exact selected leaves as deferred and authority none/readiness unknown, and prove matching writer/replay/idempotence/worktree payloads, registry-last ordering and zero publication writes on refusals; prove byte-identical successful and refused replays from fresh ephemeral locations with canonical decision/deferral serialization ordered by original goal, verification index and path and carrying no OS-exception text, ephemeral view/scratch paths, PATH- or cwd-dependent executable paths or wall-clock bytes outside the defined input closure, with fresh-eligibility observation distinguished from historical provenance reconstruction; the four route contexts (admission-complete writer, bare publication replay, idempotent retry, same-repository worktree) are discharged against every eligible marked fixture and every negative fixture of the three scoped test seams as an explicit cross-product compared on full decision and refusal bytes, with compared byte records and per-case test-case identifiers recorded in the evidence list.",
+        "AC-5: unchanged real runtime verification and certificate gates block absent or failing real scripts and pass only genuine successful scripts under the preserved command; planning placeholders never leak into or satisfy runtime gates or grant initial implementation authority.",
+        "AC-6: extend only the three scoped existing test seams for eligible migrations and the specification's negative/regression matrix, now including the all-ingress reserved-marker matrix (per-route presence-independent negatives, all-present forged markers, wrong-type/nested/misplaced/Boolean-index/duplicate-key bytes, pre-projection legacy collisions and silently-dropped-field refusals) and the replay-determinism matrix (byte-identical successful and refused replays across fresh ephemeral locations with leak-set diagnostics asserted absent); preserve ordinary missing-base expectations and v1 golden outputs; record actual same-command red-before/green-after evidence canonically at .ai/evidence/migrated-own-verification-01.json.",
+        "AC-7: both v2 dependency manifests remain identical with only changed v2 helper/schema hashes rebound; local-ci changes only the eight affected declared source hashes for those helpers/schema, three tests and both manifests; all other inventory/workflow/source values and commands remain unchanged, all final-head hashes match, and separate manifest custody is honored.",
+        "AC-8: the complete repair stays inside this twelve-path fence under the current base-copy driver and original-author custody; all goal commands, full local and hosted exact-head CI, resolved independent review and fresh pre-merge admission/certificate remain required, with no automatically granted dependent dispatch."
+      ],
+      "dependencies": [],
+      "id": "migrated-own-verification-01",
+      "issue_ref": "issue:skills:skills-migrated-own-verification-repair",
+      "scope": [
+        "04-validate-handoff/autobahn/lib/readiness_contract_v2.py",
+        "04-validate-handoff/autobahn/lib/observer.py",
+        "04-validate-handoff/autobahn/schemas/readiness-contract-v2.json",
+        "04-validate-handoff/autobahn/modules/readiness-v2.md",
+        "02-govern-plan/northstar/modules/handoff.md",
+        "tests/northstar_v2_publish_test.py",
+        "tests/readiness_v2_migrate_test.py",
+        "tests/readiness_v2_certificate_test.py",
+        "04-validate-handoff/autobahn/readiness-dependency-v2.json",
+        "02-govern-plan/northstar/readiness-dependency-v2.json",
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/migrated-own-verification-01.json"
+      ],
+      "verification": [
+        "bash tests/northstar_v2_publish_test.sh",
+        "bash tests/readiness_v2_migrate_test.sh",
+        "bash tests/readiness_v2_certificate_test.sh",
+        "bash tests/readiness_v1_freeze_test.sh",
+        "bash tests/run-tests.sh",
+        "prek run --all-files",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "skills-migrated-own-verification-repair",
+  "issue_ref": "issue:skills:skills-migrated-own-verification-repair",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/skills-migrated-own-verification-repair.md"
+  }
+}

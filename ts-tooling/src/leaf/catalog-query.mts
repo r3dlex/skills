@@ -6,6 +6,7 @@ import { optionLike, writeHelp } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 import { CatalogError, loadCatalog, projection, select } from "./catalog-model.mjs";
+import { HostMatrixError, loadHostMatrix, resolveHost } from "./host-matrix.mjs";
 import { repoRoot } from "./repo-root.mjs";
 
 assertNodeVersion();
@@ -369,7 +370,10 @@ const CATALOG_HELP_OPTIONS = [
 
 function emitQuery(parsed: QueryArgs, root: string): number {
   const payload = loadCatalog(parsed.root);
-  const entries = select(payload, parsed.host ?? "", new Set(parsed.lifecycles), parsed.skill);
+  // An alias (omc, omx) resolves to its payload host here, before select(), so
+  // rows and projection bytes are the payload host's; HOSTS stays the enum.
+  const matrix = loadHostMatrix(parsed.root, new Set(payload.skills.map((entry) => entry.name)));
+  const entries = select(payload, resolveHost(matrix, parsed.host ?? ""), new Set(parsed.lifecycles), parsed.skill);
   if (parsed.projection) {
     const wrote = writeProjection(parsed.projection, `${JSON.stringify(projection(payload, entries), null, 2)}\n`, root);
     if (wrote !== 0) {
@@ -395,7 +399,7 @@ export function main(argv: readonly string[], root = repoRoot(import.meta.url)):
   try {
     return emitQuery(parsed, root);
   } catch (error) {
-    const message = error instanceof CatalogError ? error.message : "catalog query failed";
+    const message = error instanceof CatalogError || error instanceof HostMatrixError ? error.message : "catalog query failed";
     return fail(message);
   }
 }

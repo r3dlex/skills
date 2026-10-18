@@ -1,0 +1,36 @@
+{
+  "goals": {
+    "tswc-sk-e5-h1": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: skills has no line-coverage tooling for TS leaf tooling, shell tests or catalog data and no coverage threshold applies, so legacy-safe TDD is used; the red leg is tests/host_matrix_test.sh red before host-matrix.json and the resolver exist, with same-command red-to-green evidence in .ai/evidence/tswc-sk-e5-h1.json and negative fixtures per master section 4.7. Predecessors e6-sk-00-ledger (a389a52528d58ba209203f582e6735c3e40fa145) and e6-sk-01-py-leaf (10a650db711f5a3fd91315ee70ac94990ce0fe7d) are merged and ancestors of the draft base 848a3dd6375d3552ea118914d4584d39aaa351ba. Blast radius: one new root data file, one new TS module, an alias-resolution change in catalog-query (the shim scripts/catalog-query.py and its differential corpus unchanged), README rows; no catalog.json, installer, validator, prek, local-ci, ledger or SKILL.md change. Readiness stays unknown until one verified plan approval binds this generation; this record grants no execution authority.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "tswc-sk-e5-h3": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: no line-coverage tooling or threshold applies to the TS leaf tooling or shell tests, so legacy-safe TDD is used; the red leg is tests/host_matrix_parity_test.sh red before the entrypoint exists, with per-host negative fixtures and same-command red-to-green evidence in .ai/evidence/tswc-sk-e5-h3.json. In-plan dependency tswc-sk-e5-h1 is unmerged at the draft base. Blast radius: the shared parity rule source skill-parity.mts changes to delegate to one table, so the two compat shims scripts/check-codex-parity.sh and scripts/check-opencode-parity.sh must stay byte-identical in behavior (proved by their suites and the anchored differential test); a new entrypoint and fixtures; no shim, ledger, prek, local-ci, catalog.json or SKILL.md change. Readiness stays unknown until one verified plan approval binds this generation; this record grants no execution authority.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    },
+    "tswc-sk-e5-h4": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage unmeasured: no line-coverage tooling or threshold applies to shell tests or catalog data, so legacy-safe TDD is used; the red leg is the README host-table assertion of tests/host_matrix_delivery_test.sh red before the README edit, plus seeded negative fixtures (undelivered skill, injected unmarked construct, widened carve-out), with same-command red-to-green evidence in .ai/evidence/tswc-sk-e5-h4.json. In-plan dependencies tswc-sk-e5-h1 and tswc-sk-e5-h3 are unmerged at the draft base. Blast radius: one new gate test and README prose; no supported_hosts, installer, catalog.json, prek, local-ci, ledger or SKILL.md change; the ai-catapult lock bump is a later batched cross-lane PR, not this goal. Readiness stays unknown until one verified plan approval binds this generation; this record grants no execution authority.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "tswc-skills-lane-matrix",
+  "schema": "readiness-sidecar/1"
+}

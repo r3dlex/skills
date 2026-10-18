@@ -5,16 +5,21 @@ and the release surface. Ephemeral keys, temporary anchors and disposable reposi
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I drops the script directory
+import argparse
 import base64
+import contextlib
 import copy
+import hashlib
+import io
 import json
 import os
 import pwd
+import re
 import shutil
 import subprocess
 import tempfile
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import readiness_v2_core_test as core
@@ -627,6 +632,659 @@ class ReleaseSurfaceTests(unittest.TestCase):
                      '04-validate-handoff/autobahn/lib/observer.py', '04-validate-handoff/autobahn/lib/readiness_contract_v2.py',
                      '04-validate-handoff/autobahn/readiness-dependency-v2.json', 'tests/readiness_v2_core_test.py'):
             self.assertEqual(contract['sources'].get(name), sha(REPO / name), name)
+
+
+# --- migrated own-script verification (the marked publication route) ------------------------------------
+#
+# New test code is strict-typed (the ledger ratchet pins this file's mypy count): the untyped fixture
+# helpers are reached through these typed views.
+from typing import Any, Callable  # noqa: E402 - the appended marked-route cases
+from readiness_contract import Invalid  # noqa: E402 - the refusal every ingress raises
+from readiness_v2_migrate_test import HOST_UNSTARTED, marked_plan  # noqa: E402 - the migrated, marked fixture plan
+
+_fixture: Callable[..., Any] = Fixture
+_sub: Callable[..., Any] = Case.sub
+_code: Callable[..., str] = v2.code
+_verdict: Callable[..., Any] = v2.verdict_of
+_main: Callable[..., Any] = observer.main
+_adapter: Callable[..., Any] = observer.FixtureAdapter
+_run: Callable[..., Any] = observer.run
+_publish: Callable[..., Any] = publish
+_snapshot: Callable[..., Any] = snapshot
+_write_json: Callable[..., Any] = write_json
+_sha: Callable[..., str] = sha
+_codes: Callable[..., Any] = codes
+_git: Callable[..., str] = git
+_bytes: Callable[..., bytes] = observer.publication_bytes
+def forbidden(*args: Any, **kwargs: Any) -> Any:
+    raise AssertionError('decision construction performed an observation')
+
+
+def no_observation() -> list[Any]:
+    """The spy of AC-4's capture contract: no subprocess, no environment read, no filesystem read, no clock
+    and no temporary allocation between the seal and the single decision exit."""
+    environment = mock.MagicMock()
+    environment.__getitem__.side_effect = forbidden
+    environment.get.side_effect = forbidden
+    patches = [mock.patch('subprocess.run', forbidden), mock.patch('subprocess.Popen', forbidden),
+               mock.patch('subprocess.check_output', forbidden), mock.patch('builtins.open', forbidden),
+               mock.patch('pathlib.Path.read_bytes', forbidden), mock.patch('pathlib.Path.read_text', forbidden),
+               mock.patch('pathlib.Path.is_file', forbidden), mock.patch('pathlib.Path.is_dir', forbidden),
+               mock.patch('pathlib.Path.exists', forbidden), mock.patch('pathlib.Path.resolve', forbidden),
+               mock.patch('pathlib.Path.iterdir', forbidden), mock.patch('pathlib.Path.write_bytes', forbidden),
+               mock.patch('pathlib.Path.mkdir', forbidden), mock.patch('os.stat', forbidden), mock.patch('os.access', forbidden),
+               mock.patch('os.listdir', forbidden), mock.patch('os.environ', environment),
+               mock.patch('tempfile.mkdtemp', forbidden), mock.patch('tempfile.TemporaryDirectory', forbidden),
+               mock.patch('time.time', forbidden), mock.patch.object(observer, 'datetime', mock.MagicMock(now=forbidden))]
+    return patches
+
+
+def spied(target: str, calls: list[Any]) -> Any:
+    """Patch observer.<target> with a wrapper that binds the no-observation spy for exactly the call's
+    duration and records that the exit serializer ran inside it."""
+    original = getattr(observer, target)
+
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        patches = no_observation()
+        exits: list[Any] = []
+
+        def exit_serializer(value: Any) -> bytes:
+            exits.append(value)
+            return _bytes(value)
+        for patch in patches:
+            patch.start()
+        try:
+            with mock.patch.object(observer, 'publication_bytes', side_effect=exit_serializer):
+                result = original(*args, **kwargs)
+        finally:
+            for patch in reversed(patches):
+                patch.stop()
+        calls.append(len(exits))
+        return result
+    return mock.patch.object(observer, target, wrapper)
+
+
+def stamps(data: bytes) -> set[str]:
+    return {match.decode() for match in re.findall(rb'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', data)}
+
+
+def twin_of(fixture: Any, work: Any) -> Any:
+    """The same keys and hooks over another checkout of the same repository: a fresh location or a linked worktree."""
+    twin = mock.MagicMock()
+    twin.work, twin.base, twin.keys, twin.run = work, work.parent, fixture.keys, fixture.run
+    return twin
+
+
+class MarkedPublicationTests(Case):
+    """AC-1 to AC-4: a proved migration publishes with its own-script leaves deferred, every forged or
+    unprovable marker refuses with zero publication writes, and the decision bytes are deterministic."""
+
+    def setUp(self) -> None:
+        super().setUp()  # type: ignore[no-untyped-call]
+        self.fixture = _fixture(self.base)
+        self.bundle, self.sidecar, self.legacy = marked_plan(self.fixture)
+        self.before = _snapshot(self.fixture.work)
+
+    def publish_marked(self, bundle: Any = None, sidecar: Any = None, **kwargs: Any) -> Any:
+        kwargs.setdefault('adapter', _adapter(HOST_UNSTARTED))
+        return _publish(self.fixture, bundle or self.bundle, sidecar or self.sidecar, **kwargs)
+
+    def refused(self, bundle: Any, expected: str, **kwargs: Any) -> Any:
+        exit_code, result = self.publish_marked(bundle, **kwargs)
+        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
+        self.assertIn(expected, _codes(result), json.dumps(result, indent=1))
+        self.assertEqual(_snapshot(self.fixture.work), self.before, 'a refusal writes nothing')
+        return result
+
+    def test_a_proved_migration_publishes_with_its_own_script_deferred(self) -> None:
+        exit_code, result = self.publish_marked()
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        self.assertTrue(result['planning_complete'])
+        self.assertEqual(result['authority'], v2.NO_AUTHORITY)
+        record = result[v2.MARKER]
+        self.assertEqual(record['schema'], v2.MARKER_RECORD_SCHEMA)
+        self.assertEqual((record['authority'], record['readiness']), (v2.NO_AUTHORITY, 'unknown'))
+        self.assertEqual([(d['goal'], d['verification_index'], d['path'], d['status']) for d in record['deferred']],
+                         [('M1', 1, 'tests/M1_test.sh', 'deferred')])
+        self.assertEqual(record['deferred'][0]['source']['registration'], 'northstar-plan-plan-m')
+        self.assertEqual(record['deferred'][0]['recovery'], v2.DEFERRAL_RECOVERY)
+        self.assertEqual(record['base'], _git(self.fixture.work, 'rev-parse', 'origin/main'))
+        self.assertEqual(record['clock'], datetime.fromtimestamp(int(_git(self.fixture.work, 'show', '-s', '--format=%ct', 'origin/main')),
+                                                                 timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))
+        self.assertEqual([row['script_readable'] for row in record['real_root_safety']], [False])
+        self.assertEqual(record['fresh_eligibility']['fate']['fate'], 'unstarted')
+        entry = result['published']
+        prefix = self.fixture.work / entry['artifacts'][v2.MARKER]['path'].rsplit('/', 1)[0]
+        self.assertEqual(sorted(p.name for p in prefix.iterdir()),
+                         ['goals.json', 'graph.json', 'handoff.md', v2.MARKER_RECORD, 'sidecar.json'])
+        self.assertEqual((prefix / v2.MARKER_RECORD).read_bytes(), _bytes(record))
+        self.assertEqual(json.loads((prefix / 'goals.json').read_text())['attachments'][v2.MARKER], self.bundle['attachments'][v2.MARKER])
+        # The deferral is a planning placeholder: no script was written anywhere in the tree.
+        self.assertFalse((self.fixture.work / 'tests/M1_test.sh').exists())
+        self.assertFalse(list(Path(tempfile.gettempdir()).glob('observer-view-*')), 'the validation view never survives')
+
+    def test_an_ordinary_plan_keeps_both_missing_script_refusals(self) -> None:
+        plain = copy.deepcopy(self.bundle)
+        del plain['attachments'][v2.MARKER]
+        self.refused(plain, 'verification_invalid')
+        (self.fixture.work / 'tests/M1_test.sh').write_text('#!/bin/sh\nexit 0\n')
+        self.before = _snapshot(self.fixture.work)
+        self.refused(plain, 'verification_not_at_base')
+
+    def test_forged_markers_refuse_before_any_write(self) -> None:
+        def changed(change: Any) -> dict[str, Any]:
+            bundle = copy.deepcopy(self.bundle)
+            change(bundle)
+            return bundle
+        cases = [(lambda b: b['attachments'][v2.MARKER].update(registration='northstar-plan-plan-a'), 'migration_legacy_unregistered'),
+                 (lambda b: b['attachments'][v2.MARKER].update(generation='e' * 64), 'bundle_field_invalid'),
+                 (lambda b: b['attachments'][v2.MARKER].update(generation='e' * 64, legacy_bundle=dict(
+                     b['attachments'][v2.MARKER]['legacy_bundle'], path='%s/plan-m/%s/goals.json' % (v2.V1_GEN, 'e' * 64))),
+                  'migration_legacy_unregistered'),
+                 (lambda b: b['attachments'][v2.MARKER]['legacy_bundle'].update(sha256='e' * 64), 'migration_legacy_unregistered'),
+                 (lambda b: b['goals'][0].update(acceptance_criteria=['M1 works', 'and more']), 'migration_legacy_unsupported'),
+                 (lambda b: b['goals'][0]['verification'].append('git diff --check'), 'migration_legacy_unsupported'),
+                 (lambda b: b['attachments'].update(note='changed'), 'migration_legacy_unsupported'),
+                 (lambda b: b['attachments'][v2.MARKER]['scripts'][0].update(verification_index=True), 'bundle_field_invalid'),
+                 (lambda b: b['attachments'][v2.MARKER]['scripts'][0].update(verification_index=0), 'bundle_field_invalid'),
+                 (lambda b: b['attachments'].update(nested={v2.MARKER: {}}), 'bundle_unknown_field'),
+                 (lambda b: b['attachments'].__setitem__(v2.MARKER, True), 'bundle_field_invalid'),
+                 (lambda b: b['attachments'].__setitem__(v2.MARKER, [b['attachments'][v2.MARKER]]), 'bundle_field_invalid')]
+        for change, expected in cases:
+            with self.subTest(expected=expected, change=changed(change)['attachments']):
+                self.refused(changed(change), expected)
+
+    def test_refusal_bytes_carry_the_code_only_and_never_a_path(self) -> None:
+        bundle = copy.deepcopy(self.bundle)
+        bundle['attachments'][v2.MARKER]['registration'] = 'northstar-plan-plan-a'
+        result = self.refused(bundle, 'migration_legacy_unregistered')
+        # The actual refusal output is code-only: the outer detail is the code itself, never the exception
+        # type or message, and the nested record stays the sanitized canonical one (C1.4).
+        self.assertEqual(result['refusals'], [{'code': 'migration_legacy_unregistered',
+                                               'detail': 'migration_legacy_unregistered'}])
+        refusal = result[v2.MARKER]
+        self.assertEqual(set(refusal), v2.MARKER_REFUSAL_FIELDS)
+        self.assertEqual(refusal['refusals'], [{'code': 'migration_legacy_unregistered'}])
+        self.assertEqual((refusal['authority'], refusal['readiness']), (v2.NO_AUTHORITY, 'unknown'))
+        self.assertEqual(refusal['base'], _git(self.fixture.work, 'rev-parse', 'origin/main'))
+        text = _bytes(result).decode()
+        for leak in ('Refused', 'Invalid', 'Traceback', 'Errno', 'No such file', str(self.base),
+                     str(shutil.which('bash'))):
+            self.assertNotIn(leak, text)
+        self.assertEqual(stamps(_bytes(refusal)), {refusal['clock']})
+        # Changing real-interpreter availability changes the sealed real-root safety: no bash on PATH refuses the
+        # same way, with the code only and still no resolved path.
+        gitonly = self.base / 'gitonly'
+        gitonly.mkdir()
+        (gitonly / 'git').symlink_to(str(shutil.which('git')))
+        without = self.refused(self.bundle, 'verification_invalid', env={'PATH': str(gitonly)})
+        self.assertEqual(without[v2.MARKER]['refusals'], [{'code': 'verification_invalid'}])
+        self.assertNotIn(str(self.base), _bytes(without[v2.MARKER]).decode())
+
+    def test_a_present_marker_is_validated_before_and_independently_of_any_missing_script(self) -> None:
+        # Every selected script exists at the base and in the tree; a forged binding still refuses (AC-1).
+        fixture = _fixture(_sub(self, 'present'))
+        bundle, sidecar, _ = marked_plan(fixture, present=('M1',))
+        before = _snapshot(fixture.work)
+        forged = copy.deepcopy(bundle)
+        forged['attachments'][v2.MARKER]['legacy_bundle']['sha256'] = 'e' * 64
+        exit_code, result = _publish(fixture, forged, sidecar, adapter=_adapter(HOST_UNSTARTED))
+        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
+        self.assertIn('migration_legacy_unregistered', _codes(result))
+        self.assertEqual(_snapshot(fixture.work), before)
+        # A valid marker over present scripts keeps the ordinary path: nothing is deferred, provenance is kept.
+        exit_code, result = _publish(fixture, bundle, sidecar, adapter=_adapter(HOST_UNSTARTED))
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        self.assertEqual(result[v2.MARKER]['deferred'], [])
+        self.assertEqual([row['script_readable'] for row in result[v2.MARKER]['real_root_safety']], [True])
+        self.assertEqual(result['published']['artifacts'][v2.MARKER]['path'].rsplit('/', 1)[1], v2.MARKER_RECORD)
+
+    def test_a_bare_publish_v2_cannot_rebuild_the_proof_and_refuses(self) -> None:
+        inputs = Path(tempfile.mkdtemp(dir=self.base))
+        exit_code, result = _run(['publish-v2', '--root', str(self.fixture.work), '--bundle',
+                                  str(_write_json(inputs / 'b.json', self.bundle)), '--sidecar',
+                                  str(_write_json(inputs / 's.json', self.sidecar))], now=NOW)
+        self.assertEqual(exit_code, 1, json.dumps(result, indent=1))
+        self.assertEqual([r['code'] for r in result['refusals']], ['target_ref_unobservable'])
+        self.assertEqual(_snapshot(self.fixture.work), self.before)
+
+    def test_fresh_eligibility_is_observed_at_publication_and_blocks_an_in_flight_legacy(self) -> None:
+        head = _git(self.fixture.work, 'rev-parse', 'origin/main')
+        in_flight = {'merged_prs': [], 'open_prs': [{'number': 9, 'headRefName': 'feat/plan-m-M1', 'headRefOid': head}], 'branches': []}
+        result = self.refused(self.bundle, 'migration_fate_refused', adapter=_adapter(in_flight))
+        self.assertEqual(result[v2.MARKER]['refusals'], [{'code': 'migration_fate_refused'}])
+        unobservable = {'merged_prs': [{'number': n, 'headRefName': 'x%d' % n} for n in range(observer.ROUTE_LIMIT)],
+                        'open_prs': [], 'branches': []}
+        self.refused(self.bundle, 'migration_fate_refused', adapter=_adapter(unobservable))
+
+    def test_a_partly_merged_legacy_publishes_only_its_unmerged_goals(self) -> None:
+        fixture = _fixture(_sub(self, 'partly'))
+        head = _git(fixture.work, 'rev-parse', 'origin/main')
+        host = {'merged_prs': [{'number': 7, 'headRefName': 'feat/plan-p-P1', 'headRefOid': head, 'baseRefName': 'main',
+                                'mergeCommit': {'oid': head}, 'mergedAt': '2026-10-01T00:00:00Z'}], 'open_prs': [], 'branches': []}
+        bundle, sidecar, _ = marked_plan(fixture, plan_id='plan-p', goals=('P1', 'P2'), host=host)
+        self.assertEqual([g['id'] for g in bundle['goals']], ['P2'])
+        exit_code, result = _publish(fixture, bundle, sidecar, adapter=_adapter(host))
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        record = result[v2.MARKER]
+        self.assertEqual([d['goal'] for d in record['deferred']], ['P2'])
+        self.assertEqual(record['fresh_eligibility']['fate']['fate'], 'partly-merged')
+        self.assertEqual(v2.served_goals(record['fresh_eligibility']), ['P1'])
+        # A forged observation whose served goal has no reached merge is not a derivation anyone can make.
+        forged = copy.deepcopy(record['fresh_eligibility'])
+        forged['merged'][0]['reached'] = False
+        with self.assertRaises(Invalid) as raised:
+            v2.served_goals(forged)
+        self.assertEqual(_code(raised.exception), 'migration_b5_invalid')
+
+    def test_the_decision_is_constructed_from_the_seal_alone(self) -> None:
+        calls: list[Any] = []
+        with spied('decide_marked_publication', calls):
+            exit_code, result = self.publish_marked()
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        self.assertEqual(len(calls), 1, 'the decision ran exactly once inside the spy')
+        self.assertGreaterEqual(calls[0], 1, 'the single exit serializer ran inside the spy')
+        # The same spy around observation trips: the seal is where the reads live, so a spy bound only at the
+        # serializer would prove nothing.
+        with spied('seal_marked_publication', calls):
+            exit_code, result = self.publish_marked()
+        self.assertEqual(exit_code, 1)
+        self.assertIn('operation_failed', _codes(result))
+        self.assertIn('performed an observation', result['refusals'][0]['detail'])
+
+    def test_decision_and_refusal_bytes_are_identical_across_fresh_locations_paths_and_clocks(self) -> None:
+        elsewhere = Path(tempfile.mkdtemp(prefix='elsewhere-')).resolve()
+        self.addCleanup(shutil.rmtree, elsewhere, True)
+        for name in ('origin.git', 'work'):
+            shutil.copytree(self.base / name, elsewhere / name, symlinks=True)
+        _git(elsewhere / 'work', 'remote', 'set-url', 'origin', str(elsewhere / 'origin.git'))
+        twin = twin_of(self.fixture, elsewhere / 'work')
+        reordered = os.pathsep.join(reversed(os.environ['PATH'].split(os.pathsep)))
+        later = {'now': NOW + timedelta(days=3), 'env': {'PATH': reordered}}
+        forged = copy.deepcopy(self.bundle)
+        forged['attachments'][v2.MARKER]['legacy_bundle']['sha256'] = 'e' * 64
+        exit_code, first = self.publish_marked()
+        self.assertEqual(exit_code, 0, json.dumps(first, indent=1))
+        exit_code, second = _publish(twin, self.bundle, self.sidecar, adapter=_adapter(HOST_UNSTARTED), **later)
+        self.assertEqual(exit_code, 0, json.dumps(second, indent=1))
+        self.assertEqual(_bytes(first[v2.MARKER]), _bytes(second[v2.MARKER]))
+        prefix = first['published']['artifacts'][v2.MARKER]['path'].rsplit('/', 1)[0]
+        for name in ('goals.json', 'sidecar.json', 'graph.json', 'handoff.md', v2.MARKER_RECORD):
+            self.assertEqual(_sha(self.fixture.work / prefix / name), _sha(twin.work / prefix / name), name)
+        exit_code, refused = self.publish_marked(forged)
+        exit_code_twin, refused_twin = _publish(twin, forged, self.sidecar, adapter=_adapter(HOST_UNSTARTED), **later)
+        self.assertEqual((exit_code, exit_code_twin), (1, 1))
+        self.assertEqual(_bytes(refused[v2.MARKER]), _bytes(refused_twin[v2.MARKER]))
+        text = _bytes(first[v2.MARKER]).decode() + _bytes(refused[v2.MARKER]).decode()
+        for leak in (str(self.base), str(elsewhere), 'Errno', 'Traceback', str(shutil.which('bash'))):
+            self.assertNotIn(leak, text)
+        self.assertEqual(stamps(_bytes(first[v2.MARKER])), {first[v2.MARKER]['clock']})
+
+    def test_the_idempotent_retry_and_the_linked_worktree_route_match_the_writer(self) -> None:
+        exit_code, first = self.publish_marked()
+        self.assertEqual(exit_code, 0, json.dumps(first, indent=1))
+        exit_code, again = self.publish_marked()
+        self.assertEqual((exit_code, again['published']), (0, first['published']), json.dumps(again, indent=1))
+        self.assertEqual(_bytes(first[v2.MARKER]), _bytes(again[v2.MARKER]))
+        linked = self.base / 'linked'
+        _git(self.fixture.work, 'worktree', 'add', '-q', '--detach', str(linked), 'origin/main')
+        self.assertTrue((linked / 'docs/plan-m-spec.md').is_file())
+        twin = twin_of(self.fixture, linked)
+        exit_code, third = _publish(twin, self.bundle, self.sidecar, adapter=_adapter(HOST_UNSTARTED))
+        self.assertEqual(exit_code, 0, json.dumps(third, indent=1))
+        self.assertEqual(_bytes(first[v2.MARKER]), _bytes(third[v2.MARKER]))
+        self.assertEqual(third['published'], first['published'])
+        prefix = first['published']['artifacts'][v2.MARKER]['path'].rsplit('/', 1)[0]
+        for name in ('goals.json', 'sidecar.json', 'graph.json', 'handoff.md', v2.MARKER_RECORD):
+            self.assertEqual(_sha(self.fixture.work / prefix / name), _sha(linked / prefix / name), name)
+
+    def test_a_registered_marked_generation_loads_by_reconstruction_and_a_supplied_context_cannot_carry_the_name(self) -> None:
+        exit_code, result = self.publish_marked()
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        self.fixture.commit_push('publish the migrated plan-m generation')
+        # Post-landing: the goal's own script lands on main; the proof stays a reconstruction from recorded bytes.
+        (self.fixture.work / 'tests/M1_test.sh').write_text('#!/bin/sh\nexit 0\n')
+        self.fixture.commit_push('feat: land the M1 script')
+        exit_code, context = self.fixture.run(['admit-v2', '--root', str(self.fixture.work), '--handoff', 'northstar-plan-plan-m',
+                                               '--goal-id', 'M1', '--stage', 'planning'], adapter=_adapter(HOST_UNSTARTED))
+        self.assertEqual(exit_code, 1, 'planning is never admitted')
+        self.assertFalse({'migration_legacy_unregistered', 'migration_legacy_unsupported', 'generation_artifact_mismatch',
+                          'bundle_field_invalid', 'admission_failed'} & _codes(context), json.dumps(context['gaps'], indent=1))
+        self.assertIn('approval_tag_missing', _codes(context))
+        supplied = copy.deepcopy(context)
+        supplied[v2.MARKER] = {'forged': True}
+        path = _write_json(self.base / 'context.json', supplied)
+        exit_code, again = self.fixture.run(['admit-v2', '--root', str(self.fixture.work), '--handoff', 'northstar-plan-plan-m',
+                                             '--goal-id', 'M1', '--stage', 'planning', '--context', str(path)],
+                                            adapter=_adapter(HOST_UNSTARTED))
+        self.assertIn('supplied_context_mismatch', _codes(again))
+        # A tampered record on main refuses the registered generation load for every route that loads it.
+        record_path = self.fixture.work / result['published']['artifacts'][v2.MARKER]['path']
+        tampered = json.loads(record_path.read_text())
+        tampered['deferred'] = []
+        _write_json(record_path, tampered)
+        self.fixture.commit_push('tamper with the record')
+        exit_code, context = self.fixture.run(['admit-v2', '--root', str(self.fixture.work), '--handoff', 'northstar-plan-plan-m',
+                                               '--goal-id', 'M1', '--stage', 'planning'], adapter=_adapter(HOST_UNSTARTED))
+        self.assertIn('generation_artifact_mismatch', _codes(context))
+
+    def test_a_missing_cwd_is_a_sealed_fact_the_decision_refuses_on(self) -> None:
+        work = self.fixture.work
+        nested = v2.Selection('M1', 0, 1, 'sub/tests/M1_test.sh', 'sub', 'bash tests/M1_test.sh')
+        row = observer.safety_row(work, nested)
+        self.assertEqual((row['cwd_readable'], row['script_readable'], row['refusal_code']), (False, False, 'verification_invalid'))
+        facts = observer.base_tree_facts(work, _git(work, 'rev-parse', 'origin/main'), [nested])
+        self.assertEqual(facts, {'absent': {'sub/tests/M1_test.sh': True}, 'cwd_tree': {'sub': False}})
+        (work / 'sub').mkdir()
+        self.assertEqual(observer.safety_row(work, nested)['cwd_readable'], True, 'a cwd present at the root resolves')
+        flat = v2.Selection('M1', 0, 1, 'tests/M1_test.sh', '.', 'bash tests/M1_test.sh')
+        self.assertEqual(observer.safety_row(work, flat)['refusal_code'], 'verification_invalid', 'the missing leaf is what the validator sees')
+        self.assertEqual(observer.safety_row(work, flat)['executable_available'], True)
+        self.assertEqual(set(row), v2.SAFETY_FIELDS)
+
+    def test_a_supplied_artifact_carrying_the_reserved_name_under_a_volatile_key_is_refused(self) -> None:
+        # Every supplied-context ingress kind is compared against the rebuilt artifact, and the reserved
+        # marker name refuses on presence before the volatile `root`/`observed_at` keys are projected away.
+        exit_code, result = self.publish_marked()
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        self.fixture.commit_push('publish the migrated plan-m generation')
+        admit = ['admit-v2', '--root', str(self.fixture.work), '--handoff', 'northstar-plan-plan-m',
+                 '--goal-id', 'M1', '--stage', 'planning']
+        exit_code, context = self.fixture.run(admit, adapter=_adapter(HOST_UNSTARTED))
+        self.assertEqual(exit_code, 1, 'planning is never admitted')
+        artifacts: dict[str, Any] = {'context': context, 'observation': context['observation'],
+                                     'verdict': _verdict(context)}
+        for kind in sorted(artifacts):
+            exact = _write_json(self.base / ('supplied-%s.json' % kind), artifacts[kind])
+            exit_code, again = self.fixture.run(admit + ['--' + kind, str(exact)], adapter=_adapter(HOST_UNSTARTED))
+            self.assertNotIn('supplied_%s_mismatch' % kind, _codes(again), json.dumps(again, indent=1))
+            for where in ('root', 'observed_at'):
+                hidden = copy.deepcopy(artifacts[kind])
+                hidden[where] = {v2.MARKER: None}
+                path = _write_json(self.base / ('hidden-%s-%s.json' % (kind, where)), hidden)
+                exit_code, refused = self.fixture.run(admit + ['--' + kind, str(path)], adapter=_adapter(HOST_UNSTARTED))
+                self.assertIn('supplied_%s_mismatch' % kind, _codes(refused), json.dumps(refused, indent=1))
+
+    def test_a_base_absent_leaf_present_at_the_real_root_validates_there(self) -> None:
+        # HPG-shaped: the goal's own script is already in the planning tree though the base lacks it; the
+        # frozen validator judges the real leaf, so the disposable view is not what makes it publishable.
+        (self.fixture.work / 'tests/M1_test.sh').write_text('#!/bin/sh\nexit 0\n')
+        exit_code, result = self.publish_marked()
+        self.assertEqual(exit_code, 0, json.dumps(result, indent=1))
+        record = result[v2.MARKER]
+        self.assertEqual([(d['goal'], d['path']) for d in record['deferred']], [('M1', 'tests/M1_test.sh')])
+        self.assertEqual([row['script_readable'] for row in record['real_root_safety']], [True],
+                         'the leaf present at the real root was validated there, not through the view')
+        # An escaping symlink and a dangling symlink are refused by the frozen validator's own containment
+        # and readability checks at the real root - never silently deferred through the view.
+        for kind, target in (('escaping', self.base / 'outside.sh'), ('dangling', self.base / 'missing.sh')):
+            fixture = _fixture(_sub(self, 'symlink-' + kind))
+            bundle, sidecar, _ = marked_plan(fixture)
+            if kind == 'escaping':
+                target.write_text('#!/bin/sh\nexit 0\n')
+            (fixture.work / 'tests/M1_test.sh').symlink_to(str(target))
+            before = _snapshot(fixture.work)
+            exit_code, refused = _publish(fixture, bundle, sidecar, adapter=_adapter(HOST_UNSTARTED))
+            self.assertEqual(exit_code, 1, json.dumps(refused, indent=1))
+            self.assertIn('verification_invalid', _codes(refused))
+            self.assertEqual(_snapshot(fixture.work), before, 'a refusal writes nothing')
+            self.assertFalse(list(Path(tempfile.gettempdir()).glob('observer-view-*')), 'no view survives')
+
+    def test_the_writer_reports_each_deferred_leaf_once_on_stderr(self) -> None:
+        exit_code, result = self.publish_marked()
+        self.assertEqual(exit_code, 0)
+        with mock.patch.object(observer, 'run', lambda argv: (0, result)), contextlib.redirect_stdout(io.StringIO()):
+            with mock.patch('sys.stderr', new_callable=io.StringIO) as err:
+                _main(['publish-v2'])
+        lines = [line for line in err.getvalue().splitlines() if line.startswith('deferred own-script')]
+        self.assertEqual(lines, ['deferred own-script M1 verification[1] tests/M1_test.sh (no authority; readiness unknown)'])
+
+
+# --- the fixture-by-route matrix (AC-4, C1.6) -------------------------------------------------------------
+#
+# The replay-determinism condition is discharged as an explicit cross-product, not a sample: every eligible
+# marked fixture and every marked-route negative fixture of the three scoped seams runs through the four
+# route contexts - the admission-complete writer, the bare publication replay, the idempotent retry and the
+# same-repository worktree path - and the full decision or refusal bytes of one case must be identical in
+# all four. Each (case, route) pair is recorded, with this pinned test's case identifier, in
+# .ai/evidence/migrated-own-verification-01.json: run the seam once with MIGRATED_MATRIX_RECORD=1 to
+# re-record the compared bytes; the default run verifies every recorded pair and its equality class.
+
+EVIDENCE_PATH = REPO / '.ai/evidence/migrated-own-verification-01.json'
+MATRIX_TEST = ('tests/northstar_v2_publish_test.py::MarkedRouteMatrixTests.'
+               'test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes')
+MATRIX_ROUTES: tuple[str, ...] = ('writer', 'replay', 'retry', 'worktree')
+MATRIX_CASES: tuple[tuple[str, str], ...] = (
+    ('eligible-unstarted', ''),
+    ('eligible-present-scripts', ''),
+    ('eligible-partly-merged', ''),
+    ('negative-forged-registration', 'migration_legacy_unregistered'),
+    ('negative-forged-legacy-digest', 'migration_legacy_unregistered'),
+    ('negative-forged-projection', 'migration_legacy_unsupported'),
+    ('negative-in-flight-eligibility', 'migration_fate_refused'),
+    ('negative-missing-executable', 'verification_invalid'),
+)
+_op_publish: Callable[..., Any] = observer.op_publish
+
+
+def refusal_payload(error: Any) -> dict[str, Any]:
+    """The refusal bytes run() serializes for one error: the canonical code, its refusal detail (a marked
+    route's Refused carries the code itself) and the marked-route refusal record when there is one."""
+    detail = getattr(error, 'refusal_detail', '%s: %s' % (type(error).__name__, error))
+    return dict({'schema': v2.VERSION, 'refusals': [{'code': _code(error), 'detail': detail}]},
+                **getattr(error, 'refusal_fields', {}))
+
+
+class MarkedRouteMatrixTests(Case):
+    """AC-4/AC-6 (C1.6): the explicit fixture-by-route cross-product of the marked publication route."""
+
+    def fixture_case(self, case_id: str) -> tuple[Any, Any, Any, Any, Any, str, Any]:
+        """(fixture, bundle, sidecar, legacy, adapter, expected refusal, env) of one fixture-table case.
+        The eligible cases publish; the negative cases refuse with their named canonical code, each in its
+        own fresh repository so no case can carry another's writes."""
+        fixture: Any = _fixture(_sub(self, case_id))
+        adapter: Any = _adapter(HOST_UNSTARTED)
+        env: Any = None
+        refusal = ''
+        if case_id == 'eligible-present-scripts':
+            bundle, sidecar, legacy = marked_plan(fixture, present=('M1',))
+        elif case_id == 'eligible-partly-merged':
+            head = _git(fixture.work, 'rev-parse', 'origin/main')
+            host = {'merged_prs': [{'number': 7, 'headRefName': 'feat/plan-p-P1', 'headRefOid': head, 'baseRefName': 'main',
+                                    'mergeCommit': {'oid': head}, 'mergedAt': '2026-10-01T00:00:00Z'}],
+                    'open_prs': [], 'branches': []}
+            bundle, sidecar, legacy = marked_plan(fixture, plan_id='plan-p', goals=('P1', 'P2'), host=host)
+            adapter = _adapter(host)
+        else:
+            bundle, sidecar, legacy = marked_plan(fixture)
+        if case_id == 'negative-forged-registration':
+            bundle['attachments'][v2.MARKER]['registration'] = 'northstar-plan-plan-a'
+            refusal = 'migration_legacy_unregistered'
+        elif case_id == 'negative-forged-legacy-digest':
+            bundle['attachments'][v2.MARKER]['legacy_bundle']['sha256'] = 'e' * 64
+            refusal = 'migration_legacy_unregistered'
+        elif case_id == 'negative-forged-projection':
+            bundle['goals'][0]['acceptance_criteria'].append('and more')
+            refusal = 'migration_legacy_unsupported'
+        elif case_id == 'negative-in-flight-eligibility':
+            head = _git(fixture.work, 'rev-parse', 'origin/main')
+            adapter = _adapter({'merged_prs': [], 'open_prs': [{'number': 9, 'headRefName': 'feat/plan-m-M1',
+                                                                'headRefOid': head}], 'branches': []})
+            refusal = 'migration_fate_refused'
+        elif case_id == 'negative-missing-executable':
+            gitonly = fixture.base / 'gitonly'
+            gitonly.mkdir()
+            (gitonly / 'git').symlink_to(str(shutil.which('git')))
+            env = {'PATH': str(gitonly)}
+            refusal = 'verification_invalid'
+        self.assertEqual(bool(refusal), case_id.startswith('negative-'), case_id)
+        return fixture, bundle, sidecar, legacy, adapter, refusal, env
+
+    def sealed_record(self, fixture: Any, bundle: Any, legacy: Any, adapter: Any, env: Any) -> dict[str, Any]:
+        """The sealed record a replay of a refused case reconstructs: the same negative condition, built
+        through the production API over the same immutable base - the recorded immutable bytes a refused
+        publication never wrote."""
+        work = fixture.work
+        base = _git(work, 'rev-parse', 'origin/main')
+        selections = v2.validate_marker(bundle)
+        absent = observer.base_tree_facts(work, base, selections)['absent']
+        goal_ids = [str(goal['id']) for goal in legacy['goals']]
+        eligibility = observer.hosted_eligibility(work, 'refs/remotes/origin/main', adapter, goal_ids)
+        if env:
+            with mock.patch.dict(os.environ, env):
+                safety = [observer.safety_row(work, selection) for selection in selections]
+        else:
+            safety = [observer.safety_row(work, selection) for selection in selections]
+        marker = v2.marker_of(bundle)
+        deferred = v2.deferral_entries(selections, legacy, marker, absent)
+        return v2.marker_record(base, observer.context_clock(work, base), marker, eligibility, safety,
+                                observer.spec_policy_capture(work, bundle, None), deferred)
+
+    def writer_route(self, fixture: Any, bundle: Any, sidecar: Any, adapter: Any, env: Any) -> tuple[int, Any]:
+        """The admission-complete writer over the case's own fixture; the idempotent retry is the same call
+        again and the same-repository worktree path is the same call over a linked checkout."""
+        inputs = Path(tempfile.mkdtemp(dir=fixture.base))
+        argv = ['publish-v2', '--root', str(fixture.work), '--bundle', str(_write_json(inputs / 'b.json', bundle)),
+                '--sidecar', str(_write_json(inputs / 's.json', sidecar)), '--admit-planning']
+        outcome: tuple[int, Any] = fixture.run(argv, adapter=adapter, env=env)
+        return outcome
+
+    def replay_route(self, fixture: Any, bundle: Any, sidecar: Any, record: Any, env: Any,
+                     patches: Any = None) -> tuple[int, Any]:
+        """The bare publication replay: replay_proof over the real repository and the resolved base, then
+        op_publish into a scratch tree carrying the base registry. Instrumented so that a fresh observation
+        - find_executable, spec_policy_capture or live_policy_capture - fails the route."""
+        work = fixture.work
+        base = _git(work, 'rev-parse', 'origin/main')
+        scratch = Path(tempfile.mkdtemp(prefix='matrix-replay-'))
+        self.addCleanup(shutil.rmtree, scratch, True)
+        registry = scratch / v2.REGISTRY
+        registry.parent.mkdir(parents=True, exist_ok=True)
+        registry.write_text(_git(work, 'show', base + ':' + v2.REGISTRY) + '\n')
+        inputs = Path(tempfile.mkdtemp(dir=fixture.base))
+        files = {'bundle': _write_json(inputs / 'b.json', bundle), 'sidecar': _write_json(inputs / 's.json', sidecar),
+                 'record': _write_json(inputs / 'r.json', record)}
+        args = argparse.Namespace(root=str(scratch), bundle=str(files['bundle']), sidecar=str(files['sidecar']),
+                                  policy_candidate=None)
+        proof = observer.replay_proof(work, base, 'refs/remotes/origin/main', bundle, files)
+        active = list(patches) if patches is not None else [
+            mock.patch.object(observer, '_find_executable', forbidden),
+            mock.patch.object(observer, 'spec_policy_capture', forbidden),
+            mock.patch.object(observer, 'live_policy_capture', forbidden)]
+        if env:
+            active.append(mock.patch.dict(os.environ, env))
+        for patch in active:
+            patch.start()
+        try:
+            exit_code, result = _op_publish(args, None, None, proof)
+        except Exception as error:  # the route's refusal bytes
+            return 1, refusal_payload(error)
+        finally:
+            for patch in reversed(active):
+                patch.stop()
+        prefix = result['published']['artifacts'][v2.MARKER]['path'].rsplit('/', 1)[0]
+        return 0, json.loads((scratch / prefix / v2.MARKER_RECORD).read_text())
+
+    def route_bytes(self, exit_code: int, result: Any) -> bytes:
+        """The decision bytes of a published result or the full refusal bytes of a refused one."""
+        marked = isinstance(result, dict) and v2.MARKER in result
+        return _bytes(result[v2.MARKER] if exit_code == 0 and marked else result)
+
+    def counted(self, counts: dict[str, int], name: str) -> Any:
+        """A live instrument: the frozen hook under `name` counted, then delegated to."""
+        original = getattr(observer, name)
+
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            counts[name] += 1
+            return original(*args, **kwargs)
+        return wrapper
+
+    def record_matrix(self, compared: list[dict[str, Any]]) -> None:
+        """Record the compared byte strings into the plan evidence. The one documented way to re-record;
+        the default run only verifies what is recorded."""
+        if not os.environ.get('MIGRATED_MATRIX_RECORD'):
+            return
+        evidence = json.loads(EVIDENCE_PATH.read_text())
+        evidence['compared'] = compared
+        EVIDENCE_PATH.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n')
+
+    def pinned_matrix(self, compared: list[dict[str, Any]]) -> None:
+        """Every fixture x route pair this run compared is recorded, with this test's case identifier, and
+        the recorded snapshot shows one byte string per case across the four routes."""
+        pinned = json.loads(EVIDENCE_PATH.read_text()).get('compared')
+        self.assertIsInstance(pinned, list, 'the evidence records every compared byte string')
+        live = {(str(entry['case_id']), str(entry['route'])) for entry in compared}
+        recorded = {(str(entry['case_id']), str(entry['route'])): str(entry['sha256']) for entry in pinned}
+        self.assertEqual(sorted(live), sorted(recorded), 'every compared pair is recorded')
+        for entry in pinned:
+            self.assertEqual(entry['test'], MATRIX_TEST)
+            self.assertRegex(entry['sha256'], '^[0-9a-f]{64}$')
+        for case_id, _ in MATRIX_CASES:
+            self.assertEqual(len({recorded[(case_id, route)] for route in MATRIX_ROUTES}), 1,
+                             '%s: the recorded four routes are one byte string' % case_id)
+
+    def test_every_fixture_compares_byte_equal_across_the_writer_replay_retry_and_worktree_routes(self) -> None:
+        compared: list[dict[str, Any]] = []
+        for case_id, expected in MATRIX_CASES:
+            with self.subTest(case=case_id):
+                fixture, bundle, sidecar, legacy, adapter, _, env = self.fixture_case(case_id)
+                writer_code, first = self.writer_route(fixture, bundle, sidecar, adapter, env)
+                self.assertEqual(writer_code, 0 if expected == '' else 1, json.dumps(first, indent=1))
+                if expected:
+                    self.assertIn(expected, _codes(first), json.dumps(first, indent=1))
+                else:
+                    self.assertTrue(first['planning_complete'], json.dumps(first, indent=1))
+                record = first[v2.MARKER] if writer_code == 0 else self.sealed_record(fixture, bundle, legacy, adapter, env)
+                retry_code, again = self.writer_route(fixture, bundle, sidecar, adapter, env)
+                linked = fixture.base / 'linked'
+                _git(fixture.work, 'worktree', 'add', '-q', '--detach', str(linked), 'origin/main')
+                worktree_code, third = self.writer_route(twin_of(fixture, linked), bundle, sidecar, adapter, env)
+                replay_code, replayed = self.replay_route(fixture, bundle, sidecar, record, env)
+                exits = {'writer': writer_code, 'retry': retry_code, 'worktree': worktree_code, 'replay': replay_code}
+                self.assertEqual(len(set(exits.values())), 1, '%s: %s' % (case_id, json.dumps(exits, indent=1)))
+                produced = {'writer': first, 'retry': again, 'worktree': third, 'replay': replayed}
+                routes = {route: self.route_bytes(replay_code, produced[route]) for route in MATRIX_ROUTES}
+                digests = {name: hashlib.sha256(value).hexdigest() for name, value in routes.items()}
+                self.assertEqual(len(set(routes.values())), 1, '%s: %s' % (case_id, json.dumps(digests, indent=1)))
+                for route in MATRIX_ROUTES:
+                    compared.append({'case_id': case_id, 'route': route, 'test': MATRIX_TEST, 'sha256': digests[route]})
+        self.record_matrix(compared)
+        self.pinned_matrix(compared)
+
+    def test_the_recorded_replay_reconstructs_all_three_seals_and_observes_nothing(self) -> None:
+        fixture: Any = _fixture(_sub(self, 'replay-instrumented'))
+        bundle, sidecar, _ = marked_plan(fixture)
+        adapter: Any = _adapter(HOST_UNSTARTED)
+        exit_code, first = self.writer_route(fixture, bundle, sidecar, adapter, None)
+        self.assertEqual(exit_code, 0, json.dumps(first, indent=1))
+        record = first[v2.MARKER]
+        counts = {'find_executable': 0, 'spec_policy_capture': 0, 'live_policy_capture': 0}
+        patches = [mock.patch.object(observer, '_find_executable', self.counted(counts, 'find_executable')),
+                   mock.patch.object(observer, 'spec_policy_capture', self.counted(counts, 'spec_policy_capture')),
+                   mock.patch.object(observer, 'live_policy_capture', self.counted(counts, 'live_policy_capture'))]
+        exit_code, replayed = self.replay_route(fixture, bundle, sidecar, record, None, patches)
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(counts, {'find_executable': 0, 'spec_policy_capture': 0, 'live_policy_capture': 0},
+                         'the replay re-runs no frozen validation and reads no spec or policy path')
+        for name in ('fresh_eligibility', 'real_root_safety', 'spec_policy_bytes'):
+            self.assertEqual(replayed[name], record[name], name)
+        # Executable availability cannot change the replay: it performs no PATH lookup at all.
+        gitonly = fixture.base / 'gitonly'
+        gitonly.mkdir()
+        (gitonly / 'git').symlink_to(str(shutil.which('git')))
+        exit_code, without = self.replay_route(fixture, bundle, sidecar, record, {'PATH': str(gitonly)})
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(_bytes(without), _bytes(replayed), 'a different PATH cannot change the recorded replay')
+        # The same instrument over the fresh writer proves it is live: a publication does observe both.
+        observed = {'find_executable': 0, 'spec_policy_capture': 0, 'live_policy_capture': 0}
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(observer, '_find_executable', self.counted(observed, 'find_executable')))
+            stack.enter_context(mock.patch.object(observer, 'spec_policy_capture', self.counted(observed, 'spec_policy_capture')))
+            stack.enter_context(mock.patch.object(observer, 'live_policy_capture', self.counted(observed, 'live_policy_capture')))
+            exit_code, again = self.writer_route(fixture, bundle, sidecar, adapter, None)
+        self.assertEqual(exit_code, 0, json.dumps(again, indent=1))
+        self.assertGreaterEqual(observed['find_executable'], 1, 'the fresh writer observes the interpreter')
+        self.assertGreaterEqual(observed['spec_policy_capture'], 1, 'the fresh writer captures the spec and policy')
 
 
 if __name__ == '__main__':

@@ -13,6 +13,7 @@ nothing here approves, publishes into this checkout, or writes into `.ai/handoff
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I drops the script directory
+import copy
 import hashlib
 import json
 import os
@@ -686,6 +687,323 @@ class ReleaseSurfaceTests(unittest.TestCase):
         self.assertEqual(digest.hexdigest(), '17b7f557f3cf4fc058da41586657881eec670704eaec81ebcaf00a5bb6ac34b7',
                          'a tracked */SKILL.md changed; re-pin only for a deliberate, reviewed edit. '
                          'Current mode, sha256 and path per file:\n' + current)
+
+
+# --- migrated own-script verification (the marker's pure contract) ----------------------------------------
+#
+# New test code is strict-typed (the ledger ratchet pins this file's mypy count): the untyped fixture
+# helpers are reached through these typed views.
+from typing import Any, Callable  # noqa: E402 - the appended marker-contract cases
+import readiness_contract  # noqa: E402 - the unique-key reader every bundle ingress parses with
+from readiness_contract import Invalid  # noqa: E402 - the refusal every ingress raises
+
+_migrate: Callable[..., Any] = v2.migrate_main
+_inventory: Callable[..., Any] = synthetic_inventory
+_code: Callable[..., str] = v2.code
+_fate: Callable[..., Any] = v2.inventory_fate
+_legacy: Callable[..., Any] = synthetic_legacy
+_registry: Callable[..., Any] = synthetic_registry
+_sha: Callable[..., str] = sha
+_validate: Callable[..., Any] = v2.validate_bundle
+_read: Callable[..., Any] = readiness_contract.read
+_parse: Callable[..., Any] = observer.parse_json
+_adapter: Callable[..., Any] = observer.FixtureAdapter
+_write_json: Callable[..., Any] = write_json
+SPEC = 'f' * 64
+
+
+LEGACY_GENERATION = 'd' * 64
+V1_REGISTRY_PATH = '.ai/workflows/northstar-readiness-v1.json'
+HOST_UNSTARTED: dict[str, Any] = {'merged_prs': [], 'open_prs': [], 'branches': []}
+
+
+def legacy_plan(plan_id: str, goals: tuple[str, ...], spec_sha256: str) -> dict[str, Any]:
+    """A content-only v1 bundle whose goals each carry their own `bash tests/<goal>_test.sh` leaf (verification
+    index 1) in scope, with every mutable and legacy field a v1 goal may carry."""
+    return {'schema': 'handoff-goals/1', 'id': plan_id, 'repository': {'id': 'fixture', 'root': '/fixture'},
+            'spec': {'path': 'docs/%s-spec.md' % plan_id, 'sha256': spec_sha256}, 'issue_ref': 'issue:fixture:' + plan_id,
+            'planning_complete': True, 'status': 'active', 'attachments': {'note': 'kept verbatim'},
+            'goals': [{'id': gid, 'repository': {'id': 'fixture', 'root': '/fixture'},
+                       'scope': ['src/%s.txt' % gid, 'tests/%s_test.sh' % gid], 'acceptance_criteria': [gid + ' works'],
+                       'dependencies': list(goals[:position]), 'verification': ['bash tests/check.sh', 'bash tests/%s_test.sh' % gid],
+                       'issue_ref': 'issue:fixture:' + plan_id, 'owner': 'unassigned', 'coverage_status': 'unknown',
+                       'legacy_safe_tdd': True, 'legacy_risk_reason': 'Unmeasured fixture coverage',
+                       'readiness': {'preparation': 'unknown', 'implementation': 'unknown', 'merge': 'unknown'}}
+                      for position, gid in enumerate(goals)]}
+
+
+def marker_for(plan_id: str, legacy_sha256: str, goals: tuple[str, ...]) -> dict[str, Any]:
+    return {'schema': v2.MARKER_SCHEMA, 'registration': 'northstar-plan-' + plan_id, 'generation': LEGACY_GENERATION,
+            'legacy_bundle': {'path': '%s/%s/%s/goals.json' % (v2.V1_GEN, plan_id, LEGACY_GENERATION), 'sha256': legacy_sha256},
+            'scripts': [{'goal_id': gid, 'verification_index': 1, 'path': 'tests/%s_test.sh' % gid} for gid in goals]}
+
+
+def marked_plan(fixture: Any, plan_id: str = 'plan-m', goals: tuple[str, ...] = ('M1',), present: tuple[str, ...] = (),
+                host: Any = None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Register a v1 generation of plan_id on the fixture's main (its legacy payload, v1 registry entry and spec
+    copy; `present` names goals whose own script also lands there) and return the migrated candidate carrying
+    the marker that selects every goal's own script, its sidecar and the legacy payload."""
+    work = fixture.work
+    spec_text = plan_id + ' specification\n'
+    (work / 'docs').mkdir(exist_ok=True)
+    (work / ('docs/%s-spec.md' % plan_id)).write_text(spec_text)
+    legacy = legacy_plan(plan_id, goals, _sha(spec_text.encode()))
+    legacy_bytes = (json.dumps(legacy, indent=2, sort_keys=True) + '\n').encode()
+    path = work / ('%s/%s/%s/goals.json' % (v2.V1_GEN, plan_id, LEGACY_GENERATION))
+    path.parent.mkdir(parents=True)
+    path.write_bytes(legacy_bytes)
+    registry = {'schema': 'readiness-contract/1', 'plans': [
+        {'schema': 'readiness-contract/1', 'id': 'northstar-plan-' + plan_id, 'plan_id': plan_id, 'generation': LEGACY_GENERATION,
+         'status': 'active', 'planning_complete': True, 'execution_admitted': False,
+         'handoff_path': '%s/%s/%s/handoff.md' % (v2.V1_GEN, plan_id, LEGACY_GENERATION),
+         'artifacts': {'bundle': {'path': path.relative_to(work).as_posix(), 'sha256': _sha(legacy_bytes)}}}]}
+    _write_json(work / V1_REGISTRY_PATH, registry)
+    for gid in present:
+        (work / ('tests/%s_test.sh' % gid)).write_text('#!/bin/sh\nexit 0\n')
+    fixture.commit_push('fixture: v1 generation of ' + plan_id)
+    eligibility = observer.hosted_eligibility(work, 'refs/remotes/origin/main', _adapter(host or HOST_UNSTARTED), list(goals))
+    record = dict({'id': 'northstar-plan-' + plan_id, 'plan_id': plan_id, 'generation': LEGACY_GENERATION, 'goals': list(goals)},
+                  **eligibility['fate'])
+    candidate = _migrate(legacy, _sha(legacy_bytes), registry, {'entries': [record]}, _sha(spec_text.encode()))
+    bundle = copy.deepcopy(candidate['bundle'])
+    bundle['attachments'][v2.MARKER] = marker_for(plan_id, _sha(legacy_bytes), tuple(g['id'] for g in bundle['goals']))
+    return bundle, candidate['sidecar'], legacy
+
+
+def eligibility(goal_ids: list[str], merged: tuple[dict[str, Any], ...] = (), open_prs: tuple[dict[str, Any], ...] = (),
+                unobservable: Any = None) -> dict[str, Any]:
+    """A sealed fresh-eligibility record over hosted facts, exactly as the observer seals it."""
+    merged_list, open_list = [dict(p) for p in merged], [dict(p) for p in open_prs]
+    return {'merged': merged_list, 'open_prs': open_list, 'branches': [], 'unobservable': unobservable,
+            'fate': _fate(goal_ids, merged_list, open_list, [], unobservable)}
+
+
+def marked_candidate(plan_id: str = 'plan-m', goals: tuple[str, ...] = ('M1', 'M2'), merged: tuple[str, ...] = ()) -> dict[str, Any]:
+    """A legacy plan whose goals own `tests/<goal>_test.sh` at verification index 1, its v1 registry, the sealed
+    eligibility (`merged` goals through reached merges) and the marked v2 candidate the projection yields."""
+    legacy = _legacy(plan_id, [(gid, goals[:position]) for position, gid in enumerate(goals)], SPEC)
+    for goal in legacy['goals']:
+        goal['scope'].append('tests/%s_test.sh' % goal['id'])
+        goal['verification'].append('bash tests/%s_test.sh' % goal['id'])
+    legacy_sha256 = _sha(json.dumps(legacy, sort_keys=True).encode())
+    registry = _registry(plan_id, legacy_sha256)
+    pulls = tuple({'number': 7 + n, 'head_ref': 'feat/%s-%s' % (plan_id, gid), 'merge_commit': 'a' * 40, 'reached': True}
+                  for n, gid in enumerate(merged))
+    sealed = eligibility(list(goals), pulls)
+    record = dict({'id': 'northstar-plan-' + plan_id, 'plan_id': plan_id, 'generation': 'd' * 64, 'goals': list(goals)},
+                  **sealed['fate'])
+    projected = _migrate(legacy, legacy_sha256, registry, {'entries': [record]}, SPEC)
+    bundle = copy.deepcopy(projected['bundle'])
+    bundle['attachments'][v2.MARKER] = {
+        'schema': v2.MARKER_SCHEMA, 'registration': 'northstar-plan-' + plan_id, 'generation': 'd' * 64,
+        'legacy_bundle': {'path': '%s/%s/%s/goals.json' % (v2.V1_GEN, plan_id, 'd' * 64), 'sha256': legacy_sha256},
+        'scripts': [{'goal_id': goal['id'], 'verification_index': 1, 'path': 'tests/%s_test.sh' % goal['id']}
+                    for goal in bundle['goals']]}
+    return {'legacy': legacy, 'legacy_sha256': legacy_sha256, 'registry': registry, 'eligibility': sealed, 'bundle': bundle}
+
+
+def _proof(*inputs: Any) -> Any:
+    return v2.marker_proof(*inputs)
+
+
+def refusal_of(call: Callable[[], Any]) -> Any:
+    """The refusal code a pure call raises, or None when it succeeds."""
+    try:
+        call()
+    except Invalid as error:
+        return _code(error)
+    return None
+
+
+class MarkerContractTests(unittest.TestCase):
+    """AC-1, AC-2, AC-4 in the pure validator: marker shape and goal linkage at bundle ingress, the reserved
+    name refused in legacy payloads before projection, the proof over sealed eligibility, the served-goal
+    derivation, the deferral report order and the record shapes."""
+
+    def test_a_valid_marker_selects_its_leaves_in_goal_index_path_order(self) -> None:
+        case = marked_candidate()
+        bundle = case['bundle']
+        bundle['attachments'][v2.MARKER]['scripts'].reverse()
+        self.assertIs(_validate(bundle), bundle)
+        selections = v2.validate_marker(bundle)
+        self.assertEqual([(s.goal_id, s.position, s.index, s.path, s.cwd, s.command) for s in selections],
+                         [('M1', 0, 1, 'tests/M1_test.sh', '.', 'bash tests/M1_test.sh'),
+                          ('M2', 1, 1, 'tests/M2_test.sh', '.', 'bash tests/M2_test.sh')])
+        unmarked = {key: value for key, value in bundle.items() if key != 'attachments'}
+        self.assertEqual(v2.validate_marker(_validate(unmarked)), [])
+        nested = copy.deepcopy(bundle)
+        nested['goals'][0]['verification'][1] = {'cwd': 'sub', 'command': 'bash tests/M1_test.sh'}
+        nested['goals'][0]['scope'][-1] = 'sub/tests/M1_test.sh'
+        nested['attachments'][v2.MARKER]['scripts'][1]['path'] = 'sub/tests/M1_test.sh'
+        self.assertEqual([(s.cwd, s.path) for s in v2.validate_marker(nested)][0], ('sub', 'sub/tests/M1_test.sh'))
+
+    def test_every_malformed_or_misplaced_marker_refuses_at_bundle_ingress(self) -> None:
+        bundle = marked_candidate()['bundle']
+
+        def mutate(change: Callable[[Any], Any]) -> Callable[[], Any]:
+            def call() -> Any:
+                changed = copy.deepcopy(bundle)
+                change(changed)
+                return _validate(changed)
+            return call
+
+        def marker(b: Any) -> Any:
+            return b['attachments'][v2.MARKER]
+        values: tuple[Any, ...] = (True, None, [], 'marker', 3, {})
+
+        def planted(value: Any) -> Callable[[Any], Any]:
+            return lambda b: b['attachments'].__setitem__(v2.MARKER, value)
+        cases: list[tuple[Callable[[Any], Any], str]] = [(planted(value), 'bundle_field_invalid') for value in values]
+        cases += [(lambda b: marker(b).update(extra=1), 'bundle_field_invalid'),
+                  (lambda b: marker(b).pop('scripts'), 'bundle_field_invalid'),
+                  (lambda b: marker(b).update(schema='migrated-own-script-verification/2'), 'bundle_field_invalid'),
+                  (lambda b: marker(b).update(registration='not an id!'), 'bundle_field_invalid'),
+                  (lambda b: marker(b).update(generation='short'), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['legacy_bundle'].update(path='elsewhere/goals.json'), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['legacy_bundle'].update(sha256='x' * 64), 'bundle_field_invalid'),
+                  (lambda b: marker(b).update(scripts=[]), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'][0].update(verification_index=True), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'][0].update(verification_index=1.0), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'][0].update(verification_index=2), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'][0].update(verification_index=0), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'][0].update(goal_id='M9'), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'][0].update(path='tests/M2_test.sh'), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'][0].update(path='tests/../M1_test.sh'), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'][0].update(extra=True), 'bundle_field_invalid'),
+                  (lambda b: marker(b)['scripts'].append(dict(marker(b)['scripts'][0])), 'bundle_field_invalid'),
+                  (lambda b: b['goals'][0]['verification'].__setitem__(1, 'bash tests/M1_test.sh --fast'), 'bundle_field_invalid'),
+                  (lambda b: b['goals'][0]['verification'].__setitem__(1, "bash 'tests/M1_test.sh'"), 'bundle_field_invalid'),
+                  (lambda b: b['goals'][0]['verification'].__setitem__(1, 'sh tests/M1_test.sh'), 'bundle_field_invalid'),
+                  (lambda b: b['goals'][0]['scope'].remove('tests/M1_test.sh'), 'bundle_field_invalid'),
+                  (lambda b: b['goals'][1]['scope'].append('tests/M1_test.sh'), 'bundle_field_invalid'),
+                  (lambda b: b['attachments'].update(note={v2.MARKER: {}}), 'bundle_unknown_field'),
+                  (lambda b: b['attachments'].update(note=[{v2.MARKER: 1}]), 'bundle_unknown_field'),
+                  (lambda b: b.__setitem__(v2.MARKER, {}), 'bundle_unknown_field'),
+                  (lambda b: b['goals'][0].__setitem__(v2.MARKER, {}), 'bundle_unknown_field'),
+                  (lambda b: b['goals'][0]['verification'].__setitem__(1, {'cwd': '.', 'command': 'bash tests/M1_test.sh', v2.MARKER: 1}),
+                   'bundle_field_invalid')]
+        for change, expected in cases:
+            with self.subTest(expected=expected, mutation=change.__code__.co_firstlineno):
+                self.assertEqual(refusal_of(mutate(change)), expected)
+
+    def test_the_reserved_name_in_a_legacy_payload_refuses_before_projection(self) -> None:
+        case = marked_candidate()
+        places: tuple[Callable[[Any], Any], ...] = (
+            lambda legacy: legacy['attachments'].__setitem__(v2.MARKER, {'forged': True}),
+            lambda legacy: legacy['goals'][0].__setitem__(v2.MARKER, {'forged': True}),
+            lambda legacy: legacy['goals'][1]['readiness_notes'].__setitem__(v2.MARKER, 'x'))
+        for place in places:
+            legacy = copy.deepcopy(case['legacy'])
+            place(legacy)
+            digest = _sha(json.dumps(legacy, sort_keys=True).encode())
+            registry = _registry('plan-m', digest)
+            self.assertEqual(refusal_of(lambda: _migrate(legacy, digest, registry, _inventory(
+                'plan-m', 'unstarted', unmerged=['M1', 'M2']), SPEC)), 'migration_legacy_unsupported')
+
+    def test_duplicate_key_marker_bytes_refuse_in_every_parser(self) -> None:
+        bundle = marked_candidate()['bundle']
+        text = json.dumps(bundle, sort_keys=True)
+        marker = json.dumps(bundle['attachments'][v2.MARKER], sort_keys=True)
+        doubled = text.replace(marker, marker[:-1] + ', "generation": "%s"}' % ('e' * 64))
+        self.assertNotEqual(doubled, text)
+        self.assertEqual(refusal_of(lambda: _parse(doubled.encode(), 'bundle')), 'bundle_invalid')
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'goals.json'
+            path.write_text(doubled)
+            self.assertEqual(refusal_of(lambda: _read(path)), 'duplicate_key')
+        self.assertEqual(json.loads(doubled)['attachments'][v2.MARKER]['generation'], 'e' * 64, 'last-key-wins is what a plain parser would do')
+
+    def test_the_proof_binds_registration_payload_projection_and_sealed_eligibility(self) -> None:
+        case = marked_candidate()
+
+        def proof(**changes: Any) -> Any:
+            return _proof(changes.get('bundle', case['bundle']), changes.get('legacy', case['legacy']),
+                          changes.get('legacy_sha256', case['legacy_sha256']), changes.get('registry', case['registry']),
+                          changes.get('eligibility', case['eligibility']), changes.get('spec', SPEC))
+        projected = proof()
+        self.assertEqual([g['id'] for g in projected['bundle']['goals']], ['M1', 'M2'])
+        self.assertEqual(projected['from']['registration'], 'northstar-plan-plan-m')
+        forged = copy.deepcopy(case['bundle'])
+        forged['attachments'][v2.MARKER]['registration'] = 'northstar-plan-other'
+        other = copy.deepcopy(case['registry'])
+        other['plans'][0]['plan_id'] = 'other'
+        inactive = copy.deepcopy(case['registry'])
+        inactive['plans'][0]['status'] = 'superseded'
+        changed = copy.deepcopy(case['bundle'])
+        changed['goals'][0]['verification'][0] = 'git diff --check'
+        carried = copy.deepcopy(case['bundle'])
+        carried['attachments']['note'] = 'changed'
+        in_flight = eligibility(['M1', 'M2'], open_prs=({'number': 9, 'head_ref': 'feat/plan-m-M2'},))
+        completed = eligibility(['M1', 'M2'], tuple({'number': 7 + n, 'head_ref': 'feat/plan-m-' + gid, 'merge_commit': 'a' * 40,
+                                                      'reached': True} for n, gid in enumerate(('M1', 'M2'))))
+        self.assertEqual(refusal_of(lambda: proof(bundle=forged)), 'migration_legacy_unregistered')
+        self.assertEqual(refusal_of(lambda: proof(registry=other)), 'migration_legacy_unregistered')
+        self.assertEqual(refusal_of(lambda: proof(registry=inactive)), 'migration_legacy_unregistered')
+        self.assertEqual(refusal_of(lambda: proof(legacy_sha256='e' * 64)), 'migration_legacy_unregistered')
+        self.assertEqual(refusal_of(lambda: proof(spec='e' * 64)), 'migration_spec_drifted')
+        self.assertEqual(refusal_of(lambda: proof(bundle=changed)), 'migration_legacy_unsupported')
+        self.assertEqual(refusal_of(lambda: proof(bundle=carried)), 'migration_legacy_unsupported')
+        self.assertEqual(refusal_of(lambda: proof(eligibility=in_flight)), 'migration_fate_refused')
+        self.assertEqual(refusal_of(lambda: proof(eligibility=eligibility(['M1', 'M2'], unobservable='hosted_list_truncated'))),
+                         'migration_fate_refused')
+        self.assertEqual(refusal_of(lambda: proof(eligibility=completed)), 'migration_fate_refused')
+        self.assertEqual(refusal_of(lambda: proof(eligibility={'fate': case['eligibility']['fate']})), 'bundle_field_invalid')
+
+    def test_served_goals_are_derived_through_the_explicit_join(self) -> None:
+        case = marked_candidate(merged=('M1',))
+        self.assertEqual([g['id'] for g in case['bundle']['goals']], ['M2'])
+        self.assertEqual(v2.served_goals(case['eligibility']), ['M1'])
+        projected = _proof(case['bundle'], case['legacy'], case['legacy_sha256'], case['registry'], case['eligibility'], SPEC)
+        self.assertEqual(projected['extensions']['b5_inputs'], [{'goal': 'M1', 'pr': 7, 'merge_commit': 'a' * 40}])
+        self.assertEqual(projected['dropped_dependencies'], [{'goal': 'M2', 'dependency': 'M1'}])
+        unreached = copy.deepcopy(case['eligibility'])
+        unreached['merged'][0]['reached'] = False
+        self.assertEqual(refusal_of(lambda: v2.served_goals(unreached)), 'migration_b5_invalid')
+        renumbered = copy.deepcopy(case['eligibility'])
+        renumbered['merged'][0]['number'] = 8
+        self.assertEqual(refusal_of(lambda: v2.served_goals(renumbered)), 'migration_b5_invalid')
+        unmerged = copy.deepcopy(case['eligibility'])
+        unmerged['fate']['unmerged'].append('M1')
+        self.assertEqual(refusal_of(lambda: v2.served_goals(unmerged)), 'migration_b5_invalid')
+        truncated = eligibility(['M1', 'M2'], unobservable='hosted_list_truncated')
+        self.assertEqual((v2.served_goals(truncated), truncated['fate']['fate']), ([], 'in-flight'))
+
+    def test_deferrals_follow_legacy_order_and_the_records_have_exact_shapes(self) -> None:
+        case = marked_candidate(goals=('M1', 'M2', 'M3'))
+        marker = case['bundle']['attachments'][v2.MARKER]
+        selections = v2.validate_marker(case['bundle'])
+        absent = {'tests/M1_test.sh': True, 'tests/M2_test.sh': False, 'tests/M3_test.sh': True}
+        deferred = v2.deferral_entries(list(reversed(selections)), case['legacy'], marker, absent)
+        self.assertEqual([(d['goal'], d['verification_index'], d['path'], d['status']) for d in deferred],
+                         [('M1', 1, 'tests/M1_test.sh', 'deferred'), ('M3', 1, 'tests/M3_test.sh', 'deferred')])
+        self.assertEqual(deferred[0]['source'], {'registry': v2.V1_REGISTRY, 'registration': 'northstar-plan-plan-m',
+                                                 'generation': 'd' * 64, 'legacy_bundle': marker['legacy_bundle']})
+        self.assertEqual(deferred[0]['recovery'], v2.DEFERRAL_RECOVERY)
+        safety = [{'goal_id': s.goal_id, 'verification_index': s.index, 'executable_available': True, 'cwd_readable': True,
+                   'script_readable': False, 'refusal_code': 'verification_invalid'} for s in selections]
+        capture = {'policy_source': 'live', 'policy_bytes': '{}', 'live_bytes': '{}', 'live_policy2': True, 'mode': 'live',
+                   'amends': None, 'spec_bytes': 'spec', 'spec_missing': False, 'policy_sha256': 'b' * 64, 'spec_sha256': 'c' * 64}
+        record = v2.marker_record('a' * 40, '2026-10-01T00:00:00Z', marker, case['eligibility'], safety, capture, deferred)
+        self.assertEqual(set(record), v2.MARKER_RECORD_FIELDS)
+        self.assertEqual((record['authority'], record['readiness'], record['deferred']), (v2.NO_AUTHORITY, 'unknown', deferred))
+        self.assertEqual(set(v2.marker_refusal('verification_invalid', 'a' * 40, '2026-10-01T00:00:00Z')), v2.MARKER_REFUSAL_FIELDS)
+        mutations: tuple[tuple[Callable[[Any], Any], str], ...] = (
+                                 (lambda r: r.update(schema='x'), 'bundle_field_invalid'),
+                                 (lambda r: r.update(base='short'), 'bundle_field_invalid'),
+                                 (lambda r: r.update(clock='yesterday'), 'bundle_field_invalid'),
+                                 (lambda r: r.update(generation='e' * 64), 'bundle_field_invalid'),
+                                 (lambda r: r['fresh_eligibility'].pop('branches'), 'bundle_field_invalid'),
+                                 (lambda r: r['fresh_eligibility']['fate'].pop('refused'), 'bundle_field_invalid'),
+                                 (lambda r: r['real_root_safety'][0].pop('refusal_code'), 'bundle_field_invalid'),
+                                 (lambda r: r['spec_policy_bytes'].update(extra=1), 'bundle_field_invalid'),
+                                 (lambda r: r['deferred'][0].pop('recovery'), 'bundle_field_invalid'),
+                                 (lambda r: r.update(authority='plan-approval/1'), 'bundle_field_invalid'),
+                                 (lambda r: r.update(extra=True), 'bundle_field_invalid'))
+        for change, expected in mutations:
+            tampered = copy.deepcopy(record)
+            change(tampered)
+            with self.subTest(mutation=change.__code__.co_firstlineno):
+                self.assertEqual(refusal_of(lambda: v2.validate_marker_record(tampered, marker)), expected)
 
 
 if __name__ == '__main__':

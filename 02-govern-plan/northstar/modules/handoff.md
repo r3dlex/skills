@@ -42,6 +42,18 @@ bash northstar/handoff-write.sh --root /repo --bundle /input/goals-v2.json --sid
   (`verification_not_at_base`). A goal branch shared with another active plan refuses
   (`goal_branch_collision`). The working-tree registry must be the target's
   (`publication_base_mismatch`): one generation per planning PR.
+- **Migrated own scripts.** A bundle migrated from a registered v1 generation whose goal
+  will itself land the `bash tests/<name>.sh` script it names may carry the optional marker
+  `attachments.migrated_own_script_verification` (`migrated-own-script-verification/1`:
+  `registration`, `generation`, `legacy_bundle{path, sha256}`, `scripts[{goal_id,
+  verification_index, path}]`). The publisher proves the marker against the base — the v1
+  registration, the legacy payload, the supported projection under freshly observed
+  eligibility — and defers only the existence checks of the selected leaves absent there,
+  reporting each as `deferred` in the result's `migrated_own_script_verification` record and
+  writing that record into the generation. A marker is never authority; a forged, misplaced,
+  malformed or unprovable one refuses and writes nothing; the real script must still exist
+  and pass at every runtime verification. See
+  [the autobahn reference](../../../04-validate-handoff/autobahn/modules/readiness-v2.md#migrated-own-script-verification-the-optional-marker).
 
 A v1 bundle takes the v1 path below, byte for byte. Publication grants no authority:
 after the planning PR merges, request the plan approval with `approve.sh`; see

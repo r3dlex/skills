@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "target": "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "type": "plans"
+    }
+  ],
+  "generation": "1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+  "goal_ids": [
+    "migrated-own-verification-01"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "9705af2df842530a66b7b67f32087a82de5ca2d15050e89cfa617bafa2e0f19b",
+      "id": "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "skills-migrated-own-verification-repair",
+  "schema_version": "1.1"
+}

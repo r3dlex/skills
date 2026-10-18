@@ -429,6 +429,102 @@
         "sha256": "f9d9273a7f7993ff02a7f166a8bc08c0ee53697ea1f8a42ea919ee0267c91363"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/goals.json",
+          "sha256": "1b863035ca03707b39dc5fd22ed4afefd95377d0d32a581c9db8c05064ca854e"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/graph.json",
+          "sha256": "d2b5d120914427ec068c60cd6fcd7270731c1fd7bfb2423c903bbe08c2af2bc1"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/handoff.md",
+          "sha256": "21800ba3e92943bae2e10e71aa7620bd2d270d411100b26675e50602ee261e0f"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/sidecar.json"
+        }
+      },
+      "generation": "1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "handoff_path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/handoff.md",
+      "id": "northstar-plan-skills-migrated-own-verification-repair",
+      "mode": "live",
+      "plan_id": "skills-migrated-own-verification-repair",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/skills-migrated-own-verification-repair.md",
+        "sha256": "15dfc02b69f63ca8b85776a1220ea94cc3def57f1d52d1e0e97522694b0c571c"
+      },
+      "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+          "sha256": "b5a323eaf560b5e08cce3e10dccaac17e5ee9895285ba238c7dfbcca5ef72573"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/graph.json",
+          "sha256": "0178fbedf37004abc7a57d0998a8c8e2f1419cc66c021a5c3db87be521bab5d0"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/handoff.md",
+          "sha256": "b3876d3a40b47f15ad607450afa2e6820ac766a5f17a6dbeac0d89c33fd00827"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/sidecar.json"
+        }
+      },
+      "generation": "5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "handoff_path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/handoff.md",
+      "id": "northstar-plan-tswc-skills-lane-matrix",
+      "mode": "live",
+      "plan_id": "tswc-skills-lane-matrix",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/typescript-wikiskill-convergence-tswc-skills-lane-matrix.md",
+        "sha256": "a4263c61feec10fdbb1f568c08f2d4485d9d27f0326fa494a6c79b241e75620f"
+      },
+      "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/goals.json",
+          "sha256": "ac8b042e4be70addc206282f5dd52f281d467dd6e7f76ca59006866b131a0d0f"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/graph.json",
+          "sha256": "712cad25eebf344cca8282b69dff3ce6e4072eea05d3c3ea3a1d57e9d1819bd8"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/handoff.md",
+          "sha256": "169d6267b9a043b7be1b553bad9841f03ca5dbcf421cb1e978a767e4066f9d20"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/sidecar.json"
+        }
+      },
+      "generation": "43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "handoff_path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/handoff.md",
+      "id": "northstar-plan-e6-d13-comparison-contract",
+      "mode": "live",
+      "plan_id": "e6-d13-comparison-contract",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/e6-d13-comparison-contract.md",
+        "sha256": "151f2d22541ede2819338f75536a9d11b5d18beb9820a6e51f55894d4f286839"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [

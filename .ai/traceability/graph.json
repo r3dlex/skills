@@ -331,6 +331,61 @@
       "source": "handoff:skills:e6-skills-ts-02:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
       "target": "plan:skills:e6-skills-ts-02:e6-sk-02-v1-port:b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:skills-migrated-own-verification-repair",
+      "target": "prd:skills:skills-migrated-own-verification-repair",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:skills-migrated-own-verification-repair",
+      "target": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "target": "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "type": "plans"
+    },
+    {
+      "source": "issue:skills:tswc-skills-lane-matrix",
+      "target": "prd:skills:tswc-skills-lane-matrix",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:tswc-skills-lane-matrix",
+      "target": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h1:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h3:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "target": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h4:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "type": "plans"
+    },
+    {
+      "source": "issue:skills:e6-d13-comparison-contract",
+      "target": "prd:skills:e6-d13-comparison-contract",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:e6-d13-comparison-contract",
+      "target": "handoff:skills:e6-d13-comparison-contract:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:e6-d13-comparison-contract:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "target": "plan:skills:e6-d13-comparison-contract:e6-d13-cc-01:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -1293,6 +1348,179 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "e6-sk-02-v1-port",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:skills-migrated-own-verification-repair",
+        "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2"
+      ],
+      "id": "prd:skills:skills-migrated-own-verification-repair",
+      "path": "docs/specifications/ACTIVE/skills-migrated-own-verification-repair.md",
+      "repo_id": "skills",
+      "sha256": "15dfc02b69f63ca8b85776a1220ea94cc3def57f1d52d1e0e97522694b0c571c",
+      "status": "active",
+      "title": "Migrated own-script verification publication repair",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:skills-migrated-own-verification-repair"
+      ],
+      "id": "issue:skills:skills-migrated-own-verification-repair",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/skills-migrated-own-verification-repair.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "Prove migrated own-script publication without weakening verification — local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:skills-migrated-own-verification-repair",
+        "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2"
+      ],
+      "id": "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "skills-migrated-own-verification-repair",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:skills-migrated-own-verification-repair:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2"
+      ],
+      "goal_revision": "9705af2df842530a66b7b67f32087a82de5ca2d15050e89cfa617bafa2e0f19b",
+      "id": "plan:skills:skills-migrated-own-verification-repair:migrated-own-verification-01:1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2",
+      "path": ".ai/handoff/readiness-v2/skills-migrated-own-verification-repair/1519b0eb0e407995f78fec95bd7ddd00b28e74b773d317e4ea0a25b51c0584e2/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "migrated-own-verification-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:tswc-skills-lane-matrix",
+        "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "id": "prd:skills:tswc-skills-lane-matrix",
+      "path": "docs/specifications/ACTIVE/typescript-wikiskill-convergence-tswc-skills-lane-matrix.md",
+      "repo_id": "skills",
+      "sha256": "a4263c61feec10fdbb1f568c08f2d4485d9d27f0326fa494a6c79b241e75620f",
+      "status": "active",
+      "title": "TSWC skills successor: harness matrix (`skills`, plan `tswc-skills-lane-matrix`)",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:tswc-skills-lane-matrix"
+      ],
+      "id": "issue:skills:tswc-skills-lane-matrix",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/tswc-skills-lane-matrix.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "TSWC skills successor (`skills`, plan `tswc-skills-lane-matrix`) — local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:tswc-skills-lane-matrix",
+        "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h1:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+        "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h3:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+        "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h4:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "id": "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "tswc-skills-lane-matrix",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "goal_revision": "5ad8b5638c5cac4c684d3fa243fc152d7abbeac9911313dfde0cbadf715bd9f4",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h1:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "tswc-sk-e5-h1",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "goal_revision": "5508caf6a277ae1c1fc931e0c096e5a612142fb818f1b61ea90b587df511b9e6",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h3:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "tswc-sk-e5-h3",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:tswc-skills-lane-matrix:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1"
+      ],
+      "goal_revision": "74bae5c0dbdba2b21b413ae3acc4c689c514358602e0497536b8cd568eebf444",
+      "id": "plan:skills:tswc-skills-lane-matrix:tswc-sk-e5-h4:5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1",
+      "path": ".ai/handoff/readiness-v2/tswc-skills-lane-matrix/5487dfc652890a2cb9d038a1074df740d4f423699e2b178d074ea0447a7d2fe1/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "tswc-sk-e5-h4",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "issue:skills:e6-d13-comparison-contract",
+        "handoff:skills:e6-d13-comparison-contract:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f"
+      ],
+      "id": "prd:skills:e6-d13-comparison-contract",
+      "path": "docs/specifications/ACTIVE/e6-d13-comparison-contract.md",
+      "repo_id": "skills",
+      "sha256": "151f2d22541ede2819338f75536a9d11b5d18beb9820a6e51f55894d4f286839",
+      "status": "active",
+      "title": "E6 D13 comparison contract (skills)",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e6-d13-comparison-contract"
+      ],
+      "id": "issue:skills:e6-d13-comparison-contract",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/e6-d13-comparison-contract.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "e6-d13-comparison-contract",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e6-d13-comparison-contract",
+        "plan:skills:e6-d13-comparison-contract:e6-d13-cc-01:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f"
+      ],
+      "id": "handoff:skills:e6-d13-comparison-contract:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "e6-d13-comparison-contract",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:e6-d13-comparison-contract:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f"
+      ],
+      "goal_revision": "1e9112db90a0d3db8f81197b3e8589d9c0ae66e22ac39d9684bef3a74b205363",
+      "id": "plan:skills:e6-d13-comparison-contract:e6-d13-cc-01:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+      "path": ".ai/handoff/readiness-v2/e6-d13-comparison-contract/43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "e6-d13-cc-01",
       "type": "plan"
     }
   ],

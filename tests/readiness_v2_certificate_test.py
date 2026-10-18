@@ -1439,5 +1439,173 @@ class AuditReobservationTests(unittest.TestCase):
 
 REPO_VERDICT = Path(__file__).resolve().parents[1] / 'reference/fixtures/v3/standalone/.ai/host-policy/verdict-approved.json'
 
+
+# --- migrated own-script verification: routing lanes and runtime gates --------------------------------------
+#
+# New test code is strict-typed (the ledger ratchet pins this file's mypy count): the untyped fixture
+# helpers are reached through these typed views.
+from typing import Any, Callable  # noqa: E402 - the appended marked-route cases
+from readiness_v2_migrate_test import HOST_UNSTARTED, marked_plan  # noqa: E402 - the migrated, marked fixture plan
+from readiness_contract import Invalid, canonical  # noqa: E402 - the refusal and the digest every ingress uses
+
+_adapter: Callable[..., Any] = observer.FixtureAdapter
+_write_json: Callable[..., Any] = write_json
+_git: Callable[..., str] = git
+_codes: Callable[..., Any] = codes
+_code: Callable[..., str] = v2.code
+_canonical: Callable[..., str] = canonical
+_lookup: Callable[..., Any] = observer.find_sidecar_v0
+_bytes: Callable[..., bytes] = observer.publication_bytes
+
+
+def publish_marked(fixture: Any, bundle: Any, sidecar: Any) -> Any:
+    """The admission-complete writer over the marked bundle, with the recorded hosted state."""
+    inputs = Path(tempfile.mkdtemp(dir=fixture.base))
+    exit_code, result = fixture.run(['publish-v2', '--root', str(fixture.work), '--bundle', str(_write_json(inputs / 'b.json', bundle)),
+                                     '--sidecar', str(_write_json(inputs / 's.json', sidecar)), '--admit-planning'],
+                                    adapter=_adapter(HOST_UNSTARTED))
+    if exit_code:
+        raise AssertionError(json.dumps(result, indent=1))
+    return result
+
+
+class MarkedRoutingTests(RoutingHelpers, unittest.TestCase):
+    """AC-4: the bare publication replay reconstructs a marked publication byte for byte, and the
+    sidecar-tighten lane and the approval sidecar lookup reconstruct a marked generation's proof from
+    recorded bytes; a tampered record refuses every lane."""
+
+    def setUp(self) -> None:
+        super().setUp()  # type: ignore[no-untyped-call]
+        self.bundle, self.sidecar, self.legacy = marked_plan(self.c.fixture)
+
+    # Typed views of the untyped routing helpers (the ledger ratchet pins this file's mypy count).
+    def pr(self, branch: str, change: Callable[[Any], Any]) -> int:
+        return int(self.open_pr(branch, change)[0])  # type: ignore[no-untyped-call]
+
+    def lane(self, number: int, lane: str) -> Any:
+        return self.v1(number, lane=lane)  # type: ignore[no-untyped-call]
+
+    def blocked(self, number: int, code: str) -> Any:
+        return self.refused(number, code)  # type: ignore[no-untyped-call]
+
+    def files_of(self, number: int) -> set[str]:
+        return {str(f['filename']) for f in self.state()['files'][str(number)]}  # type: ignore[no-untyped-call]
+
+    def push_main(self, message: str) -> None:
+        self.c.fixture.commit_push(message)  # type: ignore[no-untyped-call]
+
+    def record_path(self, result: Any) -> str:
+        return str(result['published']['artifacts'][v2.MARKER]['path'])
+
+    def test_the_planning_pr_of_a_marked_publication_replays_byte_for_byte(self) -> None:
+        results: list[Any] = []
+        exits: list[Any] = []
+        number = self.pr('docs/plan-m-publication', lambda work: results.append(publish_marked(self.c.fixture, self.bundle, self.sidecar)))
+        names = self.files_of(number)
+        self.assertIn(self.record_path(results[0]), names)
+        self.assertNotIn('tests/M1_test.sh', names, 'the deferred leaf is never written')
+        def exit_serializer(value: Any) -> bytes:
+            exits.append(value)
+            return _bytes(value)
+        with mock.patch.object(observer, 'publication_bytes', side_effect=exit_serializer):
+            decision = self.lane(number, 'publish-v2-replay')
+        self.assertEqual(decision['notices'], [])
+        replayed = [value for value in exits if isinstance(value, dict) and value.get('schema') == v2.MARKER_RECORD_SCHEMA]
+        self.assertEqual(len(replayed), 1, 'the replay serialized the decision record exactly once')
+        self.assertEqual(_bytes(replayed[0]), _bytes(results[0][v2.MARKER]), 'the bare replay reproduces the writer bytes')
+        self.assertEqual(replayed[0]['fresh_eligibility'], results[0][v2.MARKER]['fresh_eligibility'],
+                         'the replay reads the sealed observation and recomputes nothing fresh')
+
+    def test_a_tampered_record_at_the_pr_head_is_not_a_replay(self) -> None:
+        def tampered(work: Any) -> None:
+            result = publish_marked(self.c.fixture, self.bundle, self.sidecar)
+            path = work / self.record_path(result)
+            record = json.loads(path.read_text())
+            record['fresh_eligibility']['fate']['fate'] = 'partly-merged'
+            _write_json(path, record)
+        decision = self.blocked(self.pr('docs/plan-m-tampered', tampered), 'v2_scope_outside_goal')
+        detail = decision['refusals'][0]['detail']
+        self.assertTrue(detail.endswith('bundle_field_invalid') or detail.endswith('migration_fate_refused') or
+                        detail.endswith('the reserved paths differ from the publish-v2 replay'), detail)
+        for leak in (str(self.base), 'Errno', 'Traceback'):
+            self.assertNotIn(leak, detail)
+
+        def missing(work: Any) -> None:
+            result = publish_marked(self.c.fixture, self.bundle, self.sidecar)
+            (work / self.record_path(result)).unlink()
+        decision = self.blocked(self.pr('docs/plan-m-recordless', missing), 'v2_scope_outside_goal')
+        self.assertIn('generation_artifact_mismatch', decision['refusals'][0]['detail'])
+
+    def test_tightening_a_marked_generation_reconstructs_its_proof(self) -> None:
+        result = publish_marked(self.c.fixture, self.bundle, self.sidecar)
+        self.push_main('publish the migrated plan-m generation')
+        sidecar_path = self.record_path(result).rsplit('/', 1)[0] + '/sidecar.json'
+
+        def hold(work: Any) -> None:
+            sidecar = json.loads((work / sidecar_path).read_text())
+            sidecar['goals']['M1']['readiness']['merge'] = 'blocked'
+            _write_json(work / sidecar_path, sidecar)
+        self.lane(self.pr('chore/hold-m1', hold), 'sidecar-tighten')
+        # A record tampered on main refuses the lane: the registry pins the record's digest.
+        record = json.loads((self.work / self.record_path(result)).read_text())
+        record['deferred'] = []
+        _write_json(self.work / self.record_path(result), record)
+        self.push_main('tamper with the record on main')
+        decision = self.blocked(self.pr('chore/hold-m1-again', hold), 'plan_unloadable')
+        self.assertIn('generation_artifact_mismatch', decision['refusals'][0]['detail'])
+
+    def test_the_approval_lookup_never_swallows_a_malformed_marked_sidecar(self) -> None:
+        result = publish_marked(self.c.fixture, self.bundle, self.sidecar)
+        self.push_main('publish the migrated plan-m generation')
+        sidecar_path = self.record_path(result).rsplit('/', 1)[0] + '/sidecar.json'
+        original = json.loads((self.work / sidecar_path).read_text())
+        doubled = json.dumps(original, indent=2).replace('"schema":', '"plan_id": "plan-m",\n  "schema":', 1)
+        self.assertNotEqual(doubled, json.dumps(original, indent=2))
+        (self.work / sidecar_path).write_text(doubled + '\n')  # duplicate raw keys: not unique-key JSON
+        self.push_main('a malformed sidecar version')
+        tightened = copy.deepcopy(original)
+        tightened['goals']['M1']['readiness']['merge'] = 'blocked'
+        _write_json(self.work / sidecar_path, tightened)
+        self.push_main('a tightened sidecar version')
+        unmarked = {key: value for key, value in self.bundle.items() if key != 'attachments'}
+        found = _lookup(self.work, 'refs/remotes/origin/main', sidecar_path, _canonical(original), unmarked)
+        self.assertEqual(found, original, 'an unmarked lookup still skips the malformed version')
+        with self.assertRaises(Invalid) as raised:
+            _lookup(self.work, 'refs/remotes/origin/main', sidecar_path, _canonical(original), self.bundle)
+        self.assertEqual(_code(raised.exception), 'sidecar_invalid')
+
+
+class MarkedRuntimeTests(unittest.TestCase):
+    """AC-5: the unchanged runtime gate blocks an absent or failing real script and passes only the genuine
+    passing script under the preserved command; a planning placeholder never reaches it."""
+
+    def test_the_runtime_gate_requires_the_real_script(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp).resolve()
+            fixture = Fixture(base)  # type: ignore[no-untyped-call]
+            bundle, _, _ = marked_plan(fixture)
+            work = fixture.work
+            record = _write_json(base / 'goal.json', {'id': 'M1', 'verification': bundle['goals'][0]['verification']})
+
+            def gate() -> Any:
+                return subprocess.run(['bash', str(AUTO / 'ci-gate.sh'), '--verify', '--root', str(work), '--goal-record', str(record)],
+                                      capture_output=True, text=True, cwd=str(work), stdin=subprocess.DEVNULL, timeout=300)
+            absent = gate()
+            self.assertNotEqual(absent.returncode, 0, 'an absent real script blocks')
+            self.assertIn('BLOCKED', absent.stderr)
+            script = work / 'tests/M1_test.sh'
+            script.write_bytes(b'')
+            self.assertEqual(gate().returncode, 0, 'an empty file passes `bash`: this is why the view never writes into the tree')
+            script.write_text('#!/bin/sh\nexit 1\n')
+            failing = gate()
+            self.assertNotEqual(failing.returncode, 0, 'a failing real script blocks')
+            script.write_text('#!/bin/sh\ntest -f src/M1.txt\n')
+            self.assertNotEqual(gate().returncode, 0, 'the genuine script fails until the goal lands its change')
+            (work / 'src/M1.txt').write_text('done\n')
+            passing = gate()
+            self.assertEqual(passing.returncode, 0, passing.stdout + passing.stderr)
+            self.assertFalse(list(Path(tempfile.gettempdir()).glob('observer-view-*')), 'no validation view survives anywhere')
+
+
 if __name__ == '__main__':
     unittest.main()
