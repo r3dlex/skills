@@ -279,16 +279,20 @@ def golden_eleven(lib):
 
 
 def registered_generations(lib):
+    root = Path(os.environ.get("E6_WORKSPACE_ROOT", REPO.parent))
     homes = {
         "skills": REPO,
-        "root": Path("/Users/andresilvaburgstahler/Ws/Personal/AiTool"),
-        "ai-catapult": Path("/Users/andresilvaburgstahler/Ws/Personal/AiTool/ai-catapult"),
-        "ai-factory": Path("/Users/andresilvaburgstahler/Ws/Personal/AiTool/ai-factory"),
+        "root": root,
+        "ai-catapult": root / "ai-catapult",
+        "ai-factory": root / "ai-factory",
     }
     for name, home in homes.items():
         registry = home / ".ai/workflows/northstar-readiness-v1.json"
         if not registry.is_file():
-            bad("registered v1 generations missing: " + name)
+            if name == "skills":
+                bad("registered v1 generations missing: " + name)
+            else:
+                ok("skipped v1 generations: " + name + " (sibling absent)")
             continue
         plans = json.loads(registry.read_text()).get("plans", [])
         if not plans:
