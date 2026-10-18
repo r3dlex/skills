@@ -1550,7 +1550,10 @@ def run_local_gates(root, goal, tmp):
     # Gate scripts start their embedded Python isolated (python3 -I -B); they run with the gate
     # workspace as their working directory and receive it through --root, so every path a gate
     # observes is the workspace's physical path, and a gate's git reaches only the workspace's
-    # own git directory.
+    # own git directory. A generator: each gate runs as the caller consumes it, so the caller's
+    # re-check runs after a gate and before the next starts (ADR-0017's after-every-gate rule);
+    # a caller that stops consuming stops the remaining gates, because a workspace known to be
+    # unfaithful must not run another gate against it.
     home = Path(tmp) / 'home'
     record = Path(tmp) / 'goal.json'
     record.write_text(json.dumps({'id': goal['id'], 'verification': goal['verification']}))
@@ -1558,13 +1561,11 @@ def run_local_gates(root, goal, tmp):
              ('lint-gate', ['bash', HERE / 'lint-gate.sh', '--root', root]),
              ('local safe CI subset', ['bash', HERE / 'local-ci.sh', '--root', root]),
              ('ci-gate --verify', ['bash', HERE / 'ci-gate.sh', '--verify', '--root', root, '--goal-record', record])]
-    results = []
     for name, argv in gates:
         outcome = command(argv, cwd=root, env=gate_env(home))
         if outcome.returncode:
             sys.stderr.write(outcome.stdout.decode(errors='replace') + outcome.stderr.decode(errors='replace'))
-        results.append({'name': name, 'exit': outcome.returncode})
-    return results
+        yield {'name': name, 'exit': outcome.returncode}
 
 
 # --- gate workspace (ACH-S-07) ---------------------------------------------------
@@ -1970,15 +1971,23 @@ def run_gates_in_workspace(root, gen, goal, pr, head, op):
             if refusals:
                 write_gate_workspace_record(root, plan_id, goal_id, pr, head, workspace, op, bootstrap, [], [], [])
                 return gates, refusals, provenance
-            gates = run_local_gates(workspace, goal, tmp)
-            for _ in gates:
+            # The gates run one at a time (run_local_gates is a generator) and the re-check runs
+            # after each gate and before the next starts — not once after all four: a gate that
+            # changed the workspace refuses (or, its identity gone, refuses unavailable) and the
+            # remaining gates do not run, so a later gate cannot undo the evidence.
+            gates = []
+            for result in run_local_gates(workspace, goal, tmp):
+                gates.append(result)
                 if not workspace_identity_ok(workspace, identity):
                     refusals.append('gate_workspace_unavailable')
                     break
-                for violation in workspace_violations(workspace, head,
-                                                      declared=declaration['dependencies'] + declaration['outputs'],
-                                                      home=home):
+                violations = workspace_violations(workspace, head,
+                                                  declared=declaration['dependencies'] + declaration['outputs'],
+                                                  home=home)
+                for violation in violations:
                     refusals += ['worktree_changed_during_gates', violation]
+                if violations:
+                    break
             if git_metadata_snapshot(root) != metadata:
                 refusals.append('git_metadata_changed_during_gates')
             inputs = [{'path': name, 'sha256': digest}

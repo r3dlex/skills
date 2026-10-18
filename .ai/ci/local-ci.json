@@ -2,7 +2,7 @@
   "schema": "local-ci/2",
   "workflows": {
     ".github/workflows/ci-prek.yml": "ebdb15132f8f2ba6b816446adbb927c3637cb3055d9a21706b620648d7ca7041",
-    ".github/workflows/ci.yml": "225735d85d9cfbed4ae0a20a2c9cecd5c1023fe098adab3e35a859ec3d7b9764",
+    ".github/workflows/ci.yml": "18ad156b80c4e46bf4040e87b38d1b740b6a73ef8941419174857c05dddb654c",
     ".github/workflows/security.yml": "d482392810c098a68e96836c15fb0166cd95e9eb5100d87ce90017fe94148ddf"
   },
   "sources": {
@@ -34,13 +34,13 @@
     "tests/autobahn_worktree_driver_integration_test.py": "f25547edf4971aae10f2f27786d05571f655db0d44c123bdcb6aaea0b4340b50",
     "tests/autobahn_worktree_driver_integration_test.sh": "90ab35eb0357581331a9060811cf0ddd2f2007890bb5f490d369334ee67c4d79",
     "04-validate-handoff/autobahn/lib/readiness_contract_v2.py": "c61964bf292f747e1cc8a11dea5f9e46e1bf788a7ea8c8a2f74910053d836bf5",
-    "04-validate-handoff/autobahn/lib/observer.py": "b6c839d344e0f8adf05eb2bc0a825953ccf03a24752b727a9a83b74409e3047f",
+    "04-validate-handoff/autobahn/lib/observer.py": "0f8b1d4c6a9889e987b9ab2d1313e95e002ecef3e6ba9c64c7b5935b775f8233",
     "04-validate-handoff/autobahn/schemas/readiness-contract-v2.json": "8cd0d8f71820302670f09f32b361a06080e4009b105b0d490c49ab19353add50",
     "04-validate-handoff/autobahn/contract-run.sh": "ba2f1ca5b3bcdda0944da878b2ffdf1809c1e54fc22c5d8506371d72c68e4757",
     "04-validate-handoff/autobahn/contract-run-v2.sh": "78dfe75ad32feab7c6b28f7895515f1cb9de0e044a9164e2acd3add694c85574",
     "04-validate-handoff/autobahn/merge-authority.sh": "bd495cd7e4b1736cca212fc65718f5cfc652ec8986315cfa3fbea52bd6956f81",
-    "04-validate-handoff/autobahn/readiness-dependency-v2.json": "96501e7bcd01e50d041956b31b538645ef5ab071745e880ecc6d29087a3b82bf",
-    "02-govern-plan/northstar/readiness-dependency-v2.json": "96501e7bcd01e50d041956b31b538645ef5ab071745e880ecc6d29087a3b82bf",
+    "04-validate-handoff/autobahn/readiness-dependency-v2.json": "e88f04abc688ab062d50a0dd412bcb9434b4cdbc6011996bb52519ce5a52236b",
+    "02-govern-plan/northstar/readiness-dependency-v2.json": "e88f04abc688ab062d50a0dd412bcb9434b4cdbc6011996bb52519ce5a52236b",
     "tests/autobahn_merge_authority_test.sh": "bd927252dc4ddf4067c409021b3f099cfe011e5e985d891758d7d3fbc79619ab",
     "tests/readiness_v1_freeze_test.sh": "1513e38428a31ee76154e2a27faafc737edc23354d7ba98787ae482a7a353d68",
     "tests/readiness_v2_core_test.py": "ebe14b82c98493788d9a696afef8347c1af30bddf93d72c7439629b2e0c10e5f",
@@ -69,7 +69,7 @@
     "tests/readiness_v2_fixture.py": "39dc27e825c43763679b18f9f1d0bbe2bcceceb2f7ae1652a3e496aa25d98643",
     "tests/readiness_v2_e2e_test.py": "6a96c84e3ff22360ac64079bf049f4648f6f6dcc0c994ec4686fca12ff3225f9",
     "tests/readiness_v2_e2e_test.sh": "8884443b9352725a8862b15908e2ea3f3b70377004b164d71013ab6734d9b9cd",
-    "tests/readiness_v2_gate_workspace_test.py": "eb30a989e60ed821b4fc29f8644415a229a74b7374aad8dc5c4e3a9f14e55ecd",
+    "tests/readiness_v2_gate_workspace_test.py": "8242296c507e3f7995d906483332b199a3f867e3a79feb62dffea163710d4bb4",
     "tests/readiness_v2_gate_workspace_test.sh": "422a2194d1d8cfc47eb0ff051b64265b6f44bb4aad4ed7ab790ebd77b184af23",
     "docs/architecture/adr/0017-isolated-gate-workspace.md": "6900d332366c7fefc09c62228756a4982e999cb2ae315360925a2580998237d2",
     "tests/local_ci_contract_v2_test.py": "2514d57fbb2ceb211fabd3a138e61f04be4894ff6f66ea7b511fbbac03a6dddd",
@@ -123,7 +123,7 @@
     "tests/fixtures/e6-sk-00-ledger/stricter-c901.json": "149f9679255606fb42654612d55a75ae4ece0ad87ba568fa2d9636b27b61a7e1",
     "tests/fixtures/e6-sk-00-ledger/stricter-c901.py": "d867acd0e710bc47118db523951a779b75a3989377dee30f3ad9068af621b97f",
     "ts-tooling/test/sample.test.mts": "bb4d9f6bcdcfdc771ebe71cc4105835ea449137d96c96b3478c7f6646b187670",
-    ".github/workflows/ci.yml": "225735d85d9cfbed4ae0a20a2c9cecd5c1023fe098adab3e35a859ec3d7b9764",
+    ".github/workflows/ci.yml": "18ad156b80c4e46bf4040e87b38d1b740b6a73ef8941419174857c05dddb654c",
     ".ai/evidence/e6-sk-00-ledger.json": "8bdf5641fbb95339bf13fe938b88cc65b60613208dd0e37ba5da259527b2291b",
     "ts-tooling/src/json-span.mts": "31703d9bb68bd127c22a79d64197e42516ad0162ed91614ee0b6c4bd58ead9f9",
     "scripts/lib/json-span.mjs": "e1ccb0ed08f125b634c60aa620c5ca2a17a4f91003f2653f778a28771e067450"
