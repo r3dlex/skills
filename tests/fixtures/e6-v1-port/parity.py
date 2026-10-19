@@ -6,6 +6,10 @@ reference. Only the interpreter-diagnostic class is masked, and only inside a
 listed site's runtime substring.
 """
 import hashlib
+import contextlib
+import difflib
+import importlib
+import io
 import json
 import os
 import re
@@ -28,6 +32,8 @@ PINS = {
     ),
 }
 CANDIDATE = REPO / "04-validate-handoff/autobahn/lib/readiness_contract.mjs"
+NODE = shutil.which("node")
+PYTHON = sys.executable
 MASK = "<interpreter-diagnostic>"
 # Fixed prefixes that precede a runtime exception's str() at a listed site.
 # A mask may replace only the runtime substring after one of these prefixes.
@@ -49,6 +55,36 @@ FAIL = 0
 CODES = set()
 SITES = set()
 CASES = 0
+REFUSALS = set()
+LINES = set()
+DIAGNOSTICS = set()
+REFUSAL_SITES = set()
+EXCEPTION_SITES = set()
+GATE_BRANCHES = set()
+
+
+def observe(function, *args, **kwargs):
+    def trace(frame, event, arg):
+        name = frame.f_code.co_filename.rsplit('/', 1)[-1]
+        if name not in ('readiness_contract.py', 'verification.py'): return None
+        if event == 'line': LINES.add((name, frame.f_lineno))
+        if event == 'line' and 'error' in frame.f_locals and frame.f_lineno in (534,644,657,719,741,786,908,932,1165,148,155,168):
+            EXCEPTION_SITES.add((name, frame.f_lineno, type(frame.f_locals['error']).__name__))
+        if event == 'line' and name == 'readiness_contract.py' and frame.f_lineno == 785:
+            error = frame.f_locals['error']
+            GATE_BRANCHES.add(('unknown' if any(token in str(error) for token in ('unavailable','missing','required','No such file')) else 'blocked', type(error).__name__))
+        if event == 'call' and frame.f_code.co_name == 'require' and not frame.f_locals.get('value'):
+            REFUSALS.add(str(frame.f_locals.get('message')))
+            REFUSAL_SITES.add((name, frame.f_back.f_lineno))
+        if event == 'call' and frame.f_code.co_name == 'stop':
+            REFUSALS.add(str(frame.f_locals.get('message')))
+            REFUSAL_SITES.add((name, frame.f_back.f_lineno))
+        if event == 'exception': DIAGNOSTICS.add((name, frame.f_lineno, arg[0].__name__))
+        return trace
+    previous = sys.gettrace()
+    sys.settrace(trace)
+    try: return function(*args, **kwargs)
+    finally: sys.settrace(previous)
 
 
 def ok(name):
@@ -91,52 +127,135 @@ def materialize(dest):
 
 
 def run(cmd, cwd=None):
-    result = subprocess.run(cmd, cwd=cwd or REPO, capture_output=True)
+    if len(cmd) >= 4 and cmd[2] == str(REPO / 'tests/fixtures/e6-v1-port/reference.py') and not os.environ.get('E6_V1_FAULT'):
+        return reference_main(cmd)
+    with tempfile.TemporaryDirectory(prefix="e6-trace-") as temporary:
+        trace = Path(temporary) / "coverage.json"
+        result = subprocess.run(cmd, cwd=cwd or REPO, capture_output=True, env=dict(os.environ, E6_V1_TRACE=str(trace)))
+        if trace.exists():
+            coverage = json.loads(trace.read_text())
+            REFUSALS.update(coverage["refusals"])
+            LINES.update(map(tuple, coverage["lines"]))
+            DIAGNOSTICS.update(map(tuple, coverage["diagnostics"]))
+            REFUSAL_SITES.update(map(tuple, coverage.get("refusal_sites", [])))
+            EXCEPTION_SITES.update(map(tuple, coverage.get("exception_sites", [])))
+            GATE_BRANCHES.update(map(tuple, coverage.get("gate_branches", [])))
     text = result.stderr.decode("utf-8", "replace")
     if "node_unavailable" in text or "node_version_unsupported" in text:
         bad("node refusal is not a pass", text)
     return result.returncode, result.stdout, result.stderr
 
 
+def reference_main(cmd):
+    """Call the exact anchored main, avoiding a new Python process per input.
+
+    Fault-injection cases retain their isolated reference subprocess. No fatal
+    exception is caught here; only argparse's ordinary SystemExit is captured.
+    """
+    frozen = sys.modules['readiness_contract']
+    assert Path(frozen.__file__).resolve().parent == Path(cmd[3]).resolve()
+    stdout, stderr = io.StringIO(), io.StringIO()
+    previous = sys.argv
+    sys.argv = [str(Path(cmd[3]) / 'readiness_contract.py'), *cmd[4:]]
+    try:
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            try: code = observe(frozen.main)
+            except SystemExit as exit: code = exit.code
+    finally:
+        sys.argv = previous
+    return code, stdout.getvalue().encode(), stderr.getvalue().encode()
+
+
 def py_cmd(lib, operation, args):
-    return ["python3", "-B", str(lib / "readiness_contract.py"), operation, *args]
+    return [PYTHON, "-B", str(REPO / "tests/fixtures/e6-v1-port/reference.py"), str(lib), operation, *args]
 
 
 def ts_cmd(operation, args):
     return ["node", "--disable-proto=throw", str(CANDIDATE), operation, *args]
 
 
-def mask_text(raw):
-    """Replace a runtime diagnostic only after a listed site prefix."""
-    text = raw.decode("utf-8", "replace")
-    found = False
+def mask_stderr(raw):
+    """Never mask a prefix embedded in usage text, argv or an unrelated log."""
+    text = raw.decode('utf-8', 'replace')
     for prefix in SITE_PREFIXES:
-        start = 0
-        while True:
-            at = text.find(prefix, start)
-            if at < 0:
-                break
-            # The class substring runs from the first non-contract tail. Contract
-            # messages contain no bracketed errno and no "Expecting"/"Illegal".
-            tail = text[at + len(prefix):]
-            match = re.search(
-                r"(\[Errno \d+\][^\"]*|Expecting [^\"]*|Illegal [^\"]*|JSONDecodeError[^\"]*"
-                r"|Expected property name or '\}' in JSON at position [^\"]*"
-                r"|Unexpected token [^\"]*|Unexpected non-whitespace [^\"]*"
-                r"|Unterminated string in JSON at position [^\"]*"
-                r"|ENOENT: [^\"]*|EACCES: [^\"]*|EPERM: [^\"]*)",
-                tail,
-            )
-            if match:
-                abs_start = at + len(prefix) + match.start(1)
-                abs_end = at + len(prefix) + match.end(1)
-                text = text[:abs_start] + MASK + text[abs_end:]
-                found = True
-                SITES.add(prefix)
-                start = abs_start + len(MASK)
-            else:
-                start = at + len(prefix)
-    return text.encode(), found
+        fixed = prefix if prefix.endswith(':') else prefix + ':'
+        if not text.startswith(fixed): continue
+        tail = text[len(fixed):]
+        start = runtime_tail(tail)
+        if start is not None:
+            newline = '\n' if tail.endswith('\n') else ''
+            return (fixed + tail[:start] + MASK + newline).encode(), True
+    return raw, False
+
+
+def runtime_tail(value):
+    """Locate only a standard-library/runtime exception, never an Invalid code."""
+    start = 0
+    nested = re.match(r'verification\[\d+\](?:\.cwd is unreadable: | command cannot be parsed: | script is unreadable: )', value)
+    if nested: start = nested.end()
+    if value.startswith('trust_source_unavailable:'):
+        found = re.search(r'(?:\[Errno \d+\]|ENOENT:|EACCES:|EPERM:)', value)
+        if found: start = found.start()
+    tail = value[start:]
+    if re.match(r'(?:lstat: embedded null character in path|embedded null byte)', tail): return start
+    if re.match(r"argument of type '[^']+' is not a container or iterable", tail): return start
+    if re.fullmatch(r"'[^']*'", tail): return start  # KeyError.__str__
+    if re.match(r'(?:string|list) indices must be ', tail): return start
+    if tail.startswith('can only concatenate str '): return start
+    if re.match(r'(?:day \d+ must be |month must be |hour must be |minute(?:,| must be )|second must be |offset must be |year (?:must be |\d+ is out of range))', tail): return start
+    runtime = r"(?:\[Errno \d+\]|E(?:NOENT|ACCES|PERM|ISDIR|LOOP|NOTDIR):|Expecting |Illegal |Unexpected |Unterminated |expected string or bytes-like object|cannot use '.+' as a (?:set element|dict key)|unhashable type:|Invalid isoformat string:|'[^']+' object (?:has no attribute|is not iterable|is not subscriptable)|'in <string>' requires string as left operand|argument of type '[^']+' is not iterable|'utf-8' codec can't decode|The encoded data was not valid for encoding|Cannot (?:read|convert|use)|No closing quotation|No escaped character|argument should be a str or an os.PathLike object)"
+    return start if re.match(runtime, tail) else None
+
+
+def mask_text(raw):
+    try:
+        text = raw.decode('utf-8')
+        data = json.loads(text)
+    except (ValueError, UnicodeError):
+        return mask_stderr(raw)
+    decoder = json.JSONDecoder()
+    edits = []
+    def walk(index, path, parent):
+        while text[index].isspace(): index += 1
+        if text[index] == '{':
+            index += 1
+            while True:
+                while text[index].isspace(): index += 1
+                if text[index] == '}': return index + 1
+                key, index = decoder.raw_decode(text, index)
+                while text[index].isspace() or text[index] == ':': index += 1
+                child = parent.get(key) if isinstance(parent, dict) else None
+                index = walk(index, path + (key,), child)
+                while text[index].isspace(): index += 1
+                if text[index] == ',': index += 1
+        if text[index] == '[':
+            index += 1
+            counter = 0
+            while True:
+                while text[index].isspace(): index += 1
+                if text[index] == ']': return index + 1
+                index = walk(index, path + (counter,), parent[counter])
+                counter += 1
+                while text[index].isspace(): index += 1
+                if text[index] == ',': index += 1
+        value, end = decoder.raw_decode(text, index)
+        if isinstance(value, str) and path:
+            container = data
+            for part in path[:-1]: container = container[part]
+            code = container.get('code') if isinstance(container, dict) else None
+            allowed = path == ('error',) or (path[-1] == 'detail' and code in {'verification_invalid', 'goal_requirement_invalid', 'policy_context_invalid', 'authority_unavailable', 'gate_failed', 'context_unavailable', 'admission_failed'})
+            if allowed:
+                prefix = ''
+                suffix = value
+                if code == 'gate_failed' and ':' in value: prefix, suffix = value.split(':', 1); prefix += ':'
+                start = runtime_tail(suffix)
+                if start is not None:
+                    edits.append((index, end, json.dumps(prefix + suffix[:start] + MASK)))
+                    SITES.add(code if isinstance(code, str) else 'error')
+        return end
+    walk(0, (), data)
+    for start, end, replacement in reversed(edits): text = text[:start] + replacement + text[end:]
+    return text.encode(), bool(edits)
 
 
 def same(name, left, right):
@@ -154,9 +273,31 @@ def same(name, left, right):
         ok(name)
         note_codes(lout_m)
         return True
-    bad(name, "exit %s vs %s\n--- py ---\n%s\n--- ts ---\n%s" % (
-        lcode, rcode, lout_m[:1500], rout_m[:1500]))
+    difference = "\n".join(difflib.unified_diff(lout_m.decode().splitlines(), rout_m.decode().splitlines(), fromfile="python", tofile="typescript", n=1))
+    bad(name, "exit %s vs %s\n%s\nstderr: %r vs %r" % (lcode, rcode, difference, lerr_m, rerr_m))
     return False
+
+
+def mask_self_probes():
+    value = {'error': 'stale_file:expected string or bytes-like object', 'outside': '[Errno 2] do not mask'}
+    raw = json.dumps(value).encode()
+    if mask_text(raw) == (raw, False): ok('mask preserves contract text and non-site fields')
+    else: bad('mask changed bytes outside the interpreter-diagnostic class')
+    raw = b'{"gaps": [{"code": "gate_failed", "detail": "gate:[Errno 2] missing", "status": "unknown"}]}'
+    expected = b'{"gaps": [{"code": "gate_failed", "detail": "gate:<interpreter-diagnostic>", "status": "unknown"}]}'
+    if mask_text(raw) == (expected, True): ok('mask locates runtime suffix and preserves gate/status bytes')
+    else: bad('mask failed to locate the runtime substring')
+    usage = b"usage: tool\nerror: invalid choice: 'admission_failed:Illegal user text'\n"
+    if mask_text(usage) == (usage, False): ok('mask preserves diagnostic-looking argv text on stderr')
+    else: bad('mask rewrote a usage diagnostic outside the class')
+    for diagnostic in ('lstat: embedded null character in path', 'embedded null byte'):
+        raw = json.dumps({'gaps': [{'code': 'gate_failed', 'detail': 'null-path:' + diagnostic, 'status': 'blocked'}]}).encode()
+        expected = json.dumps({'gaps': [{'code': 'gate_failed', 'detail': 'null-path:' + MASK, 'status': 'blocked'}]}).encode()
+        if mask_text(raw) == (expected, True): ok('mask locates runtime NUL diagnostic: ' + diagnostic)
+        else: bad('mask failed to locate runtime NUL diagnostic')
+    fatal = b'Traceback (most recent call last):\nRecursionError: maximum recursion depth exceeded\n'
+    if mask_text(fatal) == (fatal, False): ok('mask never normalizes fatal reference tracebacks')
+    else: bad('mask normalized a fatal reference traceback')
 
 
 def note_codes(stdout):
@@ -211,6 +352,12 @@ def canonical_fixtures():
             bad("dedicated canonical fixture %d" % index, "expected committed %s" % fixture)
         else:
             ok("canonical fixture %d" % index)
+        js = "import {parse,canonical,dumps} from './04-validate-handoff/autobahn/lib/json.mjs'; const v=parse(process.argv[1]); console.log(dumps(v,null,true,true)); console.log(canonical(v));"
+        same("shipping canonical fixture %d" % index, (0, (py + "\n" + digest + "\n").encode(), b""), run(["node", "--input-type=module", "-e", js, raw.decode()]))
+    directory = REPO / 'tests/fixtures/e6-v1-port'
+    js = "import {digest,parse,canonical} from './04-validate-handoff/autobahn/lib/json.mjs'; console.log(digest(process.argv[1])); console.log(canonical(parse(process.argv[2])));"
+    generation, expected = (directory / 'generation.json').read_text().splitlines()
+    same('shipping file and generation digests', (0, (sha256((directory / 'digest.bin').read_bytes()) + '\n' + expected + '\n').encode(), b''), run(['node', '--input-type=module', '-e', js, str(directory / 'digest.bin'), generation]))
 
 
 def write_dedicated():
@@ -242,9 +389,18 @@ def write_dedicated():
 
 
 def engine_pair(lib):
-    py = ["python3", "-B", str(lib / "readiness_contract.py")]
+    py = [PYTHON, "-B", str(REPO / "tests/fixtures/e6-v1-port/reference.py"), str(lib)]
     ts = ["node", "--disable-proto=throw", str(CANDIDATE)]
     return py, ts
+
+
+def reference_entrypoint_probes(lib):
+    for args in [['--help'], ['admit', '-hfoo'], ['admit', '--root', '-1.'], ['admit', '--unknown'], ['admit']]:
+        command = [PYTHON, '-B', str(REPO / 'tests/fixtures/e6-v1-port/reference.py'), str(lib), *args]
+        process = subprocess.run(command, capture_output=True, cwd=REPO)
+        expected = process.returncode, process.stdout, process.stderr
+        if reference_main(command) == expected: ok('anchored main equals standalone reference: ' + repr(args))
+        else: bad('in-process reference changed standalone bytes: ' + repr(args))
 
 
 def compare_args(name, lib, args):
@@ -276,6 +432,22 @@ def golden_eleven(lib):
         compare_args("interpreter-diagnostic-malformed-json", lib, ["admit", *base, "--goal", str(bad_json)])
     finally:
         shutil.rmtree(root, ignore_errors=True)
+    with tempfile.TemporaryDirectory(prefix='e6-v1-p5-') as temporary:
+        root = Path(temporary).resolve()
+        fixture(root)
+        path = REPO / '.ai/handoff/readiness-v1/xskp-p5-skill-producers/4a064a42f24659d6df9f48f66ee9900103a6f002672155d9f8d27b49d80cdb0c/goals.json'
+        bundle = json.loads(path.read_text())
+        for item in [bundle, *bundle['goals']]: item['repository']['root'] = str(root)
+        target = root / bundle['spec']['path']
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((REPO / bundle['spec']['path']).read_bytes())
+        (root / 'tests/run-tests.sh').write_text('#!/bin/sh\nexit 0\n')
+        write(root, '.ai/traceability/graph.json', {'schema_version': '1.1', 'nodes': [{'id': 'spec:skills:xskp-p5-skill-producers', 'type': 'spec', 'title': 'P5', 'status': 'active', 'repo_id': 'skills', 'path': bundle['spec']['path'], 'backlinks': []}], 'edges': []})
+        write(root, 'plan.json', bundle)
+        base = ['--root', str(root)]
+        compare_args('p5-publish', lib, ['publish', *base, '--bundle', str(root / 'plan.json')])
+        compare_args('p5-admit-planning', lib, ['admit', *base, '--handoff', 'northstar-plan-xskp-p5-skill-producers', '--goal-id', 'XSKP-P5-01', '--stage', 'planning'])
+        compare_args('p5-migrate', lib, ['migrate', *base, '--legacy', str(root / 'plan.json'), '--bundle', str(root / 'plan.json')])
 
 
 def registered_generations(lib):
@@ -318,6 +490,10 @@ def registered_generations(lib):
 
 
 def main():
+    if sys.version_info[:3] != (3, 14, 8):
+        bad('reference_python_required:3.14.8')
+        return 1
+    print('reference_python=' + sys.version.split()[0])
     write_dedicated()
     work = Path(tempfile.mkdtemp(prefix="e6-v1-parity-"))
     try:
@@ -326,8 +502,47 @@ def main():
             return 1
         if not require_candidate():
             return 1
+        sys.path.insert(0, str(lib))
+        sys.modules.pop('readiness_contract', None)
+        sys.modules.pop('verification', None)
+        frozen = importlib.import_module('readiness_contract')
+        if Path(frozen.__file__).resolve().parent != lib.resolve():
+            bad('reference imports escaped the materialized anchor')
+            return 1
         canonical_fixtures()
+        mask_self_probes()
+        reference_entrypoint_probes(lib)
         golden_eleven(lib)
+        from differential import run as differential
+        from scenarios import run as scenarios
+        from generated import run as generated
+        from verification_cases import run as verification_cases
+        from typed_cases import run as typed_cases
+        from numeric_cases import run as numeric_cases
+        from edge_cases import run as edge_cases
+        from mapped_cases import run as mapped_cases
+        from selection_cases import run as selection_cases
+        from refusal_cases import run as refusal_cases
+        from boundary_cases import run as boundary_cases
+        from worktree_cases import run as worktree_cases
+        from api_cases import run as api_cases
+        from publication_cases import run as publication_cases
+        from depth_cases import run as depth_cases
+        numeric_cases(sys.modules[__name__])
+        differential(sys.modules[__name__], lib)
+        edge_cases(sys.modules[__name__], lib)
+        generated(sys.modules[__name__], lib)
+        verification_cases(sys.modules[__name__], lib)
+        typed_cases(sys.modules[__name__], lib)
+        mapped_cases(sys.modules[__name__], lib)
+        selection_cases(sys.modules[__name__], lib)
+        refusal_cases(sys.modules[__name__], lib)
+        boundary_cases(sys.modules[__name__], lib)
+        worktree_cases(sys.modules[__name__], lib)
+        api_cases(sys.modules[__name__], lib)
+        publication_cases(sys.modules[__name__], lib)
+        depth_cases(sys.modules[__name__], lib)
+        scenarios(sys.modules[__name__], lib)
         registered_generations(lib)
         # One seeded divergence must be red. Flip a byte of a captured TS stdout
         # and require the comparator to reject it.
@@ -340,6 +555,19 @@ def main():
             PASS += 1
             print("  PASS: seeded divergence is red")
         print("corpus_cases=%d codes=%s sites=%s" % (CASES, ",".join(sorted(CODES)), ",".join(sorted(SITES))))
+        from inventory import report as inventory
+        coverage = {'corpus_cases': CASES, 'codes': sorted(CODES), 'refusals': sorted(REFUSALS), 'refusal_sites': sorted(REFUSAL_SITES), 'executed_lines': sorted(LINES), 'diagnostics': sorted(DIAGNOSTICS), 'masked_sites': sorted(SITES), 'exception_sites': sorted(EXCEPTION_SITES), 'gate_branches': sorted(GATE_BRANCHES), 'inventory': inventory(sys.modules[__name__], lib)}
+        if not coverage['inventory']['missing_refusal_sites']: ok('every anchored require/verification-stop refusal site reached')
+        else: bad('unreached anchored refusal sites', repr(coverage['inventory']['missing_refusal_sites']))
+        targets = {('readiness_contract.py', line) for line in (534, 644, 657, 719, 741, 786, 908, 932, 1165)} | {('verification.py', line) for line in (148, 155, 168)}
+        runtime_sites = {(file, line) for file, line, kind in EXCEPTION_SITES if kind != 'Invalid'}
+        if targets <= runtime_sites: ok('all 12 interpreter-diagnostic sites reached by runtime errors')
+        else: bad('unreached runtime diagnostic sites', repr(sorted(targets - runtime_sites)))
+        branches = {branch for branch, kind in GATE_BRANCHES if kind != 'Invalid'}
+        if branches == {'unknown', 'blocked'}: ok('both line-785 runtime status decisions retained')
+        else: bad('missing line-785 runtime status decision', repr(branches))
+        print('coverage_inventory=' + json.dumps(coverage, sort_keys=True))
+        if os.environ.get('E6_V1_COVERAGE_OUT'): Path(os.environ['E6_V1_COVERAGE_OUT']).write_text(json.dumps(coverage, indent=2, sort_keys=True) + '\n')
     finally:
         shutil.rmtree(work, ignore_errors=True)
     print("Results: PASS=%d FAIL=%d" % (PASS, FAIL))

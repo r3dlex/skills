@@ -1,5 +1,7 @@
 import { accessSync, constants, realpathSync, statSync } from "node:fs";
 import { isAbsolute, resolve, sep } from "node:path";
+import { pyRepr, strip, whitespace } from "./json.mjs";
+export { pyRepr } from "./json.mjs";
 export class VerificationError extends Error {
     code;
     constructor(code, message) {
@@ -9,7 +11,6 @@ export class VerificationError extends Error {
     }
 }
 const FORBIDDEN = /[;&|`$><\n\\]|\$\(/;
-const TRAVERSAL = /(^|[/\s])\.\.([/\s]|$)/;
 function hasControl(value) {
     for (let index = 0; index < value.length; index += 1) {
         const code = value.charCodeAt(index);
@@ -80,14 +81,20 @@ function allowed(argv) {
     return EXACT.has(keyOf(argv)) || npmRun(argv) || bashTests(argv) || moonRun(argv);
 }
 function npmAllowed(target) {
-    return SAFE_TASK.test(target) && DELIVERY_TASK.test(target) === false;
+    return SAFE_TASK.test(regexCase(target)) && DELIVERY_TASK.test(regexCase(target)) === false;
 }
 function moonAllowed(target) {
     const task = target.slice(target.lastIndexOf(":") + 1);
-    return SAFE_TASK.test(task) && DELIVERY_TASK.test(target) === false;
+    return SAFE_TASK.test(regexCase(task)) && DELIVERY_TASK.test(regexCase(target)) === false;
 }
-export function pyRepr(value) {
-    return `'${value.replaceAll("\\", "\\\\").replaceAll("'", "\\'")}'`;
+function regexCase(value) { return value.replace(/[İı]/g, "i").replaceAll("ſ", "s").replaceAll("K", "k"); }
+function traversalBoundary(ch, edge) { return edge || ch === "/" || whitespace(ch); }
+function traversal(value) {
+    for (let at = value.indexOf(".."); at >= 0; at = value.indexOf("..", at + 1)) {
+        if (traversalBoundary(value[at - 1] ?? "", at === 0) && traversalBoundary(value[at + 2] ?? "", at + 2 === value.length))
+            return true;
+    }
+    return false;
 }
 function executable(name, cwd) {
     const path = process.env.PATH ?? "";
@@ -126,7 +133,10 @@ function takeQuoted(command, index, mark) {
             return { text, index: cursor };
         }
         if (mark === '"' && ch === "\\") {
-            text += command[cursor + 1] ?? "";
+            const next = command[cursor + 1];
+            if (next === undefined)
+                throw new Error("No escaped character");
+            text += next === mark || next === "\\" ? next : "\\" + next;
             cursor += 2;
             continue;
         }
@@ -140,11 +150,14 @@ function takeBare(command, index) {
     let cursor = index;
     while (cursor < command.length) {
         const ch = command[cursor] ?? "";
-        if (ch === " " || ch === "\t" || ch === "'" || ch === '"') {
+        if (" \t\r\n".includes(ch) || ch === "'" || ch === '"') {
             break;
         }
         if (ch === "\\") {
-            text += command[cursor + 1] ?? "";
+            const next = command[cursor + 1];
+            if (next === undefined)
+                throw new Error("No escaped character");
+            text += next;
             cursor += 2;
             continue;
         }
@@ -160,7 +173,7 @@ export function shlexSplit(command) {
     let index = 0;
     while (index < command.length) {
         const ch = command[index] ?? "";
-        if (ch === " " || ch === "\t") {
+        if (" \t\r\n".includes(ch)) {
             if (started) {
                 argv.push(current);
                 current = "";
@@ -182,7 +195,7 @@ export function shlexSplit(command) {
 }
 function entryOf(value, index) {
     if (typeof value === "string") {
-        return { cwd: ".", command: value.trim(), raw: value };
+        return { cwd: ".", command: strip(value), raw: value };
     }
     if (value !== null && typeof value === "object" && !Array.isArray(value)) {
         return objectEntry(value, index);
@@ -196,16 +209,16 @@ function objectEntry(value, index) {
     }
     const cwd = value.cwd;
     const command = value.command;
-    if (typeof cwd !== "string" || cwd.trim() === "") {
+    if (typeof cwd !== "string" || strip(cwd) === "") {
         stop(2, `verification[${index}].cwd must be a non-empty string`);
     }
-    if (typeof command !== "string" || command.trim() === "") {
+    if (typeof command !== "string" || strip(command) === "") {
         stop(2, `verification[${index}].command must be a non-empty string`);
     }
-    if (cwd !== cwd.trim()) {
+    if (cwd !== strip(cwd)) {
         stop(3, `verification[${index}].cwd must be normalized`);
     }
-    return { cwd, command: command.trim(), raw: command };
+    return { cwd, command: strip(command), raw: command };
 }
 function rejectControl(index, raw, cwd, command) {
     if (hasControl(raw) || hasControl(cwd)) {
@@ -214,7 +227,7 @@ function rejectControl(index, raw, cwd, command) {
     if (FORBIDDEN.test(command)) {
         stop(3, `verification[${index}] command contains shell metacharacters`);
     }
-    if (TRAVERSAL.test(command)) {
+    if (traversal(command)) {
         stop(3, `verification[${index}] command contains path traversal`);
     }
 }

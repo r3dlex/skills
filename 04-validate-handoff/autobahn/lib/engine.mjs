@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { accessSync, closeSync, constants, fsyncSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { accessSync, closeSync, constants, fsyncSync, lstatSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, realpathSync, renameSync, rmdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
-import { canonical, digest, dumps, ID, Invalid, read, require, REVISION, SHA, string, VERSION } from "./json.mjs";
-import { shlexSplit, validate as validateCommands } from "./verification.mjs";
+import { canonical, compare, digest, dumps, equal, Float, hashable, ID, Invalid, match, numeric, parse, pyKey, pyStr, read, redactText, require, REVISION, SHA, string, strip, typeName, VERSION, whitespace } from "./json.mjs";
+import { osError, pyRepr, shlexSplit, validate as validateCommands } from "./verification.mjs";
 const POLICY = ".ai/policies/readiness-policy.json";
 const MANIFEST = ".ai/workflows/repo-workflow.json";
 const GRAPH = ".ai/traceability/graph.json";
@@ -12,7 +13,7 @@ const MAPPED = "mapped-handoff-goals/1";
 const STAGES = ["preparation", "implementation", "merge"];
 const DIMENSIONS = ["owners", "reviewer", "branch_target", "fixtures", "tooling", "registration_approval", "harness_trust"];
 function isDict(value) {
-    return value !== null && typeof value === "object" && !Array.isArray(value);
+    return value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Float);
 }
 function dict(value, message) {
     if (!isDict(value)) {
@@ -20,6 +21,53 @@ function dict(value, message) {
     }
     return value;
 }
+function pythonDict(value) {
+    if (!isDict(value))
+        throw new TypeError("'" + typeName(value) + "' object has no attribute 'get'");
+    return value;
+}
+function get(record, key, fallback) {
+    return Object.hasOwn(record, key) ? record[key] : fallback;
+}
+function field(record, key) {
+    if (!Object.hasOwn(record, key))
+        throw new Error(pyRepr(key));
+    return record[key];
+}
+function iterable(value) {
+    if (Array.isArray(value))
+        return value;
+    if (typeof value === "string")
+        return Array.from(value);
+    if (isDict(value))
+        return Object.keys(value);
+    throw new TypeError("'" + typeName(value) + "' object is not iterable");
+}
+function contains(value, item) {
+    if (Array.isArray(value))
+        return value.some((entry) => sameValue(entry, item));
+    if (isDict(value)) {
+        hashable(item);
+        return typeof item === "string" && Object.hasOwn(value, item);
+    }
+    if (typeof value === "string") {
+        if (typeof item !== "string")
+            throw new TypeError("'in <string>' requires string as left operand, not " + typeName(item));
+        return value.includes(item);
+    }
+    throw new TypeError("argument of type '" + typeName(value) + "' is not iterable");
+}
+function append(value, item) {
+    if (!Array.isArray(value))
+        throw new TypeError("'" + typeName(value) + "' object has no attribute 'append'");
+    value.push(item);
+}
+function startsWith(value, prefix) {
+    if (typeof value !== "string")
+        throw new TypeError("'" + typeName(value) + "' object has no attribute 'startswith'");
+    return value.startsWith(prefix);
+}
+function unsafeTarget(value) { return Array.from(value).some(whitespace) || /[;&|`$<>]/.test(value); }
 function text(value) {
     return typeof value === "string" ? value : "";
 }
@@ -47,7 +95,7 @@ function isDirectory(path) {
     return exists(path) && statSync(path).isDirectory();
 }
 function keysEqual(value, keys) {
-    return Object.keys(value).sort().join("\n") === [...keys].sort().join("\n");
+    return Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key));
 }
 function inside(root, path) {
     return path === root || path.startsWith(root + "/");
@@ -91,25 +139,33 @@ export function relativePath(root, name, mustExist = true) {
     require(!unsafe, "unsafe_path:" + text);
     const path = resolve(root, text);
     require(!symlinkComponent(root, path), "symlink_path:" + text);
-    if (mustExist) {
-        try {
-            return realpathSync(path);
-        }
-        catch (error) {
-            throw new Invalid("outside_root:" + text, error.code === "ENOENT" ? "enoent" : "");
-        }
+    if (text.includes("\0"))
+        throw new TypeError("embedded null byte");
+    let resolved;
+    try {
+        resolved = mustExist ? realpathSync(path) : resolveMissing(path);
     }
+    catch (error) {
+        throw new Error(osError(error), { cause: error });
+    }
+    require(resolved !== root && inside(root, resolved), "outside_root:" + text);
     return path;
+}
+function resolveMissing(path) {
+    if (exists(path))
+        return realpathSync(path);
+    const parent = resolve(path, "..");
+    return resolve(resolveMissing(parent), path.slice(parent.length + 1));
 }
 function fileRef(root, value) {
     const record = dict(value, "file_digest_required");
-    require(SHA.test(text(record.sha256)), "file_digest_required");
+    require(match(SHA, "sha256" in record ? record.sha256 : ""), "file_digest_required");
     const path = relativePath(root, record.path);
     require(isFile(path) && digestFile(path) === record.sha256, "stale_file:" + text(record.path));
 }
 function repository(value, root) {
     const record = dict(value, "repository_id_required");
-    require(ID.test(text(record.id)), "repository_id_required");
+    require(match(ID, "id" in record ? record.id : ""), "repository_id_required");
     require(record.root === root, "repository_root_mismatch");
 }
 function stringList(goal, key) {
@@ -119,7 +175,7 @@ function stringList(goal, key) {
 }
 function goalShape(goal, root, filesRoot = root) {
     const record = dict(goal, "goal_id_required");
-    require(ID.test(text(record.id)), "goal_id_required");
+    require(match(ID, "id" in record ? record.id : ""), "goal_id_required");
     repository(record.repository, root);
     require(string(record.issue_ref), "goal_issue_required");
     stringList(record, "scope");
@@ -131,7 +187,7 @@ function goalShape(goal, root, filesRoot = root) {
     require(Array.isArray(deps) && deps.every((item) => typeof item === "string" && ID.test(item)), "invalid_dependencies");
     require(new Set(deps).size === deps.length && !deps.includes(text(record.id)), "invalid_dependencies");
     const readiness = dict(record.readiness, "stage_readiness_required");
-    require(STAGES.every((stage) => stage in readiness), "stage_readiness_required");
+    require(keysEqual(readiness, STAGES), "stage_readiness_required");
     require(Object.values(readiness).every((item) => item === "ready" || item === "blocked" || item === "unknown"), "stage_readiness_required");
     require(Array.isArray(record.verification) && record.verification.length > 0, "verification_required");
 }
@@ -166,7 +222,7 @@ function executionSources(binding, root) {
     require(Array.isArray(sources) && sources.length > 0, "execution_sources_required");
     const records = sources.map((source) => dict(source, "execution_sources_required"));
     require(records.every((source) => keysEqual(source, ["path", "sha256"])), "execution_sources_required");
-    require(new Set(records.map((source) => source.path)).size === records.length, "duplicate_execution_sources");
+    require(new Set(records.map((source) => pyKey(source.path))).size === records.length, "duplicate_execution_sources");
     for (const source of records) {
         fileRef(root, source);
     }
@@ -181,7 +237,7 @@ function executionShape(bundle, root) {
     require(!pathHasSymlink(target), "execution_root_symlink");
     repository(repo, target);
     require(repo.id !== bundle.repository.id && !inside(root, target) && !inside(target, root), "execution_roots_not_disjoint");
-    require(string(binding.target) && !/[\s;&|`$<>]/.test(text(binding.target)), "execution_target_required");
+    require(string(binding.target) && !unsafeTarget(text(binding.target)), "execution_target_required");
     require(REVISION.test(text(binding.source_revision)), "execution_source_revision_required");
     require(["local", "external-only"].includes(text(binding.validation)), "execution_validation_required");
     executionSources(binding, target);
@@ -203,11 +259,13 @@ function scopeDirectories(root, scope, directories) {
 }
 function collectDirectories(path, directories) {
     for (const entry of readdirSync(path, { withFileTypes: true })) {
+        const child = resolve(path, entry.name);
         if (entry.isDirectory()) {
-            const child = resolve(path, entry.name);
             directories.add(child);
             collectDirectories(child, directories);
         }
+        else if (isDirectory(child))
+            directories.add(child);
     }
 }
 function instructionPaths(bundle, root) {
@@ -234,7 +292,7 @@ function instructionPaths(bundle, root) {
 export function bundleShape(bundle, root, filesRoot = root) {
     const record = dict(bundle, "migration_required:handoff-goals/1");
     require(record.schema === "handoff-goals/1" || record.schema === MAPPED, "migration_required:handoff-goals/1");
-    require(ID.test(text(record.id)), "bundle_id_required");
+    require(match(ID, "id" in record ? record.id : ""), "bundle_id_required");
     repository(record.repository, root);
     require(mapped(record) || !("execution" in record), "execution_requires_mapped_schema");
     const goalRoot = mapped(record) ? executionShape(record, root) : root;
@@ -303,7 +361,7 @@ function worktreeIdentity(identityRoot, filesRoot, base) {
     return { schema: "git-worktree/1", root: filesRoot, base_commit: base, target_ref: targetRef, common_dir: common, head, branch, target_revision: target };
 }
 function worktreeFiles(root, dir, paths) {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    for (const entry of worktreeDirectory(dir)) {
         if (dir === root && entry.name === ".git") {
             continue;
         }
@@ -317,8 +375,16 @@ function worktreeFiles(root, dir, paths) {
         }
     }
 }
+function worktreeDirectory(path) {
+    try {
+        return readdirSync(path, { withFileTypes: true });
+    }
+    catch {
+        throw new Invalid("worktree_unreadable_directory");
+    }
+}
 function worktreeState(root, paths) {
-    return [...paths].sort().map((name) => {
+    return [...paths].sort(compare).map((name) => {
         const path = relativePath(root, name, false);
         if (!exists(path)) {
             return [name, "deleted"];
@@ -334,7 +400,7 @@ function worktreeState(root, paths) {
 }
 function gitEntries(root, head, index) {
     const raw = index ? gitRead(root, "ls-files", "--stage", "-z") : gitRead(root, "ls-tree", "-r", "-z", head);
-    const entries = {};
+    const entries = Object.create(null);
     for (const entry of raw.split("\0").filter(Boolean)) {
         const at = entry.indexOf("\t");
         const [mode, second, third] = entry.slice(0, at).split(" ");
@@ -429,10 +495,10 @@ function worktreeInputs(bundle, root) {
     collectFileRefs(bundle, paths);
     collectFileRefs(read(relativePath(root, POLICY)), paths);
     instructionPaths(bundle, root).forEach((name) => paths.add(name));
-    return [...paths].sort();
+    return [...paths].sort(compare);
 }
 function sameValue(left, right) {
-    return dumps(left, null, true, true) === dumps(right, null, true, true);
+    return equal(left, right);
 }
 function mutableEnrichment(path) {
     const parts = path.split("/").filter((part) => part !== "");
@@ -452,13 +518,16 @@ function preserveItems(previous, proposed, path) {
     const nextById = new Map();
     for (const item of proposed) {
         if (isDict(item) && "id" in item) {
-            nextById.set(String(item.id), item);
+            nextById.set(pyKey(item.id), item);
         }
     }
     for (const item of previous) {
-        const id = String(item.id);
-        require(nextById.has(id), "enrichment_loss:" + path);
-        preserve(item, nextById.get(id), path + "/" + id);
+        const id = item.id;
+        const key = pyKey(id);
+        require(nextById.has(key), "enrichment_loss:" + path);
+        if (typeof id !== "string")
+            throw new TypeError('can only concatenate str (not "' + typeName(id) + '") to str');
+        preserve(item, nextById.get(key), path + "/" + id);
     }
 }
 function preserve(previous, proposed, path = "") {
@@ -477,11 +546,12 @@ function preserve(previous, proposed, path = "") {
     require(mutableEnrichment(path) || sameValue(previous, proposed), "enrichment_changed:" + path);
 }
 function validateGenerationNodes(graph, expected, edges) {
-    const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
-    require(nodes.length === Object.keys(expected).length && new Set(nodes.map((node) => text(node.id))).size === nodes.length && nodes.every((node) => text(node.id) in expected), "generation_collision:nodes");
-    require(nodes.every((node) => {
-        const want = expected[text(node.id)] ?? {};
-        return Object.entries(want).every(([key, value]) => sameValue(node[key], value));
+    const nodes = iterable(get(graph, "nodes", []));
+    require(nodes.length === Object.keys(expected).length && new Set(nodes.map((node) => pyKey(get(pythonDict(node), "id", null)))).size === nodes.length && nodes.every((node) => Object.hasOwn(expected, pyKey(get(pythonDict(node), "id", null)))), "generation_collision:nodes");
+    require(nodes.every((value) => {
+        const node = pythonDict(value);
+        const want = expected[pyKey(node.id)] ?? {};
+        return Object.entries(want).every(([key, value]) => sameValue(get(node, key, null), value));
     }) && sameValue(graph.edges, edges), "generation_collision:graph");
 }
 function validateGeneration(root, prefix, bundle, generation, spec) {
@@ -491,21 +561,21 @@ function validateGeneration(root, prefix, bundle, generation, spec) {
     const goalsPath = paths["goals.json"] ?? "";
     const graphPath = paths["graph.json"] ?? "";
     const handoffPath = paths["handoff.md"] ?? "";
-    require(sameValue(read(goalsPath), bundle) && readFileSync(handoffPath, "utf8") === handoffText(bundle), "generation_collision:payload");
-    const graph = dict(read(graphPath), "generation_collision:identity");
+    require(sameValue(read(goalsPath), bundle) && readFileSync(handoffPath, "utf8").replace(/\r\n?/g, "\n") === handoffText(bundle), "generation_collision:payload");
+    const graph = pythonDict(read(graphPath));
     const goalIds = bundle.goals.map((goal) => text(goal.id));
-    require(graph.generation === generation && graph.plan_id === bundle.id && sameValue(graph.goal_ids, goalIds) && SHA.test(text(graph.source_graph_sha256)), "generation_collision:identity");
+    require(graph.generation === generation && graph.plan_id === bundle.id && sameValue(graph.goal_ids, goalIds) && match(SHA, get(graph, "source_graph_sha256", "")), "generation_collision:identity");
     const repo = text(bundle.repository.id);
     const parent = "handoff:" + repo + ":" + text(bundle.id) + ":" + generation;
     const expected = {
-        [text(spec.id)]: { id: spec.id, type: spec.type, repo_id: spec.repo_id, path: spec.path, backlinks: [parent] },
-        [parent]: { id: parent, type: "handoff", repo_id: repo, path: prefix + "/handoff.md", backlinks: [spec.id] },
+        [pyKey(field(spec, "id"))]: { id: spec.id, type: field(spec, "type"), repo_id: field(spec, "repo_id"), path: field(spec, "path"), backlinks: [parent] },
+        [pyKey(parent)]: { id: parent, type: "handoff", repo_id: repo, path: prefix + "/handoff.md", backlinks: [spec.id] },
     };
     const edges = [{ source: spec.id, target: parent, type: "plans" }];
     for (const goal of bundle.goals) {
         const goalId = "plan:" + repo + ":" + text(bundle.id) + ":" + text(goal.id) + ":" + generation;
-        expected[goalId] = { id: goalId, type: "plan", repo_id: repo, path: prefix + "/goals.json", backlinks: [parent] };
-        (expected[parent]?.backlinks).push(goalId);
+        expected[pyKey(goalId)] = { id: goalId, type: "plan", repo_id: repo, path: prefix + "/goals.json", backlinks: [parent] };
+        (expected[pyKey(parent)]?.backlinks).push(goalId);
         edges.push({ source: parent, target: goalId, type: "plans" });
     }
     validateGenerationNodes(graph, expected, edges);
@@ -522,7 +592,8 @@ function writeJson(path, value) {
     }
 }
 function replaceJson(path, value) {
-    const temporary = resolve(path, "..", `.readiness-${process.pid}-${Date.now()}`);
+    const temporary = resolve(path, "..", ".readiness-" + randomUUID());
+    closeSync(openSync(temporary, "wx", 0o600));
     try {
         writeJson(temporary, value);
         renameSync(temporary, path);
@@ -548,9 +619,9 @@ export function publish(args) {
     require(!observation || !mapped(record), "worktree_mapped_conflict");
     bundleShape(record, identity, root);
     const generation = canonical(record);
-    const base = resolve(root, `${GEN}/${String(record.id)}`);
+    const base = relativePath(root, `${GEN}/${String(record.id)}`, false);
     mkdirSync(base, { recursive: true });
-    const lock = resolve(root, ".ai/workflows/.northstar-readiness-v1.lock");
+    const lock = resolve(relativePath(root, ".ai/workflows"), ".northstar-readiness-v1.lock");
     try {
         mkdirSync(lock);
     }
@@ -558,15 +629,15 @@ export function publish(args) {
         throw new Invalid("publication_locked:inspect existing publisher; never steal a lock");
     }
     try {
-        return publishLocked(root, candidate, candidateHash, record, generation, base);
+        return publishLocked(identity, root, candidate, candidateHash, record, generation, base, args, observation);
     }
     finally {
-        rmSync(lock, { recursive: true, force: true });
+        rmdirSync(lock);
     }
 }
 function previousRegistration(root, registry, registration, bundle) {
     const plans = registry.plans;
-    const matches = plans.filter((item) => item.id === registration);
+    const matches = plans.filter((item) => pythonDict(item).id === registration);
     require(matches.length <= 1, "duplicate_registration");
     const previous = matches[0];
     if (previous) {
@@ -576,31 +647,31 @@ function previousRegistration(root, registry, registration, bundle) {
     }
     return { plans, previous };
 }
-function publishLocked(root, candidate, candidateHash, bundle, generation, base) {
+function publishLocked(identity, root, candidate, candidateHash, bundle, generation, base, args, observation) {
     require(digestFile(candidate) === candidateHash, "candidate_changed");
-    const registryPath = resolve(root, REGISTRY);
-    const registry = dict(exists(registryPath) ? read(registryPath) : { schema: VERSION, plans: [] }, "unsupported_registry_schema");
+    const registryPath = relativePath(root, REGISTRY, false);
+    const registryHash = optionalDigest(registryPath);
+    const registry = pythonDict(exists(registryPath) ? read(registryPath) : { schema: VERSION, plans: [] });
     require(registry.schema === VERSION && Array.isArray(registry.plans), "unsupported_registry_schema");
     const registration = "northstar-plan-" + String(bundle.id);
     const { plans, previous } = previousRegistration(root, registry, registration, bundle);
     const prefix = `${GEN}/${String(bundle.id)}/${generation}`;
     const final = resolve(base, generation);
     const graphPath = relativePath(root, GRAPH);
-    const live = read(graphPath);
-    const nodes = Array.isArray(live.nodes) ? live.nodes : [];
+    const graphHash = digestFile(graphPath);
+    const live = pythonDict(read(graphPath));
+    require(Array.isArray(live.nodes), "source_graph_nodes_required");
+    const nodes = live.nodes.map(pythonDict);
     const matching = nodes.filter((node) => node.path === bundle.spec.path);
     require(matching.length === 1, "spec_graph_identity_missing_or_ambiguous");
+    require(new Set(nodes.map((node) => pyKey(node.id))).size === nodes.length, "source_graph_duplicate_ids");
     const spec = matching[0];
     const parent = `handoff:${text(bundle.repository.id)}:${text(bundle.id)}:${generation}`;
     const graph = exists(final)
         ? validateGeneration(root, prefix, bundle, generation, spec)
-        : buildGraph(bundle, generation, digestFile(graphPath), spec, parent, prefix);
-    if (!exists(final)) {
-        mkdirSync(final, { recursive: true });
-        writeJson(resolve(final, "goals.json"), bundle);
-        writeJson(resolve(final, "graph.json"), graph);
-        writeFileSync(resolve(final, "handoff.md"), handoffText(bundle));
-    }
+        : buildGraph(bundle, generation, graphHash, spec, parent, prefix);
+    if (!exists(final))
+        publishPayload(base, final, bundle, graph);
     const artifacts = {
         bundle: { path: prefix + "/goals.json", sha256: digestFile(resolve(final, "goals.json")) },
         graph: { path: prefix + "/graph.json", sha256: digestFile(resolve(final, "graph.json")) },
@@ -616,14 +687,49 @@ function publishLocked(root, candidate, candidateHash, bundle, generation, base)
     const entry = previous ? { ...previous, ...owned } : owned;
     registry.plans = previous ? plans.map((item) => item.id === registration ? entry : item) : [...plans, entry];
     spliceGraph(live, graph);
+    bundleShape(bundle, identity, root);
+    require(digestFile(candidate) === candidateHash, "candidate_changed");
+    require(optionalDigest(registryPath) === registryHash && digestFile(graphPath) === graphHash, "publication_source_changed");
+    publicationWorktree(identity, root, args, observation);
     replaceJson(graphPath, live);
+    require(digestFile(candidate) === candidateHash, "candidate_changed");
+    require(optionalDigest(registryPath) === registryHash, "publication_source_changed");
+    bundleShape(bundle, identity, root);
     replaceJson(registryPath, registry);
     return { schema: VERSION, published: entry, execution_ready: false, dispatch_authorized: false, authority_verification: "external-required" };
 }
+function optionalDigest(path) { return exists(path) ? digestFile(path) : null; }
+function publishPayload(base, final, bundle, graph) {
+    const staging = mkdtempSync(resolve(base, ".staging-"));
+    try {
+        writeJson(resolve(staging, "goals.json"), bundle);
+        writeJson(resolve(staging, "graph.json"), graph);
+        writeFileSync(resolve(staging, "handoff.md"), handoffText(bundle));
+        const fd = openSync(resolve(staging, "handoff.md"), "r");
+        try {
+            fsyncSync(fd);
+        }
+        finally {
+            closeSync(fd);
+        }
+        renameSync(staging, final);
+    }
+    finally {
+        if (exists(staging))
+            rmSync(staging, { recursive: true });
+    }
+}
+function publicationWorktree(identity, root, args, observation) {
+    if (!observation)
+        return;
+    const current = worktreeObservation(identity, root, text(args.base_commit), false);
+    require(Object.entries(observation).every(([key, value]) => key === "state_sha256" || sameValue(current[key], value)), "worktree_changed_during_publication");
+}
 function buildGraph(bundle, generation, graphHash, spec, parent, prefix) {
     const specNode = { ...spec, backlinks: [parent] };
-    const handoff = { id: parent, type: "handoff", title: bundle.id, status: "active", repo_id: bundle.repository.id, path: prefix + "/handoff.md", backlinks: [spec.id] };
-    const graph = { schema_version: "1.1", generation, plan_id: bundle.id, goal_ids: bundle.goals.map((goal) => goal.id), source_graph_sha256: graphHash, nodes: [specNode, handoff], edges: [{ source: spec.id, target: parent, type: "plans" }] };
+    const specId = field(spec, "id");
+    const handoff = { id: parent, type: "handoff", title: bundle.id, status: "active", repo_id: bundle.repository.id, path: prefix + "/handoff.md", backlinks: [specId] };
+    const graph = { schema_version: "1.1", generation, plan_id: bundle.id, goal_ids: bundle.goals.map((goal) => goal.id), source_graph_sha256: graphHash, nodes: [specNode, handoff], edges: [{ source: specId, target: parent, type: "plans" }] };
     for (const goal of bundle.goals) {
         const goalId = `plan:${text(bundle.repository.id)}:${text(bundle.id)}:${text(goal.id)}:${generation}`;
         graph.nodes.push({ id: goalId, type: "plan", title: goal.id, status: "planned", repo_id: bundle.repository.id, path: prefix + "/goals.json", backlinks: [parent] });
@@ -633,37 +739,38 @@ function buildGraph(bundle, generation, graphHash, spec, parent, prefix) {
     return graph;
 }
 function mergeNode(nodes, node) {
-    const current = nodes.find((item) => item.id === node.id);
+    const current = nodes.find((item) => sameValue(item.id, node.id));
     if (!current) {
         nodes.push({ ...node });
         return;
     }
     require(current.path === node.path, "graph_identity_conflict");
-    const backlinks = Array.isArray(current.backlinks) ? current.backlinks : [];
+    const backlinks = get(current, "backlinks", []);
     current.backlinks = backlinks;
     for (const link of node.backlinks ?? []) {
-        if (!backlinks.includes(link)) {
-            backlinks.push(link);
+        if (!contains(backlinks, link)) {
+            append(backlinks, link);
         }
     }
 }
 function spliceGraph(live, graph) {
     const nodes = Array.isArray(live.nodes) ? live.nodes : [];
-    const edges = Array.isArray(live.edges) ? live.edges : [];
+    nodes.forEach((node) => { pyKey(field(node, "id")); });
+    const edges = get(live, "edges", []);
     live.nodes = nodes;
     live.edges = edges;
     for (const node of graph.nodes) {
         mergeNode(nodes, node);
     }
     for (const edge of graph.edges) {
-        if (!edges.some((item) => JSON.stringify(item) === JSON.stringify(edge))) {
-            edges.push(edge);
+        if (!contains(edges, edge)) {
+            append(edges, edge);
         }
     }
 }
 function add(gaps, code, detail, scope, stage, status = "blocked") {
     gaps.push({
-        code, detail: String(detail).replace(/https?:\/\/\S+/g, "[redacted-url]"), scope, stage, status,
+        code, detail: redactText(pyStr(detail)), scope, stage, status,
         responsible: "unassigned", source: "independent-context-and-repository-policy", freshness: "unavailable",
         evidence_refs: [], recovery: "Supply current independently verified evidence for this gate; rerun exact selection",
     });
@@ -675,13 +782,14 @@ function coverageInvalid(status, unknown, valid) {
     return (status === "unknown" && !unknown) || (status === "measured" && !valid);
 }
 function coverageFlags(goal, unknown, gaps, stage) {
-    for (const key of ["coverage_required", "legacy_safe_tdd"]) {
-        if (key in goal && typeof goal[key] !== "boolean") {
-            add(gaps, "invalid_" + key, "Expected boolean", [goal.id], stage);
-        }
+    if ("coverage_required" in goal && typeof goal.coverage_required !== "boolean") {
+        add(gaps, "invalid_coverage_required", "Expected boolean", [goal.id], stage);
     }
     if (unknown && goal.coverage_required === true) {
         add(gaps, "measured_coverage_required", "Goal strengthens policy to measured coverage", [goal.id], stage);
+    }
+    if ("legacy_safe_tdd" in goal && typeof goal.legacy_safe_tdd !== "boolean") {
+        add(gaps, "invalid_legacy_safe_tdd", "Expected boolean", [goal.id], stage);
     }
 }
 function coverageOverride(goal, valid, gaps, stage) {
@@ -691,8 +799,8 @@ function coverageOverride(goal, valid, gaps, stage) {
 }
 function coverage(goal, gaps, stage) {
     const percent = goal.coverage_percent;
-    const status = goal.coverage_status ?? "measured";
-    const valid = typeof percent === "number" && percent >= 0 && percent <= 100;
+    const status = "coverage_status" in goal ? goal.coverage_status : "measured";
+    const valid = numeric(percent) && Number(percent) >= 0 && Number(percent) <= 100;
     const unknown = status === "unknown" && percent == null;
     if (coverageInvalid(status, unknown, valid)) {
         add(gaps, "invalid_coverage", "Declare measured 0..100 or unknown without a number", [goal.id], stage);
@@ -725,7 +833,7 @@ function oneMatch(root, handoff, matches) {
 }
 function legacyHandoff(root, handoff) {
     const manifest = read(relativePath(root, MANIFEST));
-    const branches = isDict(manifest) && Array.isArray(manifest.optional_branches) ? manifest.optional_branches : [];
+    const branches = iterable(get(pythonDict(manifest), "optional_branches", [])).filter(isDict);
     const found = branches.filter((branch) => legacyMatch(branch, handoff));
     require(found.length !== 1, "migration_required:registered legacy handoff; use migrate-handoff.sh");
 }
@@ -754,16 +862,16 @@ function selectHandoff(root, args, filesRoot) {
     require(entry.plan_id === loaded.id, "plan_identity_mismatch");
     require((args.goal_id ?? []).every((id) => loaded.goals.some((goal) => goal.id === id)), "requested_goal_missing");
     require(entry.generation === canonical(loaded), "generation_digest_mismatch");
-    const graph = dict(read(loadedPaths.graph ?? ""), "graph_identity_mismatch");
+    const graph = pythonDict(read(loadedPaths.graph ?? ""));
     require(graph.generation === entry.generation && sameValue(graph.goal_ids, loaded.goals.map((goal) => goal.id)), "graph_identity_mismatch");
     validateLiveGraph(filesRoot, graph);
     return { bundle: loaded, selected: args.goal_id ?? [], subject: digestFile(loadedPaths.bundle ?? ""), entry };
 }
 function handoffEntry(root, args) {
     const registryPath = resolve(root, REGISTRY);
-    const manifest = dict(exists(registryPath) ? read(registryPath) : { schema: VERSION, plans: [] }, "unsupported_registry_schema");
+    const manifest = pythonDict(exists(registryPath) ? read(registryPath) : { schema: VERSION, plans: [] });
     require(manifest.schema === VERSION, "unsupported_registry_schema");
-    const matches = (Array.isArray(manifest.plans) ? manifest.plans : []).filter((item) => args.handoff === item.id || args.handoff === item.handoff_path);
+    const matches = iterable(get(manifest, "plans", [])).filter(isDict).filter((item) => args.handoff === item.id || args.handoff === item.handoff_path);
     const entry = oneMatch(root, args.handoff ?? "", matches);
     require(entry.schema === VERSION, "migration_required:registered handoff");
     require(entry.status === "active" || (args.stage === "planning" && entry.status === "blocked"), "handoff_not_active");
@@ -774,11 +882,11 @@ function handoffArtifacts(root, entry) {
     require(SHA.test(generation), "invalid_generation");
     const prefix = `${GEN}/${text(entry.plan_id)}/${generation}/`;
     const artifacts = dict(entry.artifacts, "incomplete_generation");
-    require(Object.keys(artifacts).sort().join("\n") === "bundle\ngraph\nhandoff", "incomplete_generation");
+    require(keysEqual(artifacts, ["bundle", "graph", "handoff"]), "incomplete_generation");
     const loadedPaths = {};
     for (const [name, ref] of Object.entries(artifacts)) {
-        const record = dict(ref, "incomplete_generation");
-        require(text(record.path).startsWith(prefix), "mixed_generation");
+        const record = pythonDict(ref);
+        require(startsWith(get(record, "path", ""), prefix), "mixed_generation");
         fileRef(root, record);
         loadedPaths[name] = relativePath(root, record.path);
     }
@@ -786,33 +894,35 @@ function handoffArtifacts(root, entry) {
     return loadedPaths;
 }
 function validateLiveGraph(root, graph) {
-    const live = dict(read(relativePath(root, GRAPH)), "generation_graph_missing");
+    const live = pythonDict(read(relativePath(root, GRAPH)));
     const liveNodes = new Map();
-    for (const node of Array.isArray(live.nodes) ? live.nodes : []) {
-        liveNodes.set(text(node.id), node);
+    for (const value of iterable(get(live, "nodes", []))) {
+        const node = pythonDict(value);
+        liveNodes.set(pyKey(get(node, "id", null)), node);
     }
-    for (const node of Array.isArray(graph.nodes) ? graph.nodes : []) {
-        const current = liveNodes.get(text(node.id));
+    for (const value of iterable(field(graph, "nodes"))) {
+        const node = pythonDict(value);
+        const current = liveNodes.get(pyKey(field(node, "id")));
         require(current !== undefined, "generation_graph_missing");
         const liveNode = current;
-        require(["id", "type", "repo_id", "path", "status"].every((key) => sameValue(liveNode[key], node[key])), "generation_graph_identity_mismatch");
+        require(["id", "type", "repo_id", "path", "status"].every((key) => sameValue(get(liveNode, key, null), get(node, key, null))), "generation_graph_identity_mismatch");
     }
     validateLiveEdges(graph, live, liveNodes);
 }
 function validateLiveEdges(graph, live, liveNodes) {
-    for (const edge of Array.isArray(graph.edges) ? graph.edges : []) {
-        const source = liveNodes.get(text(edge.source));
-        const target = liveNodes.get(text(edge.target));
-        const edges = Array.isArray(live.edges) ? live.edges : [];
-        const linked = edges.some((item) => sameValue(item, edge));
+    for (const value of iterable(field(graph, "edges"))) {
+        const edges = iterable(get(live, "edges", []));
+        require(edges.some((item) => sameValue(item, value)), "generation_graph_link_missing");
+        const edge = pythonDict(value);
+        const source = liveNodes.get(pyKey(field(edge, "source")));
+        const target = liveNodes.get(pyKey(field(edge, "target")));
         const sourceLinks = backlinks(target);
         const targetLinks = backlinks(source);
-        require(linked && sourceLinks.includes(edge.source) && targetLinks.includes(edge.target), "generation_graph_link_missing");
+        require(sourceLinks.some((link) => sameValue(link, edge.source)) && targetLinks.some((link) => sameValue(link, edge.target)), "generation_graph_link_missing");
     }
 }
 function backlinks(node) {
-    const value = node?.backlinks;
-    return Array.isArray(value) ? value : [];
+    return iterable(get(pythonDict(node), "backlinks", []));
 }
 function boundFields(base, admission, execution, worktree) {
     return [...base, ...(mapped(admission.selection.bundle) ? execution : []), ...(admission.worktree ? worktree : [])];
@@ -828,11 +938,13 @@ function checkObservation(record, admission, prefix) {
 function checkAuthority(admission, stage, gaps) {
     try {
         const { context, selection } = admission;
-        const authority = dict(context.authority, "independent_authority_required");
+        const authority = dict(context.authority, "unsupported_authority_fields");
         const fields = boundFields(["status", "stage", "subject_sha256", "issuer", "goals"], admission, ["execution_revision"], ["worktree", "policy_sha256"]);
         require(keysEqual(authority, fields), "unsupported_authority_fields");
         checkObservation(authority, admission, "authority");
         require(authority.status === "pass" && authority.stage === stage && authority.subject_sha256 === selection.subject && string(authority.issuer), "independent_authority_required");
+        if (Array.isArray(authority.goals))
+            authority.goals.forEach(hashable);
         require(Array.isArray(authority.goals) && selection.selected.every((id) => authority.goals.includes(id)), "independent_authority_required");
     }
     catch (error) {
@@ -842,31 +954,15 @@ function checkAuthority(admission, stage, gaps) {
 function gateRoot(admission, gate) {
     return gate.root === "execution" ? executionRoot(admission.selection.bundle, admission.root) : admission.root;
 }
-function applyDigests(admission, gates, stage, resolved) {
-    for (const gate of gates) {
-        if (gate.stage !== stage || gate.kind !== "file_digest") {
-            continue;
-        }
-        fileRef(gateRoot(admission, gate), gate);
-        resolved.push({
-            gate: gate.id, stage, scope: gate.scope, status: "ready",
-            source: { policy: POLICY, sha256: admission.context.policy.sha256 },
-            responsible: gate.responsible ?? "unassigned", evidence_refs: [],
-            freshness: { observed_at: "current-file-read", expires_at: "not-declared" },
-            recovery: "Retain while exact binding and freshness remain valid; does not authorize dispatch",
-        });
-    }
-}
-function notApplicable(policy, context, stage, resolved, goals) {
+function notApplicable(policy, context, stage, resolved, goals, additive) {
     const exclusions = dict(policy.not_applicable, "explicit_not_applicable_reasons_required");
-    const gates = Array.isArray(policy.gates) ? policy.gates : [];
-    for (const dimension of Object.keys(exclusions).sort()) {
-        const covered = gates.some((gate) => gate.stage === stage && text(gate.dimension) === dimension);
-        if (covered) {
+    for (const dimension of Object.keys(exclusions).sort(compare)) {
+        const exempt = goals.filter((id) => !additive.some((gate) => gate.stage === stage && applies(gate.scope, id) && gateDimensions(gate).includes(dimension))).sort(compare);
+        if (exempt.length === 0) {
             continue;
         }
         resolved.push({
-            gate: dimension, stage, scope: { goals }, status: "not_applicable",
+            gate: dimension, stage, scope: { goals: exempt }, status: "not_applicable",
             source: { policy: POLICY, sha256: context.policy.sha256 }, responsible: "unassigned",
             evidence_refs: [], freshness: "current-policy-digest", recovery: "Reevaluate if repository policy changes",
             reason: exclusions[dimension],
@@ -875,7 +971,8 @@ function notApplicable(policy, context, stage, resolved, goals) {
 }
 const TYPED = new Set(["ownership", "branch_target", "fixture", "protected_approval", "harness_trust", "tooling"]);
 function gateShape(gate) {
-    require(ID.test(text(gate.id)), "gate_id_required");
+    require(isDict(gate), "gate_id_required");
+    require(match(ID, "id" in gate ? gate.id : ""), "gate_id_required");
     require(STAGES.includes(text(gate.stage)) && string(gate.kind), "unknown_gate_stage_or_kind");
     const allowed = new Set(["id", "stage", "scope", "kind", "dimension", "responsible", "root"]);
     require(gate.root === undefined || gate.root === "planning" || gate.root === "execution", "invalid_gate_root");
@@ -897,7 +994,7 @@ function explicitScope(scope, ids) {
     if (!isDict(scope)) {
         return false;
     }
-    if (Object.keys(scope).length === 1 && scope.repository === true) {
+    if (sameValue(scope, { repository: true })) {
         return true;
     }
     return Object.keys(scope).length === 1 && Array.isArray(scope.goals) && scope.goals.length > 0
@@ -910,7 +1007,7 @@ function filesUnder(root, dir) {
         if (entry.isDirectory()) {
             found.push(...filesUnder(root, path));
         }
-        else if (entry.isFile()) {
+        else if (isFile(path)) {
             found.push(path.slice(root.length + 1));
         }
     }
@@ -935,7 +1032,7 @@ function executable(path) {
 }
 function measured(goal) {
     const percent = goal.coverage_percent;
-    return (goal.coverage_status ?? "measured") === "measured" && typeof percent === "number" && percent >= 0 && percent <= 100;
+    return ("coverage_status" in goal ? goal.coverage_status : "measured") === "measured" && numeric(percent) && Number(percent) >= 0 && Number(percent) <= 100;
 }
 function applies(scope, id) {
     if (scope === "repository") {
@@ -944,12 +1041,12 @@ function applies(scope, id) {
     if (Array.isArray(scope)) {
         return scope.includes(id);
     }
-    return isDict(scope) && (scope.repository === true || (Array.isArray(scope.goals) && scope.goals.includes(id)));
+    return isDict(scope) && (sameValue(scope, { repository: true }) || (Array.isArray(scope.goals) && scope.goals.includes(id)));
 }
 function goalRevision(bundle, id) {
     const goals = new Map(bundle.goals.map((goal) => [text(goal.id), goal]));
     require(goals.has(id), "unknown_goal_revision_subject");
-    const revisions = {};
+    const revisions = Object.create(null);
     const pending = [[id, false]];
     while (pending.length > 0) {
         const [current, expanded] = pending.pop();
@@ -996,7 +1093,7 @@ function completionBinding(admission, receipt) {
     return fields;
 }
 function dependencyComplete(admission, id) {
-    const supplied = admission.context.completed_goals;
+    const supplied = isDict(admission.context) ? admission.context.completed_goals : [];
     const receipts = Array.isArray(supplied) ? supplied.filter(isDict).filter((receipt) => receipt.goal === id) : [];
     if (receipts.length !== 1) {
         return false;
@@ -1015,10 +1112,81 @@ function dependencyComplete(admission, id) {
 function provenance(receipt) {
     require(string(receipt.issuer) && Array.isArray(receipt.evidence) && receipt.evidence.length > 0 && receipt.evidence.every(string), "evidence_provenance_required");
     require(string(receipt.observed_at) && string(receipt.expires_at), "evidence_freshness_required");
-    const timezone = /(?:Z|[+-]\d{2}:\d{2})$/;
-    require(timezone.test(text(receipt.observed_at)) && timezone.test(text(receipt.expires_at)), "evidence_expired_or_future");
+    const observed = isoDateTime(text(receipt.observed_at).replaceAll("Z", "+00:00"));
+    const expires = isoDateTime(text(receipt.expires_at).replaceAll("Z", "+00:00"));
     const now = Date.now();
-    require(Date.parse(text(receipt.observed_at)) <= now && now < Date.parse(text(receipt.expires_at)), "evidence_expired_or_future");
+    require(observed.zoned && expires.zoned && observed.time <= now && now < expires.time, "evidence_expired_or_future");
+}
+function invalidIso(value) { throw new Error("Invalid isoformat string: " + pyRepr(value)); }
+function utcDate(year, month, day) {
+    const date = new Date(0);
+    date.setUTCFullYear(year, month - 1, day);
+    return date.getTime();
+}
+function calendarDate(value) {
+    const match = /^(?:(\d{4})-(\d{2})-(\d{2})|(\d{4})(\d{2})(\d{2}))/.exec(value);
+    if (!match)
+        return weekDate(value);
+    const year = Number(match[1] ?? match[4]), month = Number(match[2] ?? match[5]), day = Number(match[3] ?? match[6]);
+    const time = utcDate(year, month, day), date = new Date(time);
+    if (year < 1 || date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day)
+        return invalidIso(value);
+    return { time, length: match[0].length };
+}
+function weekDate(value) {
+    const match = /^(?:(\d{4})-W(\d{2})(?:-([1-7]))?|(\d{4})W(\d{2})([1-7])?)/.exec(value);
+    if (!match)
+        return invalidIso(value);
+    const year = Number(match[1] ?? match[4]), week = Number(match[2] ?? match[5]), day = Number(match[3] ?? match[6] ?? 1);
+    const jan4 = utcDate(year, 1, 4);
+    const monday = jan4 - ((new Date(jan4).getUTCDay() + 6) % 7) * 86400000;
+    const time = monday + ((week - 1) * 7 + day - 1) * 86400000;
+    if (year < 1 || week < 1 || week > 53 || new Date(time + (4 - day) * 86400000).getUTCFullYear() !== year)
+        return invalidIso(value);
+    return { time, length: match[0].length };
+}
+function clock(value, offset, original) {
+    const parts = clockParts(value, original);
+    const { hour, minute, second, fraction } = parts;
+    if (!offset && !validClock(parts))
+        return invalidIso(original);
+    const time = ((hour * 60 + minute) * 60 + second + fraction) * 1000;
+    if (offset && time >= 86400000)
+        return invalidIso(original);
+    return time;
+}
+function validClock(parts) {
+    const { hour, minute, second, fraction } = parts;
+    return (hour < 24 && minute < 60 && second < 60) || (hour === 24 && minute === 0 && second === 0 && fraction === 0);
+}
+function clockParts(value, original) {
+    const match = /^(?:(\d{2}):(\d{2})(?::(\d{2})(?:[.,](\d+))?)?|(\d{2})(?:(\d{2})(?:(\d{2})(?:[.,](\d+))?)?)?)$/.exec(value);
+    if (!match)
+        return invalidIso(original);
+    const [h = "0", m = "0", s = "0", f = "0"] = [1, 2, 3, 4].map((index) => match[index] ?? match[index + 4] ?? "0");
+    return { hour: Number(h), minute: Number(m), second: Number(s), fraction: Number("0." + f.slice(0, 6)) };
+}
+function isoDateTime(value) {
+    const date = calendarDate(value);
+    const rest = value.slice(date.length);
+    if (!rest)
+        return { time: date.time, zoned: false };
+    const separator = Array.from(rest)[0] ?? "";
+    const time = rest.slice(separator.length);
+    const zoneAt = time.search(/[Z+-]/);
+    const plain = zoneAt < 0 ? time : time.slice(0, zoneAt);
+    const zone = zoneAt < 0 ? "" : time.slice(zoneAt);
+    const local = date.time + clock(plain, false, value);
+    if (new Date(local).getUTCFullYear() > 9999)
+        return invalidIso(value);
+    return { time: local - zoneOffset(zone, value), zoned: zone !== "" };
+}
+function zoneOffset(zone, value) {
+    if (zone === "" || zone === "Z")
+        return 0;
+    if (!zone.startsWith("+") && !zone.startsWith("-"))
+        return invalidIso(value);
+    return clock(zone.slice(1), true, value) * (zone.startsWith("-") ? -1 : 1);
 }
 function gateSubject(admission, gate) {
     const { bundle } = admission.selection;
@@ -1049,14 +1217,14 @@ const BINDING_FIELDS = {
     tooling: ["tool"], protected_approval: ["subject"], harness_trust: ["lock", "anchor"],
 };
 function branchBinding(admission, binding) {
-    require(["target", "branch"].every((key) => string(binding[key]) && !/[\s;&|`$<>]/.test(text(binding[key]))), "target_branch_required");
+    require(["target", "branch"].every((key) => string(binding[key]) && !unsafeTarget(text(binding[key]))), "target_branch_required");
     if (admission.worktree) {
         require(binding.target === admission.worktree.target_ref && binding.branch === admission.worktree.branch, "worktree_branch_target_mismatch");
     }
 }
 function toolBinding(binding) {
     const tool = text(binding.tool);
-    require(string(tool) && /^[A-Za-z0-9_.+-]+$/.test(tool), "tool_name_required");
+    require(string(tool) && /^[A-Za-z0-9_.+-]+$(?![\s\S])/.test(tool), "tool_name_required");
     const available = text(process.env.PATH).split(":").some((directory) => {
         const path = resolve(directory, tool);
         return isFile(path) && executable(path);
@@ -1082,6 +1250,7 @@ function approvalBinding(admission, root, gate, binding) {
     }
     else {
         require(keysEqual(subject, ["mode", "goal", "goal_sha256"]) && typeof subject.goal === "string", "approval_goal_subject_mismatch");
+        require(admission.selection.bundle.goals.some((goal) => goal.id === subject.goal), "approval_goal_subject_mismatch");
         require(applies(gate.scope, text(subject.goal)) && subject.goal_sha256 === goalRevision(admission.selection.bundle, text(subject.goal)), "approval_goal_subject_mismatch");
     }
 }
@@ -1100,7 +1269,9 @@ function trustSources(root, binding) {
         fileRef(root, anchor);
     }
     catch (error) {
-        throw new Invalid("trust_source_unavailable:expected=unavailable:actual=unverified:independent_source=" + text(anchor.path) + ":" + String(error));
+        if (error instanceof TypeError)
+            throw error;
+        throw new Invalid("trust_source_unavailable:expected=unavailable:actual=unverified:independent_source=" + pyStr(anchor.path) + ":" + (error instanceof Error ? error.message : String(error)));
     }
     require(!sameFile(relativePath(root, lock.path), relativePath(root, anchor.path)), "trust_anchor_not_independent");
     return { lock, anchor };
@@ -1162,7 +1333,7 @@ function typedGate(admission, gate) {
     provenance(receipt);
     if (gate.kind === "ownership") {
         const value = dict(receipt.value, "named_ownership_required");
-        require(keysEqual(value, binding.roles) && Object.values(value).every((name) => string(name) && !["tbd", "unknown", "unassigned", "placeholder"].includes(text(name).trim().toLowerCase())), "named_ownership_required");
+        require(keysEqual(value, binding.roles) && Object.values(value).every((name) => string(name) && !["tbd", "unknown", "unassigned", "placeholder"].includes(strip(text(name)).toLowerCase())), "named_ownership_required");
     }
     else {
         require(sameValue(receipt.value, binding), "typed_observation_mismatch");
@@ -1171,13 +1342,16 @@ function typedGate(admission, gate) {
 function runExtraGate(admission, gate) {
     const root = gateRoot(admission, gate);
     switch (gate.kind) {
+        case "file_digest":
+            fileRef(root, gate);
+            return true;
         case "executable_presence": {
             const path = relativePath(root, gate.path);
             require(isFile(path) && executable(path), "executable_unavailable");
             return true;
         }
         case "measured_coverage":
-            require(admission.selection.bundle.goals.filter((goal) => applies(gate.scope, text(goal.id))).every(measured), "measured_coverage_required");
+            require(admission.selection.bundle.goals.filter((goal) => evaluatedGoals(admission.selection).has(text(goal.id)) && applies(gate.scope, text(goal.id))).every(measured), "measured_coverage_required");
             return true;
         case "independent_result":
             independentResult(admission, gate);
@@ -1194,14 +1368,15 @@ function resolvedGate(admission, gate, stage) {
     const receipt = admission.context.results.find((result) => result.gate === gate.id) ?? {};
     const refs = Array.isArray(receipt.evidence) ? receipt.evidence : [];
     return { gate: gate.id, stage, scope: gate.scope, status: "ready",
-        source: { policy: POLICY, sha256: admission.context.policy.sha256 }, responsible: gate.responsible ?? "unassigned",
-        evidence_refs: refs.map((ref) => String(ref).replace(/https?:\/\/\S+/g, "[redacted-url]")),
-        freshness: { observed_at: receipt.observed_at ?? "current-file-read", expires_at: receipt.expires_at ?? "not-declared" },
+        source: { policy: POLICY, sha256: admission.context.policy.sha256 }, responsible: get(gate, "responsible", "unassigned"),
+        evidence_refs: refs.map((ref) => redactText(pyStr(ref))),
+        freshness: { observed_at: get(receipt, "observed_at", "current-file-read"), expires_at: get(receipt, "expires_at", "not-declared") },
         recovery: "Retain while exact binding and freshness remain valid; does not authorize dispatch" };
 }
 function extraGates(admission, gates, stage, gaps, resolved) {
+    const evaluated = evaluatedGoals(admission.selection);
     for (const gate of gates) {
-        if (gate.stage !== stage || gate.kind === "file_digest") {
+        if (gate.stage !== stage || ![...evaluated].some((id) => applies(gate.scope, id))) {
             continue;
         }
         try {
@@ -1216,11 +1391,27 @@ function extraGates(admission, gates, stage, gaps, resolved) {
             const message = error instanceof Error ? error.message : String(error);
             const unavailable = ["unavailable", "missing", "required", "No such file"].some((token) => message.includes(token));
             add(gaps, "gate_failed", text(gate.id) + ":" + message, gate.scope, stage, unavailable ? "unknown" : "blocked");
+            Object.assign(gaps[gaps.length - 1] ?? {}, failedGate(admission, gate));
         }
     }
 }
+function failedGate(admission, gate) {
+    const receipt = admission.context.results.find((result) => result.gate === gate.id) ?? {};
+    const recovery = {
+        ownership: "Supply named required owner/reviewer and an independent current receipt",
+        branch_target: "Supply the approved exact target/branch binding and independent current receipt",
+        fixture: "Prepare the isolated executable fixture and obtain independent current fixture evidence",
+        tooling: "Install the declared tool in the governed environment and refresh independent evidence",
+        protected_approval: "Obtain approval only for this changed or missing exact subject; retain unaffected receipts",
+        harness_trust: "Verify expected commit against the independent provenance anchor; never rewrite trust to fit the lock",
+    };
+    return { responsible: get(gate, "responsible", "unassigned"), source: { policy: POLICY, gate: gate.id, issuer: get(receipt, "issuer", "unavailable") },
+        freshness: { observed_at: get(receipt, "observed_at", "unavailable"), expires_at: get(receipt, "expires_at", "unavailable"), validated: false },
+        evidence_refs: Array.isArray(receipt.evidence) ? receipt.evidence.map((ref) => redactText(pyStr(ref))) : [],
+        recovery: recovery[text(gate.kind)] ?? "Resolve the specified gate evidence and rerun this exact stage" };
+}
 function contextShape(admission) {
-    const { context } = admission;
+    const context = pythonDict(admission.context);
     require(context.schema === "readiness-context/1", "independent_context_required");
     const allowed = boundFields(["schema", "repository", "policy", "sources", "authority", "results", "completed_goals", "extensions"], admission, ["execution", "execution_revision"], ["worktree"]);
     require(Object.keys(context).every((key) => allowed.includes(key)), "unsupported_context_fields");
@@ -1245,13 +1436,13 @@ function policyBinding(admission, policy) {
 }
 function policySources(admission, policy) {
     const { context, root } = admission;
-    const approved = dict(context.policy, "unapproved_policy_revision");
+    const approved = dict(context.policy, "unsupported_approval_fields");
     require(keysEqual(approved, ["sha256", "revision", "issuer"]), "unsupported_approval_fields");
     require(approved.sha256 === digestFile(relativePath(root, POLICY)) && string(approved.issuer) && string(approved.revision), "unapproved_policy_revision");
     const sources = policy.sources;
     require(Array.isArray(sources) && sources.length > 0 && sameValue(sources, context.sources), "policy_source_set_mismatch");
-    const listed = new Set(sources.map((source) => text(source.path)));
-    require(listed.size === sources.length, "duplicate_policy_sources");
+    require(new Set(sources.map((source) => pyKey(pythonDict(source).path))).size === sources.length, "duplicate_policy_sources");
+    const listed = new Set(sources.map((source) => source.path));
     const required = new Set(instructionSources(root));
     if (admission.worktree) {
         instructionPaths(admission.selection.bundle, root).forEach((name) => required.add(name));
@@ -1262,16 +1453,18 @@ function policySources(admission, policy) {
     }
 }
 function gateDimensions(gate) {
-    const dimensions = string(gate.dimension) ? [text(gate.dimension)] : [];
+    if ("dimension" in gate)
+        hashable(gate.dimension);
+    const dimensions = "dimension" in gate ? [gate.dimension] : [];
+    hashable(gate.kind);
     if (gate.kind === "ownership") {
-        const roles = gate.binding.roles;
-        if (Array.isArray(roles)) {
-            dimensions.push(...roles.filter((role) => role === "owner" || role === "reviewer").map((role) => role === "owner" ? "owners" : "reviewer"));
-        }
+        const binding = pythonDict(get(gate, "binding", {}));
+        const roles = iterable(get(binding, "roles", []));
+        dimensions.push(...roles.filter((role) => role === "owner" || role === "reviewer").map((role) => role === "owner" ? "owners" : "reviewer"));
     }
     else {
         const dimensionsByKind = { branch_target: "branch_target", fixture: "fixtures", tooling: "tooling", protected_approval: "registration_approval", harness_trust: "harness_trust" };
-        const dimension = dimensionsByKind[text(gate.kind)];
+        const dimension = Object.hasOwn(dimensionsByKind, text(gate.kind)) ? dimensionsByKind[text(gate.kind)] : undefined;
         if (dimension) {
             dimensions.push(dimension);
         }
@@ -1288,47 +1481,52 @@ function mappedTargetGates(admission, gates, exclusions, stage) {
         require(targets.length > 0 && targets.every((gate) => gate.binding.target === admission.selection.bundle.execution.target), "mapped_branch_target_required");
     }
 }
-function policyGates(admission, policy, stage) {
+function policyGates(admission, policy, stage, additive) {
+    require(Array.isArray(policy.gates), "policy_gates_required");
     const exclusions = dict(policy.not_applicable, "explicit_not_applicable_reasons_required");
     require(Object.entries(exclusions).every(([key, value]) => string(key) && string(value)), "explicit_not_applicable_reasons_required");
-    require(Array.isArray(policy.gates), "policy_gates_required");
-    const gates = policy.gates;
+    const declared = policy.gates;
+    const covered = new Set(declared.filter(isDict).flatMap(gateDimensions));
+    require(DIMENSIONS.every((item) => item in exclusions || covered.has(item)), "policy_dimensions_required");
+    require(!Object.keys(exclusions).some((item) => covered.has(item)), "contradictory_policy_dimension");
     const ids = admission.selection.bundle.goals.map((goal) => text(goal.id));
-    for (const gate of gates) {
+    for (const gate of declared) {
         gateShape(gate);
         require(explicitScope(gate.scope, ids), "explicit_gate_scope_required");
     }
-    const covered = new Set(gates.flatMap(gateDimensions));
-    require(DIMENSIONS.every((item) => item in exclusions || covered.has(item)), "policy_dimensions_required");
-    require(!Object.keys(exclusions).some((item) => covered.has(item)), "contradictory_policy_dimension");
-    require(new Set(gates.map((gate) => gate.id)).size === gates.length, "duplicate_policy_gate_ids");
+    const gates = [...declared, ...additive];
     require(mapped(admission.selection.bundle) || gates.every((gate) => gate.root !== "execution"), "execution_requires_mapped_schema");
     mappedTargetGates(admission, gates, exclusions, stage);
+    require(new Set(gates.map((gate) => gate.id)).size === gates.length, "duplicate_policy_gate_ids");
     return gates;
 }
-function policyOk(admission, stage, gaps, resolved) {
-    const { root, context, selection } = admission;
-    const { bundle } = selection;
-    contextShape(admission);
-    const policy = dict(read(relativePath(root, POLICY)), "unsupported_policy_schema");
-    require(policy.schema === "readiness-policy/1", "unsupported_policy_schema");
-    policyBinding(admission, policy);
-    policySources(admission, policy);
-    const gates = policyGates(admission, policy, stage);
-    const ids = bundle.goals.map((goal) => text(goal.id));
-    notApplicable(policy, context, stage, resolved, ids);
-    checkAuthority(admission, stage, gaps);
-    applyDigests(admission, gates, stage, resolved);
-    extraGates(admission, gates, stage, gaps, resolved);
-    for (const goal of bundle.goals) {
-        coverage(goal, gaps, stage);
+function policyOk(admission, stage, gaps, resolved, additive) {
+    const { context, selection } = admission;
+    let policy, gates;
+    try {
+        contextShape(admission);
+        const root = admission.root;
+        require(isFile(resolve(root, POLICY)), "unsupported_policy_source:" + POLICY);
+        policy = pythonDict(read(relativePath(root, POLICY)));
+        require(policy.schema === "readiness-policy/1", "unsupported_policy_schema");
+        policyBinding(admission, policy);
+        policySources(admission, policy);
+        gates = policyGates(admission, policy, stage, additive);
     }
+    catch (error) {
+        add(gaps, "policy_context_invalid", error instanceof Error ? error.message : String(error), "repository", stage, "unknown");
+        return;
+    }
+    const ids = [...evaluatedGoals(selection)];
+    notApplicable(policy, context, stage, resolved, ids, additive);
+    checkAuthority(admission, stage, gaps);
+    extraGates(admission, gates, stage, gaps, resolved);
 }
 function validRequirement(gate) {
     return isDict(gate) && string(gate.id) && ID.test(text(gate.id)) && STAGES.includes(text(gate.stage)) && string(gate.kind);
 }
-function goalRequirements(goal, gaps, stage) {
-    const requirements = goal.requirements ?? [];
+function goalRequirements(goal, gaps, stage, additive) {
+    const requirements = "requirements" in goal ? goal.requirements : [];
     if (!Array.isArray(requirements)) {
         add(gaps, "goal_requirement_invalid", "Expected requirement array", [goal.id], stage);
         return;
@@ -1340,25 +1538,11 @@ function goalRequirements(goal, gaps, stage) {
         }
         try {
             gateShape(gate);
+            additive.push({ ...gate, scope: { goals: [goal.id] } });
         }
         catch (error) {
             add(gaps, "goal_requirement_invalid", error instanceof Error ? error.message : String(error), [goal.id], stage);
         }
-    }
-}
-function goalGaps(root, goal, gaps, stage) {
-    coverage(goal, gaps, stage);
-    goalRequirements(goal, gaps, stage);
-    const readiness = goal.readiness;
-    if (readiness[stage] !== "ready") {
-        const status = readiness[stage] === "unknown" ? "unknown" : "blocked";
-        add(gaps, "goal_not_ready", readiness[stage], [goal.id], stage, status);
-    }
-    try {
-        validateCommands(root, goal.verification);
-    }
-    catch (error) {
-        add(gaps, "verification_invalid", error instanceof Error ? error.message : String(error), [goal.id], stage);
     }
 }
 function executionSelection(args, selected) {
@@ -1407,15 +1591,23 @@ function fillReport(identity, args, report, stage) {
     }
     executionSelection(args, selected);
     reportSelection(report, selected);
-    const context = args.context ? read(args.context) : {};
+    let context = {};
+    let contextError = null;
+    try {
+        if (args.context)
+            context = read(args.context);
+    }
+    catch (error) {
+        contextError = error instanceof Error ? osError(error) : String(error);
+    }
     const admission = { identity, root, selection: selected, context, worktree };
-    collectReport(admission, args, report, stage, inputs);
+    collectReport(admission, args, report, stage, inputs, contextError);
 }
-function collectReport(admission, args, report, stage, inputs) {
+function collectReport(admission, args, report, stage, inputs, contextError) {
     const { selection: selected, context, worktree, identity, root } = admission;
     if (mapped(selected.bundle)) {
         report.execution = selected.bundle.execution;
-        report.execution_revision = context.execution_revision ?? null;
+        report.execution_revision = isDict(context) ? context.execution_revision ?? null : null;
         report.execution_revision_source = "independent-context";
     }
     const gaps = report.gaps;
@@ -1423,41 +1615,55 @@ function collectReport(admission, args, report, stage, inputs) {
     const stages = stage === "planning" ? ["preparation", "implementation", "merge"] : [stage];
     for (const item of stages) {
         collectGaps(admission, item, gaps, resolved);
+        planGaps(selected.bundle, gaps, item, contextError);
     }
-    scopeGoals(gaps, selected.selected);
     report.per_goal = perGoal(selected.selected, gaps, resolved, stages);
     if (worktree) {
         require(sameValue(worktree, worktreeObservation(identity, root, text(args.base_commit), args.stage === "merge", inputs)), "worktree_changed_during_validation");
     }
     report.execution_ready = stage !== "planning" && gaps.length === 0;
 }
-function dependencyGaps(admission, gaps, stage) {
-    const evaluated = evaluatedGoals(admission.selection);
-    for (const goal of admission.selection.bundle.goals) {
-        if (!evaluated.has(text(goal.id))) {
-            continue;
+function planGaps(bundle, gaps, stage, contextError) {
+    if (!bundle.planning_complete || bundle.status !== "active")
+        add(gaps, "plan_not_active_or_incomplete", bundle.status, "repository", stage);
+    if (contextError)
+        add(gaps, "context_unavailable", contextError, "repository", stage, "unknown");
+}
+function goalFindings(admission, goal, local, stage, additive) {
+    const { selection, root } = admission;
+    const selected = selection.selected.includes(text(goal.id));
+    if (selected) {
+        coverage(goal, local, stage);
+        const readiness = goal.readiness[stage];
+        if (readiness !== "ready")
+            add(local, "goal_not_ready", readiness, [goal.id], stage, readiness === "unknown" ? "unknown" : "blocked");
+    }
+    for (const dependency of goal.dependencies) {
+        if (!dependencyComplete(admission, dependency))
+            add(local, "dependency_incomplete", dependency, [goal.id], stage);
+    }
+    if (selected) {
+        try {
+            validateCommands(executionRoot(selection.bundle, root), goal.verification);
         }
-        for (const dependency of goal.dependencies) {
-            if (!dependencyComplete(admission, dependency)) {
-                add(gaps, "dependency_incomplete", dependency, [goal.id], stage);
-            }
+        catch (error) {
+            add(local, "verification_invalid", error instanceof Error ? error.message : String(error), [goal.id], stage);
         }
     }
+    goalRequirements(goal, local, stage, additive);
 }
 function collectGaps(admission, stage, gaps, resolved) {
-    try {
-        const { selection: selected, root } = admission;
-        for (const goal of selected.bundle.goals) {
-            if (selected.selected.includes(text(goal.id))) {
-                goalGaps(executionRoot(selected.bundle, root), goal, gaps, stage);
-            }
-        }
-        dependencyGaps(admission, gaps, stage);
-        policyOk(admission, stage, gaps, resolved);
+    const local = [];
+    const additive = [];
+    const { selection: selected } = admission;
+    const evaluated = evaluatedGoals(selected);
+    for (const goal of selected.bundle.goals) {
+        if (!evaluated.has(text(goal.id)))
+            continue;
+        goalFindings(admission, goal, local, stage, additive);
     }
-    catch (error) {
-        add(gaps, "policy_context_invalid", error instanceof Error ? error.message : String(error), "repository", stage, "unknown");
-    }
+    policyOk(admission, stage, local, resolved, additive);
+    gaps.push(...scopeGoals(local, admission.selection));
 }
 export function admit(args) {
     const root = pyPath(String(args.root ?? "."));
@@ -1473,23 +1679,40 @@ export function admit(args) {
         add(report.gaps, "admission_failed", error instanceof Error ? error.message : String(error), "repository", stage);
     }
     report.remaining_blockers = report.gaps;
-    return report;
+    return redact(report);
 }
-function scopeGoals(gaps, selected) {
+function redact(value) {
+    if (typeof value === "string")
+        return redactText(value);
+    if (Array.isArray(value))
+        return value.map(redact);
+    if (isDict(value))
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [redact(key), redact(item)]));
+    return value;
+}
+function scopeGoals(gaps, selection) {
+    const visible = [];
     for (const gap of gaps) {
-        gap.blocked_goals = selected;
-        if (gap.scope !== "repository") {
-            gap.scope = { goals: selected };
+        const affected = [...new Set(selection.selected)].sort(compare).filter((id) => {
+            const closure = evaluatedGoals({ ...selection, selected: [id] });
+            return [...closure].some((goal) => applies(gap.scope, goal));
+        });
+        if (affected.length > 0) {
+            gap.blocked_goals = affected;
+            if (gap.scope !== "repository" && !sameValue(gap.scope, { repository: true }))
+                gap.scope = { goals: affected };
+            visible.push(gap);
         }
     }
+    return visible;
 }
 function perGoal(selected, gaps, resolved, stages) {
-    const out = {};
+    const out = Object.create(null);
     for (const id of selected) {
         const record = {};
         for (const stage of stages) {
-            const findings = gaps.filter((gap) => gap.stage === stage);
-            const extra = resolved.filter((item) => item.stage === stage);
+            const findings = gaps.filter((gap) => gap.stage === stage && applies(gap.scope, id));
+            const extra = resolved.filter((item) => item.stage === stage && applies(item.scope, id));
             const status = findings.some((gap) => gap.status === "blocked") ? "blocked" : findings.length > 0 ? "unknown" : "ready";
             record[stage] = { status, findings: [...findings, ...extra] };
         }
@@ -1498,15 +1721,17 @@ function perGoal(selected, gaps, resolved, stages) {
     return out;
 }
 export function migrate(args) {
+    require(!args.worktree_root && !args.base_commit, "worktree_migration_unsupported");
     const root = pyPath(String(args.root ?? "."));
     const legacy = read(String(args.legacy));
     const supplied = read(String(args.bundle));
     bundleShape(supplied, root);
-    const bundle = structuredClone(supplied);
-    const extensions = isDict(bundle.extensions) ? bundle.extensions : {};
-    require(!("legacy_original" in extensions), "migration_extension_collision");
-    extensions.legacy_original = legacy;
-    extensions.legacy_sha256 = digestFile(String(args.legacy));
+    const bundle = parse(dumps(supplied));
+    const extensions = "extensions" in bundle ? bundle.extensions : {};
+    require(isDict(extensions) && !("legacy_original" in extensions), "migration_extension_collision");
+    const extensionRecord = extensions;
+    extensionRecord.legacy_original = legacy;
+    extensionRecord.legacy_sha256 = digestFile(String(args.legacy));
     bundle.extensions = extensions;
     for (const goal of bundle.goals) {
         goal.readiness = { preparation: "unknown", implementation: "unknown", merge: "unknown" };
@@ -1516,6 +1741,10 @@ export function migrate(args) {
 export function main(argv) {
     try {
         const args = parseArgs(argv);
+        if (args.operation === "help") {
+            process.stdout.write(HELP);
+            return 0;
+        }
         const result = runOperation(args);
         process.stdout.write(dumps(result, 2, true) + "\n");
         return resultExit(args, result);
@@ -1529,6 +1758,7 @@ export function main(argv) {
         return 1;
     }
 }
+export { add, applies, collectGaps, coverage, dependencyComplete, gateDimensions, gateSubject, gitRead, goalRevision, instructionPaths, typedGate, worktreeBinding, worktreeInputs, worktreeObservation };
 function runOperation(args) {
     if (args.operation === "publish") {
         return publish(args);
@@ -1540,48 +1770,133 @@ function resultExit(args, result) {
     const planning = args.stage === "planning" && result.planning_complete === true && "per_goal" in result;
     return gaps.length > 0 && !planning ? 1 : 0;
 }
-function assignFlag(args, flag, value, index) {
-    if (!flag.startsWith("--") || value === undefined) {
-        return index;
-    }
-    const key = flag.slice(2).replaceAll("-", "_");
-    args[key] = value;
-    return index + 1;
+const FLAGS = ["--help", "--root", "--handoff", "--goal-id", "--goal", "--context", "--execution-record", "--execution-root", "--worktree-root", "--base-commit", "--bundle", "--legacy", "--stage"];
+const USAGE = `usage: readiness_contract.py [-h] [--root ROOT] [--handoff HANDOFF]
+                             [--goal-id GOAL_ID] [--goal GOAL]
+                             [--context CONTEXT]
+                             [--execution-record EXECUTION_RECORD]
+                             [--execution-root EXECUTION_ROOT]
+                             [--worktree-root WORKTREE_ROOT]
+                             [--base-commit BASE_COMMIT] [--bundle BUNDLE]
+                             [--legacy LEGACY]
+                             [--stage {planning,preparation,implementation,merge}]
+                             {admit,publish,migrate}
+`;
+const HELP = USAGE + `
+Versioned, read-only admission; publication is an explicit separate
+subcommand. Context is supplied by the caller's independent authority adapter.
+JSON labels do not authenticate a human or runtime. No goal can create its own
+policy exemption.
+
+positional arguments:
+  {admit,publish,migrate}
+
+options:
+  -h, --help            show this help message and exit
+  --root ROOT
+  --handoff HANDOFF
+  --goal-id GOAL_ID
+  --goal GOAL
+  --context CONTEXT
+  --execution-record EXECUTION_RECORD
+  --execution-root EXECUTION_ROOT
+  --worktree-root WORKTREE_ROOT
+  --base-commit BASE_COMMIT
+  --bundle BUNDLE
+  --legacy LEGACY
+  --stage {planning,preparation,implementation,merge}
+`;
+function usageError(message) {
+    process.stderr.write(USAGE + "readiness_contract.py: error: " + message + "\n");
+    throw new Invalid("usage:" + message);
 }
-function parseOperation(operation) {
-    if (!["admit", "publish", "migrate"].includes(operation ?? "")) {
-        const shown = operation ?? "";
-        process.stderr.write("invalid choice: '" + shown + "' (choose from 'admit', 'publish', 'migrate')\n");
-        throw new Invalid("invalid choice: '" + shown + "' (choose from 'admit', 'publish', 'migrate')");
-    }
-    return operation;
+function optionName(raw, shown = raw) {
+    const matches = FLAGS.filter((flag) => flag.startsWith(raw));
+    if (FLAGS.includes(raw))
+        return raw;
+    if (matches.length > 1)
+        usageError("ambiguous option: " + shown + " could match " + matches.join(", "));
+    return matches[0] ?? null;
 }
-function parseFlags(args, argv) {
-    for (let index = 1; index < argv.length; index += 1) {
-        const flag = argv[index] ?? "";
-        const value = argv[index + 1];
-        if (flag.startsWith("--") && (value === undefined || value.startsWith("--"))) {
-            const message = "usage: readiness_contract <admit|publish|migrate> [options]\nerror: argument " + flag + ": expected one argument";
-            process.stderr.write(message + "\n");
-            throw new Invalid(message);
-        }
-        if (flag === "--goal-id" && value !== undefined) {
-            args.goal_id = [...(args.goal_id ?? []), value];
-            index += 1;
-        }
-        else {
-            index = assignFlag(args, flag, value, index);
-        }
-    }
+function optionValue(args, flag, value) {
+    if (flag === "--stage" && !["planning", ...STAGES].includes(value))
+        usageError("argument --stage: invalid choice: " + pyRepr(value) + " (choose from 'planning', 'preparation', 'implementation', 'merge')");
+    if (flag === "--goal-id")
+        args.goal_id = [...(args.goal_id ?? []), value];
+    else
+        args[flag.slice(2).replaceAll("-", "_")] = value;
 }
 function parseArgs(argv) {
-    const args = { root: ".", stage: "implementation", goal_id: null, operation: parseOperation(argv[0]) };
-    parseFlags(args, argv);
-    const stages = ["planning", "preparation", "implementation", "merge"];
-    if (!stages.includes(args.stage ?? "")) {
-        const shown = args.stage ?? "";
-        process.stderr.write("error: argument --stage: invalid choice: '" + shown + "' (choose from 'planning', 'preparation', 'implementation', 'merge')\n");
-        throw new Invalid("invalid choice: --stage " + shown);
+    const args = { root: ".", stage: "implementation", goal_id: null };
+    const extra = [];
+    let positionalOnly = false;
+    for (let index = 0; index < argv.length; index += 1) {
+        const raw = argv[index] ?? "";
+        switch (argumentKind(raw, positionalOnly)) {
+            case "help": return { ...args, operation: "help" };
+            case "separator":
+                positionalOnly = true;
+                break;
+            case "option":
+                index = parseOption(args, argv, index, extra);
+                if (args.operation === "help")
+                    return args;
+                break;
+            default:
+                if (args.operation)
+                    extra.push(raw);
+                else
+                    args.operation = parseOperation(raw);
+        }
     }
+    if (!args.operation)
+        usageError("the following arguments are required: operation");
+    if (extra.length > 0)
+        usageError("unrecognized arguments: " + extra.join(" "));
     return args;
+}
+function argumentKind(raw, positionalOnly) {
+    if (positionalOnly)
+        return "positional";
+    if (raw === "-" || /^-\.?\p{Decimal_Number}/u.test(raw))
+        return "positional";
+    if (raw === "--help" || /^-h(?:$|[^=-])/.test(raw))
+        return "help";
+    if (raw === "--")
+        return "separator";
+    return raw.startsWith("-") ? "option" : "positional";
+}
+function parseOperation(raw) {
+    if (!["admit", "publish", "migrate"].includes(raw))
+        usageError("argument operation: invalid choice: " + pyRepr(raw) + " (choose from 'admit', 'publish', 'migrate')");
+    return raw;
+}
+function parseOption(args, argv, index, extra) {
+    const raw = argv[index] ?? "";
+    if (raw.startsWith("-h") && !raw.startsWith("--"))
+        usageError("argument -h/--help: ignored explicit argument " + pyRepr(raw.slice(2).replace(/^=/, "")));
+    const at = raw.indexOf("=");
+    const name = at < 0 ? raw : raw.slice(0, at);
+    const flag = optionName(name, raw);
+    if (!flag) {
+        extra.push(raw);
+        return index;
+    }
+    if (flag === "--help") {
+        helpOption(args, raw, at);
+        return index;
+    }
+    const value = at < 0 ? argv[++index] : raw.slice(at + 1);
+    requireOptionValue(flag, value, at);
+    optionValue(args, flag, value);
+    return index;
+}
+function helpOption(args, raw, at) {
+    if (at >= 0)
+        usageError("argument -h/--help: ignored explicit argument " + pyRepr(raw.slice(at + 1)));
+    args.operation = "help";
+}
+function requireOptionValue(flag, value, at) {
+    if (value === undefined || (at < 0 && value.startsWith("-") && !/^-\.?\p{Decimal_Number}/u.test(value)))
+        usageError("argument " + flag + ": expected one argument");
 }

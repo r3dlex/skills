@@ -7,6 +7,7 @@ import { main } from "./engine.mjs";
 export { Invalid, VERSION, ID, SHA, REVISION, canonical, dumps, read, require, string } from "./json.mjs";
 export type { Args } from "./json.mjs";
 export { validate, VerificationError } from "./verification.mjs";
+export { worktreeObservation as worktree_observation } from "./engine.mjs";
 
 const ALLOWED = ["lib/engine.mjs", "lib/json.mjs", "lib/readiness_contract.mjs", "lib/verification.mjs"];
 

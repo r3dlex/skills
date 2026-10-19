@@ -1,5 +1,7 @@
 import { accessSync, constants, realpathSync, statSync } from "node:fs";
 import { isAbsolute, resolve, sep } from "node:path";
+import { pyRepr, strip, whitespace } from "./json.mjs";
+export { pyRepr } from "./json.mjs";
 
 export class VerificationError extends Error {
   readonly code: number;
@@ -12,7 +14,6 @@ export class VerificationError extends Error {
 }
 
 const FORBIDDEN = /[;&|`$><\n\\]|\$\(/;
-const TRAVERSAL = /(^|[/\s])\.\.([/\s]|$)/;
 function hasControl(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index);
@@ -91,16 +92,23 @@ function allowed(argv: string[]): boolean {
 }
 
 function npmAllowed(target: string): boolean {
-  return SAFE_TASK.test(target) && DELIVERY_TASK.test(target) === false;
+  return SAFE_TASK.test(regexCase(target)) && DELIVERY_TASK.test(regexCase(target)) === false;
 }
 
 function moonAllowed(target: string): boolean {
   const task = target.slice(target.lastIndexOf(":") + 1);
-  return SAFE_TASK.test(task) && DELIVERY_TASK.test(target) === false;
+  return SAFE_TASK.test(regexCase(task)) && DELIVERY_TASK.test(regexCase(target)) === false;
 }
 
-export function pyRepr(value: string): string {
-  return `'${value.replaceAll("\\", "\\\\").replaceAll("'", "\\'")}'`;
+function regexCase(value: string): string { return value.replace(/[İı]/g, "i").replaceAll("ſ", "s").replaceAll("K", "k"); }
+
+function traversalBoundary(ch: string, edge: boolean): boolean { return edge || ch === "/" || whitespace(ch); }
+
+function traversal(value: string): boolean {
+  for (let at = value.indexOf(".."); at >= 0; at = value.indexOf("..", at + 1)) {
+    if (traversalBoundary(value[at - 1] ?? "", at === 0) && traversalBoundary(value[at + 2] ?? "", at + 2 === value.length)) return true;
+  }
+  return false;
 }
 
 function executable(name: string, cwd: string): string | null {
@@ -141,7 +149,9 @@ function takeQuoted(command: string, index: number, mark: "'" | '"'): { text: st
       return { text, index: cursor };
     }
     if (mark === '"' && ch === "\\") {
-      text += command[cursor + 1] ?? "";
+      const next = command[cursor + 1];
+      if (next === undefined) throw new Error("No escaped character");
+      text += next === mark || next === "\\" ? next : "\\" + next;
       cursor += 2;
       continue;
     }
@@ -156,11 +166,13 @@ function takeBare(command: string, index: number): { text: string; index: number
   let cursor = index;
   while (cursor < command.length) {
     const ch = command[cursor] ?? "";
-    if (ch === " " || ch === "\t" || ch === "'" || ch === '"') {
+    if (" \t\r\n".includes(ch) || ch === "'" || ch === '"') {
       break;
     }
     if (ch === "\\") {
-      text += command[cursor + 1] ?? "";
+      const next = command[cursor + 1];
+      if (next === undefined) throw new Error("No escaped character");
+      text += next;
       cursor += 2;
       continue;
     }
@@ -177,7 +189,7 @@ export function shlexSplit(command: string): string[] {
   let index = 0;
   while (index < command.length) {
     const ch = command[index] ?? "";
-    if (ch === " " || ch === "\t") {
+    if (" \t\r\n".includes(ch)) {
       if (started) {
         argv.push(current);
         current = "";
@@ -206,7 +218,7 @@ interface Entry {
 
 function entryOf(value: unknown, index: number): Entry {
   if (typeof value === "string") {
-    return { cwd: ".", command: value.trim(), raw: value };
+    return { cwd: ".", command: strip(value), raw: value };
   }
   if (value !== null && typeof value === "object" && !Array.isArray(value)) {
     return objectEntry(value as Record<string, unknown>, index);
@@ -221,16 +233,16 @@ function objectEntry(value: Record<string, unknown>, index: number): Entry {
   }
   const cwd = value.cwd;
   const command = value.command;
-  if (typeof cwd !== "string" || cwd.trim() === "") {
+  if (typeof cwd !== "string" || strip(cwd) === "") {
     stop(2, `verification[${index}].cwd must be a non-empty string`);
   }
-  if (typeof command !== "string" || command.trim() === "") {
+  if (typeof command !== "string" || strip(command) === "") {
     stop(2, `verification[${index}].command must be a non-empty string`);
   }
-  if (cwd !== cwd.trim()) {
+  if (cwd !== strip(cwd)) {
     stop(3, `verification[${index}].cwd must be normalized`);
   }
-  return { cwd, command: command.trim(), raw: command };
+  return { cwd, command: strip(command), raw: command };
 }
 
 function rejectControl(index: number, raw: string, cwd: string, command: string): void {
@@ -240,7 +252,7 @@ function rejectControl(index: number, raw: string, cwd: string, command: string)
   if (FORBIDDEN.test(command)) {
     stop(3, `verification[${index}] command contains shell metacharacters`);
   }
-  if (TRAVERSAL.test(command)) {
+  if (traversal(command)) {
     stop(3, `verification[${index}] command contains path traversal`);
   }
 }
