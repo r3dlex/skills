@@ -105,7 +105,10 @@ function ambiguityResolutionIsEager() {
         ambiguityIsEager = true;
         return ambiguityIsEager;
     }
-    ambiguityIsEager = probed.stdout.trim() === "eager";
+    // Only a recognised "lazy" verdict may retire the pre-pass. Empty, truncated
+    // or otherwise unparsable stdout must resolve to the safe eager regime; see
+    // the non-zero branch above for why the safe direction is the default.
+    ambiguityIsEager = probed.stdout.trim() !== "lazy";
     return ambiguityIsEager;
 }
 function firstAmbiguous(argv) {

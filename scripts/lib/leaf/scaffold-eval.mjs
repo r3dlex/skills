@@ -36,7 +36,10 @@ function argparseQuotesChoices() {
         choicesAreQuoted = true;
         return choicesAreQuoted;
     }
-    choicesAreQuoted = probed.stdout.trim() === "quoted";
+    // Only a recognised "bare" verdict may use the bare form. Empty, truncated
+    // or otherwise unparsable stdout must resolve to the safe quoted form; see
+    // the non-zero branch above for why the safe direction is the default.
+    choicesAreQuoted = probed.stdout.trim() !== "bare";
     return choicesAreQuoted;
 }
 function invalidChoiceList(choices) {

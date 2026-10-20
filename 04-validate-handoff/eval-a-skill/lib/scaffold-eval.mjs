@@ -112,9 +112,10 @@ export function main(argv) {
             // Render it the way this interpreter renders it, memoised.
             if (choicesAreQuoted === undefined) {
                 const probed = spawnSync("python3", ["-c", CHOICE_QUOTING_PROBE], { encoding: "utf8" });
-                // A probe that cannot run keeps the quoted form this port
-                // emitted before the probe existed.
-                choicesAreQuoted = probed.status !== 0 || probed.stdout.trim() === "quoted";
+                // A probe that cannot run, or that answers with anything other
+                // than a recognised "bare" verdict, keeps the quoted form this
+                // port emitted before the probe existed.
+                choicesAreQuoted = probed.status !== 0 || probed.stdout.trim() !== "bare";
             }
             const choices = choicesAreQuoted ? "'output', 'trajectory'" : "output, trajectory";
             process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from ${choices})\n`);

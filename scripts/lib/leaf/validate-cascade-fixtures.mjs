@@ -19,12 +19,18 @@ function fail(message) {
 // with "~" while only the failing part keeps "^", plus an anchor row on every
 // intermediate frame. Probe the band instead of assuming the newest rendering.
 // A probe that cannot run falls back to band 0, the pre-3.11 rendering this
-// port emitted before the probe existed.
+// port emitted before the probe existed. An unrecognised verdict falls back to
+// band 0 for the same reason: no CPython emits an "assert anchor only" shape,
+// so a token outside the enumerated set must never reach moduleFrameAnchor().
 function tracebackAnchorBand() {
     const probed = spawnSync("python3", ["-c", "import sys; print(0 if sys.version_info < (3, 11) else 1 if sys.version_info < (3, 13) else 2)"], {
         encoding: "utf8",
     });
-    return probed.status === 0 ? probed.stdout.trim() : "0";
+    if (probed.status !== 0) {
+        return "0";
+    }
+    const band = probed.stdout.trim();
+    return band === "0" || band === "1" || band === "2" ? band : "0";
 }
 // The <module> frame anchors the `main()` call inside `sys.exit(main())`:
 // 3.11-3.12 underline the whole call with "^", 3.13 marks the callee under "~"
