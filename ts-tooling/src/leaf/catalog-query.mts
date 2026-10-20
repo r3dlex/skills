@@ -87,9 +87,26 @@ function ambiguousOption(flag: string): string | undefined {
   return matches.length > 1 ? matches.join(", ") : undefined;
 }
 
-// Argparse classifies every token before any action. An ambiguous option exits
-// before help and before a missing-argument check.
+// Argparse ≤3.11 classifies every token before any action, so an ambiguous
+// option exits before help and before a missing-argument check. From 3.12 the
+// parser consumes left to right and only trips when it reaches the token, which
+// is what consume() below already models. Probe the interpreter the way
+// concatenatedHelpExitsZero() does instead of claiming the ≤3.11 semantics.
+let ambiguityIsEager: boolean | undefined;
+
+function ambiguityResolutionIsEager(): boolean {
+  if (ambiguityIsEager !== undefined) {
+    return ambiguityIsEager;
+  }
+  const probed = spawnSync("python3", ["-c", "import sys; print(1 if sys.version_info < (3, 12) else 0)"], { encoding: "utf8" });
+  ambiguityIsEager = probed.status === 0 && probed.stdout.trim() === "1";
+  return ambiguityIsEager;
+}
+
 function firstAmbiguous(argv: readonly string[]): { token: string; matches: string } | undefined {
+  if (!ambiguityResolutionIsEager()) {
+    return undefined;
+  }
   for (const token of argv) {
     if (token === "--") {
       return undefined;

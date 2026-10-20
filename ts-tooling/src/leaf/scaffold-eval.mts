@@ -2,11 +2,23 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { pyJsonDumps } from "./py-repr.mjs";
 import { join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { helpRequested, optionHeading, optionLike } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 
 assertNodeVersion();
+
+// Argparse quotes each choice in an invalid-choice message on 3.9, dropped the
+// quotes from 3.12, and restored them in 3.14. Probe the band the same way
+// optionHeading() probes the 3.10 options heading; a probe that cannot run
+// keeps the quoted form this port emitted before the probe existed.
+function invalidChoiceList(choices: readonly string[]): string {
+  const probed = spawnSync("python3", ["-c", "import sys; print(1 if (3, 12) <= sys.version_info < (3, 14) else 0)"], {
+    encoding: "utf8",
+  });
+  return probed.status === 0 && probed.stdout.trim() === "1" ? choices.join(", ") : choices.map((choice) => `'${choice}'`).join(", ");
+}
 
 function evalset(skill: string, kind: string): Record<string, unknown> {
   return {
@@ -130,7 +142,7 @@ function scaffoldValue(inline: string | undefined, next: string | undefined): st
 
 function consumeScaffold(args: ScaffoldArgs, flag: string, value: string): number | undefined {
   if (flag === "--kind" && value !== "output" && value !== "trajectory") {
-    return scaffoldFail(`argument --kind: invalid choice: '${value}' (choose from 'output', 'trajectory')`);
+    return scaffoldFail(`argument --kind: invalid choice: '${value}' (choose from ${invalidChoiceList(["output", "trajectory"])})`);
   }
   return assignScaffold(args, flag, value) ? undefined : scaffoldFail(`unrecognized arguments: ${flag}`);
 }

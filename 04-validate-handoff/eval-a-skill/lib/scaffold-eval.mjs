@@ -94,7 +94,11 @@ export function main(argv) {
             return 2;
         }
         if (flag === "--kind" && value !== "output" && value !== "trajectory") {
-            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from 'output', 'trajectory')\n`);
+            // Argparse quotes each choice on 3.9, dropped the quotes from 3.12
+            // and restored them in 3.14. Same probe shape as the heading above.
+            const unquoted = spawnSync("python3", ["-c", "import sys; print(1 if (3, 12) <= sys.version_info < (3, 14) else 0)"], { encoding: "utf8" });
+            const choices = unquoted.status === 0 && unquoted.stdout.trim() === "1" ? "output, trajectory" : "'output', 'trajectory'";
+            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from ${choices})\n`);
             return 2;
         }
         if (flag === "--skill") {

@@ -14,29 +14,47 @@ const TOKEN = /^ct-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{3}$/;
 function fail(message) {
     throw new Error(message);
 }
-function pythonShowsCarets() {
-    const probed = spawnSync("python3", ["-c", "import sys; print(0 if sys.version_info >= (3, 11) else 1)"], {
+// CPython renders PEP 657 traceback anchors in three bands: none below 3.11,
+// "^" only on 3.11-3.12, and from 3.13 the surrounding expression is marked
+// with "~" while only the failing part keeps "^", plus an anchor row on every
+// intermediate frame. Probe the band instead of assuming the newest rendering.
+// A probe that cannot run falls back to band 0, the pre-3.11 rendering this
+// port emitted before the probe existed.
+function tracebackAnchorBand() {
+    const probed = spawnSync("python3", ["-c", "import sys; print(0 if sys.version_info < (3, 11) else 1 if sys.version_info < (3, 13) else 2)"], {
         encoding: "utf8",
     });
-    return probed.stdout.trim() === "0";
+    return probed.status === 0 ? probed.stdout.trim() : "0";
 }
+// The <module> frame anchors the `main()` call inside `sys.exit(main())`:
+// 3.11-3.12 underline the whole call with "^", 3.13 marks the callee under "~"
+// and the call parentheses that raise under "^".
+function moduleFrameAnchor(band) {
+    if (band === "1") {
+        return "             ^^^^^^";
+    }
+    return band === "2" ? "             ~~~~^^" : null;
+}
+// From 3.13 every intermediate frame gains its own anchor row, marking the
+// callee under "~" and the argument list under "^".
+function intermediateFrameAnchor(band) {
+    return band === "2" ? "    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^" : null;
+}
+// The failing expression keeps "^" on every band. A call expression is the
+// exception: from 3.13 the callee is marked with "~" and only the argument list
+// keeps "^". Measured on 3.13.5 and 3.14.8 for audit_path.is_file() and
+// report_path.is_file(); every other assert in this file is not a call.
+const TILDE_ANCHORS = new Map([
+    ["           ^^^^^^^^^^^^^^^^^^^^", "           ~~~~~~~~~~~~~~~~~~^^"],
+    ["           ^^^^^^^^^^^^^^^^^^^^^", "           ~~~~~~~~~~~~~~~~~~~^^"],
+]);
+function assertionAnchor(band, carets) {
+    return band === "2" && TILDE_ANCHORS.has(carets) ? TILDE_ANCHORS.get(carets) : carets;
+}
+const INTERMEDIATE_SOURCE = "validate_fixture(fixture, repo_id)";
 function safetyTraceback(root) {
-    const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
-    const carets = pythonShowsCarets();
-    const lines = [
-        "Traceback (most recent call last):",
-        `  File "${script}", line 163, in <module>`,
-        "    sys.exit(main())",
-    ];
-    if (carets) {
-        lines.push("             ^^^^^^");
-    }
-    lines.push(`  File "${script}", line 148, in main`, "    validate_fixture(fixture, repo_id)", `  File "${script}", line 63, in validate_fixture`, "    assert plan[\"safety\"][\"no_first_run_apply_without_confirmation\"] is True");
-    if (carets) {
-        lines.push("           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
-    }
-    lines.push("AssertionError");
-    return lines.join("\n");
+    const band = tracebackAnchorBand();
+    return safetyFieldTraceback(root, 63, "assert plan[\"safety\"][\"no_first_run_apply_without_confirmation\"] is True", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^", band);
 }
 function firstRunUnconfirmed(plan) {
     return safetyFieldUntrue(plan, "no_first_run_apply_without_confirmation");
@@ -52,41 +70,31 @@ function safetyFieldUntrue(plan, field) {
     }
     return record[field] !== true;
 }
-function safetyFieldTraceback(root, line, assertion, carets) {
+function safetyFieldTraceback(root, line, assertion, carets, band = tracebackAnchorBand()) {
     const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
-    const shows = pythonShowsCarets();
+    const module = moduleFrameAnchor(band);
+    const intermediate = intermediateFrameAnchor(band);
     const lines = [
         "Traceback (most recent call last):",
         `  File "${script}", line 163, in <module>`,
         "    sys.exit(main())",
     ];
-    if (shows) {
-        lines.push("             ^^^^^^");
+    if (module !== null) {
+        lines.push(module);
     }
-    lines.push(`  File "${script}", line 148, in main`, "    validate_fixture(fixture, repo_id)", `  File "${script}", line ${line}, in validate_fixture`, `    ${assertion}`);
-    if (shows) {
-        lines.push(carets);
+    lines.push(`  File "${script}", line 148, in main`, `    ${INTERMEDIATE_SOURCE}`);
+    if (intermediate !== null) {
+        lines.push(intermediate);
+    }
+    lines.push(`  File "${script}", line ${line}, in validate_fixture`, `    ${assertion}`);
+    if (band !== "0") {
+        lines.push(assertionAnchor(band, carets));
     }
     lines.push("AssertionError");
     return lines.join("\n");
 }
 function schemaTraceback(root) {
-    const script = realpathSync(join(root, "scripts/validate-cascade-fixtures.py"));
-    const carets = pythonShowsCarets();
-    const lines = [
-        "Traceback (most recent call last):",
-        `  File "${script}", line 163, in <module>`,
-        "    sys.exit(main())",
-    ];
-    if (carets) {
-        lines.push("             ^^^^^^");
-    }
-    lines.push(`  File "${script}", line 148, in main`, "    validate_fixture(fixture, repo_id)", `  File "${script}", line 56, in validate_fixture`, "    assert plan[\"schema_version\"] == \"1.0\"");
-    if (carets) {
-        lines.push("           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
-    }
-    lines.push("AssertionError");
-    return lines.join("\n");
+    return safetyFieldTraceback(root, 56, "assert plan[\"schema_version\"] == \"1.0\"", "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 }
 function readJson(path) {
     return JSON.parse(readFileSync(path, "utf8"));
