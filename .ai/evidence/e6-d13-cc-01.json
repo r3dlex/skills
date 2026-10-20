@@ -1,0 +1,313 @@
+{
+  "acceptance_criteria": [
+    {
+      "ac": 1,
+      "criterion": "Dispatch/coexistence: re-observe O8 f5e338b92bb754c2bfffdf542b498530258fdbc0 ancestry and exact-file coexistence at future admission.",
+      "note": "Implementation slice only. O8 ancestry and window/scope re-observation belong to admission, not to this supplier PR. No E6 successor ID and no source-authority waiver was created here.",
+      "status": "not_reobserved_here"
+    },
+    {
+      "ac": 2,
+      "criterion": "Tool/constants: the three interfaces, exits and fixed constants; no network/driver/write; only bounded local Git for observation and consumer lineage.",
+      "note": "The three interfaces retain exits 0/1/2 and only node: / relative sibling imports. Bounded local Git reads only; no driver, network or file writer. GIT_NO_LAZY_FETCH prevents object reads from silently fetching; replacement objects and optional locks are disabled. No superseded-tool bypass or sibling source edit.",
+      "status": "implemented"
+    },
+    {
+      "ac": 3,
+      "criterion": "Projection: exact depth-one member span only, nested bytes preserved, permitted sites empty, caller masks malformed, all other payload/stderr/exit bytes compared.",
+      "note": "Fatal UTF-8 and complete JSON validation precede the depth-one walk. Duplicate depth-one keys, nonliteral provenance rendering and invalid literals are rejected. Only the exact indent-2 provenance member line is removed from the original Buffer using byte offsets; remaining payload/stderr bytes are never re-encoded or normalized. Caller masks remain malformed. Generic refusal envelopes with zero exits are red, never successes.",
+      "status": "implemented"
+    },
+    {
+      "ac": 4,
+      "criterion": "Assertions: every lane, target/ref/repository/registry/site, operation/plan/argv, outcome, written-map, ordering, quiescence and raw-binding assertion; exact deterministic whole-report derivation and recomputation.",
+      "note": "All required lane/target/site/global assertions have unique stable identities. Snapshot inventories are independently enumerated, including reserved filenames; declared maps cannot hide added/deleted/changed files. Successful exports require nonempty after-maps. Transcript cwd/root/ref/lanes digest, canonical base64, full stdout/stderr, pinned policy/registry blobs, finish reads, actual UTC intervals, operation-specific metadata and present generations are checked. The report includes codes, maps/changes, all digests and derived counts; consumer replay compares the whole canonical report.",
+      "status": "implemented"
+    },
+    {
+      "ac": 5,
+      "criterion": "Fixtures: P1; M01-M34; O01-O09 and C01-C15. Truthful linked candidate: common-dir-candidate fails, observe-git passes; separate false-metadata case: observe-git fails. Positive consumer uses the actual temporary-Git --observe report and digest-bound run.",
+      "note": "All 59 contract names remain, plus R01-R34 and D01-D30: 123 names / 136 CLI case checks. Base observations use real temporary Git; negative fixtures deliberately corrupt inputs or move real refs. O02 remains common-dir-candidate red with observe-git true; O03 is observe-git red. C01 has exact frozen inputs and connected publication / distinct supplier PR head / two-parent merge / actual candidate capture / evidence-only HEAD history; positive consumer results must expose the validated merge commit. C07 has five separate mutations; C08 has nine exact raw-input variants; C13 truly relocates and removes archived paths; C15 checks actual suite propagation and direct missing-file exit 2. R28-R32 enforce malformed/missing required-input exit 2 even with a resealed manifest. R33 permits distinct independently complete pre-states with equal after-maps, as serialized exports require; R34 still rejects incomplete before-maps. D29/D30 separate actual structural parent headers from arbitrary commit-message parent lines. No fixture authenticates a real driver capture.",
+      "status": "implemented"
+    },
+    {
+      "ac": 6,
+      "criterion": "TDD: fixtures and test present, compiled module absent, same command red exit 1 then green after lawful implementation; per-case outcomes and checker SHA256 recorded; all five verification commands run at the eventual PR head.",
+      "note": "The unchanged command is bash tests/e6_d13_comparison_test.sh. The cure's sealed module-absent snapshot is an explicit PASS=1 FAIL=1 / exit 1 existence-gate red, not a Node failure accepted as a negative. Full actual per-case assertion rows and exact exits are retained in cure/*-case-outcomes.jsonl. Predecessor false-green reproductions and targeted behavioral reds are retained separately. Exact-head verification is recorded externally in cure/n1-final-validation.json, avoiding a self-referential evidence-commit claim.",
+      "status": "implemented"
+    },
+    {
+      "ac": 7,
+      "criterion": "Strict stack: D5 strict tsc, eslint complexity 10/cognitive 15, no-floating-promises, zero warnings/suppressions, build drift; plain Bash test passes shellcheck -S error, shfmt -d and bash -n. No Python/legacy growth or bridge.",
+      "note": "tsc --noEmit clean; eslint --max-warnings 0 over src/*.mts and src/**/*.mts clean with zero suppressions; prek ts-build-drift passes; the Bash test passes shellcheck -S error, shfmt -d and bash -n. The test embeds no Python. legacy_freeze_test.sh is green with no ledger change: the new tests/*.sh is clean under shellcheck/shfmt/bash -n, so no baseline row is added.",
+      "status": "implemented"
+    },
+    {
+      "ac": 8,
+      "criterion": "Consumer edge: all six consumer-check conditions and the fresh future consumer-head enforcement point; exact registered generation/spec, actual goal merge/tool blob and ancestry, raw/report consistency, independent completion/capture custody/live-freshness review. Missing trust evidence holds the consumer even when mechanical checks pass. No #139 continuation here.",
+      "note": "Consumer mode recomputes the entire retained report, enforces physical consumer-scope containment, recomputes generation/2 from frozen Git bundle/spec/publication-policy/anchor, checks all artifact identities, actual HEAD/target/capture/merge ancestry and full driver inventories, and re-observes Git pins. Digest-bound completion/custody inputs are mandatory; supplier PR head is distinct from capture head. The discovered test enforces every present constant consumer file. Authenticity, qualified hosted completion and live freshness remain external/unverified; consumer_readiness is always unready. The real PR branch differs from the frozen policy-derived branch and remains a consumer HOLD, not an exception. No consumer acceptance or PR139 continuation is claimed.",
+      "status": "implemented_mechanics_external_hold"
+    }
+  ],
+  "artifacts": {
+    "checker_sha256": "da5bd8576796e7b6753f43c41099b3ec29c95cad8e66525ed6b463f5a0992ac5",
+    "compiled": {
+      "scripts/lib/d13-compare.d.mts": "3470b1058fc428dba93c24d52fc52aa25e88e26d76b22726cb7e56f1583841db",
+      "scripts/lib/d13-compare.mjs": "da5bd8576796e7b6753f43c41099b3ec29c95cad8e66525ed6b463f5a0992ac5",
+      "scripts/lib/d13-compare.mjs.map": "ecabb6f34098bbc8e4a173632c10bd0620f0bb6704246780c0954c9398af74ce"
+    },
+    "fixtures": {
+      "tests/fixtures/e6-d13-cc/README.md": "labels every artifact synthetic",
+      "tests/fixtures/e6-d13-cc/build.mjs": "materializes one case",
+      "tests/fixtures/e6-d13-cc/lib/cases.mjs": "all 59 core names plus R01-R34 / D01-D30; mandatory named failures and exact exits",
+      "tests/fixtures/e6-d13-cc/git-move.cjs": "moves only real disposable Git refs and forwards actual Git response bytes",
+      "tests/fixtures/e6-d13-cc/integration.mjs": "tests the actual shared Bash consumer-file loop",
+      "tests/fixtures/e6-d13-cc/invoke.mjs": "executes the real CLI, with optional synthetic movement environment",
+      "tests/fixtures/e6-d13-cc/lib/consumer-mutate.mjs": "isolated consumer identity, custody, containment and history regressions",
+      "tests/fixtures/e6-d13-cc/lib/consumer.mjs": "synthetic consumer Git tree",
+      "tests/fixtures/e6-d13-cc/lib/mutate.mjs": "one documented semantic feature per mutation",
+      "tests/fixtures/e6-d13-cc/lib/world.mjs": "temporary target repositories and observation transcript",
+      "tests/fixtures/e6-d13-cc/verify.mjs": "requires result envelopes and every named failure; optionally retains full actual assertion rows",
+      "tests/fixtures/e6-d13-cc/verifier-test.mjs": "empty/null stdout must be explicitly rejected even at the expected exit"
+    },
+    "source_sha256": "16f94442e504572130bb15ea0c1d29bcc4986882e913df5e2f7a7050372d051e",
+    "spec": {
+      "path": "docs/specifications/ACTIVE/e6-d13-comparison-contract.md",
+      "sha256": "151f2d22541ede2819338f75536a9d11b5d18beb9820a6e51f55894d4f286839"
+    },
+    "test_sha256": "2e82077c1c46533812db5d9313b2ec6f52456e7847a9a1bfbae1c9dfe625406d"
+  },
+  "cases": {
+    "counts": {
+      "C": 15,
+      "D": 30,
+      "M": 34,
+      "O": 9,
+      "P": 1,
+      "R": 34,
+      "core": 59,
+      "cli_case_checks": 136,
+      "total": 123
+    },
+    "note": "All data is synthetic. Base observations use real temporary Git; negative cases deliberately mutate bytes/metadata/refs. Full actual assertion rows and variant labels are retained in digest-bound case-outcome JSONL receipts. C15 additionally checks two suite states; the verifier separately rejects empty/null stdout. These are author test results, not real capture/authenticity evidence.",
+    "outcomes": {
+      "C01": "exit 0, failed [], capture_authenticity unverified, consumer_readiness unready",
+      "C02": "exit 2, missing d13_contract",
+      "C03": "exit 1, raw-report-recomputation",
+      "C04": "exit 1, dependency-tool",
+      "C05": "exit 1, dependency-spec",
+      "C06": "exit 1, report-consistency on the r2 red-to-pass forgery with a valid public hash",
+      "C07": "five separate assertion/site/classification/count/omission mutations: each exit 1 with report-consistency",
+      "C08": "nine stream/metadata/snapshot variants: changed digest exit 1; missing/extra input exit 2; every variant requires raw-inputs-bound",
+      "C09": "exit 1, dependency-generation",
+      "C10": "exit 1, dependency-ancestry and dependency-completion",
+      "C11": "exit 1, dependency-history-unavailable",
+      "C12": "exit 1, consumer-head-binding",
+      "C13": "exit 0 after relocating the committed consumer and removing both archived driver paths; whole report identical; authenticity/live freshness unverified",
+      "C14": "exit 0, self-authored completion record, consumer_readiness unready",
+      "C15": "present direct CLI exit 1/report-consistency; absent direct CLI exit 2/input-shape; actual suite present-red exit 1, clean supplier-main absence exit 0 with explicit absence/no-readiness message",
+      "D01": "exit 1; consumer-head-binding, dependency-generation, dependency-spec",
+      "D02": "exit 1; consumer-head-binding",
+      "D03": "exit 1; consumer-head-binding",
+      "D04": "exit 1; consumer-head-binding",
+      "D05": "exit 1; consumer-head-binding, dependency-generation",
+      "D06": "exit 1; consumer-head-binding, dependency-generation, dependency-spec",
+      "D07": "exit 1; consumer-head-binding, dependency-generation",
+      "D08": "exit 1; consumer-head-binding, dependency-generation, dependency-registry",
+      "D09": "exit 1; consumer-head-binding, dependency-generation",
+      "D10": "exit 1; consumer-head-binding, dependency-generation",
+      "D11": "exit 2; input-shape",
+      "D12": "exit 2; input-shape",
+      "D13": "exit 1; dependency-completion",
+      "D14": "exit 1; dependency-completion",
+      "D15": "exit 1; dependency-completion",
+      "D16": "exit 2; input-shape",
+      "D17": "exit 2; input-shape",
+      "D18": "exit 2; input-shape",
+      "D19": "exit 1; retained-receipts-bound",
+      "D20": "exit 1; consumer-head-binding, dependency-generation",
+      "D21": "exit 1; consumer-head-binding, dependency-generation",
+      "D22": "exit 1; consumer-head-binding, dependency-generation",
+      "D23": "exit 1; consumer-head-binding",
+      "D24": "exit 1; consumer-head-binding",
+      "D25": "exit 1; dependency-completion",
+      "D26": "exit 1; dependency-tool",
+      "D27": "exit 2; input-shape",
+      "D28": "exit 2; input-shape",
+      "D29": "exit 1; dependency-completion for a one-parent commit with a message-only fabricated parent",
+      "D30": "exit 0; real two-parent merge remains valid when its message repeats a parent line; authenticity and live freshness unverified",
+      "M01": "exit 1, projection-equal",
+      "M02": "exit 1, provenance-expected",
+      "M03": "exit 1, lanes-distinct-own-repository",
+      "M04": "exit 1, provenance-expected",
+      "M05": "exit 1, exit-equal",
+      "M06": "exit 1, refusal-codes-equal",
+      "M07": "exit 1, site-set",
+      "M08": "exit 1, projection-equal",
+      "M09": "exit 2, malformed caller time-field mask",
+      "M10": "exit 1, common-dir-candidate",
+      "M11": "exit 1, stderr-equal",
+      "M12": "exit 1, written-equal",
+      "M13": "exit 1, order-audits-before-exports",
+      "M14": "exit 1, log-quiescent",
+      "M15": "exit 1, provenance-pair",
+      "M16": "exit 1, lane-observed-per-target",
+      "M17": "exit 2, malformed unknown normalization class",
+      "M18": "exit 1, projection-unique",
+      "M19": "exit 1, target-revision",
+      "M20": "exit 1, envelope-schema",
+      "M21": "exit 1, finding-codes-equal",
+      "M22": "exit 1, common-dir-reference",
+      "M23": "exit 1, driver-commits-distinct",
+      "M24": "exit 1, projection-equal",
+      "M25": "exit 2, malformed scratch-path at refusal detail",
+      "M26": "exit 2, malformed interpreter-diagnostic stderr declaration",
+      "M27": "exit 1, targets-complete",
+      "M28": "exit 1, envelope-operation",
+      "M29": "exit 1, envelope-plan",
+      "M30": "exit 1, capture-argv",
+      "M31": "exit 1, log-quiescent",
+      "M32": "exit 1, captures-serialized",
+      "M33": "exit 1, written-equal",
+      "M34": "exit 1, projection-unique",
+      "O01": "exit 0, pass, observe-git true",
+      "O02": "exit 1, common-dir-candidate red, observe-git true",
+      "O03": "exit 1, observe-git red on false common-dir and HEAD metadata",
+      "O04": "exit 1, registry-bound",
+      "O05": "exit 1, target-ref-bound",
+      "O06": "exit 1, target-repository-bound",
+      "O07": "exit 1, target-ref-bound",
+      "O08": "exit 1, audit-pair-per-target",
+      "O09": "exit 1, registry-bound and site-set",
+      "P1": "exit 0, pass, sites 16, equal_success 12, equal_refusal 4, red 0, observed.git true",
+      "R01": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal",
+      "R02": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal, projection-unique",
+      "R03": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal, projection-unique",
+      "R04": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal, projection-unique",
+      "R05": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal",
+      "R06": "exit 1; raw-inputs-bound, written-equal",
+      "R07": "exit 1; written-equal",
+      "R08": "exit 1; raw-inputs-bound",
+      "R09": "exit 1; observe-git, target-repository-bound",
+      "R10": "exit 1; observe-git, target-ref-bound",
+      "R11": "exit 1; observe-git",
+      "R12": "exit 1; observe-git",
+      "R13": "exit 1; observe-git, target-repository-bound",
+      "R14": "exit 1; captures-serialized, order-audits-before-exports",
+      "R15": "exit 1; envelope-plan",
+      "R16": "exit 1; refusal-exit",
+      "R17": "exit 1; raw-inputs-bound, written-equal",
+      "R18": "exit 2; raw-inputs-bound",
+      "R19": "exit 2; raw-inputs-bound",
+      "R20": "exit 0; pass, no failed assertions/conditions",
+      "R21": "exit 1; observe-git, target-ref-bound",
+      "R22": "exit 1; raw-inputs-bound",
+      "R23": "exit 1; observe-git",
+      "R24": "exit 2; raw-inputs-bound",
+      "R25": "exit 2; raw-inputs-bound",
+      "R26": "exit 1; raw-inputs-bound, written-equal",
+      "R27": "exit 1; observe-git, target-ref-bound",
+      "R28": "exit 2; malformed targets array, raw-inputs-bound",
+      "R29": "exit 2; missing required registry despite resealed manifest, raw-inputs-bound",
+      "R30": "exit 2; missing required policy despite resealed manifest, raw-inputs-bound",
+      "R31": "exit 2; malformed registry object, raw-inputs-bound",
+      "R32": "exit 2; malformed policy object, raw-inputs-bound",
+      "R33": "exit 0; complete pre-states differ but complete after-maps equal; raw-inputs-bound and written-equal true",
+      "R34": "exit 1; incomplete before-map remains raw-inputs-bound failure despite equal after-maps"
+    },
+    "full_assertion_receipt": {
+      "path": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/n1-pre-case-outcomes.jsonl",
+      "sha256": "d0da3a0ab798fbc357ff3bce8f154c55395b2a208d42addb1886642b1c9059ab",
+      "rows": 136,
+      "named_cases": 123,
+      "verifier_failures": 0
+    }
+  },
+  "generator": "goal e6-d13-cc-01",
+  "goal_id": "e6-d13-cc-01",
+  "green": {
+    "command": "bash tests/e6_d13_comparison_test.sh",
+    "count": "PASS=267 FAIL=0",
+    "exit_code": 0,
+    "output_sha256": "ed5f753f95325ead200291fe6f388fe8b9cc1c38cdd4f27ef535413f62fbb944",
+    "receipt": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/n1-pre-d13.txt",
+    "subject": "uncommitted cure source/test hashes recorded in receipt; exact-head recheck is separate"
+  },
+  "not_claimed": [
+    "D13 consumer acceptance",
+    "capture authenticity",
+    "live remote freshness",
+    "independent hosted completion qualification",
+    "merge readiness or merge authority",
+    "any edit to PR #139, the parent spec, the registered generation, the sidecar or the readiness policy"
+  ],
+  "plan_id": "e6-d13-comparison-contract",
+  "red": {
+    "command": "bash tests/e6_d13_comparison_test.sh",
+    "count": "PASS=1 FAIL=1",
+    "exit_code": 1,
+    "note": "All current fixtures and the exact Bash test are copied into an isolated snapshot; compiled scripts/lib/d13-compare.mjs is absent. Explicit existence-gate red, not behavioral red for every mutation.",
+    "output_sha256": "2811fd2e66dd887c6709d5999e2b45a1ca90f51e2d414f3a27de77646ece0ef9",
+    "receipt": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/red-n1.txt",
+    "fixture_inventory_sha256": "589ef9ff084475e5eaeb224e6c86c3295d44438df0a01354cc87bd08208fc4d0"
+  },
+  "registry": {
+    "generation": "43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
+    "id": "northstar-plan-e6-d13-comparison-contract"
+  },
+  "repository": "skills",
+  "cure": {
+    "predecessor": "2f1432bedb5d5b83b2e164b7f121cd75af6ff84b",
+    "receipt_root": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/",
+    "resolution_map": "RESOLUTIONS.md (Architect F1-F11 / Critic F1-F12 / Standards S1)",
+    "exact_head_verification": "n1-final-validation.json; authoritative only once present and bound to the final clean commit",
+    "hosted_verification": "hosted-checks.json; no predecessor-head checks substituted",
+    "local_ci_pins": "124/124 unchanged; no hash maintenance or manifest edit required",
+    "history": "Original red/green receipts remain historical. step09-head-verification.txt names 2349f8596cdaa815c6bfae7fb3407bb4b8159b8e, not the old RECEIPTS.md attribution to 2f1432b.",
+    "holds": [
+      "AC1/O8/coexistence and live admission are not re-observed here",
+      "actual supplier branch feat/e6-d13-cc-01 does not match the frozen policy-derived branch pattern; consumer completion remains held",
+      "independent completion/capture/custody/live-remote qualification and pair re-check remain external",
+      "default /usr/bin Python launches through xcrun and injects SDK variables; Homebrew 3.12 changes pinned Darwin leaf diagnostics. Final validation uses the genuine direct CPython 3.9.6 framework binary via PATH, without wrapper/test edits"
+    ]
+  },
+  "schema": "e6-evidence/2",
+  "scope": [
+    ".ai/evidence/e6-d13-cc-01.json",
+    "scripts/lib/d13-compare.d.mts",
+    "scripts/lib/d13-compare.mjs",
+    "scripts/lib/d13-compare.mjs.map",
+    "tests/e6_d13_comparison_test.sh",
+    "tests/fixtures/e6-d13-cc",
+    "ts-tooling/src/d13-compare.mts"
+  ],
+  "verification": [
+    {
+      "command": "bash tests/ts_tooling_test.sh",
+      "count": "PASS=26 FAIL=0",
+      "exit_code": 0,
+      "subject": "pre-commit source-hash-bound result; exact-head rerun in cure/n1-final-validation.json"
+    },
+    {
+      "command": "bash tests/legacy_freeze_test.sh",
+      "count": "PASS=24 FAIL=0",
+      "exit_code": 0,
+      "note": "no ledger row added: the new tests/*.sh is clean under shellcheck -S error, shfmt -d and bash -n"
+    },
+    {
+      "command": "bash tests/run-tests.sh",
+      "exit_code": null,
+      "note": "This committed authoring snapshot does not predeclare a full-suite result. The required isolated clean exact-head run is retained in cure/n1-final-run-tests.txt / n1-final-validation.json. The earlier final-head run was invalidated by concurrent writes and Python-3.12 diagnostic mismatches. Direct framework CPython 3.9.6 passes both certificate regressions and leaf parity 430/0 without test or interpreter-wrapper edits."
+    },
+    {
+      "command": "prek run --all-files",
+      "count": "all five hooks pass",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "count": "no whitespace errors",
+      "exit_code": 0
+    }
+  ]
+}
