@@ -124,13 +124,16 @@ function buildTarget(root, repository, planCount, policyRepository) {
   return gitOk(root, ["rev-parse", "HEAD"]);
 }
 
+// The checker never contacts a remote, so the synthetic world only needs the
+// local remote-tracking ref and a remote name. Creating the bare origin with
+// `git init --bare` and setting the ref directly avoids any object copying.
 function addOriginRemote(root) {
   const origin = `${root}.origin.git`;
-  gitOk(root, ["clone", "-q", "--bare", root, origin]);
-  git(root, ["remote", "add", "origin", origin]);
-  git(root, ["fetch", "-q", "origin"]);
-  git(root, ["branch", "--set-upstream-to=origin/main", "main"]);
-  git(root, ["remote", "set-head", "origin", "main"]);
+  gitOk(root, ["init", "-q", "--bare", origin]);
+  gitOk(root, ["remote", "add", "origin", origin]);
+  gitOk(root, ["update-ref", "refs/remotes/origin/main", gitOk(root, ["rev-parse", "HEAD"])]);
+  gitOk(root, ["config", "branch.main.remote", "origin"]);
+  gitOk(root, ["config", "branch.main.merge", "refs/heads/main"]);
   return origin;
 }
 

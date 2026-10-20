@@ -106,10 +106,11 @@ export function buildConsumer(root, options) {
   write(join(root, "CONSUMER-HEAD.md"), "# synthetic consumer head\n");
   const head = commit(root, "synthetic consumer head");
   const origin = `${root}.origin.git`;
-  git(root, ["clone", "-q", "--bare", root, origin]);
+  git(root, ["init", "-q", "--bare", origin]);
   git(root, ["remote", "add", "origin", origin]);
-  git(root, ["fetch", "-q", "origin"]);
-  git(root, ["branch", "--set-upstream-to=origin/main", "main"]);
+  git(root, ["update-ref", "refs/remotes/origin/main", head]);
+  git(root, ["config", "branch.main.remote", "origin"]);
+  git(root, ["config", "branch.main.merge", "refs/heads/main"]);
 
   return {
     baseCommit,
