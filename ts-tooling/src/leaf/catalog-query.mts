@@ -94,10 +94,11 @@ function ambiguousOption(flag: string): string | undefined {
 // models. Both boundaries sit inside a minor release, so no version band can
 // name them. Ask the interpreter this process would hand the work to, the way
 // concatenatedHelpExitsZero() does. The probe answers with a verdict token on
-// stdout and only the lazy token is recognised, so a python3 that exits 0
-// without reporting an answer — a wrapper with a printing sitecustomize, a
-// shim that swallows the exception, a half-installed interpreter — keeps the
-// eager answer instead of retiring the pre-pass.
+// stderr, because stdout is where argparse writes its help. Only a successful
+// probe whose stderr carries the recognised lazy token retires the pre-pass, so
+// a python3 that exits non-zero without reporting an answer — a wrapper with a
+// printing sitecustomize, a shim that swallows the exception, a half-installed
+// interpreter — keeps the eager answer instead of retiring the pre-pass.
 const AMBIGUITY_EAGER_TOKEN = "CATALOG_QUERY_AMBIGUITY_EAGER";
 const AMBIGUITY_LAZY_TOKEN = "CATALOG_QUERY_AMBIGUITY_LAZY";
 const AMBIGUITY_PROBE = [
@@ -129,7 +130,12 @@ function ambiguityResolutionIsEager(): boolean {
   const probed = spawnSync("python3", ["-c", AMBIGUITY_PROBE], { encoding: "utf8" });
   // The verdict is the last non-empty line of stderr. stdout is ignored
   // entirely: argparse writes its help there on the lazy path, and treating
-  // that as a verdict would silently retire the pre-pass.
+  // that as a verdict would silently retire the pre-pass. A probe that did not
+  // succeed carries no answer at all, so its output is not consulted.
+  if (probed.status !== 0) {
+    ambiguityIsEager = true;
+    return ambiguityIsEager;
+  }
   const lines = (probed.stderr ?? "").trimEnd().split("\n").filter((line) => line.trim() !== "");
   const verdict = lines[lines.length - 1];
   // Only an explicit lazy verdict retires the pre-pass. Empty output, an
