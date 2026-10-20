@@ -465,7 +465,7 @@ class VersionOneTests(unittest.TestCase):
         shutil.copytree(REPO / '02-govern-plan/northstar', flat / 'northstar')
         result = self.command(flat / 'northstar/handoff-write.sh', '--bundle', str(self.root / 'plan.json'))
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-        helper = flat / 'autobahn/lib/readiness_contract.py'
+        helper = flat / 'autobahn/lib/readiness_contract.mjs'
         helper.write_text(helper.read_text() + '\n# mismatch\n')
         self.assert_blocked(self.command(flat / 'autobahn/prereq-check.sh'), 'fingerprint mismatch')
         helper.unlink()

@@ -2,7 +2,7 @@
   "files": {
     "ci-gate.sh": "73ae832fc3b4155e76b7dc6ff060e43856b234b1ea8c6a500a23a23ab8fc9cad",
     "contract-run-v2.sh": "78dfe75ad32feab7c6b28f7895515f1cb9de0e044a9164e2acd3add694c85574",
-    "contract-run.sh": "ba2f1ca5b3bcdda0944da878b2ffdf1809c1e54fc22c5d8506371d72c68e4757",
+    "contract-run.sh": "51058f3a6cc181a97b2dba3f489970f0438d9294abacd83e00127d91d5bb8972",
     "lib/local_ci_contract.py": "5ba151b8ca09d8a1bb6fd28a8c8d6c0f45a2605fdb9bd060269092498e7b4e45",
     "lib/observer.py": "42fc549448b9c4e2489003d3c7982d90dca072e4cc5bc2070a02f9d69b06a7db",
     "lib/readiness_contract.py": "30cfb9bf7436ff1f6b14c0b16542a62a6893321f5eface820c827ae4ec600166",

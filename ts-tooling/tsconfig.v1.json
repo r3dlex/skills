@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false,
+    "rootDir": "src/v1",
+    "outDir": "../04-validate-handoff/autobahn/lib"
+  },
+  "include": ["src/v1/**/*.mts"]
+}
