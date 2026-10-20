@@ -293,6 +293,18 @@ export const MUTATIONS = {
     model.lanes.targets[0].target = "other"; model.lanes.targets[0].ref = "main";
     for (const site of model.sites.filter((s) => s.repository === "skills")) site.meta.argv[6] = "other";
   },
+  R28: (model) => { model.lanes.targets = {}; },
+  R29: (model) => { model.omitInput = "registries/skills.json"; },
+  R30: (model) => { model.omitInput = "policies/skills.json"; },
+  R31: (model) => { model.registries.skills = Buffer.from("null\n"); },
+  R32: (model) => { model.policies.skills = Buffer.from("[]\n"); },
+  R33: (model) => {
+    const site = findSite(model, `candidate/skills/${PLANS[0]}/${EXPORT}`);
+    const path = "evidence/exports/plan.json";
+    site.files.before[path] = site.files.after[path];
+    site.meta.written_before[path] = sha256(site.files.before[path]);
+  },
+  R34: (model) => { findSite(model, `candidate/skills/${PLANS[0]}/${EXPORT}`).files.before["evidence/unmapped-before.txt"] = Buffer.from("unmapped before snapshot\n"); },
 };
 
 function replace(model, site) {

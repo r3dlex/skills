@@ -108,6 +108,11 @@ CASE_TABLE.push({ id: "R24", kind: "report", mutations: ["R24"], note: "invalid 
 CASE_TABLE.push({ id: "R25", kind: "report", mutations: ["R25"], note: "audit fields must be null, not export samples", expect: { exit: 2, verdict: "malformed" } });
 CASE_TABLE.push({ id: "R26", kind: "report", mutations: ["R26"], note: "unmapped __proto__ snapshot cannot disappear into an object prototype", expect: { assertions: { "raw-inputs-bound": false }, exit: 1, verdict: "red" } });
 CASE_TABLE.push({ id: "R27", kind: "observe", mutations: ["R27"], note: "non-main targets also require literal fully-qualified refs", expect: { assertions: { "target-ref-bound": false }, exit: 1, verdict: "red" } });
+for (const [id, note] of [["R28", "targets must be an array"], ["R29", "missing required registry, manifest resealed"], ["R30", "missing required policy, manifest resealed"], ["R31", "malformed registry object"], ["R32", "malformed policy object"]]) {
+  CASE_TABLE.push({ id, kind: "report", mutations: [id], note, expect: { exit: 2, verdict: "malformed" } });
+}
+CASE_TABLE.push({ id: "R33", kind: "report", mutations: ["R33"], note: "serialized exports may have different complete before-maps but identical after-maps", expect: { assertions: { "raw-inputs-bound": true, "written-equal": true }, exit: 0, verdict: "pass" } });
+CASE_TABLE.push({ id: "R34", kind: "report", mutations: ["R34"], note: "before-map completeness remains mandatory even when after-maps match", expect: { assertions: { "raw-inputs-bound": false }, exit: 1, verdict: "red" } });
 
 const consumerRegressions = [
   ["D01", "headBeforePublication", "consumer-head-binding", 1],

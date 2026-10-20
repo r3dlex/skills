@@ -27,13 +27,13 @@
     {
       "ac": 5,
       "criterion": "Fixtures: P1; M01-M34; O01-O09 and C01-C15. Truthful linked candidate: common-dir-candidate fails, observe-git passes; separate false-metadata case: observe-git fails. Positive consumer uses the actual temporary-Git --observe report and digest-bound run.",
-      "note": "All 59 contract names remain, plus R01-R27 and D01-D28: 114 names / 127 CLI case checks. Base observations use real temporary Git; negative fixtures deliberately corrupt inputs or move real refs. O02 remains common-dir-candidate red with observe-git true; O03 is observe-git red. C01 has exact frozen inputs and connected publication / distinct supplier PR head / two-parent merge / actual candidate capture / evidence-only HEAD history. C07 has five separate mutations; C08 has nine exact raw-input variants; C13 truly relocates and removes archived paths; C15 checks actual suite propagation and direct missing-file exit 2. No fixture authenticates a real driver capture.",
+      "note": "All 59 contract names remain, plus R01-R34 and D01-D28: 121 names / 134 CLI case checks. Base observations use real temporary Git; negative fixtures deliberately corrupt inputs or move real refs. O02 remains common-dir-candidate red with observe-git true; O03 is observe-git red. C01 has exact frozen inputs and connected publication / distinct supplier PR head / two-parent merge / actual candidate capture / evidence-only HEAD history; positive consumer results must expose the validated merge commit. C07 has five separate mutations; C08 has nine exact raw-input variants; C13 truly relocates and removes archived paths; C15 checks actual suite propagation and direct missing-file exit 2. R28-R32 enforce malformed/missing required-input exit 2 even with a resealed manifest. R33 permits distinct independently complete pre-states with equal after-maps, as serialized exports require; R34 still rejects incomplete before-maps. No fixture authenticates a real driver capture.",
       "status": "implemented"
     },
     {
       "ac": 6,
       "criterion": "TDD: fixtures and test present, compiled module absent, same command red exit 1 then green after lawful implementation; per-case outcomes and checker SHA256 recorded; all five verification commands run at the eventual PR head.",
-      "note": "The unchanged command is bash tests/e6_d13_comparison_test.sh. The cure's sealed module-absent snapshot is an explicit PASS=1 FAIL=1 / exit 1 existence-gate red, not a Node failure accepted as a negative. Full actual per-case assertion rows and exact exits are retained in cure/*-case-outcomes.jsonl. Predecessor false-green reproductions are retained separately. Exact-head verification is recorded externally in cure/final-validation.json, avoiding a self-referential evidence-commit claim.",
+      "note": "The unchanged command is bash tests/e6_d13_comparison_test.sh. The cure's sealed module-absent snapshot is an explicit PASS=1 FAIL=1 / exit 1 existence-gate red, not a Node failure accepted as a negative. Full actual per-case assertion rows and exact exits are retained in cure/*-case-outcomes.jsonl. Predecessor false-green reproductions and targeted behavioral reds are retained separately. Exact-head verification is recorded externally in cure/final-head-validation.json, avoiding a self-referential evidence-commit claim.",
       "status": "implemented"
     },
     {
@@ -50,16 +50,16 @@
     }
   ],
   "artifacts": {
-    "checker_sha256": "bbcd4d69e100263f3dd47aae021a094548ab12501edb3ef905e24703cd2926e8",
+    "checker_sha256": "adbdb1f0f9513780f2087517908918c0152c0ac0921cc782fab0d722d151a2fd",
     "compiled": {
       "scripts/lib/d13-compare.d.mts": "3470b1058fc428dba93c24d52fc52aa25e88e26d76b22726cb7e56f1583841db",
-      "scripts/lib/d13-compare.mjs": "bbcd4d69e100263f3dd47aae021a094548ab12501edb3ef905e24703cd2926e8",
-      "scripts/lib/d13-compare.mjs.map": "c6bd8ac6b30653feffb5ba103987e102e57f73b058a1a6d2e9cc418667220198"
+      "scripts/lib/d13-compare.mjs": "adbdb1f0f9513780f2087517908918c0152c0ac0921cc782fab0d722d151a2fd",
+      "scripts/lib/d13-compare.mjs.map": "7aec8de625a1922ba03f4cda118750516a8c42cb78f90dd069882bd0de2d67a3"
     },
     "fixtures": {
       "tests/fixtures/e6-d13-cc/README.md": "labels every artifact synthetic",
       "tests/fixtures/e6-d13-cc/build.mjs": "materializes one case",
-      "tests/fixtures/e6-d13-cc/lib/cases.mjs": "all 59 core names plus R01-R27 / D01-D28; mandatory named failures and exact exits",
+      "tests/fixtures/e6-d13-cc/lib/cases.mjs": "all 59 core names plus R01-R34 / D01-D28; mandatory named failures and exact exits",
       "tests/fixtures/e6-d13-cc/git-move.cjs": "moves only real disposable Git refs and forwards actual Git response bytes",
       "tests/fixtures/e6-d13-cc/integration.mjs": "tests the actual shared Bash consumer-file loop",
       "tests/fixtures/e6-d13-cc/invoke.mjs": "executes the real CLI, with optional synthetic movement environment",
@@ -70,7 +70,7 @@
       "tests/fixtures/e6-d13-cc/verify.mjs": "requires result envelopes and every named failure; optionally retains full actual assertion rows",
       "tests/fixtures/e6-d13-cc/verifier-test.mjs": "empty/null stdout must be explicitly rejected even at the expected exit"
     },
-    "source_sha256": "0b02811b35824ea8093f5086432c0e08776f5f8f58a6cb450f4df87c72549493",
+    "source_sha256": "c50ac2d6e02ad344888a18b45396cc3dcc3a833862d9918f7bb612fe91716049",
     "spec": {
       "path": "docs/specifications/ACTIVE/e6-d13-comparison-contract.md",
       "sha256": "151f2d22541ede2819338f75536a9d11b5d18beb9820a6e51f55894d4f286839"
@@ -84,10 +84,10 @@
       "M": 34,
       "O": 9,
       "P": 1,
-      "R": 27,
+      "R": 34,
       "core": 59,
-      "cli_case_checks": 127,
-      "total": 114
+      "cli_case_checks": 134,
+      "total": 121
     },
     "note": "All data is synthetic. Base observations use real temporary Git; negative cases deliberately mutate bytes/metadata/refs. Full actual assertion rows and variant labels are retained in digest-bound case-outcome JSONL receipts. C15 additionally checks two suite states; the verifier separately rejects empty/null stdout. These are author test results, not real capture/authenticity evidence.",
     "outcomes": {
@@ -204,13 +204,20 @@
       "R24": "exit 2; raw-inputs-bound",
       "R25": "exit 2; raw-inputs-bound",
       "R26": "exit 1; raw-inputs-bound, written-equal",
-      "R27": "exit 1; observe-git, target-ref-bound"
+      "R27": "exit 1; observe-git, target-ref-bound",
+      "R28": "exit 2; malformed targets array, raw-inputs-bound",
+      "R29": "exit 2; missing required registry despite resealed manifest, raw-inputs-bound",
+      "R30": "exit 2; missing required policy despite resealed manifest, raw-inputs-bound",
+      "R31": "exit 2; malformed registry object, raw-inputs-bound",
+      "R32": "exit 2; malformed policy object, raw-inputs-bound",
+      "R33": "exit 0; complete pre-states differ but complete after-maps equal; raw-inputs-bound and written-equal true",
+      "R34": "exit 1; incomplete before-map remains raw-inputs-bound failure despite equal after-maps"
     },
     "full_assertion_receipt": {
-      "path": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/sealed-case-outcomes.jsonl",
-      "sha256": "f2ed7510d9c2db536e4f56d9909e31eeab72f48b9d0d13314d6077ecd9140aa6",
-      "rows": 127,
-      "named_cases": 114,
+      "path": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/ultimate-case-outcomes.jsonl",
+      "sha256": "973723a624c12ea30eb7d027f90da5bb9b124b00e37741a3300230f603a20ed8",
+      "rows": 134,
+      "named_cases": 121,
       "verifier_failures": 0
     }
   },
@@ -218,10 +225,10 @@
   "goal_id": "e6-d13-cc-01",
   "green": {
     "command": "bash tests/e6_d13_comparison_test.sh",
-    "count": "PASS=249 FAIL=0",
+    "count": "PASS=263 FAIL=0",
     "exit_code": 0,
-    "output_sha256": "f05bc27a679202749ef8c6d40c189aa52687d0eebccc39620224032286e92319",
-    "receipt": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/sealed-d13.txt",
+    "output_sha256": "4701854196ae00518e4d555e18e3caa6722fba0064974dc5ce5b95dc2cec53e5",
+    "receipt": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/ultimate-d13.txt",
     "subject": "uncommitted cure source/test hashes recorded in receipt; exact-head recheck is separate"
   },
   "not_claimed": [
@@ -238,9 +245,9 @@
     "count": "PASS=1 FAIL=1",
     "exit_code": 1,
     "note": "All current fixtures and the exact Bash test are copied into an isolated snapshot; compiled scripts/lib/d13-compare.mjs is absent. Explicit existence-gate red, not behavioral red for every mutation.",
-    "output_sha256": "14308c7a1e8bdefebe2d381bd342bf642e96d3ce34584962c7596c01520c4331",
-    "receipt": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/red-sealed-final.txt",
-    "fixture_inventory_sha256": "6a76ddceb6b849507763c2ca49f1ac0e88836c5ee19d6337d01bc13017a02e43"
+    "output_sha256": "5f8923d25b8f177cdb1768de97a5fe35081d0a55918724f35d6d28802b505f6c",
+    "receipt": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/red-ultimate.txt",
+    "fixture_inventory_sha256": "52d3a3cb27eb5f9e2fe14f8bc961cafb13f425eee23df72563396cb8f43fa774"
   },
   "registry": {
     "generation": "43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
@@ -251,7 +258,7 @@
     "predecessor": "2f1432bedb5d5b83b2e164b7f121cd75af6ff84b",
     "receipt_root": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/",
     "resolution_map": "RESOLUTIONS.md (Architect F1-F11 / Critic F1-F12 / Standards S1)",
-    "exact_head_verification": "final-validation.json; authoritative only once present and bound to the final clean commit",
+    "exact_head_verification": "final-head-validation.json; authoritative only once present and bound to the final clean commit",
     "hosted_verification": "hosted-checks.json; no predecessor-head checks substituted",
     "local_ci_pins": "124/124 unchanged; no hash maintenance or manifest edit required",
     "history": "Original red/green receipts remain historical. step09-head-verification.txt names 2349f8596cdaa815c6bfae7fb3407bb4b8159b8e, not the old RECEIPTS.md attribution to 2f1432b.",
@@ -277,7 +284,7 @@
       "command": "bash tests/ts_tooling_test.sh",
       "count": "PASS=26 FAIL=0",
       "exit_code": 0,
-      "subject": "pre-commit source-hash-bound result; exact-head rerun in cure/final-validation.json"
+      "subject": "pre-commit source-hash-bound result; exact-head rerun in cure/final-head-validation.json"
     },
     {
       "command": "bash tests/legacy_freeze_test.sh",
@@ -288,7 +295,7 @@
     {
       "command": "bash tests/run-tests.sh",
       "exit_code": null,
-      "note": "This committed authoring snapshot does not predeclare a full-suite result. The required clean exact-head run is retained in cure/final-run-tests.txt / final-validation.json. The old Apple-Python failure remains historical; both affected focused tests passed with installed Homebrew CPython 3.12.15 without test or wrapper edits."
+      "note": "This committed authoring snapshot does not predeclare a full-suite result. The required clean exact-head run is retained in cure/final-head-run-tests.txt / final-head-validation.json. The old Apple-Python failure remains historical; both affected focused tests passed with installed Homebrew CPython 3.12.15 without test or wrapper edits."
     },
     {
       "command": "prek run --all-files",

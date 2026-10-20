@@ -34,6 +34,9 @@ function checkReport(expect, report, failures) {
 }
 
 function checkConsumer(expect, result, failures) {
+  if (expect.exit === 0 && !/^[0-9a-f]{40}$/.test(result.facts?.merge_commit ?? "")) {
+    failures.push("validated merge_commit identity absent or malformed");
+  }
   if (expect.consumer_readiness !== undefined && result.consumer_readiness !== expect.consumer_readiness) {
     failures.push(`consumer_readiness ${JSON.stringify(result.consumer_readiness)} != ${JSON.stringify(expect.consumer_readiness)}`);
   }

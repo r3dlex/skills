@@ -457,8 +457,8 @@ export function materializeRun(model, dir) {
   write(join(dir, "normalizations.json"), compact(model.normalizations));
   write(join(dir, "observation.json"), compact(model.observation));
   for (const repository of Object.keys(model.registries)) {
-    write(join(dir, "registries", `${repository}.json`), model.registries[repository]);
-    write(join(dir, "policies", `${repository}.json`), model.policies[repository]);
+    if (model.omitInput !== `registries/${repository}.json`) write(join(dir, "registries", `${repository}.json`), model.registries[repository]);
+    if (model.omitInput !== `policies/${repository}.json`) write(join(dir, "policies", `${repository}.json`), model.policies[repository]);
   }
   for (const site of model.sites) {
     const base = join(dir, "captures", site.lane, site.repository, site.plan, site.operation);

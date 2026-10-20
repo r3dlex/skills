@@ -579,7 +579,7 @@ function targetInfo(entry: Json): TargetInfo | null {
 
 function readLanes(run: RawRun): Lanes {
   const lanes = asRow(readJsonInput(run, "lanes.json"));
-  if (lanes === null || lanes.schema !== LANES_SCHEMA) {
+  if (lanes === null || lanes.schema !== LANES_SCHEMA || !Array.isArray(lanes.targets)) {
     throw new Malformed("lanes_schema");
   }
   const targets: TargetInfo[] = [];
@@ -722,14 +722,10 @@ function parseRegistry(bytes: Buffer): RegistryPlan[] | null {
 }
 
 function readRegistry(run: RawRun, repository: string): Registry {
-  let bytes: Buffer = Buffer.alloc(0);
-  try {
-    bytes = readBytes(run, `registries/${repository}.json`);
-  } catch {
-    return { bytes, plans: [], present: false };
-  }
+  const bytes = readBytes(run, `registries/${repository}.json`);
   const plans = parseRegistry(bytes);
-  return plans === null ? { bytes, plans: [], present: false } : { bytes, plans, present: true };
+  if (plans === null) throw new Malformed(`registry_malformed:${repository}`);
+  return { bytes, plans, present: true };
 }
 
 function sitePath(lane: string, repository: string, plan: string, operation: string): string {
@@ -1371,9 +1367,7 @@ function writtenEqual(reference: Capture, candidate: Capture): boolean {
   return (
     nonempty(reference) && nonempty(candidate) &&
     canonical(reference.meta.written) === canonical(candidate.meta.written) &&
-    canonical(reference.meta.written_before) === canonical(candidate.meta.written_before) &&
-    canonical(reference.written_after_files) === canonical(candidate.written_after_files) &&
-    canonical(reference.written_before_files) === canonical(candidate.written_before_files)
+    canonical(reference.written_after_files) === canonical(candidate.written_after_files)
   );
 }
 
@@ -1610,14 +1604,12 @@ function uniqueTargetCount(lanes: Lanes, commonDir: string): number {
   return lanes.targets.filter((target) => target.common_dir === commonDir).length;
 }
 
-function policyIdentity(bytes: Buffer | null): string {
-  return bytes === null ? "" : asText(asRow(asRow(parseJson(bytes))?.repository)?.id);
-}
-
 function policyBound(run: RawRun, target: TargetInfo, observed: TargetObserved | undefined): boolean {
-  const policy = run.files.get(`policies/${target.repository}.json`) || null;
+  const policy = readBytes(run, `policies/${target.repository}.json`);
+  const row = asRow(parseJson(policy));
+  if (row === null) throw new Malformed(`policy_malformed:${target.repository}`);
   const recorded = asText(observed?.policy_sha256);
-  return policy !== null && recorded !== "" && sha256Hex(policy) === recorded && policyIdentity(policy) === target.repository;
+  return recorded !== "" && sha256Hex(policy) === recorded && asRow(row.repository)?.id === target.repository;
 }
 
 function refProblems(observed: TargetObserved | undefined): string[] {
@@ -2238,6 +2230,7 @@ function commitTime(cwd: string, revision: string): number {
 
 function toolBinding(cwd: string, contract: Row, head: string, failures: ConsumerFailures): void {
   const merge = field(contract, "merge_commit");
+  failures.facts.merge_commit = merge;
   const merged = gitBlob(cwd, `${merge}:${TOOL_PATH}`);
   const committed = gitBlob(cwd, `${head}:${TOOL_PATH}`);
   const digest = merged === null ? "" : sha256Hex(merged);

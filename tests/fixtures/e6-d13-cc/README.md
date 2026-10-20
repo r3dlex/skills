@@ -9,8 +9,8 @@ authenticity.
   driver clone, a candidate driver clone or linked worktree, a retained run
   directory and (for consumer cases) a temporary consumer repository.
 - `lib/cases.mjs` retains all 59 contract cases (`P1`, `M01`–`M34`,
-  `O01`–`O09`, `C01`–`C15`) and adds 55 cure regressions (`R01`–`R27`,
-  `D01`–`D28`): 114 named cases. C07 runs five distinct report mutations;
+  `O01`–`O09`, `C01`–`C15`) and adds 62 cure regressions (`R01`–`R34`,
+  `D01`–`D28`): 121 named cases. C07 runs five distinct report mutations;
   C08 runs nine stream/metadata/snapshot mutations with exact exits and a
   mandatory `raw-inputs-bound` failure. Named failures cannot substitute for
   each other.
