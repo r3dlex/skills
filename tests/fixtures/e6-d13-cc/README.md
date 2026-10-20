@@ -9,8 +9,8 @@ authenticity.
   driver clone, a candidate driver clone or linked worktree, a retained run
   directory and (for consumer cases) a temporary consumer repository.
 - `lib/cases.mjs` retains all 59 contract cases (`P1`, `M01`–`M34`,
-  `O01`–`O09`, `C01`–`C15`) and adds 62 cure regressions (`R01`–`R34`,
-  `D01`–`D28`): 121 named cases. C07 runs five distinct report mutations;
+  `O01`–`O09`, `C01`–`C15`) and adds 64 cure regressions (`R01`–`R34`,
+  `D01`–`D30`): 123 named cases. C07 runs five distinct report mutations;
   C08 runs nine stream/metadata/snapshot mutations with exact exits and a
   mandatory `raw-inputs-bound` failure. Named failures cannot substitute for
   each other.
@@ -24,6 +24,9 @@ authenticity.
   D23/D24 move real temporary refs between the checker's start/finish reads;
   their wrapper forwards actual Git responses and records the mutation.
 - `verifier-test.mjs` proves empty/null stdout cannot pass on exit code alone.
+- D29 rejects a message-only fabricated merge parent; D30 accepts a real
+  two-parent merge even when its message repeats a `parent ...` line. Only the
+  consecutive structural parent headers immediately after `tree` are parsed.
 
 Base Git observations are produced by the same bounded read-only commands the
 checker uses; negative fixtures deliberately mutate metadata/responses/bytes.

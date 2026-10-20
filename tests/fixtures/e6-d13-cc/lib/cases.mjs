@@ -143,10 +143,12 @@ const consumerRegressions = [
   ["D26", "wrongToolBlob", "dependency-tool", 1],
   ["D27", "missingToolBlob", "input-shape", 2],
   ["D28", "missingReceiptFile", "input-shape", 2],
+  ["D29", "forgedMessageParent", "dependency-completion", 1],
 ];
 for (const [id, option, failure, exit] of consumerRegressions) {
   CASE_TABLE.push({ id, kind: "consumer", consumer: { [option]: true }, note: option, expect: { consumer: { failed_all: [failure] }, exit } });
 }
+CASE_TABLE.push({ id: "D30", kind: "consumer", consumer: { parentLineInMergeMessage: true }, note: "real two-parent merge whose message repeats its parent", expect: { consumer: { capture_authenticity: "unverified", consumer_readiness: "unready", failed: [], live_remote_freshness: "unverified" }, exit: 0 } });
 
 export function findCase(id) {
   const found = CASE_TABLE.find((entry) => entry.id === id);

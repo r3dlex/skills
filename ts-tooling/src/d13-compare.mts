@@ -2194,8 +2194,20 @@ function completionMatches(completion: Row, contract: Row, policy: Row): boolean
   return [identityOk, exact, toolOk, branchMatches(policy, field(contract, "branch"))].every(Boolean);
 }
 
+// Actual Git parentage only. `cat-file -p` mixes the header with arbitrary
+// commit-message text, so a message line must never be read as a parent.
 function commitParents(cwd: string, revision: string): string[] {
-  return gitOut(cwd, ["cat-file", "-p", revision]).split("\n").filter((line) => line.startsWith("parent ")).map((line) => line.slice(7));
+  const header = gitOut(cwd, ["cat-file", "-p", revision]).split("\n\n", 1)[0] || "";
+  const lines = header.split("\n");
+  if (!/^tree [0-9a-f]{40}$/.test(lines[0] || "")) return [];
+  const parents: string[] = [];
+  for (const line of lines.slice(1)) {
+    if (!line.startsWith("parent ")) break;
+    const parent = line.slice(7);
+    if (!HEX40.test(parent)) return [];
+    parents.push(parent);
+  }
+  return parents;
 }
 
 function lineageHistoryOk(cwd: string, contract: Row, head: string, target: string, failures: ConsumerFailures): boolean {

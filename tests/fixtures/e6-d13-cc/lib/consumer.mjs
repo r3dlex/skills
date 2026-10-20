@@ -42,7 +42,7 @@ function publishInputs(root, source, options) {
   return { entry, bundleDir };
 }
 
-function supplierMerge(root, source, branch) {
+function supplierMerge(root, source, branch, options) {
   git(root, ["checkout", "-q", "-b", branch]);
   for (const path of DRIVER_DIRS) cpSync(join(source, path), join(root, path), { recursive: true });
   for (const path of ["tests/e6_d13_comparison_test.sh", "tests/fixtures/e6-d13-cc"]) cpSync(join(source, path), join(root, path), { recursive: true });
@@ -50,8 +50,15 @@ function supplierMerge(root, source, branch) {
   git(root, ["checkout", "-q", "main"]);
   write(join(root, "MAIN-NOTE.md"), "synthetic main-side merge parent\n");
   commit(root, "synthetic main-side change");
-  git(root, ["merge", "-q", "--no-ff", branch, "-m", "synthetic supplier goal merge"]);
-  return { prHead, merge: git(root, ["rev-parse", "HEAD"]) };
+  // A real two-parent merge whose *message* repeats its second parent: message
+  // text is not Git ancestry, so the recorded merge stays exactly this merge.
+  const text = options.parentLineInMergeMessage ? `synthetic supplier goal merge\n\nparent ${prHead}\n` : "synthetic supplier goal merge";
+  git(root, ["merge", "-q", "--no-ff", branch, "-m", text]);
+  const merge = git(root, ["rev-parse", "HEAD"]);
+  // An ordinary one-parent commit whose message claims the supplier PR head as
+  // a second parent: only actual parentage may satisfy a merge binding.
+  if (!options.forgedMessageParent) return { prHead, merge };
+  return { prHead, merge: commit(root, `synthetic non-merge\n\nparent ${prHead}\n`), realMerge: merge };
 }
 
 // One connected history: exact publication -> distinct supplier PR/merge ->
@@ -63,7 +70,7 @@ export function buildConsumer(root, source, world, options = {}) {
   const published = publishInputs(reference, source, options);
   const publication = commit(reference, "synthetic exact contract publication");
   const branch = `feat/${PLAN}-${GOAL}`;
-  const merged = supplierMerge(reference, source, branch);
+  const merged = supplierMerge(reference, source, branch, options);
   git(reference, ["update-ref", "refs/remotes/origin/main", merged.merge]);
   // Local upload-pack transport avoids racing loose-object copies on ARM64.
   git(source, ["clone", "-q", "--no-local", reference, root]);
