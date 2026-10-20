@@ -9,15 +9,43 @@ import { invokedDirectly } from "../invoked.mjs";
 
 assertNodeVersion();
 
-// Argparse quotes each choice in an invalid-choice message on 3.9, dropped the
-// quotes from 3.12, and restored them in 3.14. Probe the band the same way
-// optionHeading() probes the 3.10 options heading; a probe that cannot run
-// keeps the quoted form this port emitted before the probe existed.
+// Argparse renders the choice list in an invalid-choice message quoted
+// ('output', 'trajectory') on some interpreters and bare (output, trajectory)
+// on others, and that switch moved within a patch series too: 3.12.3 quotes,
+// 3.12.15 does not. Ask the interpreter that renders the message, the same way
+// optionHeading() probes the options heading, and memoise the answer.
+const CHOICE_QUOTING_PROBE = [
+  "import argparse, contextlib, io, sys",
+  "parser = argparse.ArgumentParser(add_help=False)",
+  "parser.add_argument('--kind', choices=['output', 'trajectory'])",
+  "rendered = io.StringIO()",
+  "try:",
+  "    with contextlib.redirect_stderr(rendered):",
+  "        parser.parse_args(['--kind', 'bogus'])",
+  "except SystemExit:",
+  "    pass",
+  "sys.stdout.write('quoted' if \"'output'\" in rendered.getvalue() else 'bare')",
+].join("\n");
+
+let choicesAreQuoted: boolean | undefined;
+
+function argparseQuotesChoices(): boolean {
+  if (choicesAreQuoted !== undefined) {
+    return choicesAreQuoted;
+  }
+  const probed = spawnSync("python3", ["-c", CHOICE_QUOTING_PROBE], { encoding: "utf8" });
+  if (probed.status !== 0) {
+    // The probe could not run. Keep the quoted form this port emitted before
+    // the probe existed rather than guessing the other way.
+    choicesAreQuoted = true;
+    return choicesAreQuoted;
+  }
+  choicesAreQuoted = probed.stdout.trim() === "quoted";
+  return choicesAreQuoted;
+}
+
 function invalidChoiceList(choices: readonly string[]): string {
-  const probed = spawnSync("python3", ["-c", "import sys; print(1 if (3, 12) <= sys.version_info < (3, 14) else 0)"], {
-    encoding: "utf8",
-  });
-  return probed.status === 0 && probed.stdout.trim() === "1" ? choices.join(", ") : choices.map((choice) => `'${choice}'`).join(", ");
+  return argparseQuotesChoices() ? choices.map((choice) => `'${choice}'`).join(", ") : choices.join(", ");
 }
 
 function evalset(skill: string, kind: string): Record<string, unknown> {

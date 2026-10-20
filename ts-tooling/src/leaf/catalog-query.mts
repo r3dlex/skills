@@ -87,19 +87,40 @@ function ambiguousOption(flag: string): string | undefined {
   return matches.length > 1 ? matches.join(", ") : undefined;
 }
 
-// Argparse ≤3.11 classifies every token before any action, so an ambiguous
-// option exits before help and before a missing-argument check. From 3.12 the
-// parser consumes left to right and only trips when it reaches the token, which
-// is what consume() below already models. Probe the interpreter the way
-// concatenatedHelpExitsZero() does instead of claiming the ≤3.11 semantics.
+// Whether an ambiguous option is reported before an earlier --help runs is
+// argparse behaviour that moved WITHIN a patch series, not between them: 3.12.3
+// reports the ambiguity, 3.12.15 prints help first. No sys.version_info
+// comparison can separate those two, so ask the interpreter that actually runs
+// the reference. argv puts --help first and --h (ambiguous between --help and
+// --host) second, which is the only ordering that separates the two regimes.
+const AMBIGUITY_PROBE = [
+  "import argparse, contextlib, io, sys",
+  "parser = argparse.ArgumentParser()",
+  "parser.add_argument('--host')",
+  "verdict = 'lazy'",
+  "try:",
+  "    with contextlib.redirect_stdout(io.StringIO()):",
+  "        parser.parse_args(['--help', '--h', 'codex'])",
+  "except SystemExit as exc:",
+  "    verdict = 'lazy' if (0 if exc.code is None else exc.code) == 0 else 'eager'",
+  "sys.stdout.write(verdict)",
+].join("\n");
+
 let ambiguityIsEager: boolean | undefined;
 
 function ambiguityResolutionIsEager(): boolean {
   if (ambiguityIsEager !== undefined) {
     return ambiguityIsEager;
   }
-  const probed = spawnSync("python3", ["-c", "import sys; print(1 if sys.version_info < (3, 12) else 0)"], { encoding: "utf8" });
-  ambiguityIsEager = probed.status === 0 && probed.stdout.trim() === "1";
+  const probed = spawnSync("python3", ["-c", AMBIGUITY_PROBE], { encoding: "utf8" });
+  if (probed.status !== 0) {
+    // The probe could not run. Keep the behaviour this port had before the
+    // probe existed: classify every token before acting. A probe that cannot
+    // interrogate the interpreter must not silently retire the whole pre-pass.
+    ambiguityIsEager = true;
+    return ambiguityIsEager;
+  }
+  ambiguityIsEager = probed.stdout.trim() === "eager";
   return ambiguityIsEager;
 }
 

@@ -54,6 +54,19 @@ export function scaffold(skill, root, kind) {
     writeFileSync(join(out, "rubric.md"), rubric(skill, kind));
     return out;
 }
+const CHOICE_QUOTING_PROBE = [
+    "import argparse, contextlib, io, sys",
+    "parser = argparse.ArgumentParser(add_help=False)",
+    "parser.add_argument('--kind', choices=['output', 'trajectory'])",
+    "rendered = io.StringIO()",
+    "try:",
+    "    with contextlib.redirect_stderr(rendered):",
+    "        parser.parse_args(['--kind', 'bogus'])",
+    "except SystemExit:",
+    "    pass",
+    "sys.stdout.write('quoted' if \"'output'\" in rendered.getvalue() else 'bare')",
+].join("\n");
+let choicesAreQuoted;
 export function main(argv) {
     let skill;
     let root = ".";
@@ -94,10 +107,16 @@ export function main(argv) {
             return 2;
         }
         if (flag === "--kind" && value !== "output" && value !== "trajectory") {
-            // Argparse quotes each choice on 3.9, dropped the quotes from 3.12
-            // and restored them in 3.14. Same probe shape as the heading above.
-            const unquoted = spawnSync("python3", ["-c", "import sys; print(1 if (3, 12) <= sys.version_info < (3, 14) else 0)"], { encoding: "utf8" });
-            const choices = unquoted.status === 0 && unquoted.stdout.trim() === "1" ? "output, trajectory" : "'output', 'trajectory'";
+            // Argparse renders the choice list quoted or bare, and that switch
+            // moved within a patch series too: 3.12.3 quotes, 3.12.15 does not.
+            // Render it the way this interpreter renders it, memoised.
+            if (choicesAreQuoted === undefined) {
+                const probed = spawnSync("python3", ["-c", CHOICE_QUOTING_PROBE], { encoding: "utf8" });
+                // A probe that cannot run keeps the quoted form this port
+                // emitted before the probe existed.
+                choicesAreQuoted = probed.status !== 0 || probed.stdout.trim() === "quoted";
+            }
+            const choices = choicesAreQuoted ? "'output', 'trajectory'" : "output, trajectory";
             process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from ${choices})\n`);
             return 2;
         }
