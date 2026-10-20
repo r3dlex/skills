@@ -94,7 +94,31 @@ export function main(argv) {
             return 2;
         }
         if (flag === "--kind" && value !== "output" && value !== "trajectory") {
-            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from 'output', 'trajectory')\n`);
+            // Argparse quotes each choice through 3.12.7, drops the quotes from
+            // 3.12.8 through 3.14.4 and restores them in 3.14.5. Both boundaries
+            // sit inside a minor release, so no version band can name them. Ask
+            // the interpreter, and take the bare rendering only when it is the
+            // one the interpreter positively produced; any other answer keeps
+            // the quoted form this port emitted before the probe existed.
+            const bare = "output, trajectory";
+            const quoted = `'output', 'trajectory'`;
+            const probe = spawnSync("python3", ["-c", [
+                "import argparse, sys",
+                "parser = argparse.ArgumentParser(prog='scaffold-eval.py')",
+                "parser.add_argument('--kind', choices=sys.argv[1:])",
+                "parser.parse_args(['--kind', 'nope'])",
+            ].join("\n"), "output", "trajectory"], { encoding: "utf8" });
+            const stderr = probe.stderr ?? "";
+            // Argparse renders the choice list bare on some builds and quoted
+            // on others (3.9.6 and 3.14.8 quote; 3.13.5 does not), so accept
+            // EITHER rendering and reproduce it verbatim. Anything else - empty,
+            // truncated or malformed stderr, or an error that merely contains
+            // the words "invalid choice" - is not an answer and keeps the
+            // quoted form this port emitted before the probe existed.
+            const bareRendering = `(choose from ${bare})`;
+            const quotedRendering = `(choose from ${quoted})`;
+            const choices = stderr.includes(bareRendering) ? bare : stderr.includes(quotedRendering) ? quoted : quoted;
+            process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from ${choices})\n`);
             return 2;
         }
         if (flag === "--skill") {

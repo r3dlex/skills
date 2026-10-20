@@ -1877,6 +1877,18 @@ mask_checkout_root() {
 	mv "$tmp" "$stream"
 }
 
+# Both roots are masked in both streams. Masking one root per side only holds
+# while the interpreter lives outside both checkouts; an interpreter installed
+# inside $REPO_ROOT leaks $REPO_ROOT-prefixed stdlib paths into the anchor
+# traceback, which a $WT-only mask leaves behind while the port side masks it.
+# Nothing is relaxed: the same two roots are replaced on both sides, so the
+# comparison can no longer pass or fail on which side got masked.
+mask_checkout_roots() {
+	local stream="$1"
+	mask_checkout_root "$WT" "$stream"
+	mask_checkout_root "$REPO_ROOT" "$stream"
+}
+
 # The anchor traceback embeds the script checkout. The mask replaces that
 # absolute root and no other byte, including the FileNotFoundError path.
 projection_missing_dir() {
@@ -1895,10 +1907,10 @@ projection_missing_dir() {
 	HOME="$rwatch" python3 "$REPO_ROOT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex --projection "$dest" >"$rout" 2>"$rerr"
 	rrc=$?
 	set +e
-	mask_checkout_root "$WT" "$lerr"
-	mask_checkout_root "$REPO_ROOT" "$rerr"
-	mask_checkout_root "$WT" "$lout"
-	mask_checkout_root "$REPO_ROOT" "$rout"
+	mask_checkout_roots "$lerr"
+	mask_checkout_roots "$rerr"
+	mask_checkout_roots "$lout"
+	mask_checkout_roots "$rout"
 	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
 	rm -rf "$lwatch" "$rwatch"
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
@@ -1965,10 +1977,10 @@ raise SystemExit(subprocess.run([sys.executable, sys.argv[2], *sys.argv[3:]], en
 ' "$bin" "$REPO_ROOT/scripts/catalog-query.py" --root "$REPO_ROOT" --host codex --projection "$dest" >"$rout" 2>"$rerr"
 	rrc=$?
 	set +e
-	mask_checkout_root "$WT" "$lerr"
-	mask_checkout_root "$REPO_ROOT" "$rerr"
-	mask_checkout_root "$WT" "$lout"
-	mask_checkout_root "$REPO_ROOT" "$rout"
+	mask_checkout_roots "$lerr"
+	mask_checkout_roots "$rerr"
+	mask_checkout_roots "$lout"
+	mask_checkout_roots "$rout"
 	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
 	rm -rf "$bin" "$lwatch" "$rwatch"
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
@@ -2109,10 +2121,10 @@ for (const path of process.argv.slice(2)) {
 		cp "$wt_adapter_bak" "$WT/$adapter_rel"
 		rm -f "$adapter_bak" "$wt_adapter_bak"
 	fi
-	mask_checkout_root "$WT" "$lerr"
-	mask_checkout_root "$REPO_ROOT" "$rerr"
-	mask_checkout_root "$WT" "$lout"
-	mask_checkout_root "$REPO_ROOT" "$rout"
+	mask_checkout_roots "$lerr"
+	mask_checkout_roots "$rerr"
+	mask_checkout_roots "$lout"
+	mask_checkout_roots "$rout"
 	judge "$label" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
 	rm -rf "$lwatch" "$rwatch"
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
@@ -2165,10 +2177,10 @@ for (const path of process.argv.slice(1)) {
 	cp "$bak" "$REPO_ROOT/$rel"
 	cp "$wt_bak" "$WT/$rel"
 	rm -f "$bak" "$wt_bak"
-	mask_checkout_root "$WT" "$lerr"
-	mask_checkout_root "$REPO_ROOT" "$rerr"
-	mask_checkout_root "$WT" "$lout"
-	mask_checkout_root "$REPO_ROOT" "$rout"
+	mask_checkout_roots "$lerr"
+	mask_checkout_roots "$rerr"
+	mask_checkout_roots "$lout"
+	mask_checkout_roots "$rout"
 	judge "final package optional branch unavailable" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
 	rm -rf "$lwatch" "$rwatch"
 	rm -f "$lout" "$rout" "$lerr" "$rerr"
@@ -2192,10 +2204,10 @@ final_package_invalid_utf8_secret() {
 	rrc=$?
 	set +e
 	rm -f "$REPO_ROOT/$rel" "$WT/$rel"
-	mask_checkout_root "$WT" "$lerr"
-	mask_checkout_root "$REPO_ROOT" "$rerr"
-	mask_checkout_root "$WT" "$lout"
-	mask_checkout_root "$REPO_ROOT" "$rout"
+	mask_checkout_roots "$lerr"
+	mask_checkout_roots "$rerr"
+	mask_checkout_roots "$lout"
+	mask_checkout_roots "$rout"
 	judge "final package invalid utf8 secret" "$lrc" "$rrc" "$lout" "$rout" "$lerr" "$rerr" "$lwatch" "$rwatch"
 	rm -rf "$lwatch" "$rwatch"
 	rm -f "$lout" "$rout" "$lerr" "$rerr"

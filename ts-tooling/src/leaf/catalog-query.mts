@@ -87,9 +87,68 @@ function ambiguousOption(flag: string): string | undefined {
   return matches.length > 1 ? matches.join(", ") : undefined;
 }
 
-// Argparse classifies every token before any action. An ambiguous option exits
-// before help and before a missing-argument check.
+// Argparse classifies every optional before it runs any action up to 3.12.6
+// and 3.13.0, so an ambiguous option exits before help and before a
+// missing-argument check; from 3.12.7 and 3.13.1 it consumes left to right and
+// only trips when it reaches the token, which is what consume() below already
+// models. Both boundaries sit inside a minor release, so no version band can
+// name them. Ask the interpreter this process would hand the work to, the way
+// concatenatedHelpExitsZero() does. The probe answers with a verdict token on
+// stderr, because stdout is where argparse writes its help. Only a successful
+// probe whose stderr carries the recognised lazy token retires the pre-pass, so
+// a python3 that exits non-zero without reporting an answer — a wrapper with a
+// printing sitecustomize, a shim that swallows the exception, a half-installed
+// interpreter — keeps the eager answer instead of retiring the pre-pass.
+const AMBIGUITY_EAGER_TOKEN = "CATALOG_QUERY_AMBIGUITY_EAGER";
+const AMBIGUITY_LAZY_TOKEN = "CATALOG_QUERY_AMBIGUITY_LAZY";
+const AMBIGUITY_PROBE = [
+  "import argparse, contextlib, io, sys",
+  "parser = argparse.ArgumentParser()",
+  "parser.add_argument('--host')",
+  // Ask the interpreter the same question the reference answers, and suppress
+  // the parser's own help output so it cannot be mistaken for the verdict.
+  // The verdict goes to stderr: stdout is reserved for the parser's help.
+  "verdict = 'lazy'",
+  "try:",
+  "    with contextlib.redirect_stdout(io.StringIO()):",
+  "        parser.parse_args(['--help', '--h', 'codex'])",
+  "except SystemExit as exc:",
+  "    verdict = 'lazy' if (0 if exc.code is None else exc.code) == 0 else 'eager'",
+  `sys.stderr.write('${AMBIGUITY_EAGER_TOKEN}' if verdict == 'eager' else '${AMBIGUITY_LAZY_TOKEN}')`,
+].join("\n");
+
+let ambiguityIsEager: boolean | undefined;
+
+// Only an explicit lazy verdict makes the pre-pass retire. Argparse prints its
+// help on stdout before the token, so read the verdict off the last line and
+// compare it whole: empty output, an unrecognised or truncated verdict, and a
+// python3 that could not be spawned all fail that match and stay eager.
+function ambiguityResolutionIsEager(): boolean {
+  if (ambiguityIsEager !== undefined) {
+    return ambiguityIsEager;
+  }
+  const probed = spawnSync("python3", ["-c", AMBIGUITY_PROBE], { encoding: "utf8" });
+  // The verdict is the last non-empty line of stderr. stdout is ignored
+  // entirely: argparse writes its help there on the lazy path, and treating
+  // that as a verdict would silently retire the pre-pass. A probe that did not
+  // succeed carries no answer at all, so its output is not consulted.
+  if (probed.status !== 0) {
+    ambiguityIsEager = true;
+    return ambiguityIsEager;
+  }
+  const lines = (probed.stderr ?? "").trimEnd().split("\n").filter((line) => line.trim() !== "");
+  const verdict = lines[lines.length - 1];
+  // Only an explicit lazy verdict retires the pre-pass. Empty output, an
+  // unrecognised or truncated verdict, and a python3 that could not be
+  // spawned all fail the match and keep the pre-pass active.
+  ambiguityIsEager = verdict !== AMBIGUITY_LAZY_TOKEN;
+  return ambiguityIsEager;
+}
+
 function firstAmbiguous(argv: readonly string[]): { token: string; matches: string } | undefined {
+  if (!ambiguityResolutionIsEager()) {
+    return undefined;
+  }
   for (const token of argv) {
     if (token === "--") {
       return undefined;

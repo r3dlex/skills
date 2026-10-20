@@ -2,11 +2,43 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { pyJsonDumps } from "./py-repr.mjs";
 import { join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { helpRequested, optionHeading, optionLike } from "./argparse-help.mjs";
 import { assertNodeVersion } from "../node-version.mjs";
 import { invokedDirectly } from "../invoked.mjs";
 
 assertNodeVersion();
+
+// Argparse quotes each choice in an invalid-choice message through 3.12.7,
+// drops the quotes from 3.12.8 through 3.14.4, and restores them in 3.14.5.
+// Both boundaries sit inside a minor release, so no version band can name them.
+// Ask the interpreter this process would hand the work to; the bare rendering
+// is taken only when the interpreter positively rendered it, and any other
+// answer keeps the quoted form this port emitted before the probe existed.
+const INVALID_CHOICE_PROBE = [
+  "import argparse, sys",
+  "parser = argparse.ArgumentParser(prog='scaffold-eval.py')",
+  "parser.add_argument('--kind', choices=sys.argv[1:])",
+  "parser.parse_args(['--kind', 'nope'])",
+].join("\n");
+
+function invalidChoiceList(choices: readonly string[]): string {
+  const bare = choices.join(", ");
+  const quoted = choices.map((choice) => `'${choice}'`).join(", ");
+  const probed = spawnSync("python3", ["-c", INVALID_CHOICE_PROBE, ...choices], { encoding: "utf8" });
+  const stderr = probed.stderr ?? "";
+  // Argparse renders the choice list bare on some builds and quoted on others
+  // (3.9.6 and 3.14.8 quote; 3.13.5 does not), so accept EITHER rendering
+  // and reproduce it verbatim. Anything else — empty, truncated or malformed
+  // stderr, or an error that merely contains the words "invalid choice" — is
+  // not an answer and keeps the quoted form this port emitted before the
+  // probe existed.
+  const bareRendering = `(choose from ${bare})`;
+  const quotedRendering = `(choose from ${quoted})`;
+  if (stderr.includes(bareRendering)) return bare;
+  if (stderr.includes(quotedRendering)) return quoted;
+  return quoted;
+}
 
 function evalset(skill: string, kind: string): Record<string, unknown> {
   return {
@@ -130,7 +162,7 @@ function scaffoldValue(inline: string | undefined, next: string | undefined): st
 
 function consumeScaffold(args: ScaffoldArgs, flag: string, value: string): number | undefined {
   if (flag === "--kind" && value !== "output" && value !== "trajectory") {
-    return scaffoldFail(`argument --kind: invalid choice: '${value}' (choose from 'output', 'trajectory')`);
+    return scaffoldFail(`argument --kind: invalid choice: '${value}' (choose from ${invalidChoiceList(["output", "trajectory"])})`);
   }
   return assignScaffold(args, flag, value) ? undefined : scaffoldFail(`unrecognized arguments: ${flag}`);
 }
