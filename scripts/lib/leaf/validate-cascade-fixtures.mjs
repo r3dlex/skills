@@ -20,11 +20,18 @@ function fail(message) {
 // intermediate frame. Probe the band instead of assuming the newest rendering.
 // A probe that cannot run falls back to band 0, the pre-3.11 rendering this
 // port emitted before the probe existed.
+const TRACEBACK_ANCHOR_BANDS = new Set(["0", "1", "2"]);
 function tracebackAnchorBand() {
     const probed = spawnSync("python3", ["-c", "import sys; print(0 if sys.version_info < (3, 11) else 1 if sys.version_info < (3, 13) else 2)"], {
         encoding: "utf8",
     });
-    return probed.status === 0 ? probed.stdout.trim() : "0";
+    const band = probed.status === 0 ? probed.stdout.trim() : "0";
+    // Whitelist the three bands CPython actually prints before forwarding one into
+    // the rendering helpers. An unrecognised token is not a band: it would reach
+    // moduleFrameAnchor() as neither "1" nor "2" and emit an "assert anchor only"
+    // traceback that no CPython produces. Anything else falls back to band 0, the
+    // same pre-3.11 rendering a probe that cannot run already falls back to.
+    return TRACEBACK_ANCHOR_BANDS.has(band) ? band : "0";
 }
 // The <module> frame anchors the `main()` call inside `sys.exit(main())`:
 // 3.11-3.12 underline the whole call with "^", 3.13 marks the callee under "~"

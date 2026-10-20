@@ -98,14 +98,16 @@ function ambiguityResolutionIsEager() {
         return ambiguityIsEager;
     }
     const probed = spawnSync("python3", ["-c", AMBIGUITY_PROBE], { encoding: "utf8" });
-    if (probed.status !== 0) {
-        // The probe could not run. Keep the behaviour this port had before the
-        // probe existed: classify every token before acting. A probe that cannot
-        // interrogate the interpreter must not silently retire the whole pre-pass.
-        ambiguityIsEager = true;
-        return ambiguityIsEager;
-    }
-    ambiguityIsEager = probed.stdout.trim() === "eager";
+    // Whitelist the token that RETIRES the pre-pass, never the one that keeps it.
+    // Only a probe that printed a recognised "lazy" verdict may switch ambiguity
+    // checking off. Every other outcome — a probe that could not spawn or exited
+    // non-zero (status null or n, and no stdout at all), a probe that printed
+    // nothing, and a probe that printed something unrecognised — leaves the check
+    // ON. Retiring the whole pre-pass on a verdict we could not read is the one
+    // failure mode that would silently drop the ambiguity diagnostic this port
+    // exists to reproduce.
+    const verdict = probed.status === 0 ? probed.stdout.trim() : undefined;
+    ambiguityIsEager = verdict !== "lazy";
     return ambiguityIsEager;
 }
 function firstAmbiguous(argv) {

@@ -34,13 +34,14 @@ function argparseQuotesChoices(): boolean {
     return choicesAreQuoted;
   }
   const probed = spawnSync("python3", ["-c", CHOICE_QUOTING_PROBE], { encoding: "utf8" });
-  if (probed.status !== 0) {
-    // The probe could not run. Keep the quoted form this port emitted before
-    // the probe existed rather than guessing the other way.
-    choicesAreQuoted = true;
-    return choicesAreQuoted;
-  }
-  choicesAreQuoted = probed.stdout.trim() === "quoted";
+  // Whitelist the token that DROPS the quotes, never the one that keeps them.
+  // Only a probe that printed a recognised "bare" verdict may render the choice
+  // list unquoted. Every other outcome — a probe that could not spawn or exited
+  // non-zero (status null or n, and no stdout at all), a probe that printed
+  // nothing, and a probe that printed something unrecognised — keeps the quoted
+  // form this port emitted before the probe existed.
+  const verdict = probed.status === 0 ? probed.stdout.trim() : undefined;
+  choicesAreQuoted = verdict !== "bare";
   return choicesAreQuoted;
 }
 
