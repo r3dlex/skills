@@ -9,15 +9,26 @@ import { invokedDirectly } from "../invoked.mjs";
 
 assertNodeVersion();
 
-// Argparse quotes each choice in an invalid-choice message on 3.9, dropped the
-// quotes from 3.12, and restored them in 3.14. Probe the band the same way
-// optionHeading() probes the 3.10 options heading; a probe that cannot run
-// keeps the quoted form this port emitted before the probe existed.
+// Argparse quotes each choice in an invalid-choice message through 3.12.7,
+// drops the quotes from 3.12.8 through 3.14.4, and restores them in 3.14.5.
+// Both boundaries sit inside a minor release, so no version band can name them.
+// Ask the interpreter this process would hand the work to; a probe that cannot
+// run keeps the quoted form this port emitted before the probe existed.
+const INVALID_CHOICE_PROBE = [
+  "import argparse, sys",
+  "parser = argparse.ArgumentParser(prog='scaffold-eval.py')",
+  "parser.add_argument('--kind', choices=sys.argv[1:])",
+  "parser.parse_args(['--kind', 'nope'])",
+].join("\n");
+
 function invalidChoiceList(choices: readonly string[]): string {
-  const probed = spawnSync("python3", ["-c", "import sys; print(1 if (3, 12) <= sys.version_info < (3, 14) else 0)"], {
-    encoding: "utf8",
-  });
-  return probed.status === 0 && probed.stdout.trim() === "1" ? choices.join(", ") : choices.map((choice) => `'${choice}'`).join(", ");
+  const quoted = choices.map((choice) => `'${choice}'`).join(", ");
+  const probed = spawnSync("python3", ["-c", INVALID_CHOICE_PROBE, ...choices], { encoding: "utf8" });
+  const stderr = probed.stderr ?? "";
+  if (!stderr.includes("invalid choice")) {
+    return quoted;
+  }
+  return stderr.includes(`(choose from ${quoted})`) ? quoted : choices.join(", ");
 }
 
 function evalset(skill: string, kind: string): Record<string, unknown> {

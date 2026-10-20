@@ -94,10 +94,21 @@ export function main(argv) {
             return 2;
         }
         if (flag === "--kind" && value !== "output" && value !== "trajectory") {
-            // Argparse quotes each choice on 3.9, dropped the quotes from 3.12
-            // and restored them in 3.14. Same probe shape as the heading above.
-            const unquoted = spawnSync("python3", ["-c", "import sys; print(1 if (3, 12) <= sys.version_info < (3, 14) else 0)"], { encoding: "utf8" });
-            const choices = unquoted.status === 0 && unquoted.stdout.trim() === "1" ? "output, trajectory" : "'output', 'trajectory'";
+            // Argparse quotes each choice through 3.12.7, drops the quotes from
+            // 3.12.8 through 3.14.4 and restores them in 3.14.5. Both boundaries
+            // sit inside a minor release, so no version band can name them. Ask
+            // the interpreter, and keep the quoted form when it cannot answer.
+            const quoted = `'output', 'trajectory'`;
+            const probe = spawnSync("python3", ["-c", [
+                "import argparse, sys",
+                "parser = argparse.ArgumentParser(prog='scaffold-eval.py')",
+                "parser.add_argument('--kind', choices=sys.argv[1:])",
+                "parser.parse_args(['--kind', 'nope'])",
+            ].join("\n"), "output", "trajectory"], { encoding: "utf8" });
+            const stderr = probe.stderr ?? "";
+            const choices = stderr.includes("invalid choice") && !stderr.includes(`(choose from ${quoted})`)
+                ? "output, trajectory"
+                : quoted;
             process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from ${choices})\n`);
             return 2;
         }

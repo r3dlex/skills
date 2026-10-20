@@ -74,18 +74,32 @@ function ambiguousOption(flag) {
     const matches = matchingOptions(flag);
     return matches.length > 1 ? matches.join(", ") : undefined;
 }
-// Argparse ≤3.11 classifies every token before any action, so an ambiguous
-// option exits before help and before a missing-argument check. From 3.12 the
-// parser consumes left to right and only trips when it reaches the token, which
-// is what consume() below already models. Probe the interpreter the way
-// concatenatedHelpExitsZero() does instead of claiming the ≤3.11 semantics.
+// Argparse classifies every optional before it runs any action up to 3.12.6
+// and 3.13.0, so an ambiguous option exits before help and before a
+// missing-argument check; from 3.12.7 and 3.13.1 it consumes left to right and
+// only trips when it reaches the token, which is what consume() below already
+// models. Both boundaries sit inside a minor release, so no version band can
+// name them. Ask the interpreter this process would hand the work to, the way
+// concatenatedHelpExitsZero() does, and keep the eager answer when it cannot.
+const AMBIGUITY_PROBE = [
+    "import argparse, sys",
+    "parser = argparse.ArgumentParser(prog='catalog-query.py')",
+    "parser.add_argument('--root')",
+    "parser.add_argument('--host')",
+    "try:",
+    "    parser.parse_args(sys.argv[1:])",
+    "except SystemExit as exc:",
+    "    sys.exit(0 if exc.code in (None, 0) else 2)",
+].join("\n");
 let ambiguityIsEager;
 function ambiguityResolutionIsEager() {
     if (ambiguityIsEager !== undefined) {
         return ambiguityIsEager;
     }
-    const probed = spawnSync("python3", ["-c", "import sys; print(1 if sys.version_info < (3, 12) else 0)"], { encoding: "utf8" });
-    ambiguityIsEager = probed.status === 0 && probed.stdout.trim() === "1";
+    // --help before --h exits 0 when the parser consumes left to right and 2 when
+    // it classifies every optional first. Help goes to stdout on that zero exit.
+    const probed = spawnSync("python3", ["-c", AMBIGUITY_PROBE, "--help", "--h", "codex"], { stdio: "ignore" });
+    ambiguityIsEager = probed.status !== 0;
     return ambiguityIsEager;
 }
 function firstAmbiguous(argv) {
