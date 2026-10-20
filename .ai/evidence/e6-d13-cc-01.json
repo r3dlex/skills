@@ -9,31 +9,31 @@
     {
       "ac": 2,
       "criterion": "Tool/constants: the three interfaces, exits and fixed constants; no network/driver/write; only bounded local Git for observation and consumer lineage.",
-      "note": "node scripts/lib/d13-compare.mjs <run> [--observe], --contract and --consumer-check <evidence.json>; exits 0/1/2 for report mode and 0/1/2 for consumer mode. Only node: and relative sibling imports. No fetch, ls-remote, checkout, ref update or driver invocation. Bounded read-only git rev-parse/cat-file/show/merge-base only. No superseded-report bypass and no sibling source edit.",
+      "note": "The three interfaces retain exits 0/1/2 and only node: / relative sibling imports. Bounded local Git reads only; no driver, network or file writer. GIT_NO_LAZY_FETCH prevents object reads from silently fetching; replacement objects and optional locks are disabled. No superseded-tool bypass or sibling source edit.",
       "status": "implemented"
     },
     {
       "ac": 3,
       "criterion": "Projection: exact depth-one member span only, nested bytes preserved, permitted sites empty, caller masks malformed, all other payload/stderr/exit bytes compared.",
-      "note": "Depth-one JSON walk locates the provenance member; the removed span must be exactly line-leading spaces, the key token, ': ', the string token, a trailing comma and LF. Absent/invalid value -> provenance-expected; duplicates or any extra span content -> projection-unique. nested members and every byte outside the span remain compared; stderr and exits compared as raw buffers. normalizations.json must be []: any caller mask exits 2. Generic readiness-contract/2 refusals compare unchanged and classify as equal-refusal, never as success.",
+      "note": "Fatal UTF-8 and complete JSON validation precede the depth-one walk. Duplicate depth-one keys, nonliteral provenance rendering and invalid literals are rejected. Only the exact indent-2 provenance member line is removed from the original Buffer using byte offsets; remaining payload/stderr bytes are never re-encoded or normalized. Caller masks remain malformed. Generic refusal envelopes with zero exits are red, never successes.",
       "status": "implemented"
     },
     {
       "ac": 4,
       "criterion": "Assertions: every lane, target/ref/repository/registry/site, operation/plan/argv, outcome, written-map, ordering, quiescence and raw-binding assertion; exact deterministic whole-report derivation and recomputation.",
-      "note": "Report carries every required assertion once with stable (id,subject) identity: provenance-expected, lanes-distinct-own-repository, provenance-pair, lane-observed-per-target, audit-pair-per-target, common-dir-reference, common-dir-candidate, driver-commits-distinct, observe-git, target-repository-bound, target-ref-bound, registry-bound, targets-complete, site-set, target-revision, envelope-operation, envelope-plan, capture-argv, exit-equal, refusal-codes-equal, finding-codes-equal, projection-equal, projection-unique, envelope-schema, stderr-equal, written-equal, log-quiescent, captures-serialized, order-audits-before-exports, raw-inputs-bound. Counts derive from site classifications; the whole canonical report is byte-recomputed in the consumer check.",
+      "note": "All required lane/target/site/global assertions have unique stable identities. Snapshot inventories are independently enumerated, including reserved filenames; declared maps cannot hide added/deleted/changed files. Successful exports require nonempty after-maps. Transcript cwd/root/ref/lanes digest, canonical base64, full stdout/stderr, pinned policy/registry blobs, finish reads, actual UTC intervals, operation-specific metadata and present generations are checked. The report includes codes, maps/changes, all digests and derived counts; consumer replay compares the whole canonical report.",
       "status": "implemented"
     },
     {
       "ac": 5,
       "criterion": "Fixtures: P1; M01-M34; O01-O09 and C01-C15. Truthful linked candidate: common-dir-candidate fails, observe-git passes; separate false-metadata case: observe-git fails. Positive consumer uses the actual temporary-Git --observe report and digest-bound run.",
-      "note": "All 59 cases build real temporary Git repositories and record genuine bounded read-only Git transcripts. P1 = 4 required targets, distinct skills lanes, one qualifying audit pair per target, 4 equal-refusal exports (one evidence_incomplete, one evidence_conflict), serialized captures, stable logs and complete written maps. O02 (linked candidate worktree) is truthful: common-dir-candidate red, observe-git true. O03 (false common-dir/HEAD metadata) is observe-git red. C01-C15 embed the actual --observe report of the temporary-Git run; no tool hash or observed.git flag is injected into P1. Every artifact is labelled synthetic and no fixture supplies capture authenticity.",
+      "note": "All 59 contract names remain, plus R01-R27 and D01-D28: 114 names / 127 CLI case checks. Base observations use real temporary Git; negative fixtures deliberately corrupt inputs or move real refs. O02 remains common-dir-candidate red with observe-git true; O03 is observe-git red. C01 has exact frozen inputs and connected publication / distinct supplier PR head / two-parent merge / actual candidate capture / evidence-only HEAD history. C07 has five separate mutations; C08 has nine exact raw-input variants; C13 truly relocates and removes archived paths; C15 checks actual suite propagation and direct missing-file exit 2. No fixture authenticates a real driver capture.",
       "status": "implemented"
     },
     {
       "ac": 6,
       "criterion": "TDD: fixtures and test present, compiled module absent, same command red exit 1 then green after lawful implementation; per-case outcomes and checker SHA256 recorded; all five verification commands run at the eventual PR head.",
-      "note": "Same command bash tests/e6_d13_comparison_test.sh. Red leg: PASS=1 FAIL=1, exit 1, sha256 4427d22321a469cfd0071497c91686726db2671742f249ca18b32eba984f6de6. Green leg: PASS=125 FAIL=0, exit 0, sha256 52fab9ddbf2b78db75ef670bfba8fe776dbdb01d8c6eddf1f744d86a260ee8a9. Both recorded under .omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/. Verification at the PR head is recorded under verification[].",
+      "note": "The unchanged command is bash tests/e6_d13_comparison_test.sh. The cure's sealed module-absent snapshot is an explicit PASS=1 FAIL=1 / exit 1 existence-gate red, not a Node failure accepted as a negative. Full actual per-case assertion rows and exact exits are retained in cure/*-case-outcomes.jsonl. Predecessor false-green reproductions are retained separately. Exact-head verification is recorded externally in cure/final-validation.json, avoiding a self-referential evidence-commit claim.",
       "status": "implemented"
     },
     {
@@ -45,42 +45,51 @@
     {
       "ac": 8,
       "criterion": "Consumer edge: all six consumer-check conditions and the fresh future consumer-head enforcement point; exact registered generation/spec, actual goal merge/tool blob and ancestry, raw/report consistency, independent completion/capture custody/live-freshness review. Missing trust evidence holds the consumer even when mechanical checks pass. No #139 continuation here.",
-      "note": "--consumer-check recomputes the whole report from retained digest-bound raw inputs (raw-inputs-bound, raw-report-recomputation, report-consistency), reads the registry, generation bundle, spec bytes, publication/merge commits and merged tool blob from the consumer Git tree (dependency-registry, dependency-generation, dependency-spec, dependency-ancestry, dependency-tool, dependency-history-unavailable, dependency-completion), binds the capture head (consumer-head-binding) and emits d13-consumer-check/1 with capture_authenticity: unverified, live_remote_freshness: unverified and consumer_readiness: unready. No D13 consumer acceptance is claimed here and PR #139 was not touched.",
-      "status": "implemented"
+      "note": "Consumer mode recomputes the entire retained report, enforces physical consumer-scope containment, recomputes generation/2 from frozen Git bundle/spec/publication-policy/anchor, checks all artifact identities, actual HEAD/target/capture/merge ancestry and full driver inventories, and re-observes Git pins. Digest-bound completion/custody inputs are mandatory; supplier PR head is distinct from capture head. The discovered test enforces every present constant consumer file. Authenticity, qualified hosted completion and live freshness remain external/unverified; consumer_readiness is always unready. The real PR branch differs from the frozen policy-derived branch and remains a consumer HOLD, not an exception. No consumer acceptance or PR139 continuation is claimed.",
+      "status": "implemented_mechanics_external_hold"
     }
   ],
   "artifacts": {
-    "checker_sha256": "0e1f02df8b946381494ae96daf932c895e3892dcb820239a0ff1490d6e82ccd8",
+    "checker_sha256": "bbcd4d69e100263f3dd47aae021a094548ab12501edb3ef905e24703cd2926e8",
     "compiled": {
       "scripts/lib/d13-compare.d.mts": "3470b1058fc428dba93c24d52fc52aa25e88e26d76b22726cb7e56f1583841db",
-      "scripts/lib/d13-compare.mjs": "0e1f02df8b946381494ae96daf932c895e3892dcb820239a0ff1490d6e82ccd8",
-      "scripts/lib/d13-compare.mjs.map": "2f04d592206946693334f4b9b4d8b4d0e6f83dace171dd07c980ac3bbf6d0c74"
+      "scripts/lib/d13-compare.mjs": "bbcd4d69e100263f3dd47aae021a094548ab12501edb3ef905e24703cd2926e8",
+      "scripts/lib/d13-compare.mjs.map": "c6bd8ac6b30653feffb5ba103987e102e57f73b058a1a6d2e9cc418667220198"
     },
     "fixtures": {
       "tests/fixtures/e6-d13-cc/README.md": "labels every artifact synthetic",
       "tests/fixtures/e6-d13-cc/build.mjs": "materializes one case",
-      "tests/fixtures/e6-d13-cc/lib/cases.mjs": "P1, M01-M34, O01-O09, C01-C15 expectations",
+      "tests/fixtures/e6-d13-cc/lib/cases.mjs": "all 59 core names plus R01-R27 / D01-D28; mandatory named failures and exact exits",
+      "tests/fixtures/e6-d13-cc/git-move.cjs": "moves only real disposable Git refs and forwards actual Git response bytes",
+      "tests/fixtures/e6-d13-cc/integration.mjs": "tests the actual shared Bash consumer-file loop",
+      "tests/fixtures/e6-d13-cc/invoke.mjs": "executes the real CLI, with optional synthetic movement environment",
+      "tests/fixtures/e6-d13-cc/lib/consumer-mutate.mjs": "isolated consumer identity, custody, containment and history regressions",
       "tests/fixtures/e6-d13-cc/lib/consumer.mjs": "synthetic consumer Git tree",
       "tests/fixtures/e6-d13-cc/lib/mutate.mjs": "one documented semantic feature per mutation",
       "tests/fixtures/e6-d13-cc/lib/world.mjs": "temporary target repositories and observation transcript",
-      "tests/fixtures/e6-d13-cc/verify.mjs": "asserts actual output against the case table"
+      "tests/fixtures/e6-d13-cc/verify.mjs": "requires result envelopes and every named failure; optionally retains full actual assertion rows",
+      "tests/fixtures/e6-d13-cc/verifier-test.mjs": "empty/null stdout must be explicitly rejected even at the expected exit"
     },
-    "source_sha256": "7179c4891ab5cfeb93add2541593f7de2496bcc025b51602174cd6d986d2325b",
+    "source_sha256": "0b02811b35824ea8093f5086432c0e08776f5f8f58a6cb450f4df87c72549493",
     "spec": {
       "path": "docs/specifications/ACTIVE/e6-d13-comparison-contract.md",
       "sha256": "151f2d22541ede2819338f75536a9d11b5d18beb9820a6e51f55894d4f286839"
     },
-    "test_sha256": "c1d3ac53b09b588b7b8addd97393235f41e5c5b7981e39d2c61e1942ed2e1489"
+    "test_sha256": "2e82077c1c46533812db5d9313b2ec6f52456e7847a9a1bfbae1c9dfe625406d"
   },
   "cases": {
     "counts": {
       "C": 15,
+      "D": 28,
       "M": 34,
       "O": 9,
       "P": 1,
-      "total": 59
+      "R": 27,
+      "core": 59,
+      "cli_case_checks": 127,
+      "total": 114
     },
-    "note": "Every case builds real temporary Git repositories; the per-case outcomes are the PASS lines of the green leg receipt.",
+    "note": "All data is synthetic. Base observations use real temporary Git; negative cases deliberately mutate bytes/metadata/refs. Full actual assertion rows and variant labels are retained in digest-bound case-outcome JSONL receipts. C15 additionally checks two suite states; the verifier separately rejects empty/null stdout. These are author test results, not real capture/authenticity evidence.",
     "outcomes": {
       "C01": "exit 0, failed [], capture_authenticity unverified, consumer_readiness unready",
       "C02": "exit 2, missing d13_contract",
@@ -88,15 +97,43 @@
       "C04": "exit 1, dependency-tool",
       "C05": "exit 1, dependency-spec",
       "C06": "exit 1, report-consistency on the r2 red-to-pass forgery with a valid public hash",
-      "C07": "exit 1, report-consistency on a tampered embedded report",
-      "C08": "exit 1, raw-inputs-bound",
+      "C07": "five separate assertion/site/classification/count/omission mutations: each exit 1 with report-consistency",
+      "C08": "nine stream/metadata/snapshot variants: changed digest exit 1; missing/extra input exit 2; every variant requires raw-inputs-bound",
       "C09": "exit 1, dependency-generation",
       "C10": "exit 1, dependency-ancestry and dependency-completion",
       "C11": "exit 1, dependency-history-unavailable",
       "C12": "exit 1, consumer-head-binding",
-      "C13": "exit 0, recomputation only, fresh_git false, authenticity and live freshness unverified",
+      "C13": "exit 0 after relocating the committed consumer and removing both archived driver paths; whole report identical; authenticity/live freshness unverified",
       "C14": "exit 0, self-authored completion record, consumer_readiness unready",
-      "C15": "absent evidence exit 2 with consumer_readiness unready; present failing evidence exit 1",
+      "C15": "present direct CLI exit 1/report-consistency; absent direct CLI exit 2/input-shape; actual suite present-red exit 1, clean supplier-main absence exit 0 with explicit absence/no-readiness message",
+      "D01": "exit 1; consumer-head-binding, dependency-generation, dependency-spec",
+      "D02": "exit 1; consumer-head-binding",
+      "D03": "exit 1; consumer-head-binding",
+      "D04": "exit 1; consumer-head-binding",
+      "D05": "exit 1; consumer-head-binding, dependency-generation",
+      "D06": "exit 1; consumer-head-binding, dependency-generation, dependency-spec",
+      "D07": "exit 1; consumer-head-binding, dependency-generation",
+      "D08": "exit 1; consumer-head-binding, dependency-generation, dependency-registry",
+      "D09": "exit 1; consumer-head-binding, dependency-generation",
+      "D10": "exit 1; consumer-head-binding, dependency-generation",
+      "D11": "exit 2; input-shape",
+      "D12": "exit 2; input-shape",
+      "D13": "exit 1; dependency-completion",
+      "D14": "exit 1; dependency-completion",
+      "D15": "exit 1; dependency-completion",
+      "D16": "exit 2; input-shape",
+      "D17": "exit 2; input-shape",
+      "D18": "exit 2; input-shape",
+      "D19": "exit 1; retained-receipts-bound",
+      "D20": "exit 1; consumer-head-binding, dependency-generation",
+      "D21": "exit 1; consumer-head-binding, dependency-generation",
+      "D22": "exit 1; consumer-head-binding, dependency-generation",
+      "D23": "exit 1; consumer-head-binding",
+      "D24": "exit 1; consumer-head-binding",
+      "D25": "exit 1; dependency-completion",
+      "D26": "exit 1; dependency-tool",
+      "D27": "exit 2; input-shape",
+      "D28": "exit 2; input-shape",
       "M01": "exit 1, projection-equal",
       "M02": "exit 1, provenance-expected",
       "M03": "exit 1, lanes-distinct-own-repository",
@@ -140,16 +177,52 @@
       "O07": "exit 1, target-ref-bound",
       "O08": "exit 1, audit-pair-per-target",
       "O09": "exit 1, registry-bound and site-set",
-      "P1": "exit 0, pass, sites 16, equal_success 12, equal_refusal 4, red 0, observed.git true"
+      "P1": "exit 0, pass, sites 16, equal_success 12, equal_refusal 4, red 0, observed.git true",
+      "R01": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal",
+      "R02": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal, projection-unique",
+      "R03": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal, projection-unique",
+      "R04": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal, projection-unique",
+      "R05": "exit 1; envelope-operation, envelope-plan, envelope-schema, projection-equal",
+      "R06": "exit 1; raw-inputs-bound, written-equal",
+      "R07": "exit 1; written-equal",
+      "R08": "exit 1; raw-inputs-bound",
+      "R09": "exit 1; observe-git, target-repository-bound",
+      "R10": "exit 1; observe-git, target-ref-bound",
+      "R11": "exit 1; observe-git",
+      "R12": "exit 1; observe-git",
+      "R13": "exit 1; observe-git, target-repository-bound",
+      "R14": "exit 1; captures-serialized, order-audits-before-exports",
+      "R15": "exit 1; envelope-plan",
+      "R16": "exit 1; refusal-exit",
+      "R17": "exit 1; raw-inputs-bound, written-equal",
+      "R18": "exit 2; raw-inputs-bound",
+      "R19": "exit 2; raw-inputs-bound",
+      "R20": "exit 0; pass, no failed assertions/conditions",
+      "R21": "exit 1; observe-git, target-ref-bound",
+      "R22": "exit 1; raw-inputs-bound",
+      "R23": "exit 1; observe-git",
+      "R24": "exit 2; raw-inputs-bound",
+      "R25": "exit 2; raw-inputs-bound",
+      "R26": "exit 1; raw-inputs-bound, written-equal",
+      "R27": "exit 1; observe-git, target-ref-bound"
+    },
+    "full_assertion_receipt": {
+      "path": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/sealed-case-outcomes.jsonl",
+      "sha256": "f2ed7510d9c2db536e4f56d9909e31eeab72f48b9d0d13314d6077ecd9140aa6",
+      "rows": 127,
+      "named_cases": 114,
+      "verifier_failures": 0
     }
   },
   "generator": "goal e6-d13-cc-01",
   "goal_id": "e6-d13-cc-01",
   "green": {
     "command": "bash tests/e6_d13_comparison_test.sh",
-    "count": "PASS=125 FAIL=0",
+    "count": "PASS=249 FAIL=0",
     "exit_code": 0,
-    "output_sha256": "52fab9ddbf2b78db75ef670bfba8fe776dbdb01d8c6eddf1f744d86a260ee8a9"
+    "output_sha256": "f05bc27a679202749ef8c6d40c189aa52687d0eebccc39620224032286e92319",
+    "receipt": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/sealed-d13.txt",
+    "subject": "uncommitted cure source/test hashes recorded in receipt; exact-head recheck is separate"
   },
   "not_claimed": [
     "D13 consumer acceptance",
@@ -164,14 +237,31 @@
     "command": "bash tests/e6_d13_comparison_test.sh",
     "count": "PASS=1 FAIL=1",
     "exit_code": 1,
-    "note": "fixtures and test present, compiled scripts/lib/d13-compare.mjs absent",
-    "output_sha256": "4427d22321a469cfd0071497c91686726db2671742f249ca18b32eba984f6de6"
+    "note": "All current fixtures and the exact Bash test are copied into an isolated snapshot; compiled scripts/lib/d13-compare.mjs is absent. Explicit existence-gate red, not behavioral red for every mutation.",
+    "output_sha256": "14308c7a1e8bdefebe2d381bd342bf642e96d3ce34584962c7596c01520c4331",
+    "receipt": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/red-sealed-final.txt",
+    "fixture_inventory_sha256": "6a76ddceb6b849507763c2ca49f1ac0e88836c5ee19d6337d01bc13017a02e43"
   },
   "registry": {
     "generation": "43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
     "id": "northstar-plan-e6-d13-comparison-contract"
   },
   "repository": "skills",
+  "cure": {
+    "predecessor": "2f1432bedb5d5b83b2e164b7f121cd75af6ff84b",
+    "receipt_root": "workspace:.omc/plans/receipts-merge-readiness-20261017/d13-cc-20261020/cure/",
+    "resolution_map": "RESOLUTIONS.md (Architect F1-F11 / Critic F1-F12 / Standards S1)",
+    "exact_head_verification": "final-validation.json; authoritative only once present and bound to the final clean commit",
+    "hosted_verification": "hosted-checks.json; no predecessor-head checks substituted",
+    "local_ci_pins": "124/124 unchanged; no hash maintenance or manifest edit required",
+    "history": "Original red/green receipts remain historical. step09-head-verification.txt names 2349f8596cdaa815c6bfae7fb3407bb4b8159b8e, not the old RECEIPTS.md attribution to 2f1432b.",
+    "holds": [
+      "AC1/O8/coexistence and live admission are not re-observed here",
+      "actual supplier branch feat/e6-d13-cc-01 does not match the frozen policy-derived branch pattern; consumer completion remains held",
+      "independent completion/capture/custody/live-remote qualification and pair re-check remain external",
+      "default Apple Python certificate failures are not fixed in code; validation selects installed Homebrew CPython 3.12.15 via PATH"
+    ]
+  },
   "schema": "e6-evidence/2",
   "scope": [
     ".ai/evidence/e6-d13-cc-01.json",
@@ -186,7 +276,8 @@
     {
       "command": "bash tests/ts_tooling_test.sh",
       "count": "PASS=26 FAIL=0",
-      "exit_code": 0
+      "exit_code": 0,
+      "subject": "pre-commit source-hash-bound result; exact-head rerun in cure/final-validation.json"
     },
     {
       "command": "bash tests/legacy_freeze_test.sh",
@@ -196,9 +287,8 @@
     },
     {
       "command": "bash tests/run-tests.sh",
-      "count": "Shell Script Tests exit 1, Skill Structure Tests pass",
-      "exit_code": 1,
-      "note": "the only failing unit test is tests/readiness_v2_certificate_test.sh, which fails identically on clean origin/main 6ec816c on this host (Apple python injects MANPATH/SDKROOT/LIBRARY_PATH/CPATH; MERGE-RECEIPT-146 residue 1). This PR adds no failure and its own test passes inside the suite."
+      "exit_code": null,
+      "note": "This committed authoring snapshot does not predeclare a full-suite result. The required clean exact-head run is retained in cure/final-run-tests.txt / final-validation.json. The old Apple-Python failure remains historical; both affected focused tests passed with installed Homebrew CPython 3.12.15 without test or wrapper edits."
     },
     {
       "command": "prek run --all-files",

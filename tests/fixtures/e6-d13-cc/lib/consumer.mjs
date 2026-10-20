@@ -1,126 +1,89 @@
-// Synthetic consumer world for --consumer-check. A temporary Git repository
-// carrying the registered generation objects, the contract spec bytes, the
-// merged checker bytes and the digest-bound retained run. Everything here is
-// synthetic: no real approval, publication, capture custody or hosted
-// completion is represented.
+// All objects are synthetic. The publication objects are exact copies of the
+// reviewed immutable inputs; no copied approval or hosted completion is asserted.
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import {
-  GENERATION,
-  GOAL,
-  PLAN,
-  POLICY_PATH,
-  REGISTRY_PATH,
-  SPEC_SHA256,
-  TOOL_PATH,
-  pretty,
-  sha256,
-} from "./world.mjs";
+import { GENERATION, GOAL, PLAN, POLICY_PATH, REGISTRY_PATH, TOOL_PATH, pretty, sha256 } from "./world.mjs";
 
-const GIT_ENV = {
-  ...process.env,
-  GIT_AUTHOR_DATE: "2026-10-19T13:00:00Z",
-  GIT_AUTHOR_EMAIL: "fixture@example.com",
-  GIT_AUTHOR_NAME: "fixture",
-  GIT_COMMITTER_DATE: "2026-10-19T13:00:00Z",
-  GIT_COMMITTER_EMAIL: "fixture@example.com",
-  GIT_COMMITTER_NAME: "fixture",
-};
+export const DRIVER_DIRS = ["04-validate-handoff/autobahn", "02-govern-plan/northstar", "scripts/lib"];
+export const EVIDENCE_PATH = ".ai/evidence/e6-sk-02-v1-port.json";
+export const RUN_DIRECTORY = "tests/fixtures/e6-v1-port/d13/synthetic-run-0001";
+export const RECEIPT_DIRECTORY = "tests/fixtures/e6-v1-port/d13-receipts/synthetic-run-0001";
+const ENV = { ...process.env, GIT_AUTHOR_DATE: "2026-10-19T13:00:00Z", GIT_AUTHOR_EMAIL: "fixture@example.com", GIT_AUTHOR_NAME: "fixture", GIT_COMMITTER_DATE: "2026-10-19T13:00:00Z", GIT_COMMITTER_EMAIL: "fixture@example.com", GIT_COMMITTER_NAME: "fixture" };
 
-function write(path, bytes) {
+export function write(path, bytes) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, bytes);
 }
 
-function git(cwd, args) {
-  const result = spawnSync("git", args, { cwd, encoding: "buffer", env: GIT_ENV });
-  if ((result.status ?? 1) !== 0) {
-    throw new Error(`consumer git ${args.join(" ")} failed: ${String(result.stderr)}`);
-  }
-  return Buffer.isBuffer(result.stdout) ? result.stdout.toString("utf8").trim() : "";
+export function git(cwd, args) {
+  const result = spawnSync("git", args, { cwd, encoding: "buffer", env: ENV });
+  if (result.status !== 0) throw new Error(`synthetic git ${args.join(" ")} failed: ${String(result.stderr)}`);
+  return result.stdout.toString("utf8").trim();
 }
 
-function commit(root, message) {
+export function commit(root, message) {
   git(root, ["add", "-A"]);
-  git(root, ["commit", "-q", "-m", message]);
+  git(root, ["commit", "-q", "--allow-empty", "-m", message]);
   return git(root, ["rev-parse", "HEAD"]);
 }
 
-export function buildConsumer(root, options) {
+function publishInputs(root, source, options) {
+  const registry = JSON.parse(readFileSync(join(source, REGISTRY_PATH), "utf8"));
+  const entry = registry.plans.find((p) => p.plan_id === PLAN);
+  if (options.wrongSpecDigest) entry.spec.sha256 = sha256("wrong spec");
   const bundleDir = `.ai/handoff/readiness-v2/${PLAN}/${GENERATION}`;
-  mkdirSync(root, { recursive: true });
-  git(root, ["init", "-q", "-b", "main", "."]);
-  const policyBytes = Buffer.from(pretty({ repository: { id: "skills" }, schema: "readiness-policy/2" }), "utf8");
-  write(join(root, POLICY_PATH), policyBytes);
-  const baseCommit = commit(root, "synthetic consumer base");
+  cpSync(join(source, bundleDir), join(root, bundleDir), { recursive: true });
+  cpSync(join(source, POLICY_PATH), join(root, POLICY_PATH));
+  write(join(root, entry.spec.path), readFileSync(join(source, entry.spec.path)));
+  // Keep the two-site-plan run inventory while retaining the *exact* comparison
+  // registration; other targets still use the ordinary observation fixtures.
+  write(join(root, REGISTRY_PATH), pretty({ schema: "readiness-contract/2", plans: [entry, { plan_id: "e6-skills-ts-02", generation: "b287e55570671799d43ddf09a2af8c2247a5b7a5e8e6c859e91ed3f0431ed015", status: "active" }] }));
+  return { entry, bundleDir };
+}
 
-  write(join(root, "docs/specifications/ACTIVE/e6-d13-comparison-contract.md"), options.specBytes);
-  write(join(root, TOOL_PATH), options.toolBytes);
-  const goals = Buffer.from(
-    `${JSON.stringify({
-      goals: [{ acceptance_criteria: [], dependencies: [], id: GOAL, scope: [], verification: [] }],
-      id: PLAN,
-      repository: { id: "skills" },
-    })}\n`,
-    "utf8",
-  );
-  const graph = Buffer.from(
-    `${JSON.stringify({ edges: [], nodes: [{ goal: GOAL, id: GOAL }] })}\n`,
-    "utf8",
-  );
-  const handoff = Buffer.from(`# synthetic handoff for ${PLAN}\n`, "utf8");
-  write(join(root, bundleDir, "goals.json"), goals);
-  write(join(root, bundleDir, "graph.json"), graph);
-  write(join(root, bundleDir, "handoff.md"), handoff);
-  const specSha = sha256(options.specBytes);
-  const specDigest = options.wrongSpecDigest === true ? sha256("synthetic wrong registered spec digest") : SPEC_SHA256;
-  const registry = Buffer.from(
-    pretty({
-      plans: [
-        {
-          artifacts: {
-            bundle: { path: `${bundleDir}/goals.json`, sha256: sha256(goals) },
-            graph: { path: `${bundleDir}/graph.json`, sha256: sha256(graph) },
-            handoff: { path: `${bundleDir}/handoff.md`, sha256: sha256(handoff) },
-          },
-          generation: GENERATION,
-          handoff_path: `${bundleDir}/handoff.md`,
-          id: `northstar-plan-${PLAN}`,
-          mode: "live",
-          plan_id: PLAN,
-          policy_sha256: sha256(policyBytes),
-          schema: "readiness-contract/2",
-          spec: { path: "docs/specifications/ACTIVE/e6-d13-comparison-contract.md", sha256: specDigest },
-          status: "active",
-        },
-      ],
-      schema: "readiness/registry/1",
-    }),
-    "utf8",
-  );
-  write(join(root, REGISTRY_PATH), registry);
-  const publication = commit(root, "synthetic contract publication");
-  cpSync(join(options.runTree), join(root, options.runDirectory), { recursive: true });
-  const merge = commit(root, "synthetic goal merge");
-  write(join(root, "CONSUMER-HEAD.md"), "# synthetic consumer head\n");
-  const head = commit(root, "synthetic consumer head");
-  const origin = `${root}.origin.git`;
-  git(root, ["init", "-q", "--bare", origin]);
-  git(root, ["remote", "add", "origin", origin]);
-  git(root, ["update-ref", "refs/remotes/origin/main", head]);
-  git(root, ["config", "branch.main.remote", "origin"]);
-  git(root, ["config", "branch.main.merge", "refs/heads/main"]);
+function supplierMerge(root, source, branch) {
+  git(root, ["checkout", "-q", "-b", branch]);
+  for (const path of DRIVER_DIRS) cpSync(join(source, path), join(root, path), { recursive: true });
+  for (const path of ["tests/e6_d13_comparison_test.sh", "tests/fixtures/e6-d13-cc"]) cpSync(join(source, path), join(root, path), { recursive: true });
+  const prHead = commit(root, "synthetic supplier PR head (not capture)");
+  git(root, ["checkout", "-q", "main"]);
+  write(join(root, "MAIN-NOTE.md"), "synthetic main-side merge parent\n");
+  commit(root, "synthetic main-side change");
+  git(root, ["merge", "-q", "--no-ff", branch, "-m", "synthetic supplier goal merge"]);
+  return { prHead, merge: git(root, ["rev-parse", "HEAD"]) };
+}
 
-  return {
-    baseCommit,
-    bundleDir,
-    head,
-    merge,
-    publication,
-    registry,
-    root,
-    specSha,
-    toolBlob: git(root, ["rev-parse", `${publication}:${TOOL_PATH}`]),
-  };
+// One connected history: exact publication -> distinct supplier PR/merge ->
+// candidate capture -> later evidence-only consumer HEAD. Reference and candidate
+// really are separate clones, and capture is the candidate's actual Git HEAD.
+export function buildConsumer(root, source, world, options = {}) {
+  const reference = world.targets.skills.root;
+  const baseCommit = git(reference, ["rev-parse", "HEAD"]);
+  const published = publishInputs(reference, source, options);
+  const publication = commit(reference, "synthetic exact contract publication");
+  const branch = `feat/${PLAN}-${GOAL}`;
+  const merged = supplierMerge(reference, source, branch);
+  git(reference, ["update-ref", "refs/remotes/origin/main", merged.merge]);
+  // Local upload-pack transport avoids racing loose-object copies on ARM64.
+  git(source, ["clone", "-q", "--no-local", reference, root]);
+  git(root, ["update-ref", "refs/remotes/origin/main", merged.merge]);
+  write(join(root, "CAPTURE-NOTE.md"), "synthetic candidate capture\n");
+  const capture = commit(root, "synthetic candidate capture head");
+  world.targets.skills.revision = merged.merge;
+  world.targets.skills.older = publication;
+  world.lanes.reference.driver_commit = merged.merge;
+  world.lanes.candidate = { driver_root: root, common_dir: git(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"]), driver_commit: capture };
+  return { ...published, ...merged, baseCommit, branch, capture, root, publication, specSha: sha256(readFileSync(join(source, published.entry.spec.path))), toolBlob: git(root, ["rev-parse", `${merged.merge}:${TOOL_PATH}`]) };
+}
+
+export function retainReceipts(repo, completion) {
+  const receipts = {};
+  for (const name of ["collection", "custody", "completion"]) {
+    const path = `${RECEIPT_DIRECTORY}/${name}.json`;
+    const bytes = Buffer.from(pretty(name === "completion" ? completion : { schema: "d13-receipt/1", kind: name, collected_by: "synthetic fixture only" }));
+    write(join(repo.root, path), bytes);
+    receipts[name] = { path, sha256: sha256(bytes) };
+  }
+  return receipts;
 }

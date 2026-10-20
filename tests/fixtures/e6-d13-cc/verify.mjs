@@ -1,6 +1,7 @@
 // Asserts the checker's actual output against the required case table entry.
 // Usage: node verify.mjs <case-plan.json> <tool-stdout-path> <exit>
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 
 function loadJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -40,10 +41,10 @@ function checkConsumer(expect, result, failures) {
   if (wanted.failed !== undefined && JSON.stringify(result.failed) !== JSON.stringify(wanted.failed)) {
     failures.push(`failed ${JSON.stringify(result.failed)} != ${JSON.stringify(wanted.failed)}`);
   }
-  if (wanted.failed_any !== undefined && !wanted.failed_any.some((id) => result.failed.includes(id))) {
-    failures.push(`failed ${JSON.stringify(result.failed)} misses ${JSON.stringify(wanted.failed_any)}`);
+  for (const id of wanted.failed_all ?? []) {
+    if (!result.failed?.includes(id)) failures.push(`required failure ${id} absent: ${JSON.stringify(result.failed)}`);
   }
-  for (const field of ["capture_authenticity", "live_remote_freshness"]) {
+  for (const field of ["capture_authenticity", "live_remote_freshness", "consumer_readiness"]) {
     if (wanted[field] !== undefined && result[field] !== wanted[field]) {
       failures.push(`${field} ${JSON.stringify(result[field])} != ${JSON.stringify(wanted[field])}`);
     }
@@ -53,15 +54,7 @@ function checkConsumer(expect, result, failures) {
   }
 }
 
-function main() {
-  const [planPath, stdoutPath, exitText] = process.argv.slice(2);
-  const plan = loadJson(planPath);
-  const expect = plan.expect ?? {};
-  const actual = Number.parseInt(exitText, 10);
-  const failures = [];
-  if (actual !== expect.exit) {
-    failures.push(`exit ${actual} != ${expect.exit}`);
-  }
+function readResult(stdoutPath, failures) {
   let output = "";
   try {
     output = readFileSync(stdoutPath, "utf8");
@@ -69,6 +62,7 @@ function main() {
     failures.push("checker produced no stdout");
   }
   let parsed = null;
+  if (output === "") failures.push("checker produced empty stdout");
   if (output !== "") {
     try {
       parsed = JSON.parse(output);
@@ -76,6 +70,11 @@ function main() {
       failures.push("stdout is not JSON");
     }
   }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) failures.push("result envelope absent");
+  return { output, parsed };
+}
+
+function checkResult(plan, expect, parsed, failures) {
   if (plan.kind === "consumer") {
     if (parsed !== null && parsed.schema !== "d13-consumer-check/1") {
       failures.push(`schema ${JSON.stringify(parsed.schema)} != d13-consumer-check/1`);
@@ -89,13 +88,35 @@ function main() {
     }
     checkReport(expect, parsed, failures);
   }
+}
+
+function checkMovement(plan, failures) {
+  let movement;
+  const config = plan.environment?.D13_SYNTHETIC_GIT_MOVE ?? plan.env?.D13_SYNTHETIC_GIT_MOVE;
+  if (config) {
+    movement = loadJson(JSON.parse(config).state);
+    if (movement.moved !== true || movement.count < 2) failures.push("fixture did not actually move its Git ref between reads");
+  }
+  return movement;
+}
+
+function main() {
+  const [planPath, stdoutPath, exitText] = process.argv.slice(2);
+  const plan = loadJson(planPath);
+  const expect = plan.expect ?? {};
+  const actual = Number.parseInt(exitText, 10);
+  const failures = [];
+  if (actual !== expect.exit) failures.push(`exit ${actual} != ${expect.exit}`);
+  const { output, parsed } = readResult(stdoutPath, failures);
+  checkResult(plan, expect, parsed, failures);
+  const movement = checkMovement(plan, failures);
   if (failures.length > 0) {
     for (const failure of failures) {
       process.stdout.write(`    ${failure}\n`);
     }
-    process.exit(1);
   }
-  process.exit(0);
+  if (process.env.D13_CASE_RECEIPT) appendFileSync(process.env.D13_CASE_RECEIPT, `${JSON.stringify({ case: plan.case, label: plan.label, exit: actual, expected_exit: expect.exit, verdict: parsed?.verdict, assertions: parsed?.assertions, failed: parsed?.failed, movement, checks: failures, stdout_sha256: createHash("sha256").update(output).digest("hex") })}\n`);
+  process.exit(failures.length > 0 ? 1 : 0);
 }
 
 main();

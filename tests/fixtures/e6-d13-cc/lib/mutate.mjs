@@ -231,6 +231,68 @@ export const MUTATIONS = {
       }
     }
   },
+  R01: (model) => {
+    for (const [index, lane] of ["reference", "candidate"].entries()) {
+      const site = findSite(model, `${lane}/skills/${PLANS[0]}/${AUDIT}`);
+      const offset = site.stdout.indexOf("2026-");
+      site.stdout[offset] = 0x80 + index;
+    }
+  },
+  R02: (model) => {
+    const site = findSite(model, `candidate/skills/${PLANS[0]}/${AUDIT}`);
+    rewriteStdout(site, (text) => text.replace('"provenance": ', '"\\u0070rovenance"\t :\t'));
+  },
+  R03: (model) => {
+    for (const lane of ["reference", "candidate"]) rewriteStdout(findSite(model, `${lane}/skills/${PLANS[0]}/${AUDIT}`), (text) => text.replace('  "target_revision"', '  "schema": "unknown-schema",\n  "target_revision"'));
+  },
+  R04: (model) => {
+    for (const lane of ["reference", "candidate"]) rewriteStdout(findSite(model, `${lane}/skills/${PLANS[0]}/${AUDIT}`), (text) => text.replace('  "findings": [],', '  "findings": [],\n  "findings": [],'));
+  },
+  R05: (model) => {
+    for (const lane of ["reference", "candidate"]) rewriteStdout(findSite(model, `${lane}/ai-factory/${PLANS[0]}/${EXPORT}`), (text) => text.replace('{\n', '{\n  "invalid": NaN,\n'));
+  },
+  R06: (model) => { findSite(model, `candidate/ai-factory/${PLANS[0]}/${EXPORT}`).files.after["evidence/hidden.txt"] = Buffer.from("unmapped drift\n"); },
+  R07: (model) => {
+    for (const site of model.sites.filter((s) => s.operation === EXPORT && s.meta.exit === 0)) {
+      site.files = { before: {}, after: {} }; site.meta.written = {}; site.meta.written_before = {};
+    }
+  },
+  R08: (model) => { for (const site of model.sites.filter((s) => s.operation === EXPORT)) { site.meta.written = {}; site.meta.written_before = {}; } },
+  R09: (model) => {
+    model.lanes.targets[0].root = "/nonexistent/synthetic/target";
+    for (const site of model.sites.filter((s) => s.repository === "skills")) site.meta.argv[4] = model.lanes.targets[0].root;
+  },
+  R10: (model) => {
+    // Commit objects and cwd are unchanged; only the requested fully-qualified
+    // ref differs. Re-record real Git responses, not an injected pass flag.
+    model.lanes.targets[0].ref = "refs/heads/main";
+  },
+  R11: (model) => { model.observation.lanes_sha256 = "0".repeat(64); },
+  R12: (model) => { model.observation.commands[0].cwd = "/nonexistent/synthetic/cwd"; },
+  R13: (model) => { model.observation.commands[0].stderr = Buffer.from("not the observed stderr\n").toString("base64"); },
+  R14: (model) => { for (const site of model.sites) { site.meta.started_at = "invalid"; site.meta.finished_at = "invalid"; } },
+  R15: (model) => {
+    for (const lane of ["reference", "candidate"]) rewriteStdout(findSite(model, `${lane}/skills/${PLANS[0]}/${AUDIT}`), (text) => text.replace('{\n', '{\n  "generation": "wrong-generation",\n'));
+  },
+  R16: (model) => { for (const site of model.sites.filter((s) => s.operation === EXPORT && s.repository === "ai-factory")) { site.meta.exit = 0; site.exit = 0; } },
+  R17: (model) => { delete findSite(model, `candidate/ai-factory/${PLANS[0]}/${EXPORT}`).files.after["evidence/log.mdl"]; },
+  R18: (model) => { for (const site of model.sites.filter((s) => s.operation === EXPORT)) { site.meta.log_before = "invalid"; site.meta.log_after = "invalid"; } },
+  R19: (model) => { model.observation.commands[0].stdout += "!"; },
+  R20: (model) => {
+    for (const lane of ["reference", "candidate"]) rewriteStdout(findSite(model, `${lane}/skills/${PLANS[0]}/${AUDIT}`), (text) => text.replace('"merged_at": "', '"merged_at": "é🧭'));
+  },
+  R22: (model) => { model.extraMetadata = true; },
+  R23: (model) => {
+    model.lanes.candidate.driver_root = "/nonexistent/synthetic/candidate";
+    for (const site of model.sites.filter((s) => s.lane === "candidate")) site.meta.cwd = model.lanes.candidate.driver_root;
+  },
+  R24: (model) => { findSite(model, `candidate/skills/${PLANS[0]}/${EXPORT}`).meta.written["evidence/log.mdl"] = "invalid-digest"; },
+  R25: (model) => { findSite(model, `candidate/skills/${PLANS[0]}/${AUDIT}`).meta.log_before = { sha256: null, lines: 0 }; },
+  R26: (model) => { Object.defineProperty(findSite(model, `candidate/ai-factory/${PLANS[0]}/${EXPORT}`).files.after, "__proto__", { value: Buffer.from("unmapped reserved-name snapshot\n"), enumerable: true }); },
+  R27: (model) => {
+    model.lanes.targets[0].target = "other"; model.lanes.targets[0].ref = "main";
+    for (const site of model.sites.filter((s) => s.repository === "skills")) site.meta.argv[6] = "other";
+  },
 };
 
 function replace(model, site) {
@@ -248,6 +310,8 @@ function resequence(model) {
 
 function genericRefusal(site, code, detail) {
   site.stdout = Buffer.from(pretty({ code, detail, schema: "readiness-contract/2" }), "utf8");
+  site.exit = 2;
+  site.meta.exit = 2;
 }
 
 export function applyMutations(model, mutations) {

@@ -164,7 +164,7 @@ export function buildWorld(world, options = {}) {
   if (options.linkedCandidate) {
     gitOk(targets.skills.root, ["worktree", "add", "-q", "-b", "candidate", candidate, "main"]);
   } else {
-    gitOk(world, ["clone", "-q", "--no-hardlinks", targets.skills.root, candidate]);
+    gitOk(world, ["clone", "-q", "--no-local", targets.skills.root, candidate]);
   }
   write(join(candidate, "port/synthetic-lane-note.md"), "synthetic candidate lane commit\n");
   commitTree(candidate);
@@ -271,6 +271,7 @@ function argvFor(world, site) {
 }
 
 function writtenFiles(site) {
+  if (site.operation === "audit-merges") return { before: {}, after: {} };
   const before = {
     "evidence/log.mdl": Buffer.from(`synthetic log before ${site.plan} ${site.operation}\n`, "utf8"),
   };
@@ -328,16 +329,30 @@ export function buildRunModel(world, options = {}) {
   };
   for (const repository of REPOS) {
     model.registries[repository] = registryBytesWithPlans(repository, options.registryPlans ?? PLANS.length);
-    model.policies[repository] = policyBytes(repository);
+    const target = model.lanes.targets.find((t) => t.repository === repository);
+    model.policies[repository] = committedBytes(target.root, target.revision, POLICY_PATH);
+    if (options.olderRevision === repository) model.registries[repository] = committedBytes(target.root, target.revision, REGISTRY_PATH);
   }
-  let sequence = 0;
-  for (const site of sites) {
-    sequence += 1;
-    const started = T0 + (sequence - 1) * 60000;
-    const exportSite = site.operation === "export-evidence";
-    const files = writtenFiles(site);
-    const exit = isRefusalExport(site) ? 2 : 0;
-    model.sites.push({
+  model.sites = sites.filter((site) => registeredSite(model, site)).map((site, index) => captureFor(world, site, index + 1, model.lanes.targets.find((t) => t.repository === site.repository).revision));
+  return model;
+}
+
+function committedBytes(root, revision, path) {
+  const result = git(root, ["cat-file", "blob", `${revision}:${path}`]);
+  if (result.status !== 0) throw new Error(`synthetic committed input unavailable: ${revision}:${path}`);
+  return result.stdout;
+}
+
+function registeredSite(model, site) {
+  return JSON.parse(model.registries[site.repository]).plans.some((plan) => plan.plan_id === site.plan);
+}
+
+function captureFor(world, site, sequence, revision) {
+  const started = T0 + (sequence - 1) * 60000;
+  const exportSite = site.operation === "export-evidence";
+  const files = writtenFiles(site);
+  const exit = isRefusalExport(site) ? 2 : 0;
+  return {
       ...site,
       exit,
       meta: {
@@ -355,11 +370,9 @@ export function buildRunModel(world, options = {}) {
         written_before: exportSite ? mapOf(files.before) : null,
       },
       files,
-      stdout: Buffer.from(pretty(envelopeFor(world, site)), "utf8"),
+      stdout: Buffer.from(pretty(envelopeFor(world, site, site.operation === "audit-merges" ? { target_revision: revision } : {})), "utf8"),
       stderr: Buffer.from(`synthetic ${site.operation} for ${site.repository}\n`, "utf8"),
-    });
-  }
-  return model;
+  };
 }
 
 export function siteKey(site) {
@@ -388,15 +401,19 @@ export function recordObservation(model, options = {}) {
   const commands = [];
   for (const target of model.lanes.targets) {
     for (const phase of ["start", "finish"]) {
+      if (phase === "finish" && options.finishRevision && target.repository === "skills") {
+        gitOk(target.root, ["update-ref", target.ref, model.world.targets.skills.older]);
+      }
       for (const args of IDENTITY_READS) {
         commands.push(observationCommand(target.root, args, `target:${target.repository}`, phase));
       }
       commands.push(observationCommand(target.root, ["rev-parse", "--verify", `${target.ref}^{commit}`], `target:${target.repository}`, phase));
     }
+    if (options.finishRevision && target.repository === "skills") gitOk(target.root, ["update-ref", target.ref, model.world.targets.skills.revision]);
     commands.push(observationCommand(target.root, ["cat-file", "-e", `${target.revision}^{commit}`], `target:${target.repository}`, "start"));
     for (const path of [POLICY_PATH, REGISTRY_PATH]) {
-      commands.push(observationCommand(target.root, ["rev-parse", `${target.ref}:${path}`], `target:${target.repository}`, "start"));
-      const blob = gitOk(target.root, ["rev-parse", `${target.ref}:${path}`]);
+      commands.push(observationCommand(target.root, ["rev-parse", `${target.revision}:${path}`], `target:${target.repository}`, "start"));
+      const blob = gitOk(target.root, ["rev-parse", `${target.revision}:${path}`]);
       commands.push(observationCommand(target.root, ["cat-file", "blob", blob], `target:${target.repository}`, "start"));
     }
   }
@@ -405,14 +422,6 @@ export function recordObservation(model, options = {}) {
       commands.push(observationCommand(model.lanes[lane].driver_root, ["rev-parse", "--show-toplevel"], `lane:${lane}`, phase));
       commands.push(observationCommand(model.lanes[lane].driver_root, ["rev-parse", "--path-format=absolute", "--git-common-dir"], `lane:${lane}`, phase));
       commands.push(observationCommand(model.lanes[lane].driver_root, ["rev-parse", "HEAD"], `lane:${lane}`, phase));
-    }
-  }
-  if (options.finishRevision && model.lanes.targets[0] !== undefined) {
-    const subject = "target:skills";
-    for (const command of commands) {
-      if (command.subject === subject && command.phase === "finish" && command.argv.includes("--verify")) {
-        command.stdout = Buffer.from(`${options.finishRevision}\n`, "utf8").toString("base64");
-      }
     }
   }
   return { commands, lanes_sha256: sha256(compact(model.lanes)), schema: "d13-local-observation/1" };
@@ -463,6 +472,7 @@ export function materializeRun(model, dir) {
       }
     }
   }
+  if (model.extraMetadata) write(join(dir, "extra-meta.json"), "{}\n");
   write(join(dir, "raw-manifest.json"), manifestBytes(dir));
   return dir;
 }

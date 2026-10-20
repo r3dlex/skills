@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
-import { join, resolve, sep } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { assertNodeVersion } from "./node-version.mjs";
 import { invokedDirectly } from "./invoked.mjs";
 import { run, text } from "./proc.mjs";
@@ -69,6 +69,7 @@ const HEX40 = /^[0-9a-f]{40}$/;
 const HEX64 = /^[0-9a-f]{64}$/;
 
 class Malformed extends Error {}
+class Inconsistent extends Error {}
 
 // ---------- canonical JSON and digests ----------
 
@@ -77,7 +78,7 @@ function sortDeep(value: Json): Json {
     return value.map(sortDeep);
   }
   if (value !== null && typeof value === "object") {
-    const out: Row = {};
+    const out: Row = Object.create(null) as Row;
     const source = value;
     for (const key of Object.keys(source).sort()) {
       const child = source[key];
@@ -98,7 +99,7 @@ export function sha256Hex(bytes: Buffer): string {
 
 function parseJson(bytes: Buffer): Json {
   try {
-    return JSON.parse(bytes.toString("utf8")) as Json;
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes)) as Json;
   } catch {
     return null;
   }
@@ -305,6 +306,7 @@ function scanMembers(source: string): Member[] {
 
 function membersOrNull(source: string): Member[] | null {
   try {
+    if (asRow(JSON.parse(source) as Json) === null) return null;
     return scanMembers(source);
   } catch {
     return null;
@@ -332,9 +334,7 @@ function invalidEnvelope(bytes: Buffer, failure: string): Envelope {
 }
 
 function exactSpan(source: string, member: Member): boolean {
-  const leading = source.slice(member.lineStart, member.keyStart);
-  const trailing = source.slice(member.tokenEnd, member.lineEnd);
-  return /^[ ]*$/.test(leading) && trailing === "," + "\n";
+  return source.slice(member.lineStart, member.lineEnd) === `  "provenance": "${member.value}",\n`;
 }
 
 function provenanceProjection(source: string, bytes: Buffer, members: Member[]): Envelope {
@@ -342,7 +342,7 @@ function provenanceProjection(source: string, bytes: Buffer, members: Member[]):
   if (found.length === 0) {
     return invalidEnvelope(bytes, "provenance-expected");
   }
-  if (found.length > 1) {
+  if (new Set(members.map((entry) => entry.key)).size !== members.length) {
     return invalidEnvelope(bytes, "projection-unique");
   }
   const member = found[0];
@@ -352,17 +352,21 @@ function provenanceProjection(source: string, bytes: Buffer, members: Member[]):
   if (!exactSpan(source, member)) {
     return invalidEnvelope(bytes, "projection-unique");
   }
-  const projected = `${source.slice(0, member.lineStart)}${source.slice(member.lineEnd)}`;
+  // The walk uses validated Unicode indices; convert only its boundaries to
+  // byte offsets. Never decode/re-encode any bytes which remain compared.
+  const start = Buffer.byteLength(source.slice(0, member.lineStart), "utf8");
+  const end = Buffer.byteLength(source.slice(0, member.lineEnd), "utf8");
   return {
     failure: "",
     kind: "projected",
-    projection: Buffer.from(projected, "utf8"),
+    projection: Buffer.concat([bytes.subarray(0, start), bytes.subarray(end)]),
     provenance: member.value,
     schema: stringMember(members, "schema"),
   };
 }
 
 function classifyStdout(bytes: Buffer): Envelope {
+  if (asRow(parseJson(bytes)) === null) return invalidEnvelope(bytes, "envelope-schema");
   const source = bytes.toString("utf8");
   const members = membersOrNull(source);
   if (members === null) {
@@ -370,6 +374,7 @@ function classifyStdout(bytes: Buffer): Envelope {
   }
   const schema = stringMember(members, "schema");
   if (schema === CONTRACT.refusal_schema) {
+    if (new Set(members.map((member) => member.key)).size !== members.length) return invalidEnvelope(bytes, "envelope-schema");
     return { bytes, code: stringMember(members, "code"), failure: "", kind: "refusal", schema };
   }
   if (!CONTRACT.projected_schemas.includes(schema)) {
@@ -398,6 +403,8 @@ function walkFiles(dir: string, prefix: string, files: Map<string, Buffer>): voi
       walkFiles(full, rel, files);
     } else if (entry.isFile()) {
       files.set(rel, readFileSync(full));
+    } else {
+      throw new Malformed(`nonregular_input:${rel}`);
     }
   }
 }
@@ -430,12 +437,11 @@ function rowFields(row: Json): RowFields {
 function recordRow(files: Map<string, Buffer>, row: Json, inputs: Row, listed: Set<string>): void {
   const fields = rowFields(row);
   const actual = files.get(fields.path);
-  if (fields.sha256 === "" || fields.path === "" || listed.has(fields.path)) {
+  if (!HEX64.test(fields.sha256) || !safeRelative(fields.path) || listed.has(fields.path) || !/^\d+$/.test(fields.bytes)) {
     throw new Malformed("raw_manifest_row");
   }
-  if (actual === undefined || actual.length !== Number(fields.bytes) || sha256Hex(actual) !== fields.sha256) {
-    throw new Malformed(`raw_manifest_mismatch:${fields.path}`);
-  }
+  if (actual === undefined) throw new Malformed(`raw_manifest_missing_input:${fields.path}`);
+  if (actual.length !== Number(fields.bytes) || sha256Hex(actual) !== fields.sha256) throw new Inconsistent(`raw_manifest_mismatch:${fields.path}`);
   listed.add(fields.path);
   inputs[fields.path] = fields.sha256;
 }
@@ -450,9 +456,12 @@ function readRun(dir: string): RawRun {
   if (manifestBytes === undefined) {
     throw new Malformed("raw_manifest_missing");
   }
-  const inputs: Row = {};
+  const inputs: Row = Object.create(null) as Row;
   const listed = new Set<string>();
-  for (const row of manifestRows(manifestBytes)) {
+  const rows = manifestRows(manifestBytes);
+  const paths = rows.map((row) => rowFields(row).path);
+  if (JSON.stringify(paths) !== JSON.stringify([...paths].sort())) throw new Malformed("raw_manifest_unsorted");
+  for (const row of rows) {
     recordRow(files, row, inputs, listed);
   }
   files.delete("raw-manifest.json");
@@ -521,6 +530,7 @@ interface Capture {
   envelope: Envelope;
   lane: string;
   meta: CaptureMeta;
+  meta_bytes: Buffer;
   operation: string;
   plan_id: string;
   repository: string;
@@ -532,6 +542,7 @@ interface Capture {
 
 interface Site {
   captures: Map<string, Capture>;
+  generation: string;
   operation: string;
   plan_id: string;
   repository: string;
@@ -544,7 +555,7 @@ function laneInfo(value: Json | undefined, label: string): LaneInfo {
     driver_commit: asText(row.driver_commit),
     driver_root: asText(row.driver_root),
   };
-  if (row === null || !filled({ ...info }) || !HEX40.test(info.driver_commit)) {
+  if (!filled({ ...info }) || !HEX40.test(info.driver_commit) || !isAbsolute(info.driver_root) || !isAbsolute(info.common_dir)) {
     throw new Malformed(`lanes_lane:${label}`);
   }
   return info;
@@ -563,7 +574,7 @@ function targetInfo(entry: Json): TargetInfo | null {
     root: asText(row.root),
     target: asText(row.target),
   };
-  return filled({ ...target }) && HEX40.test(target.revision) ? target : null;
+  return filled({ ...target }) && HEX40.test(target.revision) && isAbsolute(target.root) && isAbsolute(target.common_dir) ? target : null;
 }
 
 function readLanes(run: RawRun): Lanes {
@@ -579,6 +590,7 @@ function readLanes(run: RawRun): Lanes {
     }
     targets.push(target);
   }
+  if (new Set(targets.map((target) => target.repository)).size !== targets.length) throw new Malformed("duplicate_target");
   return { candidate: laneInfo(lanes.candidate, "candidate"), reference: laneInfo(lanes.reference, "reference"), targets };
 }
 
@@ -598,33 +610,49 @@ function metaShapeOk(row: Row | null): boolean {
   }
   const exit = row.exit;
   const sequence = row.sequence;
-  if (typeof exit !== "number" || !Number.isInteger(exit)) {
+  if (typeof exit !== "number" || !Number.isSafeInteger(exit)) {
     return false;
   }
-  if (typeof sequence !== "number" || !Number.isInteger(sequence) || sequence <= 0) {
+  if (typeof sequence !== "number" || !Number.isSafeInteger(sequence) || sequence <= 0) {
     return false;
   }
   const strings = ["cwd", "driver_commit", "started_at", "finished_at"];
-  return strings.every((key) => asText(row[key]) !== "");
+  return [strings.every((key) => asText(row[key]) !== ""), asList(row.argv).every((arg) => typeof arg === "string"), HEX40.test(asText(row.driver_commit))].every(Boolean);
+}
+
+function logShape(value: Json | undefined): boolean {
+  const row = asRow(value);
+  if (row === null || typeof row.lines !== "number" || !Number.isSafeInteger(row.lines) || row.lines < 0) return false;
+  if (Object.keys(row).sort().join(",") !== "lines,sha256") return false;
+  return row.sha256 === null ? row.lines === 0 : HEX64.test(asText(row.sha256));
+}
+
+function mapShape(value: Json | undefined): boolean {
+  const row = asRow(value);
+  return row !== null && Object.entries(row).every(([path, digest]) => safeRelative(path) && HEX64.test(asText(digest)));
+}
+
+function operationMetaShape(row: Row, operation: string): boolean {
+  const logs = [row.log_before, row.log_after];
+  const maps = [row.written_before, row.written];
+  return operation === "audit-merges" ? [...logs, ...maps].every((value) => value === null) : logs.every(logShape) && maps.every(mapShape);
 }
 
 function readCaptureMeta(run: RawRun, base: string): CaptureMeta {
   const row = asRow(readJsonInput(run, `${base}/meta.json`));
-  if (!metaShapeOk(row)) {
+  if (!metaShapeOk(row) || row === null || !operationMetaShape(row, base.split("/").pop() || "")) {
     throw new Malformed(`capture_meta:${base}`);
   }
   return row as unknown as CaptureMeta;
 }
 
-function writtenNamesFor(run: RawRun, base: string, phase: string): string[] {
-  const map = asRow(readJsonInput(run, `${base}/meta.json`));
-  if (map === null) {
-    return [];
+function writtenFilesFor(run: RawRun, base: string, phase: string): Row {
+  const prefix = `${base}/written-${phase}/`;
+  const files: Row = Object.create(null) as Row;
+  for (const path of [...run.files.keys()].sort()) {
+    if (path.startsWith(prefix)) files[path.slice(prefix.length)] = sha256Hex(readBytes(run, path));
   }
-  const meta = map as unknown as CaptureMeta;
-  const source = phase === "before" ? meta.written_before : meta.written;
-  const entry = asRow(source);
-  return entry === null ? [] : Object.keys(entry).sort();
+  return files;
 }
 
 function readCapture(run: RawRun, lane: string, repository: string, plan: string, operation: string): Capture | null {
@@ -633,26 +661,19 @@ function readCapture(run: RawRun, lane: string, repository: string, plan: string
     return null;
   }
   const meta = readCaptureMeta(run, base);
-  const after = new Map<string, string>();
-  for (const name of writtenNamesFor(run, base, "after")) {
-    after.set(name, sha256Hex(readBytes(run, `${base}/written-after/${name}`)));
-  }
-  const before = new Map<string, string>();
-  for (const name of writtenNamesFor(run, base, "before")) {
-    before.set(name, sha256Hex(readBytes(run, `${base}/written-before/${name}`)));
-  }
   const stdout = readBytes(run, `${base}/stdout`);
   return {
     envelope: classifyStdout(stdout),
     lane,
     meta,
+    meta_bytes: readBytes(run, `${base}/meta.json`),
     operation,
     plan_id: plan,
     repository,
     stderr: readBytes(run, `${base}/stderr`),
     stdout,
-    written_after_files: Object.fromEntries(after),
-    written_before_files: Object.fromEntries(before),
+    written_after_files: writtenFilesFor(run, base, "after"),
+    written_before_files: writtenFilesFor(run, base, "before"),
   };
 }
 
@@ -696,6 +717,7 @@ function parseRegistry(bytes: Buffer): RegistryPlan[] | null {
     }
     plans.push(plan);
   }
+  if (new Set(plans.map((plan) => plan.plan_id)).size !== plans.length) return null;
   return plans;
 }
 
@@ -726,7 +748,7 @@ function enumerateSites(run: RawRun, lanes: Lanes): Site[] {
             captures.set(lane, capture);
           }
         }
-        sites.push({ captures, operation, plan_id: plan.plan_id, repository: target.repository });
+        sites.push({ captures, generation: plan.generation, operation, plan_id: plan.plan_id, repository: target.repository });
       }
     }
   }
@@ -877,8 +899,22 @@ interface Observation {
 
 type Commands = Map<string, RecordedCommand>;
 
+function localGit(cwd: string, args: ReadonlyArray<string>): ReturnType<typeof run> {
+  // Object reads in a partial clone must fail locally, not lazily fetch. Ignore
+  // replacement objects so reported commit/blob identities name their own bytes.
+  return run("git", args, cwd, { ...process.env, GIT_NO_LAZY_FETCH: "1", GIT_TERMINAL_PROMPT: "0", GIT_OPTIONAL_LOCKS: "0", GIT_NO_REPLACE_OBJECTS: "1" });
+}
+
 function commandKey(phase: string, subject: string, argv: ReadonlyArray<string>): string {
-  return `${phase}|${subject}|${argv.join(" ")}`;
+  return JSON.stringify([phase, subject, argv]);
+}
+
+function base64Ok(value: Json | undefined): boolean {
+  return typeof value === "string" && Buffer.from(value, "base64").toString("base64") === value;
+}
+
+function commandShape(entry: Row): boolean {
+  return Number.isInteger(entry.exit) && base64Ok(entry.stdout) && base64Ok(entry.stderr) && PHASES.includes(asText(entry.phase)) && isAbsolute(asText(entry.cwd));
 }
 
 function parseCommand(row: Json): RecordedCommand | null {
@@ -886,9 +922,10 @@ function parseCommand(row: Json): RecordedCommand | null {
   const argv = asList(entry?.argv);
   const phase = asText(entry?.phase);
   const subject = asText(entry?.subject);
-  if (entry === null || argv.length === 0 || phase === "" || subject === "" || typeof entry.exit !== "number") {
+  if (entry === null || argv.length === 0 || subject === "" || typeof entry.exit !== "number" || !commandShape(entry)) {
     return null;
   }
+  if (!argv.every((arg) => typeof arg === "string")) return null;
   return {
     argv: argv.map((item) => asText(item)),
     cwd: asText(entry.cwd),
@@ -903,7 +940,7 @@ function parseCommand(row: Json): RecordedCommand | null {
 function readCommands(run: RawRun): Commands {
   const value = asRow(readJsonInput(run, "observation.json"));
   const rows = asList(value?.commands);
-  if (value === null || value.schema !== OBSERVATION_SCHEMA || typeof value.lanes_sha256 !== "string") {
+  if (value === null || value.schema !== OBSERVATION_SCHEMA || !HEX64.test(asText(value.lanes_sha256)) || !Array.isArray(value.commands)) {
     throw new Malformed("observation_schema");
   }
   const map: Commands = new Map();
@@ -931,13 +968,15 @@ function stdoutBytes(commands: Commands, phase: string, subject: string, argv: R
 
 function stdoutOf(commands: Commands, phase: string, subject: string, argv: ReadonlyArray<string>): string {
   const bytes = stdoutBytes(commands, phase, subject, argv);
-  return bytes === null ? "" : bytes.toString("utf8").trim();
+  if (bytes === null) return "";
+  const decoded = bytes.toString("utf8");
+  return Buffer.from(decoded, "utf8").equals(bytes) && /^[^\r\n]+\n$/.test(decoded) ? decoded.slice(0, -1) : "";
 }
 
 function reader(commands: Commands, subject: string, problems: string[]): (phase: string, argv: ReadonlyArray<string>) => string {
   return (phase, argv) => {
     const value = stdoutOf(commands, phase, subject, ["git", ...argv]);
-    if (stdoutBytes(commands, phase, subject, ["git", ...argv]) === null) {
+    if (value === "") {
       problems.push(`${phase}:${argv.join(" ")}`);
     }
     return value;
@@ -949,7 +988,9 @@ function blobDigest(commands: Commands, subject: string, blob: string): string {
     return "";
   }
   const bytes = stdoutBytes(commands, "start", subject, ["git", "cat-file", "blob", blob]);
-  return bytes === null ? "" : sha256Hex(bytes);
+  if (bytes === null || !HEX40.test(blob)) return "";
+  const actual = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
+  return actual === blob ? sha256Hex(bytes) : "";
 }
 
 function movementProblems(target: TargetInfo, observed: TargetObserved): string[] {
@@ -969,7 +1010,17 @@ function movementProblems(target: TargetInfo, observed: TargetObserved): string[
   if (observed.common_start !== target.common_dir) {
     found.push(`common_dir_mismatch:${target.repository}`);
   }
+  if (observed.toplevel_start !== target.root) found.push(`root_mismatch:${target.repository}`);
+  if (target.target === "main" && target.ref !== "refs/remotes/origin/main") found.push("wrong_main_ref");
+  if (!literalRef(target.ref)) found.push("ref_not_fully_qualified");
   return found;
+}
+
+function literalRef(ref: string): boolean {
+  if (!ref.startsWith("refs/") || !safeRelative(ref)) return false;
+  const special = /[~^:?*[\]\\\s]/u.test(ref);
+  const components = ref.split("/");
+  return !special && !ref.includes("..") && !ref.includes("@{") && !ref.includes(String.fromCharCode(127)) && !ref.endsWith(".") && components.every((part) => !part.startsWith(".") && !part.endsWith(".lock"));
 }
 
 function targetIdentityKeys(target: TargetInfo, phase: string): string[] {
@@ -992,12 +1043,12 @@ function observeTarget(commands: Commands, target: TargetInfo): TargetObserved {
   const observed: TargetObserved = {
     common_finish: read("finish", ["rev-parse", "--path-format=absolute", "--git-common-dir"]),
     common_start: read("start", ["rev-parse", "--path-format=absolute", "--git-common-dir"]),
-    policy_blob: read("start", ["rev-parse", `${target.ref}:${CONTRACT.policy_path}`]),
+    policy_blob: read("start", ["rev-parse", `${target.revision}:${CONTRACT.policy_path}`]),
     policy_sha256: "",
     problems,
     ref_finish: read("finish", ["rev-parse", "--verify", `${target.ref}^{commit}`]),
     ref_start: read("start", ["rev-parse", "--verify", `${target.ref}^{commit}`]),
-    registry_blob: read("start", ["rev-parse", `${target.ref}:${CONTRACT.registry_path}`]),
+    registry_blob: read("start", ["rev-parse", `${target.revision}:${CONTRACT.registry_path}`]),
     registry_sha256: "",
     repository: target.repository,
     toplevel_finish: read("finish", ["rev-parse", "--show-toplevel"]),
@@ -1005,6 +1056,7 @@ function observeTarget(commands: Commands, target: TargetInfo): TargetObserved {
   };
   observed.policy_sha256 = blobDigest(commands, subject, observed.policy_blob);
   observed.registry_sha256 = blobDigest(commands, subject, observed.registry_blob);
+  if (observed.policy_sha256 === "" || observed.registry_sha256 === "") problems.push("blob_response_invalid");
   observed.problems.push(...movementProblems(target, observed));
   return observed;
 }
@@ -1022,7 +1074,7 @@ function observeLane(commands: Commands, lane: string): LaneObserved {
     toplevel_finish: read("finish", ["rev-parse", "--show-toplevel"]),
     toplevel_start: read("start", ["rev-parse", "--show-toplevel"]),
   };
-  if (observed.common_start !== observed.common_finish || observed.head_start !== observed.head_finish) {
+  if (observed.common_start !== observed.common_finish || observed.head_start !== observed.head_finish || observed.toplevel_start !== observed.toplevel_finish) {
     problems.push("lane_moved");
   }
   return observed;
@@ -1042,8 +1094,8 @@ function targetKeys(target: TargetInfo, observed: TargetObserved | undefined): s
     keys.push(...targetIdentityKeys(target, phase));
   }
   keys.push(commandKey("start", subject, ["git", "cat-file", "-e", `${target.revision}^{commit}`]));
-  keys.push(commandKey("start", subject, ["git", "rev-parse", `${target.ref}:${CONTRACT.policy_path}`]));
-  keys.push(commandKey("start", subject, ["git", "rev-parse", `${target.ref}:${CONTRACT.registry_path}`]));
+  keys.push(commandKey("start", subject, ["git", "rev-parse", `${target.revision}:${CONTRACT.policy_path}`]));
+  keys.push(commandKey("start", subject, ["git", "rev-parse", `${target.revision}:${CONTRACT.registry_path}`]));
   keys.push(...blobKeys(target, [asText(observed?.policy_blob), asText(observed?.registry_blob)]));
   return keys;
 }
@@ -1067,7 +1119,7 @@ function requiredKeys(lanes: Lanes, targets: Map<string, TargetObserved>): strin
       keys.push(...laneKeys(lane, phase));
     }
   }
-  return [...new Set(keys)].sort();
+  return [...new Set(keys)];
 }
 
 function commandSetProblems(commands: Commands, keys: ReadonlyArray<string>): string[] {
@@ -1085,16 +1137,45 @@ function commandSetProblems(commands: Commands, keys: ReadonlyArray<string>): st
   return problems;
 }
 
-function liveMismatch(commands: Commands, keys: ReadonlyArray<string>, problems: string[]): void {
-  for (const key of keys) {
+function subjectRoot(lanes: Lanes, subject: string): string {
+  if (subject.startsWith("lane:")) return laneOf(lanes, subject.slice(5)).driver_root;
+  return lanes.targets.find((target) => `target:${target.repository}` === subject)?.root || "";
+}
+
+function physicalIdentity(path: string): boolean {
+  try { return isAbsolute(path) && realpathSync(path) === path; } catch { return false; }
+}
+
+function commandResponses(commands: Commands, lanes: Lanes): string[] {
+  const problems: string[] = [];
+  for (const [key, command] of commands) {
+    if (command.cwd !== subjectRoot(lanes, command.subject)) problems.push(`cwd_mismatch:${key}`);
+    if (command.exit !== 0 || command.stderr !== "") problems.push(`required_read_failed:${key}`);
+    if (command.argv.includes("-e") && command.stdout !== "") problems.push(`commit_response_invalid:${key}`);
+  }
+  return problems;
+}
+
+function liveProblem(key: string, command: RecordedCommand, targets: Map<string, TargetObserved>, problems: string[]): void {
+  problems.push(`live_mismatch:${key}`);
+  const target = targets.get(command.subject.replace(/^target:/, ""));
+  if (target === undefined) return;
+  if (command.argv.includes("--verify")) target.problems.push("ref_moved");
+  else target.problems.push(`live_identity_mismatch:${key}`);
+}
+
+function liveMismatch(commands: Commands, keys: ReadonlyArray<string>, lanes: Lanes, targets: Map<string, TargetObserved>, problems: string[]): void {
+  const ordered = PHASES.flatMap((phase) => keys.filter((key) => commands.get(key)?.phase === phase));
+  for (const key of ordered) {
     const command = commands.get(key);
     if (command === undefined) {
       continue;
     }
-    const result = run(command.argv[0] || "git", command.argv.slice(1), command.cwd);
-    const expected = Buffer.from(command.stdout, "base64").toString("utf8");
-    if (result.status !== command.exit || text(result.stdout) !== expected) {
-      problems.push(`live_mismatch:${key}`);
+    const cwd = subjectRoot(lanes, command.subject);
+    if (!physicalIdentity(cwd)) { problems.push(`live_root_not_physical:${key}`); continue; }
+    const result = localGit(cwd, command.argv.slice(1));
+    if (result.status !== command.exit || !result.stdout.equals(Buffer.from(command.stdout, "base64")) || !result.stderr.equals(Buffer.from(command.stderr, "base64"))) {
+      liveProblem(key, command, targets, problems);
     }
   }
 }
@@ -1104,7 +1185,7 @@ function laneMetadataProblems(lanes: Lanes, rows: Map<string, LaneObserved>): st
   for (const lane of LANES) {
     const observed = rows.get(lane);
     const info = laneOf(lanes, lane);
-    if (observed === undefined || observed.common_start !== info.common_dir || observed.head_start !== info.driver_commit) {
+    if (observed === undefined || observed.common_start !== info.common_dir || observed.head_start !== info.driver_commit || observed.toplevel_start !== info.driver_root) {
       problems.push(`lane_metadata:${lane}`);
     }
   }
@@ -1114,17 +1195,19 @@ function laneMetadataProblems(lanes: Lanes, rows: Map<string, LaneObserved>): st
 function targetFacts(lanes: Lanes, targets: Map<string, TargetObserved>): Json[] {
   return lanes.targets.map((target) => {
     const observed = targets.get(target.repository);
+    if (observed === undefined) return { repository: target.repository };
     return {
-      common_dir_finish: asText(observed?.common_finish),
-      common_dir_start: asText(observed?.common_start),
-      policy_blob: asText(observed?.policy_blob),
-      policy_sha256: asText(observed?.policy_sha256),
-      ref_finish: asText(observed?.ref_finish),
-      ref_start: asText(observed?.ref_start),
-      registry_blob: asText(observed?.registry_blob),
-      registry_sha256: asText(observed?.registry_sha256),
+      common_dir_finish: observed.common_finish,
+      common_dir_start: observed.common_start,
+      policy_blob: observed.policy_blob,
+      policy_sha256: observed.policy_sha256,
+      ref_finish: observed.ref_finish,
+      ref_start: observed.ref_start,
+      registry_blob: observed.registry_blob,
+      registry_sha256: observed.registry_sha256,
       repository: target.repository,
-      toplevel_start: asText(observed?.toplevel_start),
+      toplevel_start: observed.toplevel_start,
+      toplevel_finish: observed.toplevel_finish,
     };
   });
 }
@@ -1136,8 +1219,10 @@ function laneFacts(rows: Map<string, LaneObserved>): Json[] {
       common_dir_finish: asText(observed?.common_finish),
       common_dir_start: asText(observed?.common_start),
       head_start: asText(observed?.head_start),
+      head_finish: asText(observed?.head_finish),
       lane,
       toplevel_start: asText(observed?.toplevel_start),
+      toplevel_finish: asText(observed?.toplevel_finish),
     };
   });
 }
@@ -1158,10 +1243,14 @@ function observeRun(run: RawRun, lanes: Lanes, observe: boolean): Observation {
     laneRows.set(lane, observed);
   }
   const keys = requiredKeys(lanes, targets);
+  const transcript = asRow(readJsonInput(run, "observation.json"));
+  if (asText(transcript?.lanes_sha256) !== sha256Hex(readBytes(run, "lanes.json"))) problems.push("lanes_digest_mismatch");
   problems.push(...commandSetProblems(commands, keys));
+  problems.push(...commandResponses(commands, lanes));
   problems.push(...laneMetadataProblems(lanes, laneRows));
   if (observe) {
-    liveMismatch(commands, keys, problems);
+    livePhysicalMetadata(lanes, problems);
+    liveMismatch(commands, keys, lanes, targets, problems);
   }
   return {
     facts: [...targetFacts(lanes, targets), ...laneFacts(laneRows)],
@@ -1170,6 +1259,16 @@ function observeRun(run: RawRun, lanes: Lanes, observe: boolean): Observation {
     problems,
     targets,
   };
+}
+
+function livePhysicalMetadata(lanes: Lanes, problems: string[]): void {
+  for (const target of lanes.targets) {
+    if (!physicalIdentity(target.root) || !physicalIdentity(target.common_dir)) problems.push(`live_target_not_physical:${target.repository}`);
+  }
+  for (const lane of LANES) {
+    const info = laneOf(lanes, lane);
+    if (!physicalIdentity(info.driver_root) || !physicalIdentity(info.common_dir)) problems.push(`live_lane_not_physical:${lane}`);
+  }
 }
 
 // ---------- site comparison ----------
@@ -1198,6 +1297,7 @@ const SITE_ASSERTIONS = [
   "provenance-expected",
   "provenance-pair",
   "refusal-codes-equal",
+  "refusal-exit",
   "stderr-equal",
   "written-equal",
 ];
@@ -1232,16 +1332,11 @@ function memberValue(capture: Capture, key: string): string {
 }
 
 function codesOf(capture: Capture, field: string): string[] {
-  const envelope = capture.envelope;
-  if (envelope.kind === "refusal") {
-    return field === "code" ? [envelope.code] : [];
-  }
-  if (envelope.kind !== "projected" || field !== "findings") {
-    return [];
-  }
-  return asList(asRow(parseJson(envelope.projection))?.findings)
-    .map((entry) => asText(asRow(entry)?.code))
-    .sort();
+  const row = asRow(parseJson(capture.stdout)) || {};
+  const entries = asList(field === "code" ? row.refusals : row.findings);
+  const codes = entries.map((entry) => asText(asRow(entry)?.code));
+  if (field === "code" && typeof row.code === "string") codes.push(row.code);
+  return codes.sort();
 }
 
 function argvOk(capture: Capture, lanes: Lanes, target: TargetInfo, site: Site): boolean {
@@ -1266,23 +1361,25 @@ function argvOk(capture: Capture, lanes: Lanes, target: TargetInfo, site: Site):
 
 function writtenMapsMatch(capture: Capture): boolean {
   return (
-    JSON.stringify(asRow(capture.meta.written) || {}) === JSON.stringify(capture.written_after_files) &&
-    JSON.stringify(asRow(capture.meta.written_before) || {}) === JSON.stringify(capture.written_before_files)
+    canonical(asRow(capture.meta.written) || {}) === canonical(capture.written_after_files) &&
+    canonical(asRow(capture.meta.written_before) || {}) === canonical(capture.written_before_files)
   );
 }
 
 function writtenEqual(reference: Capture, candidate: Capture): boolean {
+  const nonempty = (capture: Capture): boolean => capture.operation !== "export-evidence" || capture.meta.exit !== 0 || Object.keys(capture.written_after_files).length > 0;
   return (
-    JSON.stringify(reference.meta.written) === JSON.stringify(candidate.meta.written) &&
-    JSON.stringify(reference.meta.written_before) === JSON.stringify(candidate.meta.written_before) &&
-    JSON.stringify(reference.written_after_files) === JSON.stringify(candidate.written_after_files) &&
-    JSON.stringify(reference.written_before_files) === JSON.stringify(candidate.written_before_files)
+    nonempty(reference) && nonempty(candidate) &&
+    canonical(reference.meta.written) === canonical(candidate.meta.written) &&
+    canonical(reference.meta.written_before) === canonical(candidate.meta.written_before) &&
+    canonical(reference.written_after_files) === canonical(candidate.written_after_files) &&
+    canonical(reference.written_before_files) === canonical(candidate.written_before_files)
   );
 }
 
 function logQuiescent(reference: Capture, candidate: Capture): boolean {
-  const stable = (capture: Capture): boolean => JSON.stringify(capture.meta.log_before) === JSON.stringify(capture.meta.log_after);
-  return stable(reference) && stable(candidate) && JSON.stringify(reference.meta.log_after) === JSON.stringify(candidate.meta.log_after);
+  const stable = (capture: Capture): boolean => canonical(capture.meta.log_before) === canonical(capture.meta.log_after);
+  return stable(reference) && stable(candidate) && canonical(reference.meta.log_after) === canonical(candidate.meta.log_after);
 }
 
 function projectionDigest(capture: Capture): string {
@@ -1303,13 +1400,25 @@ function digestsFor(capture: Capture): Row {
     );
   return {
     exit: capture.meta.exit,
-    meta_sha256: sha256Hex(Buffer.from(canonical(capture.meta as unknown as Json), "utf8")),
+    meta_sha256: sha256Hex(capture.meta_bytes),
     projection_sha256: projectionDigest(capture),
     stderr_sha256: sha256Hex(capture.stderr),
     stdout_sha256: sha256Hex(capture.stdout),
     written_after_sha256: written("after"),
     written_before_sha256: written("before"),
+    written_before: capture.meta.written_before,
+    written_after: capture.meta.written,
+    written_before_files: capture.written_before_files,
+    written_after_files: capture.written_after_files,
+    written_changes: writtenChanges(capture),
   };
+}
+
+function writtenChanges(capture: Capture): Json[] {
+  const before = capture.written_before_files;
+  const after = capture.written_after_files;
+  const paths = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+  return paths.filter((path) => before[path] !== after[path]).map((path) => ({ path, before: before[path] || null, after: after[path] || null }));
 }
 
 function addSiteAssertions(ledger: Ledger, lanes: Lanes, target: TargetInfo, site: Site, subject: string): Capture[] {
@@ -1329,9 +1438,10 @@ function addSiteAssertions(ledger: Ledger, lanes: Lanes, target: TargetInfo, sit
   ledger.add(
     "envelope-plan",
     subject,
-    both.every((capture) => capture.envelope.kind === "refusal" || memberValue(capture, "plan_id") === site.plan_id),
+    both.every((capture) => envelopePlanOk(capture, site, target)),
     "envelope plan binds the registry entry",
   );
+  ledger.add("refusal-exit", subject, both.every((capture) => capture.envelope.kind !== "refusal" || capture.meta.exit !== 0), "generic refusals never become successes");
   ledger.add(
     "provenance-expected",
     subject,
@@ -1345,6 +1455,17 @@ function addSiteAssertions(ledger: Ledger, lanes: Lanes, target: TargetInfo, sit
     "one exact depth-one provenance member span",
   );
   return both;
+}
+
+function envelopePlanOk(capture: Capture, site: Site, target: TargetInfo): boolean {
+  const bytes = projectedBytes(capture);
+  const row = bytes === null ? null : asRow(parseJson(bytes));
+  if (row === null) return false;
+  const planOk = row.plan_id === undefined ? capture.envelope.kind === "refusal" : row.plan_id === site.plan_id;
+  // This generation is read from the pinned target's retained registry, not
+  // from another capture or a caller-selected expected value.
+  const generation = site.generation;
+  return planOk && (row.generation === undefined || row.generation === generation) && target.repository === site.repository;
 }
 
 function compareSite(ledger: Ledger, lanes: Lanes, target: TargetInfo, site: Site): SiteResult {
@@ -1399,8 +1520,12 @@ function sortDifferences(differences: Json[]): Json[] {
 
 class Ledger {
   private readonly rows: Assertion[] = [];
+  private readonly keys = new Set<string>();
 
   add(id: string, subject: string, ok: boolean, detail: string): void {
+    const key = JSON.stringify([id, subject]);
+    if (this.keys.has(key)) throw new Malformed(`duplicate_assertion:${key}`);
+    this.keys.add(key);
     this.rows.push({ detail, id, ok, subject });
   }
 
@@ -1444,15 +1569,17 @@ function serialized(captures: Capture[]): boolean {
   const ordered = [...captures].sort((left, right) => left.meta.sequence - right.meta.sequence);
   return ordered.every((capture, index) => {
     const previous = ordered[index - 1];
-    return capture.meta.started_at <= capture.meta.finished_at && (previous === undefined || previous.meta.finished_at <= capture.meta.started_at);
+    const start = capture.meta.started_at;
+    const finish = capture.meta.finished_at;
+    return utcValid(start) && utcValid(finish) && Date.parse(start) <= Date.parse(finish) && (previous === undefined || Date.parse(previous.meta.finished_at) <= Date.parse(start));
   });
 }
 
 function repositoryTimingOk(sites: Site[], repository: string): boolean {
   const audits = captureList(sites.filter((site) => site.repository === repository && site.operation === "audit-merges"));
   const exports = captureList(sites.filter((site) => site.repository === repository && site.operation === "export-evidence"));
-  const last = audits.map((capture) => capture.meta.finished_at).sort().pop() || "";
-  const first = exports.map((capture) => capture.meta.started_at).sort().shift() || "";
+  const last = Math.max(...audits.map((capture) => Date.parse(capture.meta.finished_at)));
+  const first = Math.min(...exports.map((capture) => Date.parse(capture.meta.started_at)));
   return audits.length > 0 && exports.length > 0 && last <= first;
 }
 
@@ -1496,20 +1623,29 @@ function policyBound(run: RawRun, target: TargetInfo, observed: TargetObserved |
 function refProblems(observed: TargetObserved | undefined): string[] {
   return asList(observed?.problems)
     .map((problem) => asText(problem))
-    .filter((problem) => problem === "ref_moved" || problem.startsWith("revision_mismatch"));
+    .filter((problem) => problem === "ref_moved" || problem === "wrong_main_ref" || problem === "ref_not_fully_qualified" || problem.startsWith("revision_mismatch") || problem.includes("--verify"));
 }
 
 function registryBound(run: RawRun, target: TargetInfo, observed: TargetObserved | undefined): boolean {
   const registry = readRegistry(run, target.repository);
   const recorded = asText(observed?.registry_sha256);
-  return registry.present && recorded !== "" && sha256Hex(registry.bytes) === recorded;
+  const policy = run.files.get(`policies/${target.repository}.json`);
+  const policyOk = policy !== undefined && sha256Hex(policy) === observed?.policy_sha256;
+  return registry.present && recorded !== "" && sha256Hex(registry.bytes) === recorded && policyOk;
 }
 
 function targetBoundAssertions(ledger: Ledger, run: RawRun, target: TargetInfo, observed: TargetObserved | undefined): void {
   const moving = refProblems(observed);
-  ledger.add("target-repository-bound", target.repository, policyBound(run, target, observed), "policy identity binds the target repository");
+  const rootsBound = targetRootsBound(target, observed);
+  ledger.add("target-repository-bound", target.repository, policyBound(run, target, observed) && rootsBound, "physical roots and policy identity bind the target repository");
   ledger.add("target-ref-bound", target.repository, moving.length === 0, moving.join(" ") || "pinned revision re-observed");
   ledger.add("registry-bound", target.repository, registryBound(run, target, observed), "registry copy equals the blob at the pinned revision");
+}
+
+function targetRootsBound(target: TargetInfo, observed: TargetObserved | undefined): boolean {
+  if (observed === undefined) return false;
+  const identities = [observed.toplevel_start === target.root, observed.toplevel_finish === target.root, observed.common_start === target.common_dir, observed.common_finish === target.common_dir];
+  return identities.every(Boolean) && !observed.problems.some((problem) => problem.startsWith("live_identity_mismatch"));
 }
 
 function revisionCarries(capture: Capture | undefined, revision: string): boolean {
@@ -1582,8 +1718,23 @@ function runAssertions(ledger: Ledger, run: RawRun, lanes: Lanes, sites: Site[],
   );
   ledger.add("captures-serialized", "run", serialized(captures), "unique positive sequences and non-overlapping intervals");
   ledger.add("order-audits-before-exports", "run", auditsBeforeExports(sites), "every audit completes before any export starts");
-  ledger.add("raw-inputs-bound", "run", captures.every((capture) => writtenMapsMatch(capture)), "written maps recompute from retained snapshot bytes");
+  ledger.add("raw-inputs-bound", "run", captures.every((capture) => writtenMapsMatch(capture)) && rawLayoutOk(run, lanes, captures), "complete raw inventory and independently enumerated written maps");
   ledger.add("observe-git", "observed", observation.git, observation.problems.join(" ") || "retained observation consistent");
+}
+
+function rawLayoutOk(run: RawRun, lanes: Lanes, captures: Capture[]): boolean {
+  const allowed = new Set(["lanes.json", "normalizations.json", "observation.json"]);
+  for (const target of lanes.targets) {
+    allowed.add(`registries/${target.repository}.json`);
+    allowed.add(`policies/${target.repository}.json`);
+  }
+  const snapshots: string[] = [];
+  for (const capture of captures) {
+    const base = sitePath(capture.lane, capture.repository, capture.plan_id, capture.operation);
+    for (const file of ["stdout", "stderr", "meta.json"]) allowed.add(`${base}/${file}`);
+    if (capture.operation === "export-evidence") snapshots.push(`${base}/written-before/`, `${base}/written-after/`);
+  }
+  return [...run.files.keys()].every((path) => allowed.has(path) || snapshots.some((prefix) => path.startsWith(prefix)));
 }
 
 function siteResults(ledger: Ledger, lanes: Lanes, sites: Site[]): SiteResult[] {
@@ -1623,9 +1774,9 @@ interface ReportInput {
 }
 
 function expectedProvenanceTable(lanes: Lanes): Row {
-  const table: Row = {};
+  const table: Row = Object.create(null) as Row;
   for (const lane of LANES) {
-    const row: Row = {};
+    const row: Row = Object.create(null) as Row;
     for (const target of lanes.targets) {
       row[target.repository] = expectedProvenance(lanes, target.repository, lane);
     }
@@ -1656,7 +1807,11 @@ function provenanceJson(capture: Capture | undefined): string {
   if (capture.envelope.kind === "projected") {
     return capture.envelope.provenance;
   }
-  return capture.envelope.kind === "refusal" ? capture.envelope.code : "";
+  return "";
+}
+
+function captureCodes(capture: Capture | undefined): Json {
+  return capture === undefined ? null : { refusal: codesOf(capture, "code"), findings: codesOf(capture, "findings") };
 }
 
 function siteJson(site: Site, result: SiteResult): Row {
@@ -1664,6 +1819,10 @@ function siteJson(site: Site, result: SiteResult): Row {
   const candidate = site.captures.get("candidate");
   return {
     classification: result.classification,
+    codes: {
+      reference: captureCodes(reference),
+      candidate: captureCodes(candidate),
+    },
     digests: {
       candidate: candidate === undefined ? null : digestsFor(candidate),
       reference: reference === undefined ? null : digestsFor(reference),
@@ -1723,33 +1882,36 @@ function buildReport(input: ReportInput, ledger: Ledger): Row {
 
 function malformedReport(dir: string, error: unknown): { exit: number; report: Row } {
   const detail = error instanceof Error ? error.message : "malformed_input";
+  const mismatch = error instanceof Inconsistent;
   return {
-    exit: 2,
+    exit: mismatch ? 1 : 2,
     report: {
-      assertions: [],
+      assertions: [{ id: "raw-inputs-bound", subject: "run", ok: false, detail }],
       contract: contractJson(),
       counts: { equal_refusal: 0, equal_success: 0, red: 0, sites: 0 },
       lanes: {},
       observed: { basis: "retained-local-observation", facts: [], git: false, problems: [detail] },
-      problems: [{ code: "malformed", detail }],
+      problems: [{ code: mismatch ? "raw-inputs-bound" : "malformed", detail }],
       run: { directory: dir.split(sep).join("/"), inputs: {}, manifest_sha256: "" },
       schema: CONTRACT.schema,
       sites: [],
-      verdict: "malformed",
+      verdict: mismatch ? "red" : "malformed",
     },
   };
 }
 
 function evaluateRun(dir: string, observe: boolean): { exit: number; report: Row } {
-  let run: RawRun;
-  let lanes: Lanes;
   try {
-    run = readRun(dir);
-    lanes = readLanes(run);
+    const run = readRun(dir);
+    const lanes = readLanes(run);
     readNormalizations(run);
+    return evaluateValidRun(run, lanes, observe);
   } catch (error) {
-    return malformedReport(dir, error);
+    return malformedReport(relative(process.cwd(), dir), error);
   }
+}
+
+function evaluateValidRun(run: RawRun, lanes: Lanes, observe: boolean): { exit: number; report: Row } {
   const ledger = new Ledger();
   const observation = observeRun(run, lanes, observe);
   const sites = enumerateSites(run, lanes);
@@ -1763,7 +1925,7 @@ function evaluateRun(dir: string, observe: boolean): { exit: number; report: Row
   return {
     exit: verdict === "pass" ? 0 : 1,
     report: buildReport(
-      { counts, directory: dir, inputs: run.inputs, lanes, manifestSha: run.manifestSha, observation, results, sites, verdict },
+      { counts, directory: relative(process.cwd(), run.dir), inputs: run.inputs, lanes, manifestSha: run.manifestSha, observation, results, sites, verdict },
       ledger,
     ),
   };
@@ -1778,43 +1940,97 @@ interface ConsumerFailures {
 }
 
 function gitOut(cwd: string, args: ReadonlyArray<string>): string {
-  const result = run("git", args, cwd);
+  const result = localGit(cwd, args);
   return result.status === 0 ? text(result.stdout).trim() : "";
 }
 
 function gitBlob(cwd: string, spec: string): Buffer | null {
-  const result = run("git", ["cat-file", "blob", spec], cwd);
+  const result = localGit(cwd, ["cat-file", "blob", spec]);
   return result.status === 0 ? result.stdout : null;
-}
-
-function contained(cwd: string, candidate: string): boolean {
-  const base = resolve(cwd);
-  const full = resolve(base, candidate);
-  return full !== base && full.startsWith(`${base}/`);
 }
 
 function field(row: Row, key: string): string {
   return asText(row[key]);
 }
 
-const CONTRACT_KEYS = [
-  "capture_commit",
-  "generation",
-  "goal_id",
-  "merge_commit",
-  "plan_id",
-  "publication_commit",
-  "report_sha256",
-  "run_directory",
-  "run_sha256",
-  "spec_sha256",
-  "target_ref",
-  "tool_path",
-  "tool_sha256",
-];
+const REGISTERED_GENERATION = "43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f";
+const TOOL_PATH = "scripts/lib/d13-compare.mjs";
+const RETAINED_PREFIX = "tests/fixtures/e6-v1-port/";
+const RUN_PREFIX = `${RETAINED_PREFIX}d13/`;
+const DRIVER_DIRS = ["04-validate-handoff/autobahn", "02-govern-plan/northstar", "scripts/lib"];
+const COMMIT_KEYS = ["capture_commit", "merge_commit", "publication_commit", "pr_head", "tool_blob"];
+const DIGEST_KEYS = ["generation", "report_sha256", "run_sha256", "spec_sha256", "tool_sha256"];
+const IDENTITY_KEYS = ["goal_id", "plan_id", "target_ref", "tool_path", "run_directory", "repository", "host_locator", "branch", "base_target"];
+const COMPLETION_KEYS = ["repository", "host_locator", "plan_id", "generation", "goal_id", "branch", "base_target", "pr_head", "merge_commit", "publication_commit"];
 
-function contractStrings(contract: Row): boolean {
-  return CONTRACT_KEYS.every((key) => typeof contract[key] === "string");
+function safeRelative(path: string): boolean {
+  return path !== "" && !isAbsolute(path) && !path.includes("\\") && [...path].every((char) => char.charCodeAt(0) >= 32) && path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
+}
+
+function utcValid(value: string): boolean {
+  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3})?Z$/.test(value)) return false;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && new Date(parsed).toISOString() === (value.includes(".") ? value : value.replace("Z", ".000Z"));
+}
+
+function retainedPath(cwd: string, path: string, prefix: string): string {
+  if (!safeRelative(path) || !path.startsWith(prefix)) throw new Malformed(`retained_path_out_of_scope:${path}`);
+  let current = realpathSync(cwd);
+  for (const part of path.split("/")) {
+    current = join(current, part);
+    if (lstatSync(current).isSymbolicLink()) throw new Malformed(`retained_symlink:${path}`);
+  }
+  if (realpathSync(current) !== current) throw new Malformed(`retained_not_physical:${path}`);
+  return current;
+}
+
+function requireRecord(value: Json | undefined, label: string): Row {
+  const row = asRow(value);
+  if (row === null) throw new Malformed(label);
+  return row;
+}
+
+function completionShape(record: Row): boolean {
+  const tool = asRow(record.tool) || {};
+  const numbersOk = typeof record.pr_number === "number" && Number.isSafeInteger(record.pr_number) && record.pr_number > 0;
+  const sourceOk = ["observed_at", "collected_by", "source_locator"].every((key) => field(record, key) !== "");
+  const commitsOk = ["pr_head", "merge_commit", "publication_commit"].every((key) => HEX40.test(field(record, key)));
+  const toolOk = HEX40.test(field(tool, "blob")) && HEX64.test(field(tool, "sha256")) && field(tool, "path") !== "";
+  return [COMPLETION_KEYS.every((key) => field(record, key) !== ""), numbersOk, sourceOk, utcValid(field(record, "observed_at")), commitsOk, toolOk, HEX64.test(field(record, "generation"))].every(Boolean);
+}
+
+function validateContract(contract: Row): void {
+  const commitsOk = COMMIT_KEYS.every((key) => HEX40.test(field(contract, key)));
+  const digestsOk = DIGEST_KEYS.every((key) => HEX64.test(field(contract, key)));
+  const stringsOk = IDENTITY_KEYS.every((key) => field(contract, key) !== "");
+  if (![commitsOk, digestsOk, stringsOk, asRow(contract.report) !== null].every(Boolean)) throw new Malformed("d13_contract_shape");
+  if (!Number.isSafeInteger(contract.pr_number) || Number(contract.pr_number) <= 0) throw new Malformed("d13_contract_pr_number");
+  const completion = requireRecord(contract.completion_record, "completion_record_missing");
+  if (!completionShape(completion)) throw new Malformed("completion_record_shape");
+  const receipts = requireRecord(contract.receipts, "receipts_missing");
+  for (const name of ["collection", "custody", "completion"]) {
+    const receipt = requireRecord(receipts[name], `receipt_missing:${name}`);
+    if (field(receipt, "path") === "" || !HEX64.test(field(receipt, "sha256"))) throw new Malformed(`receipt_shape:${name}`);
+  }
+}
+
+function retainBindings(cwd: string, contract: Row, failures: ConsumerFailures): void {
+  const receipts = requireRecord(contract.receipts, "receipts_missing");
+  for (const name of ["collection", "custody", "completion"]) {
+    const receipt = requireRecord(receipts[name], "receipt_missing");
+    const path = retainedPath(cwd, field(receipt, "path"), RETAINED_PREFIX);
+    const bytes = readFileSync(path);
+    if (bytes.length === 0) throw new Malformed(`empty_receipt:${name}`);
+    failures.facts[`receipt_${name}_sha256`] = sha256Hex(bytes);
+    if (sha256Hex(bytes) !== field(receipt, "sha256")) failures.failed.push("retained-receipts-bound");
+    if (name === "completion" && !completionReceiptMatches(bytes, contract)) failures.failed.push("dependency-completion");
+  }
+}
+
+function completionReceiptMatches(bytes: Buffer, contract: Row): boolean {
+  const retained = asRow(parseJson(bytes));
+  if (retained === null || !completionShape(retained)) throw new Malformed("retained_completion_malformed");
+  return canonical(retained) === canonical(contract.completion_record || null);
 }
 
 function registrationAt(cwd: string, revision: string): Row | null {
@@ -1823,116 +2039,260 @@ function registrationAt(cwd: string, revision: string): Row | null {
   if (registry === null) {
     return null;
   }
-  return asList(registry.plans).map((entry) => asRow(entry)).find((plan) => plan !== null && field(plan, "plan_id") === CONTRACT.plan_id) || null;
+  const matches = asList(registry.plans).map((entry) => asRow(entry)).filter((plan) => plan !== null && (field(plan, "plan_id") === CONTRACT.plan_id || field(plan, "id") === `northstar-plan-${CONTRACT.plan_id}`));
+  return matches.length === 1 ? matches[0] || null : null;
 }
 
 function objectExists(cwd: string, revision: string): boolean {
-  return run("git", ["cat-file", "-e", `${revision}^{commit}`], cwd).status === 0;
+  return gitOut(cwd, ["cat-file", "-t", revision]) === "commit";
 }
 
 function isAncestor(cwd: string, ancestor: string, descendant: string): boolean {
-  return run("git", ["merge-base", "--is-ancestor", ancestor, descendant], cwd).status === 0;
+  return localGit(cwd, ["merge-base", "--is-ancestor", ancestor, descendant]).status === 0;
 }
 
-function specBinding(cwd: string, entry: Row, contract: Row, failures: ConsumerFailures): void {
-  const spec = asRow(entry.spec);
-  const path = spec === null ? "" : field(spec, "path");
-  const bytes = path === "" ? null : gitBlob(cwd, `${field(contract, "target_ref_commit")}:${path}`);
-  const digest = bytes === null ? "" : sha256Hex(bytes);
-  failures.facts.registry_spec_sha256 = spec === null ? "" : field(spec, "sha256");
-  if (digest === "" || digest !== (spec === null ? "" : field(spec, "sha256")) || digest !== field(contract, "spec_sha256")) {
-    failures.failed.push("dependency-spec");
+// Match the existing generation/2 canonical digest (Python JSON uses ASCII
+// escapes and no LF). Report canonicalization deliberately remains separate.
+function identityDigest(value: Json): string {
+  const encoded = JSON.stringify(sortDeep(value)).replace(/[\u007f-\uffff]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`);
+  return sha256Hex(Buffer.from(encoded, "utf8"));
+}
+
+interface FrozenRegistration { entry: Row; identity: string; policy: Row; }
+
+function validArtifact(cwd: string, revision: string, prefix: string, name: string, artifact: Row, failures: ConsumerFailures): Buffer | null {
+  const path = field(artifact, "path");
+  const bytes = safeRelative(path) && path.startsWith(prefix) ? gitBlob(cwd, `${revision}:${path}`) : null;
+  if (bytes === null) { failures.failed.push("dependency-generation"); return null; }
+  const needsDigest = name !== "sidecar" || artifact.sha256 !== undefined;
+  if (needsDigest && sha256Hex(bytes) !== field(artifact, "sha256")) failures.failed.push("dependency-generation");
+  const names: Record<string, string> = { bundle: "goals.json", graph: "graph.json", handoff: "handoff.md", sidecar: "sidecar.json" };
+  if (names[name] !== undefined && path !== `${prefix}${names[name]}`) failures.failed.push("dependency-generation");
+  return bytes;
+}
+
+function artifactBytes(cwd: string, revision: string, entry: Row, failures: ConsumerFailures): Map<string, Buffer> {
+  const artifacts = asRow(entry.artifacts) || {};
+  const prefix = `.ai/handoff/readiness-v2/${CONTRACT.plan_id}/${field(entry, "generation")}/`;
+  const result = new Map<string, Buffer>();
+  for (const [name, value] of Object.entries(artifacts)) {
+    const artifact = asRow(value) || {};
+    const bytes = validArtifact(cwd, revision, prefix, name, artifact, failures);
+    if (bytes !== null) result.set(name, bytes);
   }
+  for (const name of ["bundle", "graph", "handoff", "sidecar"]) if (!result.has(name)) failures.failed.push("dependency-generation");
+  return result;
 }
 
-function bundleGoalIds(bytes: Buffer | null): string[] {
-  return bytes === null ? [] : asList(asRow(parseJson(bytes))?.goals).map((goal) => field(asRow(goal) || {}, "id"));
+function bundleIdentity(bytes: Buffer | undefined): Row | null {
+  if (bytes === undefined) return null;
+  const bundle = asRow(parseJson(bytes));
+  if (bundle === null || bundle.schema !== "handoff-goals/2" || bundle.id !== CONTRACT.plan_id) return null;
+  if (!bundleRepositoryOk(bundle)) return null;
+  const goals = asList(bundle.goals);
+  return goals.length === 1 && asRow(goals[0])?.id === CONTRACT.goal_id ? bundle : null;
 }
 
-function bundleBinding(cwd: string, entry: Row, contract: Row, revision: string, failures: ConsumerFailures): void {
-  const bundle = asRow(asRow(entry.artifacts)?.bundle) || {};
-  const path = field(bundle, "path");
-  const bytes = path === "" ? null : gitBlob(cwd, `${revision}:${path}`);
+function bundleRepositoryOk(bundle: Row): boolean {
+  return asRow(bundle.repository)?.id === "skills" && asRow(bundle.spec)?.path === CONTRACT.spec_path;
+}
+
+function specBinding(cwd: string, revision: string, entry: Row, contract: Row, failures: ConsumerFailures): string {
+  const spec = asRow(entry.spec) || {};
+  const bytes = field(spec, "path") === CONTRACT.spec_path ? gitBlob(cwd, `${revision}:${CONTRACT.spec_path}`) : null;
   const digest = bytes === null ? "" : sha256Hex(bytes);
-  const goalIds = bundleGoalIds(bytes);
-  failures.facts.bundle_sha256 = digest;
-  const identity = field(entry, "generation") === field(contract, "generation") && HEX64.test(field(contract, "generation"));
-  if (!identity || digest !== field(bundle, "sha256") || !goalIds.includes(field(contract, "goal_id"))) {
-    failures.failed.push("dependency-generation");
-  }
+  if (digest !== CONTRACT.spec_sha256_lineage || digest !== field(spec, "sha256") || digest !== field(contract, "spec_sha256")) failures.failed.push("dependency-spec");
+  return digest;
 }
 
-function consumerRegistration(cwd: string, contract: Row, revision: string, failures: ConsumerFailures): void {
+function generationBinding(cwd: string, publication: string, entry: Row, bundle: Row | null, specSha: string, contract: Row, failures: ConsumerFailures): Row {
+  const policyBytes = gitBlob(cwd, `${publication}:${CONTRACT.policy_path}`);
+  const policy = policyBytes === null ? {} : asRow(parseJson(policyBytes)) || {};
+  const policySha = policyBytes === null ? "" : sha256Hex(policyBytes);
+  const anchor = asText(asRow(policy.approval)?.anchor_sha256);
+  const generation = bundle === null ? "" : identityDigest({ schema: "generation/2", bundle_sha256: identityDigest(bundle), spec_sha256: specSha, policy_sha256: policySha, anchor_sha256: anchor });
+  const policyOk = frozenPolicyOk(policy, policySha, anchor, entry);
+  if (![policyOk, generation === REGISTERED_GENERATION, generation === entry.generation, generation === contract.generation].every(Boolean)) failures.failed.push("dependency-generation");
+  failures.facts.recomputed_generation = generation;
+  return policy;
+}
+
+function frozenPolicyOk(policy: Row, digest: string, anchor: string, entry: Row): boolean {
+  return digest === entry.policy_sha256 && anchor === entry.anchor_sha256 && HEX64.test(anchor) && asRow(policy.repository)?.id === "skills";
+}
+
+function registrationIdOk(entry: Row): boolean {
+  return entry.id === `northstar-plan-${CONTRACT.plan_id}` && entry.plan_id === CONTRACT.plan_id && entry.schema === "readiness-contract/2" && entry.mode === "live";
+}
+
+function sidecarOk(bytes: Buffer | undefined): boolean {
+  if (bytes === undefined) return false;
+  const sidecar = asRow(parseJson(bytes));
+  if (sidecar === null) return false;
+  return sidecar.schema === "readiness-sidecar/1" && sidecar.plan_id === CONTRACT.plan_id && asRow(sidecar.goals)?.[CONTRACT.goal_id] !== undefined;
+}
+
+function generatedArtifactsOk(files: Map<string, Buffer>, bundle: Row | null, entry: Row): boolean {
+  if (bundle === null) return false;
+  const generation = field(entry, "generation");
+  const prefix = `.ai/handoff/readiness-v2/${CONTRACT.plan_id}/${generation}`;
+  const graph = expectedGraph(bundle, generation, prefix);
+  const actual = parseJson(files.get("graph") || Buffer.alloc(0));
+  const handoff = `# Northstar handoff (readiness-contract/2): ${CONTRACT.plan_id}\n\nGeneration: ${generation}\n\nGoals: ${CONTRACT.goal_id}\n\nPublication grants no authority. Admission requires one verified plan approval carried by tag approval/${CONTRACT.plan_id}/${generation.slice(0, 12)}.\n`;
+  const actualHandoff = files.get("handoff") || Buffer.alloc(0);
+  return canonical(actual) === canonical(graph) && actualHandoff.equals(Buffer.from(handoff)) && entry.handoff_path === `${prefix}/handoff.md`;
+}
+
+function expectedGraph(bundle: Row, generation: string, prefix: string): Row {
+  const goal = asRow(asList(bundle.goals)[0]) || {};
+  const parent = `handoff:skills:${CONTRACT.plan_id}:${generation}`;
+  const node = `plan:skills:${CONTRACT.plan_id}:${CONTRACT.goal_id}:${generation}`;
+  const goalRevision = identityDigest({ schema: "goal-revision/2", repository: "skills", id: CONTRACT.goal_id, scope: goal.scope || [], acceptance_criteria: goal.acceptance_criteria || [], dependencies: asList(goal.dependencies).sort(), verification: goal.verification || [] });
+  return { schema_version: "1.1", contract: "readiness-contract/2", generation, plan_id: CONTRACT.plan_id, goal_ids: [CONTRACT.goal_id], nodes: [{ id: parent, type: "handoff", repo_id: "skills", path: `${prefix}/handoff.md` }, { id: node, type: "plan", repo_id: "skills", path: `${prefix}/goals.json`, goal_revision: goalRevision }], edges: [{ source: parent, target: node, type: "plans" }] };
+}
+
+function frozenRegistration(cwd: string, revision: string, publication: string, contract: Row, failures: ConsumerFailures): FrozenRegistration | null {
   const entry = registrationAt(cwd, revision);
-  if (entry === null) {
-    failures.failed.push("dependency-registry");
-    return;
-  }
-  failures.facts.registry_generation = field(entry, "generation");
-  contract.target_ref_commit = revision;
-  specBinding(cwd, entry, contract, failures);
-  bundleBinding(cwd, entry, contract, revision, failures);
+  if (entry === null) { failures.failed.push("dependency-registry"); return null; }
+  if (!registrationIdOk(entry)) failures.failed.push("dependency-registry");
+  const files = artifactBytes(cwd, revision, entry, failures);
+  const bundle = bundleIdentity(files.get("bundle"));
+  const specSha = specBinding(cwd, revision, entry, contract, failures);
+  const policy = generationBinding(cwd, publication, entry, bundle, specSha, contract, failures);
+  if (!sidecarOk(files.get("sidecar"))) failures.failed.push("dependency-generation");
+  if (!generatedArtifactsOk(files, bundle, entry)) failures.failed.push("dependency-generation");
+  const digests: Row = Object.fromEntries([...files].map(([name, bytes]) => [name, sha256Hex(bytes)]));
+  failures.facts.registry_spec_sha256 = specSha;
+  return { entry, identity: canonical({ entry, digests }), policy };
 }
 
-function lineageHistoryOk(cwd: string, contract: Row, merge: string, publication: string, capture: string, target: string, failures: ConsumerFailures): boolean {
-  const objects = [merge, publication, capture];
-  if (!objects.every((revision) => objectExists(cwd, revision))) {
-    failures.failed.push("dependency-history-unavailable");
-    return false;
+function consumerRegistration(cwd: string, contract: Row, head: string, target: string, failures: ConsumerFailures): Row {
+  const publication = field(contract, "publication_commit");
+  const published = frozenRegistration(cwd, publication, publication, contract, failures);
+  const registered = frozenRegistration(cwd, target, publication, contract, failures);
+  const consumed = frozenRegistration(cwd, head, publication, contract, failures);
+  if (published === null) { failures.failed.push("dependency-generation", "consumer-head-binding"); return {}; }
+  if (registered?.identity !== published.identity) failures.failed.push("dependency-generation");
+  if (consumed?.identity !== published.identity) failures.failed.push("consumer-head-binding");
+  captureRegistration(cwd, contract, published.identity, failures);
+  failures.facts.registry_generation = asText(registered?.entry.generation);
+  failures.facts.registration_identity_sha256 = registered === null ? "" : sha256Hex(Buffer.from(registered.identity));
+  return published.policy;
+}
+
+function captureRegistration(cwd: string, contract: Row, identity: string, failures: ConsumerFailures): void {
+  for (const revision of [field(contract, "capture_commit"), field(contract, "merge_commit")]) {
+    const captured = frozenRegistration(cwd, revision, field(contract, "publication_commit"), contract, failures);
+    if (captured?.identity !== identity) failures.failed.push("consumer-head-binding");
   }
-  if (gitOut(cwd, ["rev-parse", "--verify", `${target}^{commit}`]) === "") {
-    failures.failed.push("dependency-history-unavailable");
-    return false;
+}
+
+function branchMatches(policy: Row, branch: string): boolean {
+  const pattern = field(policy, "branch_pattern");
+  if (!/^\^[A-Za-z0-9/_()|<>-]+\$$/.test(pattern)) return false;
+  const filled = pattern.replace("<plan_id>", CONTRACT.plan_id).replace("<goal_id>", CONTRACT.goal_id);
+  try { return new RegExp(filled).test(branch); } catch { return false; }
+}
+
+function completionMatches(completion: Row, contract: Row, policy: Row): boolean {
+  const tool = asRow(completion.tool) || {};
+  const identityOk = COMPLETION_KEYS.every((key) => completion[key] === contract[key]) && completion.pr_number === contract.pr_number;
+  const exact = contract.repository === "skills" && contract.plan_id === CONTRACT.plan_id && contract.goal_id === CONTRACT.goal_id && contract.base_target === policy.target;
+  const toolOk = tool.path === TOOL_PATH && tool.blob === contract.tool_blob && tool.sha256 === contract.tool_sha256;
+  return [identityOk, exact, toolOk, branchMatches(policy, field(contract, "branch"))].every(Boolean);
+}
+
+function commitParents(cwd: string, revision: string): string[] {
+  return gitOut(cwd, ["cat-file", "-p", revision]).split("\n").filter((line) => line.startsWith("parent ")).map((line) => line.slice(7));
+}
+
+function lineageHistoryOk(cwd: string, contract: Row, head: string, target: string, failures: ConsumerFailures): boolean {
+  const merge = field(contract, "merge_commit");
+  const publication = field(contract, "publication_commit");
+  const capture = field(contract, "capture_commit");
+  const prHead = field(contract, "pr_head");
+  if (![head, target, merge, publication, capture, prHead].every((revision) => objectExists(cwd, revision)) || gitOut(cwd, ["rev-parse", "--is-shallow-repository"]) !== "false") {
+    failures.failed.push("dependency-history-unavailable"); return false;
   }
-  if (!isAncestor(cwd, publication, merge) || !isAncestor(cwd, merge, target)) {
-    failures.failed.push("dependency-ancestry");
-  }
-  if (!isAncestor(cwd, merge, capture)) {
-    failures.failed.push("consumer-head-binding");
-  }
+  if (publication === merge || !isAncestor(cwd, publication, merge) || !isAncestor(cwd, merge, target)) failures.failed.push("dependency-ancestry");
+  mergeCompletionBinding(cwd, contract, failures);
+  if (!isAncestor(cwd, merge, head) || !isAncestor(cwd, merge, capture) || !isAncestor(cwd, capture, head)) failures.failed.push("consumer-head-binding");
   return true;
 }
 
-function toolBinding(cwd: string, contract: Row, merge: string, capture: string, toolPath: string, failures: ConsumerFailures): void {
-  const merged = gitBlob(cwd, `${merge}:${toolPath}`);
-  const captured = gitBlob(cwd, `${capture}:${toolPath}`);
-  const mergedSha = merged === null ? "" : sha256Hex(merged);
-  failures.facts.merge_tool_sha256 = mergedSha;
-  failures.facts.capture_tool_sha256 = captured === null ? "" : sha256Hex(captured);
-  const bound = merged !== null && mergedSha === field(contract, "tool_sha256") && mergedSha === toolDigest() && captured !== null && captured.equals(merged);
-  if (!bound) {
-    failures.failed.push("dependency-tool");
-  }
+function mergeCompletionBinding(cwd: string, contract: Row, failures: ConsumerFailures): void {
+  const parents = commitParents(cwd, field(contract, "merge_commit"));
+  const prHead = field(contract, "pr_head");
+  const valid = parents.length === 2 && parents[1] === prHead && prHead !== contract.capture_commit && isAncestor(cwd, field(contract, "publication_commit"), prHead);
+  if (!valid) failures.failed.push("dependency-completion");
+  const completion = asRow(contract.completion_record) || {};
+  const observed = Date.parse(field(completion, "observed_at"));
+  if (![field(contract, "publication_commit"), field(contract, "merge_commit")].every((revision) => observed >= commitTime(cwd, revision))) failures.failed.push("dependency-completion");
 }
 
-function completionMatches(completion: Row, contract: Row, merge: string, publication: string, capture: string, blob: string): boolean {
-  const pairs: ReadonlyArray<[string, string]> = [
-    ["merge_commit", merge],
-    ["publication_commit", publication],
-    ["goal_id", field(contract, "goal_id")],
-    ["generation", field(contract, "generation")],
-    ["plan_id", field(contract, "plan_id")],
-    ["pr_head", capture],
-  ];
-  const identityOk = pairs.every(([key, value]) => field(completion, key) === value);
-  return identityOk && (blob === "" || field(asRow(completion.tool) || {}, "blob") === blob);
+function commitTime(cwd: string, revision: string): number {
+  const header = gitOut(cwd, ["cat-file", "-p", revision]).split("\n\n")[0] || "";
+  const match = /^committer .* (\d+) [+-]\d{4}$/m.exec(header);
+  return match === null ? Number.POSITIVE_INFINITY : Number(match[1]) * 1000;
 }
 
-function consumerLineage(cwd: string, contract: Row, failures: ConsumerFailures): void {
+function toolBinding(cwd: string, contract: Row, head: string, failures: ConsumerFailures): void {
   const merge = field(contract, "merge_commit");
-  const publication = field(contract, "publication_commit");
-  const target = field(contract, "target_ref");
+  const merged = gitBlob(cwd, `${merge}:${TOOL_PATH}`);
+  const committed = gitBlob(cwd, `${head}:${TOOL_PATH}`);
+  const digest = merged === null ? "" : sha256Hex(merged);
+  const blob = gitOut(cwd, ["rev-parse", `${merge}:${TOOL_PATH}`]);
+  failures.facts.merge_tool_sha256 = digest;
+  failures.facts.merge_tool_blob = blob;
+  if (contract.tool_path !== TOOL_PATH || digest !== contract.tool_sha256 || digest !== toolDigest() || blob !== contract.tool_blob) failures.failed.push("dependency-tool");
+  if (committed === null || sha256Hex(committed) !== toolDigest()) failures.failed.push("consumer-head-binding");
+}
+
+function inventoryTree(cwd: string, revision: string, path: string, inventory: Row): boolean {
+  const listing = gitOut(cwd, ["cat-file", "-p", `${revision}:${path}`]);
+  if (listing === "") return false;
+  return listing.split("\n").every((line) => inventoryEntry(cwd, revision, path, line, inventory));
+}
+
+function inventoryEntry(cwd: string, revision: string, path: string, line: string, inventory: Row): boolean {
+  const match = /^(\d{6}) (blob|tree) ([0-9a-f]{40})\t([^/]+)$/.exec(line);
+  if (match === null) return false;
+  const name = match[4] || "";
+  if (!safeRelative(name)) return false;
+  const child = `${path}/${name}`;
+  if (match[2] === "tree") return inventoryTree(cwd, revision, child, inventory);
+  if (!["100644", "100755"].includes(match[1] || "")) return false;
+  const bytes = gitBlob(cwd, match[3] || "");
+  if (bytes === null) return false;
+  inventory[child] = { mode: match[1] || "", sha256: sha256Hex(bytes) };
+  return true;
+}
+
+function driverInventory(cwd: string, revision: string): Row | null {
+  const inventory: Row = {};
+  return DRIVER_DIRS.every((path) => inventoryTree(cwd, revision, path, inventory)) ? inventory : null;
+}
+
+function captureBinding(cwd: string, contract: Row, head: string, report: Row, failures: ConsumerFailures): void {
   const capture = field(contract, "capture_commit");
-  const toolPath = field(contract, "tool_path");
-  if (!lineageHistoryOk(cwd, contract, merge, publication, capture, target, failures)) {
-    return;
-  }
-  toolBinding(cwd, contract, merge, capture, toolPath, failures);
-  const completion = asRow(contract.completion_record);
-  const blob = gitOut(cwd, ["rev-parse", `${merge}:${toolPath}`]);
-  if (completion === null || !completionMatches(completion, contract, merge, publication, capture, blob)) {
-    failures.failed.push("dependency-completion");
-  }
+  const recorded = asRow(asRow(report.lanes)?.candidate);
+  const captured = driverInventory(cwd, capture);
+  const current = driverInventory(cwd, head);
+  failures.facts.capture_driver_artifacts = captured;
+  failures.facts.head_driver_artifacts = current;
+  const merged = gitBlob(cwd, `${field(contract, "merge_commit")}:${TOOL_PATH}`);
+  const checker = gitBlob(cwd, `${capture}:${TOOL_PATH}`);
+  const toolOk = merged !== null && checker !== null && checker.equals(merged);
+  const inputsOk = captured !== null && current !== null && canonical(captured) === canonical(current);
+  if (recorded?.driver_commit !== capture || !toolOk || !inputsOk) failures.failed.push("consumer-head-binding");
+}
+
+function consumerLineage(cwd: string, contract: Row, head: string, target: string, report: Row, failures: ConsumerFailures): void {
+  if (!lineageHistoryOk(cwd, contract, head, target, failures)) return;
+  const policy = consumerRegistration(cwd, contract, head, target, failures);
+  toolBinding(cwd, contract, head, failures);
+  captureBinding(cwd, contract, head, report, failures);
+  if (!completionMatches(asRow(contract.completion_record) || {}, contract, policy)) failures.failed.push("dependency-completion");
 }
 
 function reportConsistency(report: Row, contract: Row, failures: ConsumerFailures): void {
@@ -1946,28 +2306,38 @@ function reportConsistency(report: Row, contract: Row, failures: ConsumerFailure
   }
 }
 
-function recompute(cwd: string, contract: Row, failures: ConsumerFailures): void {
+function recompute(cwd: string, contract: Row, failures: ConsumerFailures): Row {
   const runDirectory = field(contract, "run_directory");
-  if (!contained(cwd, runDirectory)) {
-    failures.failed.push("input-shape");
-    failures.malformed = true;
-    return;
-  }
-  const outcome = evaluateRun(resolve(cwd, runDirectory), false);
+  if (!runDirectory.startsWith(RUN_PREFIX) || runDirectory.slice(RUN_PREFIX.length).split("/").length !== 1) throw new Malformed("run_directory_scope");
+  const path = retainedPath(cwd, runDirectory, RUN_PREFIX);
+  const manifest = readFileSync(retainedPath(cwd, `${runDirectory}/raw-manifest.json`, RUN_PREFIX));
+  failures.facts.raw_manifest_sha256 = sha256Hex(manifest);
+  if (sha256Hex(manifest) !== contract.run_sha256) failures.failed.push("raw-inputs-bound");
+  const outcome = evaluateRun(path, false);
   const report = outcome.report;
   const observed = asRow(report.observed);
   failures.facts.recomputed_verdict = asText(report.verdict);
   failures.facts.recomputed_observed_git = observed?.git === true;
-  if (outcome.exit !== 0 || report.verdict !== "pass" || observed?.git !== true) {
+  if (outcome.exit === 2) failures.malformed = true;
+  if (asList(report.assertions).some(rawBindingFailed)) failures.failed.push("raw-inputs-bound");
+  if (![outcome.exit === 0, report.verdict === "pass", observed?.git === true].every(Boolean)) {
     failures.failed.push("raw-report-recomputation");
   }
   reportConsistency(report, contract, failures);
+  return report;
+}
+
+function rawBindingFailed(assertion: Json): boolean {
+  const row = asRow(assertion) || {};
+  return row.id === "raw-inputs-bound" && row.ok === false;
 }
 
 function evidenceContract(cwd: string, evidencePath: string, failures: ConsumerFailures): Row | null {
   let bytes: Buffer;
   try {
-    bytes = readFileSync(resolve(cwd, evidencePath));
+    const label = isAbsolute(evidencePath) ? relative(realpathSync(cwd), evidencePath) : evidencePath;
+    if (!CONTRACT.consumers.includes(label)) throw new Malformed("evidence_path_scope");
+    bytes = readFileSync(retainedPath(cwd, label, ".ai/evidence/"));
   } catch {
     failures.failed.push("input-shape");
     failures.facts.detail = "evidence missing";
@@ -1975,21 +2345,37 @@ function evidenceContract(cwd: string, evidencePath: string, failures: ConsumerF
     return null;
   }
   const contract = asRow(asRow(parseJson(bytes))?.d13_contract);
-  if (contract === null || !contractStrings(contract)) {
+  if (contract === null) {
     failures.failed.push("input-shape");
     failures.facts.detail = "d13_contract missing or malformed";
     failures.malformed = true;
     return null;
   }
+  validateContract(contract);
   return contract;
 }
 
-function runManifest(cwd: string, contract: Row): Buffer | null {
-  try {
-    return readFileSync(resolve(cwd, `${field(contract, "run_directory")}/raw-manifest.json`));
-  } catch {
-    return null;
-  }
+function consumerPins(cwd: string, targetRef: string): Row {
+  return { head: gitOut(cwd, ["rev-parse", "HEAD"]), target: gitOut(cwd, ["rev-parse", "--verify", `${targetRef}^{commit}`]), root: gitOut(cwd, ["rev-parse", "--show-toplevel"]), common_dir: gitOut(cwd, ["rev-parse", "--path-format=absolute", "--git-common-dir"]) };
+}
+
+function checkConsumer(cwd: string, evidencePath: string, failures: ConsumerFailures): void {
+  const contract = evidenceContract(cwd, evidencePath, failures);
+  if (contract === null) return;
+  if (contract.target_ref !== "refs/remotes/origin/main") { failures.failed.push("dependency-ancestry"); return; }
+  const pins = consumerPins(cwd, field(contract, "target_ref"));
+  Object.assign(failures.facts, pins);
+  if (!HEX40.test(field(pins, "head")) || !HEX40.test(field(pins, "target"))) { failures.failed.push("dependency-history-unavailable"); return; }
+  retainBindings(cwd, contract, failures);
+  const report = recompute(cwd, contract, failures);
+  const recomputed = failures.failed.length === 0;
+  consumerLineage(cwd, contract, field(pins, "head"), field(pins, "target"), report, failures);
+  const finish = consumerPins(cwd, field(contract, "target_ref"));
+  failures.facts.finish = finish;
+  if (canonical(pins) !== canonical(finish) || pins.root !== realpathSync(cwd)) failures.failed.push("consumer-head-binding");
+  failures.facts.recomputation = recomputed ? "pass" : "red";
+  failures.facts.local_lineage = failures.failed.length === 0 ? "pass" : "red";
+  failures.facts.registered_generation = field(contract, "generation");
 }
 
 function consumerResult(cwd: string, evidencePath: string): { exit: number; report: Row } {
@@ -2009,27 +2395,10 @@ function consumerResult(cwd: string, evidencePath: string): { exit: number; repo
       },
     };
   };
-  const contract = evidenceContract(cwd, evidencePath, failures);
-  if (contract === null) {
-    return emit();
+  try { checkConsumer(cwd, evidencePath, failures); } catch (error) {
+    failures.failed.push("input-shape"); failures.malformed = true;
+    failures.facts.detail = error instanceof Error ? error.message : "missing_or_malformed_input";
   }
-  const manifest = runManifest(cwd, contract);
-  if (manifest === null || sha256Hex(manifest) !== field(contract, "run_sha256")) {
-    failures.failed.push("raw-inputs-bound");
-    return emit();
-  }
-  recompute(cwd, contract, failures);
-  const head = gitOut(cwd, ["rev-parse", "HEAD"]);
-  const target = gitOut(cwd, ["rev-parse", "--verify", `${field(contract, "target_ref")}^{commit}`]);
-  failures.facts.head = head;
-  failures.facts.target = target;
-  if (head === "" || target === "") {
-    failures.failed.push("dependency-history-unavailable");
-    return emit();
-  }
-  consumerRegistration(cwd, contract, target, failures);
-  consumerLineage(cwd, contract, failures);
-  failures.facts.registered_generation = field(contract, "generation");
   return emit();
 }
 
