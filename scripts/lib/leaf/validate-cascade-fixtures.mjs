@@ -17,7 +17,13 @@ function fail(message) {
 // CPython renders PEP 657 traceback anchors in three bands: none below 3.11,
 // "^" only on 3.11-3.12, and from 3.13 the surrounding expression is marked
 // with "~" while only the failing part keeps "^", plus an anchor row on every
-// intermediate frame. Probe the band instead of assuming the newest rendering.
+// intermediate frame. The band is selected by comparing `sys.version_info`
+// inside a spawned `python3`; the rendering itself is never observed here.
+// Measured 0/1/1/2/2 on CPython 3.9.6 / 3.12.3 / 3.12.15 / 3.13.5 / 3.14.8:
+// correct and monotonic for those interpreters. Unlike E2/E3, whose two gated
+// behaviours differ between 3.12.3 and 3.12.15, no split was measured inside a
+// minor here, so a version comparison is sound at this site. Converting this
+// site to behavioural probing is a separate, not-yet-done item.
 // A probe that cannot run falls back to band 0, the pre-3.11 rendering this
 // port emitted before the probe existed. An unrecognised verdict falls back to
 // band 0 for the same reason: no CPython emits an "assert anchor only" shape,
@@ -49,7 +55,11 @@ function intermediateFrameAnchor(band) {
 // The failing expression keeps "^" on every band. A call expression is the
 // exception: from 3.13 the callee is marked with "~" and only the argument list
 // keeps "^". Measured on 3.13.5 and 3.14.8 for audit_path.is_file() and
-// report_path.is_file(); every other assert in this file is not a call.
+// report_path.is_file(), the two call assertions quoted in this file. Every
+// other quoted assertion anchors a comparison, subscript or membership test
+// rather than a call, including
+// `assert set(adapter["operations"]) == OPERATIONS`, where the anchored
+// instruction is the `==` comparison and not the `set(...)` call.
 const TILDE_ANCHORS = new Map([
     ["           ^^^^^^^^^^^^^^^^^^^^", "           ~~~~~~~~~~~~~~~~~~^^"],
     ["           ^^^^^^^^^^^^^^^^^^^^^", "           ~~~~~~~~~~~~~~~~~~~^^"],
