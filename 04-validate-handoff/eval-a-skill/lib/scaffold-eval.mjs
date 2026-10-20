@@ -109,10 +109,15 @@ export function main(argv) {
                 "parser.parse_args(['--kind', 'nope'])",
             ].join("\n"), "output", "trajectory"], { encoding: "utf8" });
             const stderr = probe.stderr ?? "";
-            // Whitelist the bare rendering instead of blacklisting the quoted
-            // one. An empty, truncated or malformed stderr, and one that merely
-            // contains the words "invalid choice", is not an answer.
-            const choices = stderr.includes(`(choose from ${bare})`) ? bare : quoted;
+            // Argparse renders the choice list bare on some builds and quoted
+            // on others (3.9.6 and 3.14.8 quote; 3.13.5 does not), so accept
+            // EITHER rendering and reproduce it verbatim. Anything else - empty,
+            // truncated or malformed stderr, or an error that merely contains
+            // the words "invalid choice" - is not an answer and keeps the
+            // quoted form this port emitted before the probe existed.
+            const bareRendering = `(choose from ${bare})`;
+            const quotedRendering = `(choose from ${quoted})`;
+            const choices = stderr.includes(bareRendering) ? bare : stderr.includes(quotedRendering) ? quoted : quoted;
             process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from ${choices})\n`);
             return 2;
         }

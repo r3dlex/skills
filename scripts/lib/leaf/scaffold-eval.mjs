@@ -24,10 +24,19 @@ function invalidChoiceList(choices) {
     const quoted = choices.map((choice) => `'${choice}'`).join(", ");
     const probed = spawnSync("python3", ["-c", INVALID_CHOICE_PROBE, ...choices], { encoding: "utf8" });
     const stderr = probed.stderr ?? "";
-    // Whitelist the bare rendering instead of blacklisting the quoted one. An
-    // empty, truncated or malformed stderr, and one that merely contains the
-    // words "invalid choice", is not an answer and keeps the quoted form.
-    return stderr.includes(`(choose from ${bare})`) ? bare : quoted;
+    // Argparse renders the choice list bare on some builds and quoted on others
+    // (3.9.6 and 3.14.8 quote; 3.13.5 does not), so accept EITHER rendering
+    // and reproduce it verbatim. Anything else — empty, truncated or malformed
+    // stderr, or an error that merely contains the words "invalid choice" — is
+    // not an answer and keeps the quoted form this port emitted before the
+    // probe existed.
+    const bareRendering = `(choose from ${bare})`;
+    const quotedRendering = `(choose from ${quoted})`;
+    if (stderr.includes(bareRendering))
+        return bare;
+    if (stderr.includes(quotedRendering))
+        return quoted;
+    return quoted;
 }
 function evalset(skill, kind) {
     return {
