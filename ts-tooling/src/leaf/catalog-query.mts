@@ -93,7 +93,13 @@ function ambiguousOption(flag: string): string | undefined {
 // only trips when it reaches the token, which is what consume() below already
 // models. Both boundaries sit inside a minor release, so no version band can
 // name them. Ask the interpreter this process would hand the work to, the way
-// concatenatedHelpExitsZero() does, and keep the eager answer when it cannot.
+// concatenatedHelpExitsZero() does. The probe answers with a verdict token on
+// stdout and only the lazy token is recognised, so a python3 that exits 0
+// without reporting an answer — a wrapper with a printing sitecustomize, a
+// shim that swallows the exception, a half-installed interpreter — keeps the
+// eager answer instead of retiring the pre-pass.
+const AMBIGUITY_EAGER_TOKEN = "CATALOG_QUERY_AMBIGUITY_EAGER";
+const AMBIGUITY_LAZY_TOKEN = "CATALOG_QUERY_AMBIGUITY_LAZY";
 const AMBIGUITY_PROBE = [
   "import argparse, sys",
   "parser = argparse.ArgumentParser(prog='catalog-query.py')",
@@ -102,19 +108,28 @@ const AMBIGUITY_PROBE = [
   "try:",
   "    parser.parse_args(sys.argv[1:])",
   "except SystemExit as exc:",
-  "    sys.exit(0 if exc.code in (None, 0) else 2)",
+  // Same question the reference answers: --help before --h exits 0 when the
+  // parser consumes left to right and non-zero when it classifies every
+  // optional first. The verdict is printed on both branches so the caller
+  // reads a token either way instead of inferring one from an exit code.
+  `    print('${AMBIGUITY_EAGER_TOKEN}' if exc.code not in (None, 0) else '${AMBIGUITY_LAZY_TOKEN}')`,
+  "    raise SystemExit(0)",
+  `print('${AMBIGUITY_LAZY_TOKEN}')`,
 ].join("\n");
 
 let ambiguityIsEager: boolean | undefined;
 
+// Only an explicit lazy verdict makes the pre-pass retire. Argparse prints its
+// help on stdout before the token, so read the verdict off the last line and
+// compare it whole: empty output, an unrecognised or truncated verdict, and a
+// python3 that could not be spawned all fail that match and stay eager.
 function ambiguityResolutionIsEager(): boolean {
   if (ambiguityIsEager !== undefined) {
     return ambiguityIsEager;
   }
-  // --help before --h exits 0 when the parser consumes left to right and 2 when
-  // it classifies every optional first. Help goes to stdout on that zero exit.
-  const probed = spawnSync("python3", ["-c", AMBIGUITY_PROBE, "--help", "--h", "codex"], { stdio: "ignore" });
-  ambiguityIsEager = probed.status !== 0;
+  const probed = spawnSync("python3", ["-c", AMBIGUITY_PROBE, "--help", "--h", "codex"], { encoding: "utf8" });
+  const lines = (probed.stdout ?? "").trimEnd().split("\n");
+  ambiguityIsEager = lines[lines.length - 1] !== AMBIGUITY_LAZY_TOKEN;
   return ambiguityIsEager;
 }
 

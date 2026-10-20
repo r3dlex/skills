@@ -97,7 +97,10 @@ export function main(argv) {
             // Argparse quotes each choice through 3.12.7, drops the quotes from
             // 3.12.8 through 3.14.4 and restores them in 3.14.5. Both boundaries
             // sit inside a minor release, so no version band can name them. Ask
-            // the interpreter, and keep the quoted form when it cannot answer.
+            // the interpreter, and take the bare rendering only when it is the
+            // one the interpreter positively produced; any other answer keeps
+            // the quoted form this port emitted before the probe existed.
+            const bare = "output, trajectory";
             const quoted = `'output', 'trajectory'`;
             const probe = spawnSync("python3", ["-c", [
                 "import argparse, sys",
@@ -106,9 +109,10 @@ export function main(argv) {
                 "parser.parse_args(['--kind', 'nope'])",
             ].join("\n"), "output", "trajectory"], { encoding: "utf8" });
             const stderr = probe.stderr ?? "";
-            const choices = stderr.includes("invalid choice") && !stderr.includes(`(choose from ${quoted})`)
-                ? "output, trajectory"
-                : quoted;
+            // Whitelist the bare rendering instead of blacklisting the quoted
+            // one. An empty, truncated or malformed stderr, and one that merely
+            // contains the words "invalid choice", is not an answer.
+            const choices = stderr.includes(`(choose from ${bare})`) ? bare : quoted;
             process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from ${choices})\n`);
             return 2;
         }

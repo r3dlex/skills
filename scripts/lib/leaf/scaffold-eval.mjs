@@ -10,8 +10,9 @@ assertNodeVersion();
 // Argparse quotes each choice in an invalid-choice message through 3.12.7,
 // drops the quotes from 3.12.8 through 3.14.4, and restores them in 3.14.5.
 // Both boundaries sit inside a minor release, so no version band can name them.
-// Ask the interpreter this process would hand the work to; a probe that cannot
-// run keeps the quoted form this port emitted before the probe existed.
+// Ask the interpreter this process would hand the work to; the bare rendering
+// is taken only when the interpreter positively rendered it, and any other
+// answer keeps the quoted form this port emitted before the probe existed.
 const INVALID_CHOICE_PROBE = [
     "import argparse, sys",
     "parser = argparse.ArgumentParser(prog='scaffold-eval.py')",
@@ -19,13 +20,14 @@ const INVALID_CHOICE_PROBE = [
     "parser.parse_args(['--kind', 'nope'])",
 ].join("\n");
 function invalidChoiceList(choices) {
+    const bare = choices.join(", ");
     const quoted = choices.map((choice) => `'${choice}'`).join(", ");
     const probed = spawnSync("python3", ["-c", INVALID_CHOICE_PROBE, ...choices], { encoding: "utf8" });
     const stderr = probed.stderr ?? "";
-    if (!stderr.includes("invalid choice")) {
-        return quoted;
-    }
-    return stderr.includes(`(choose from ${quoted})`) ? quoted : choices.join(", ");
+    // Whitelist the bare rendering instead of blacklisting the quoted one. An
+    // empty, truncated or malformed stderr, and one that merely contains the
+    // words "invalid choice", is not an answer and keeps the quoted form.
+    return stderr.includes(`(choose from ${bare})`) ? bare : quoted;
 }
 function evalset(skill, kind) {
     return {
