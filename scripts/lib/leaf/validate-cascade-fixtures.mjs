@@ -14,6 +14,8 @@ const TOKEN = /^ct-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{3}$/;
 function fail(message) {
     throw new Error(message);
 }
+// The bands the probe may answer with. A band outside this set is not a band.
+const ANCHOR_BANDS = new Set(["0", "1", "2"]);
 // CPython renders PEP 657 traceback anchors in three bands: none below 3.11,
 // "^" only on 3.11-3.12, and from 3.13 the surrounding expression is marked
 // with "~" while only the failing part keeps "^", plus an anchor row on every
@@ -24,7 +26,19 @@ function tracebackAnchorBand() {
     const probed = spawnSync("python3", ["-c", "import sys; print(0 if sys.version_info < (3, 11) else 1 if sys.version_info < (3, 13) else 2)"], {
         encoding: "utf8",
     });
-    return probed.status === 0 ? probed.stdout.trim() : "0";
+    // A probe that did not succeed carries no answer at all, so its output is
+    // not consulted.
+    if (probed.status !== 0) {
+        return "0";
+    }
+    // The band is the last non-empty line of stdout. stdout is not guaranteed to
+    // carry the token alone: a sitecustomize.py that prints, or any other stdout
+    // pollution, prepends noise to it, and taking the whole output as the token
+    // corrupts it. Read the last line and compare it whole: empty output, noise
+    // and an unrecognised or truncated band all fail the match.
+    const lines = (probed.stdout ?? "").trimEnd().split("\n").filter((line) => line.trim() !== "");
+    const band = lines[lines.length - 1];
+    return band !== undefined && ANCHOR_BANDS.has(band) ? band : "0";
 }
 // The <module> frame anchors the `main()` call inside `sys.exit(main())`:
 // 3.11-3.12 underline the whole call with "^", 3.13 marks the callee under "~"
