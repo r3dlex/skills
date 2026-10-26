@@ -18,6 +18,9 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
+// The bands the probe may answer with. A band outside this set is not a band.
+const ANCHOR_BANDS = new Set(["0", "1", "2"]);
+
 // CPython renders PEP 657 traceback anchors in three bands: none below 3.11,
 // "^" only on 3.11-3.12, and from 3.13 the surrounding expression is marked
 // with "~" while only the failing part keeps "^", plus an anchor row on every
@@ -25,10 +28,30 @@ function fail(message: string): never {
 // A probe that cannot run falls back to band 0, the pre-3.11 rendering this
 // port emitted before the probe existed.
 function tracebackAnchorBand(): string {
-  const probed = spawnSync("python3", ["-c", "import sys; print(0 if sys.version_info < (3, 11) else 1 if sys.version_info < (3, 13) else 2)"], {
+  // The probe runs in isolated mode (-I). Isolated mode ignores the PYTHON*
+  // environment variables and the user site directory, and from 3.11 on it
+  // also drops the script directory from sys.path, so a sitecustomize.py
+  // reached through any of them is never loaded. That matters because the
+  // noise such a file produces can arrive AFTER the probe printed its token -
+  // an atexit print runs when the interpreter exits - and a token that is no
+  // longer the last line of stdout is lost. The band depends only on
+  // sys.version_info, so isolation cannot change the correct band.
+  const probed = spawnSync("python3", ["-I", "-c", "import sys; print(0 if sys.version_info < (3, 11) else 1 if sys.version_info < (3, 13) else 2)"], {
     encoding: "utf8",
   });
-  return probed.status === 0 ? probed.stdout.trim() : "0";
+  // A probe that did not succeed carries no answer at all, so its output is
+  // not consulted.
+  if (probed.status !== 0) {
+    return "0";
+  }
+  // Defence in depth: the band is the last non-empty line of stdout, read
+  // whole and trimmed of trailing whitespace. Isolated mode already keeps the
+  // token alone, but stdout is not guaranteed to carry it alone, so empty
+  // output, noise and an unrecognised or truncated band all fail the match and
+  // fall back to band 0.
+  const lines = (probed.stdout ?? "").trimEnd().split("\n").filter((line) => line.trim() !== "");
+  const band = lines[lines.length - 1]?.trimEnd();
+  return band !== undefined && ANCHOR_BANDS.has(band) ? band : "0";
 }
 
 // The <module> frame anchors the `main()` call inside `sys.exit(main())`:
