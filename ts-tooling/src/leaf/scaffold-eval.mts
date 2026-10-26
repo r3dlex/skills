@@ -25,18 +25,25 @@ const INVALID_CHOICE_PROBE = [
 function invalidChoiceList(choices: readonly string[]): string {
   const bare = choices.join(", ");
   const quoted = choices.map((choice) => `'${choice}'`).join(", ");
-  const probed = spawnSync("python3", ["-c", INVALID_CHOICE_PROBE, ...choices], { encoding: "utf8" });
-  const stderr = probed.stderr ?? "";
-  // Argparse renders the choice list bare on some builds and quoted on others
-  // (3.9.6 and 3.14.8 quote; 3.13.5 does not), so accept EITHER rendering
-  // and reproduce it verbatim. Anything else — empty, truncated or malformed
-  // stderr, or an error that merely contains the words "invalid choice" — is
-  // not an answer and keeps the quoted form this port emitted before the
-  // probe existed.
-  const bareRendering = `(choose from ${bare})`;
-  const quotedRendering = `(choose from ${quoted})`;
-  if (stderr.includes(bareRendering)) return bare;
-  if (stderr.includes(quotedRendering)) return quoted;
+  // The probe runs in isolated mode (-I). Isolated mode ignores the PYTHON*
+  // environment variables and the user site directory, so a sitecustomize.py
+  // reached through any of them is never imported. That matters because such a
+  // file can print to stderr - at import time, or from an atexit hook that
+  // runs when the interpreter exits, after the interpreter's own message - and
+  // the probe reads stderr. A forged choice list in that noise would make the
+  // port render a choice list this interpreter never produced.
+  const probed = spawnSync("python3", ["-I", "-c", INVALID_CHOICE_PROBE, ...choices], { encoding: "utf8" });
+  // Defence in depth: the answer is an argparse invalid-choice message, read
+  // whole, whose trailing token is one of the two renderings. Empty output,
+  // noise, a truncated message or any other text keeps the quoted form this
+  // port emitted before the probe existed.
+  const lines = (probed.stderr ?? "").trimEnd().split("\n").filter((line) => line.trim() !== "");
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index]?.trimEnd() ?? "";
+    if (!line.includes("invalid choice:")) continue;
+    if (line.endsWith(`(choose from ${bare})`)) return bare;
+    if (line.endsWith(`(choose from ${quoted})`)) return quoted;
+  }
   return quoted;
 }
 
