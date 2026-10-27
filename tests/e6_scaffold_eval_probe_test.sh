@@ -301,7 +301,10 @@ done
 # sitecustomize.py planted there is imported even in isolated mode. The port
 # must still render the interpreter's own answer.
 venv_bin=""
-for candidate in /usr/bin/python3 "${interpreters[@]:-}"; do
+# Every interpreter the venv case may use is one the suite MEASURED, and is
+# therefore covered by the authenticity and stability checks. The loop may not
+# reach outside the measured set.
+for candidate in "${interp_paths[@]:-}"; do
 	[[ -x "$candidate" ]] || continue
 	truth="$(interpreter_rendering "$candidate")"
 	[[ "$truth" == "$QUOTED" ]] || continue
@@ -327,6 +330,11 @@ for candidate in /usr/bin/python3 "${interpreters[@]:-}"; do
 	fi
 	interp_paths+=("$venv_exec")
 	interp_digests+=("$venv_digest")
+	# The venv's INVOCATION ALIAS is snapshotted too: the stability check
+	# re-resolves the target, so a swap between two measured, authentic
+	# interpreters would otherwise go unnoticed.
+	venv_alias_target="$(readlink "$venv/bin/python3" 2>/dev/null || printf '')"
+	venv_alias_inode="$(stat -f '%i' "$venv/bin/python3" 2>/dev/null || printf '')"
 	cat >"$site_packages/sitecustomize.py" <<'PY'
 import atexit
 import sys
@@ -601,6 +609,17 @@ fi
 # measurement is only valid for the file that was measured.
 echo ""
 echo "interpreter stability"
+if [[ -n "$venv_bin" ]]; then
+	now_alias_target="$(readlink "$venv_bin/python3" 2>/dev/null || printf '')"
+	now_alias_inode="$(stat -f '%i' "$venv_bin/python3" 2>/dev/null || printf '')"
+	if [[ -z "$venv_alias_target" || "$now_alias_target" != "$venv_alias_target" ]]; then
+		bad "interpreter stability: the venv's invocation alias $venv_bin/python3 was RETARGETED during the run"
+	elif [[ -n "$venv_alias_inode" && "$now_alias_inode" != "$venv_alias_inode" ]]; then
+		bad "interpreter stability: the venv's invocation alias $venv_bin/python3 was REPLACED during the run"
+	else
+		ok "interpreter stability: the venv's invocation alias $venv_bin/python3 is unchanged"
+	fi
+fi
 if [[ "${#interp_paths[@]}" -eq 0 ]]; then
 	bad "interpreter stability: no interpreter was measured, so interpreter stability is UNMEASURED, not proven"
 fi
