@@ -333,8 +333,29 @@ for candidate in "${interp_paths[@]:-}"; do
 	# The venv's INVOCATION ALIAS is snapshotted too: the stability check
 	# re-resolves the target, so a swap between two measured, authentic
 	# interpreters would otherwise go unnoticed.
+	# The WHOLE link chain is snapshotted, not just the first link, and the
+	# FINAL resolution is fail-closed: a retarget at ANY link must be
+	# detected, and an unresolvable alias is a FAILURE, never a fallback.
 	venv_alias_target="$(readlink "$venv/bin/python3" 2>/dev/null || printf '')"
 	venv_alias_inode="$(stat -f '%i' "$venv/bin/python3" 2>/dev/null || printf '')"
+	venv_alias_chain=""
+	venv_alias_link="$venv/bin/python3"
+	while [[ -n "$venv_alias_link" && -L "$venv_alias_link" ]]; do
+		venv_alias_next="$(readlink "$venv_alias_link" 2>/dev/null || printf '')"
+		[[ -z "$venv_alias_next" ]] && break
+		venv_alias_chain="$venv_alias_chain$venv_alias_next
+"
+		if [[ "$venv_alias_next" == /* ]]; then
+			venv_alias_link="$venv_alias_next"
+		else
+			venv_alias_link="$(dirname "$venv_alias_link")/$venv_alias_next"
+		fi
+	done
+	venv_alias_final="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$venv/bin/python3" 2>/dev/null || printf '')"
+	if [[ -z "$venv_alias_final" ]]; then
+		bad "venv executable coverage: the venv's invocation alias could not be RESOLVED, so its authenticity and stability are UNVERIFIED"
+		continue
+	fi
 	cat >"$site_packages/sitecustomize.py" <<'PY'
 import atexit
 import sys
@@ -612,8 +633,26 @@ echo "interpreter stability"
 if [[ -n "$venv_bin" ]]; then
 	now_alias_target="$(readlink "$venv_bin/python3" 2>/dev/null || printf '')"
 	now_alias_inode="$(stat -f '%i' "$venv_bin/python3" 2>/dev/null || printf '')"
-	if [[ -z "$venv_alias_target" || "$now_alias_target" != "$venv_alias_target" ]]; then
+	now_alias_chain=""
+	now_alias_link="$venv_bin/python3"
+	while [[ -n "$now_alias_link" && -L "$now_alias_link" ]]; do
+		now_alias_next="$(readlink "$now_alias_link" 2>/dev/null || printf '')"
+		[[ -z "$now_alias_next" ]] && break
+		now_alias_chain="$now_alias_chain$now_alias_next
+"
+		if [[ "$now_alias_next" == /* ]]; then
+			now_alias_link="$now_alias_next"
+		else
+			now_alias_link="$(dirname "$now_alias_link")/$now_alias_next"
+		fi
+	done
+	now_alias_final="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$venv_bin/python3" 2>/dev/null || printf '')"
+	if [[ -z "$now_alias_final" ]]; then
+		bad "interpreter stability: the venv's invocation alias $venv_bin/python3 could not be RESOLVED after the run, so its stability is UNMEASURED"
+	elif [[ "$now_alias_chain" != "$venv_alias_chain" ]]; then
 		bad "interpreter stability: the venv's invocation alias $venv_bin/python3 was RETARGETED during the run"
+	elif [[ "$now_alias_final" != "$venv_alias_final" ]]; then
+		bad "interpreter stability: the venv's invocation alias $venv_bin/python3 now resolves to a different file"
 	elif [[ -n "$venv_alias_inode" && "$now_alias_inode" != "$venv_alias_inode" ]]; then
 		bad "interpreter stability: the venv's invocation alias $venv_bin/python3 was REPLACED during the run"
 	else
