@@ -451,15 +451,21 @@ argv_has_flag_before_c() {
 	local seen_flag=0 seen_c=0 in_call=0 calls=0 line
 	while IFS= read -r line; do
 		if [[ "$line" == "--call--" ]]; then
-			if [[ "$in_call" -eq 1 && ( "$seen_c" -eq 0 || "$seen_flag" -eq 0 ) ]]; then return 1; fi
-			in_call=1; seen_c=0; seen_flag=0; calls=$((calls + 1))
+			if [[ "$in_call" -eq 1 && ("$seen_c" -eq 0 || "$seen_flag" -eq 0) ]]; then return 1; fi
+			in_call=1
+			seen_c=0
+			seen_flag=0
+			calls=$((calls + 1))
 			continue
 		fi
 		[[ "$in_call" -eq 1 ]] || continue
-		if [[ "$line" == "-c" ]]; then seen_c=1; continue; fi
+		if [[ "$line" == "-c" ]]; then
+			seen_c=1
+			continue
+		fi
 		if [[ "$seen_c" -eq 0 && "$line" == "$flag" ]]; then seen_flag=1; fi
 	done <"$log"
-	if [[ "$in_call" -eq 1 && ( "$seen_c" -eq 0 || "$seen_flag" -eq 0 ) ]]; then return 1; fi
+	if [[ "$in_call" -eq 1 && ("$seen_c" -eq 0 || "$seen_flag" -eq 0) ]]; then return 1; fi
 	[[ "$calls" -gt 0 ]] || return 1
 	return 0
 }
