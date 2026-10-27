@@ -102,22 +102,48 @@ export function main(argv) {
             // the quoted form this port emitted before the probe existed.
             const bare = "output, trajectory";
             const quoted = `'output', 'trajectory'`;
-            const probe = spawnSync("python3", ["-c", [
+            // The probe runs in isolated mode (-I) with the site module
+            // disabled (-S). Isolated mode ignores the PYTHON* environment
+            // variables and the user site directory; disabling site also keeps
+            // the interpreter's own site-packages off sys.path, so no
+            // sitecustomize.py is imported from any of them. That matters
+            // because such a file can print to stderr - at import time, or from
+            // an atexit hook that runs when the interpreter exits, after the
+            // interpreter's own message - and the probe reads stderr. A forged
+            // choice list in that noise would make the port render a choice
+            // list this interpreter never produced.
+            const probe = spawnSync("python3", ["-I", "-S", "-c", [
                 "import argparse, sys",
                 "parser = argparse.ArgumentParser(prog='scaffold-eval.py')",
                 "parser.add_argument('--kind', choices=sys.argv[1:])",
                 "parser.parse_args(['--kind', 'nope'])",
             ].join("\n"), "output", "trajectory"], { encoding: "utf8" });
             const stderr = probe.stderr ?? "";
-            // Argparse renders the choice list bare on some builds and quoted
-            // on others (3.9.6 and 3.14.8 quote; 3.13.5 does not), so accept
-            // EITHER rendering and reproduce it verbatim. Anything else - empty,
-            // truncated or malformed stderr, or an error that merely contains
-            // the words "invalid choice" - is not an answer and keeps the
-            // quoted form this port emitted before the probe existed.
+            // Defence in depth, not the control: the control is the isolation
+            // above. The answer is an argparse invalid-choice message, read
+            // whole, whose trailing token is one of the two renderings. A
+            // message that does not carry "invalid choice:" is not an answer,
+            // so noise carrying a bare choice list without it cannot be
+            // adopted; a message whose choice list is followed by anything else
+            // is truncated and is not an answer either. Empty output, a probe
+            // that could not run, and any other text keep the quoted form this
+            // port emitted before the probe existed.
             const bareRendering = `(choose from ${bare})`;
             const quotedRendering = `(choose from ${quoted})`;
-            const choices = stderr.includes(bareRendering) ? bare : stderr.includes(quotedRendering) ? quoted : quoted;
+            const lines = stderr.trimEnd().split("\n").filter((line) => line.trim() !== "");
+            let choices = quoted;
+            for (let index = lines.length - 1; index >= 0; index -= 1) {
+                const line = lines[index]?.trimEnd() ?? "";
+                if (!line.includes("invalid choice:")) continue;
+                if (line.endsWith(bareRendering)) {
+                    choices = bare;
+                    break;
+                }
+                if (line.endsWith(quotedRendering)) {
+                    choices = quoted;
+                    break;
+                }
+            }
             process.stderr.write(`usage: scaffold-eval.py [-h] --skill SKILL [--root ROOT]\n                        [--kind {output,trajectory}]\nscaffold-eval.py: error: argument --kind: invalid choice: '${value}' (choose from ${choices})\n`);
             return 2;
         }

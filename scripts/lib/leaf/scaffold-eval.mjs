@@ -22,17 +22,25 @@ const INVALID_CHOICE_PROBE = [
 function invalidChoiceList(choices) {
     const bare = choices.join(", ");
     const quoted = choices.map((choice) => `'${choice}'`).join(", ");
-    // The probe runs in isolated mode (-I). Isolated mode ignores the PYTHON*
-    // environment variables and the user site directory, so a sitecustomize.py
-    // reached through any of them is never imported. That matters because such a
-    // file can print to stderr - at import time, or from an atexit hook that
-    // runs when the interpreter exits, after the interpreter's own message - and
-    // the probe reads stderr. A forged choice list in that noise would make the
-    // port render a choice list this interpreter never produced.
-    const probed = spawnSync("python3", ["-I", "-c", INVALID_CHOICE_PROBE, ...choices], { encoding: "utf8" });
-    // Defence in depth: the answer is an argparse invalid-choice message, read
-    // whole, whose trailing token is one of the two renderings. Empty output,
-    // noise, a truncated message or any other text keeps the quoted form this
+    // The probe runs in isolated mode (-I) with the site module disabled (-S).
+    // Isolated mode ignores the PYTHON* environment variables and the user site
+    // directory; disabling site also keeps the interpreter's own site-packages
+    // off sys.path, so no sitecustomize.py is imported from any of them - not
+    // from PYTHONPATH, not from the user site directory, and not from the
+    // site-packages of the interpreter the probe happens to run under. That
+    // matters because such a file can print to stderr - at import time, or from
+    // an atexit hook that runs when the interpreter exits, after the
+    // interpreter's own message - and the probe reads stderr. A forged choice
+    // list in that noise would make the port render a choice list this
+    // interpreter never produced.
+    const probed = spawnSync("python3", ["-I", "-S", "-c", INVALID_CHOICE_PROBE, ...choices], { encoding: "utf8" });
+    // Defence in depth, not the control: the control is the isolation above.
+    // The answer is an argparse invalid-choice message, read whole, whose
+    // trailing token is one of the two renderings. A message that does not carry
+    // "invalid choice:" is not an answer, so noise carrying a bare choice list
+    // without it cannot be adopted; a message whose choice list is followed by
+    // anything else is truncated and is not an answer either. Empty output, a
+    // probe that could not run, and any other text keep the quoted form this
     // port emitted before the probe existed.
     const lines = (probed.stderr ?? "").trimEnd().split("\n").filter((line) => line.trim() !== "");
     for (let index = lines.length - 1; index >= 0; index -= 1) {
