@@ -1,0 +1,11 @@
+{
+  "goal_id": "probe-isolation",
+  "green": {
+    "command": "bash tests/e6_scaffold_eval_probe_test.sh",
+    "exit_code": 0
+  },
+  "red": {
+    "command": "bash tests/e6_scaffold_eval_probe_test.sh",
+    "exit_code": 1
+  }
+}
