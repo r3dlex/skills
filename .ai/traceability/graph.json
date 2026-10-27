@@ -386,6 +386,21 @@
       "source": "handoff:skills:e6-d13-comparison-contract:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
       "target": "plan:skills:e6-d13-comparison-contract:e6-d13-cc-01:43e817985b91695b8db47511aa7fb8d6dc98436157c3c600fe89e8b2c836417f",
       "type": "plans"
+    },
+    {
+      "source": "issue:skills:e3",
+      "target": "prd:skills:e3",
+      "type": "specified-by"
+    },
+    {
+      "source": "prd:skills:e3",
+      "target": "handoff:skills:e3:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "type": "plans"
+    },
+    {
+      "source": "handoff:skills:e3:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "target": "plan:skills:e3:probe-isolation:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "type": "plans"
     }
   ],
   "generated_at": "2026-07-06T00:00:00Z",
@@ -1521,6 +1536,55 @@
       "repo_id": "skills",
       "status": "planned",
       "title": "e6-d13-cc-01",
+      "type": "plan"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e3"
+      ],
+      "id": "issue:skills:e3",
+      "owner": "unassigned",
+      "path": ".ai/work-intake/e3.md",
+      "repo_id": "skills",
+      "status": "needs-triage",
+      "title": "E3 probe isolation (`skills`, plan `e3`) \u2014 local work item",
+      "type": "issue"
+    },
+    {
+      "backlinks": [
+        "issue:skills:e3",
+        "handoff:skills:e3:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5"
+      ],
+      "id": "prd:skills:e3",
+      "path": "docs/specifications/ACTIVE/e3-probe-isolation.md",
+      "repo_id": "skills",
+      "sha256": "573c9688140670016ac597e95a1010fe33c994d2647ecc283b8886fd1743ba08",
+      "status": "active",
+      "title": "E3: scaffold-eval choice-list probe isolation (skills, plan `e3`, goal `probe-isolation`)",
+      "type": "prd"
+    },
+    {
+      "backlinks": [
+        "prd:skills:e3",
+        "plan:skills:e3:probe-isolation:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5"
+      ],
+      "id": "handoff:skills:e3:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "path": ".ai/handoff/readiness-v2/e3/59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5/handoff.md",
+      "repo_id": "skills",
+      "status": "active",
+      "title": "e3",
+      "type": "handoff"
+    },
+    {
+      "backlinks": [
+        "handoff:skills:e3:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5"
+      ],
+      "goal_revision": "20e1575ff21017af09a7aad94c229b4dd2f31f8e0fb45e51998a5e14093d1e6e",
+      "id": "plan:skills:e3:probe-isolation:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "path": ".ai/handoff/readiness-v2/e3/59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5/goals.json",
+      "repo_id": "skills",
+      "status": "planned",
+      "title": "probe-isolation",
       "type": "plan"
     }
   ],
