@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "probe-isolation": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "Coverage is unmeasured in this repository and no line-coverage percentage is recorded; legacy-safe TDD is required. The change additionally touches a hand-maintained sibling-flat copy with no emitter and no drift check, so the blast radius of the translation is reviewed expressly rather than measured. The packaged copy's isolation posture is asserted by a mandatory structural drift guard (AC-14) rather than by a build step, because no emitter renders it.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e3",
+  "schema": "readiness-sidecar/1"
+}
