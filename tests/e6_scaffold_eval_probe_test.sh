@@ -612,7 +612,10 @@ if [[ -n "$venv_bin" ]]; then
 	index=0
 	authed_count=${#authed[@]}
 	while [[ "$index" -lt "$authed_count" ]]; do
-		[[ "${authed[$index]}" == "$venv_exec" ]] && { covered=1; break; }
+		[[ "${authed[$index]}" == "$venv_exec" ]] && {
+			covered=1
+			break
+		}
 		index=$((index + 1))
 	done
 	if [[ "$covered" -ne 1 ]]; then
