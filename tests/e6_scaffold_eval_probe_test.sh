@@ -448,12 +448,20 @@ packaged_rendering_with_path() {
 # present somewhere in the recorded arguments.
 argv_has_flag_before_c() {
 	local log="$1" flag="$2"
-	local seen_c=0 line
+	local seen_flag=0 seen_c=0 in_call=0 calls=0 line
 	while IFS= read -r line; do
-		[[ "$line" == "-c" ]] && { seen_c=1; continue; }
-		[[ "$seen_c" -eq 0 && "$line" == "$flag" ]] && return 0
+		if [[ "$line" == "--call--" ]]; then
+			if [[ "$in_call" -eq 1 && ( "$seen_c" -eq 0 || "$seen_flag" -eq 0 ) ]]; then return 1; fi
+			in_call=1; seen_c=0; seen_flag=0; calls=$((calls + 1))
+			continue
+		fi
+		[[ "$in_call" -eq 1 ]] || continue
+		if [[ "$line" == "-c" ]]; then seen_c=1; continue; fi
+		if [[ "$seen_c" -eq 0 && "$line" == "$flag" ]]; then seen_flag=1; fi
 	done <"$log"
-	return 1
+	if [[ "$in_call" -eq 1 && ( "$seen_c" -eq 0 || "$seen_flag" -eq 0 ) ]]; then return 1; fi
+	[[ "$calls" -gt 0 ]] || return 1
+	return 0
 }
 
 # A private bin dir whose "python3" RECORDS the argv it received, one argument
@@ -466,6 +474,7 @@ recorder_bin() {
 	dir="$(mktemp -d)"
 	cat >"$dir/python3" <<SH
 #!/bin/sh
+printf '%s\n' '--call--' >>"$dir/argv.log"
 for a in "\$@"; do printf '%s\n' "\$a" >>"$dir/argv.log"; done
 exec "$interpreter" "\$@"
 SH
@@ -548,7 +557,11 @@ while [[ "$index" -lt "${#interp_paths[@]}" ]]; do
 	before_digest="${interp_digests[$index]}"
 	now_path="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$before_path" 2>/dev/null || printf '%s' "$before_path")"
 	now_digest="$(shasum -a 256 "$now_path" 2>/dev/null | cut -d' ' -f1)"
-	if [[ "$now_path" != "$before_path" ]]; then
+	if [[ -z "$before_digest" ]]; then
+		bad "interpreter stability: $before_path could not be digested before the run, so its stability is UNMEASURED, not proven"
+	elif [[ -z "$now_digest" ]]; then
+		bad "interpreter stability: $before_path could not be digested after the run, so its stability is UNMEASURED, not proven"
+	elif [[ "$now_path" != "$before_path" ]]; then
 		bad "interpreter stability: $before_path now resolves to $now_path"
 	elif [[ "$now_digest" != "$before_digest" ]]; then
 		bad "interpreter stability: $before_path changed digest during the run"
