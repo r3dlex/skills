@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:e3:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "target": "plan:skills:e3:probe-isolation:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "type": "plans"
+    }
+  ],
+  "generation": "59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+  "goal_ids": [
+    "probe-isolation"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:e3:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "path": ".ai/handoff/readiness-v2/e3/59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "20e1575ff21017af09a7aad94c229b4dd2f31f8e0fb45e51998a5e14093d1e6e",
+      "id": "plan:skills:e3:probe-isolation:59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5",
+      "path": ".ai/handoff/readiness-v2/e3/59b223ca3b9bb49e686c94a307e3b4fa2f29145aef9fc603b78f6803b51961c5/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "e3",
+  "schema_version": "1.1"
+}
