@@ -516,6 +516,17 @@ if [[ -n "$qualified" ]]; then
 	fi
 fi
 
+# The venv's own executable is a DIFFERENT FILE from the interpreter the venv
+# was created from: python3 -m venv points bin/python3 at the real interpreter
+# behind the stub. So the interpreter the port actually runs in the venv case
+# must be MEASURED IN ITS OWN RIGHT, and it is snapshotted here, before the
+# venv case runs the port.
+if [[ -n "$venv_bin" ]]; then
+	venv_exec="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$venv_bin/python3" 2>/dev/null || printf '%s' "$venv_bin/python3")"
+	interp_paths+=("$venv_exec")
+	interp_digests+=("$(shasum -a 256 "$venv_exec" 2>/dev/null | cut -d' ' -f1)")
+fi
+
 # ---------------------------------------------------------------------------
 # AC-15 INTERPRETER AUTHENTICITY. Every interpreter the suite measures must be
 # a genuine CPython BINARY: the resolved file's first bytes must be a Mach-O
@@ -529,7 +540,7 @@ fi
 # file, NOT its provenance. A substituted native executable can pass them.
 echo ""
 echo "interpreter authenticity"
-for interpreter in "${interpreters[@]:-}"; do
+for interpreter in "${interp_paths[@]:-}"; do
 	magic="$(head -c 4 "$interpreter" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')"
 	first2="$(head -c 2 "$interpreter" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')"
 	if [[ "$first2" == "2321" ]]; then
@@ -552,11 +563,45 @@ for interpreter in "${interpreters[@]:-}"; do
 done
 
 # ---------------------------------------------------------------------------
+# THE VENV's EXECUTABLE MUST NOT BYPASS THE AUTHENTICITY AND STABILITY CHECKS.
+# The venv's bin/python3 is resolved, and it must be a file the suite MEASURED
+# - one of the snapshotted interpreters. Otherwise the interpreter the port
+# actually ran in the venv case was never verified.
+echo ""
+echo "venv executable coverage"
+if [[ -n "$venv_bin" ]]; then
+	venv_exec="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$venv_bin/python3" 2>/dev/null || printf '%s' "$venv_bin/python3")"
+	covered=0
+	covered_digest=""
+	index=0
+	while [[ "$index" -lt "${#interp_paths[@]}" ]]; do
+		if [[ "${interp_paths[$index]}" == "$venv_exec" ]]; then
+			covered=1
+			covered_digest="${interp_digests[$index]}"
+			break
+		fi
+		index=$((index + 1))
+	done
+	if [[ "$covered" -ne 1 ]]; then
+		bad "venv executable coverage: the venv's interpreter $venv_exec was never measured, so its authenticity and stability are UNVERIFIED"
+	elif [[ -z "$covered_digest" ]]; then
+		bad "venv executable coverage: the venv's interpreter $venv_exec could not be digested, so its stability is UNMEASURED, not proven"
+	else
+		ok "venv executable coverage: the venv's interpreter $venv_exec is measured and digested"
+	fi
+else
+	skip "venv executable coverage: no venv case was established on this host"
+fi
+
+# ---------------------------------------------------------------------------
 # AC-16 INTERPRETER STABILITY, re-checked AFTER the run. A changed resolved
 # realpath, or a changed file digest, is a FAILURE - not a skip: the
 # measurement is only valid for the file that was measured.
 echo ""
 echo "interpreter stability"
+if [[ "${#interp_paths[@]}" -eq 0 ]]; then
+	bad "interpreter stability: no interpreter was measured, so interpreter stability is UNMEASURED, not proven"
+fi
 index=0
 while [[ "$index" -lt "${#interp_paths[@]}" ]]; do
 	before_path="${interp_paths[$index]}"
