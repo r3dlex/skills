@@ -310,6 +310,23 @@ for candidate in /usr/bin/python3 "${interpreters[@]:-}"; do
 	"$candidate" -m venv --without-pip "$venv" >/dev/null 2>&1 || continue
 	site_packages="$(ls -d "$venv"/lib/python*/site-packages 2>/dev/null | head -n 1)"
 	[[ -n "$site_packages" ]] || continue
+	# The venv's OWN executable is a DIFFERENT FILE from the interpreter the venv
+	# was created from: python3 -m venv points bin/python3 at the real interpreter
+	# behind the stub. It is RESOLVED and DIGESTED HERE, BEFORE the forge control
+	# and before the port runs on it, so its authenticity and stability are
+	# MEASURED rather than assumed.
+	venv_exec="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$venv/bin/python3" 2>/dev/null || printf '')"
+	if [[ -z "$venv_exec" ]]; then
+		bad "venv executable coverage: the venv's executable could not be RESOLVED, so its authenticity and stability are UNVERIFIED"
+		continue
+	fi
+	venv_digest="$(shasum -a 256 "$venv_exec" 2>/dev/null | cut -d' ' -f1)"
+	if [[ -z "$venv_digest" ]]; then
+		bad "venv executable coverage: the venv's executable could not be DIGESTED, so its stability is UNMEASURED, not proven"
+		continue
+	fi
+	interp_paths+=("$venv_exec")
+	interp_digests+=("$venv_digest")
 	cat >"$site_packages/sitecustomize.py" <<'PY'
 import atexit
 import sys
@@ -516,17 +533,6 @@ if [[ -n "$qualified" ]]; then
 	fi
 fi
 
-# The venv's own executable is a DIFFERENT FILE from the interpreter the venv
-# was created from: python3 -m venv points bin/python3 at the real interpreter
-# behind the stub. So the interpreter the port actually runs in the venv case
-# must be MEASURED IN ITS OWN RIGHT, and it is snapshotted here, before the
-# venv case runs the port.
-if [[ -n "$venv_bin" ]]; then
-	venv_exec="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$venv_bin/python3" 2>/dev/null || printf '%s' "$venv_bin/python3")"
-	interp_paths+=("$venv_exec")
-	interp_digests+=("$(shasum -a 256 "$venv_exec" 2>/dev/null | cut -d' ' -f1)")
-fi
-
 # ---------------------------------------------------------------------------
 # AC-15 INTERPRETER AUTHENTICITY. Every interpreter the suite measures must be
 # a genuine CPython BINARY: the resolved file's first bytes must be a Mach-O
@@ -540,6 +546,7 @@ fi
 # file, NOT its provenance. A substituted native executable can pass them.
 echo ""
 echo "interpreter authenticity"
+authed=()
 for interpreter in "${interp_paths[@]:-}"; do
 	magic="$(head -c 4 "$interpreter" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')"
 	first2="$(head -c 2 "$interpreter" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')"
@@ -560,6 +567,7 @@ for interpreter in "${interp_paths[@]:-}"; do
 		continue
 	fi
 	ok "interpreter authenticity: $interpreter is a genuine CPython binary"
+	authed+=("$interpreter")
 done
 
 # ---------------------------------------------------------------------------
@@ -572,22 +580,16 @@ echo "venv executable coverage"
 if [[ -n "$venv_bin" ]]; then
 	venv_exec="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$venv_bin/python3" 2>/dev/null || printf '%s' "$venv_bin/python3")"
 	covered=0
-	covered_digest=""
 	index=0
-	while [[ "$index" -lt "${#interp_paths[@]}" ]]; do
-		if [[ "${interp_paths[$index]}" == "$venv_exec" ]]; then
-			covered=1
-			covered_digest="${interp_digests[$index]}"
-			break
-		fi
+	authed_count=${#authed[@]}
+	while [[ "$index" -lt "$authed_count" ]]; do
+		[[ "${authed[$index]}" == "$venv_exec" ]] && { covered=1; break; }
 		index=$((index + 1))
 	done
 	if [[ "$covered" -ne 1 ]]; then
-		bad "venv executable coverage: the venv's interpreter $venv_exec was never measured, so its authenticity and stability are UNVERIFIED"
-	elif [[ -z "$covered_digest" ]]; then
-		bad "venv executable coverage: the venv's interpreter $venv_exec could not be digested, so its stability is UNMEASURED, not proven"
+		bad "venv executable coverage: the venv's interpreter $venv_exec did not PASS the authenticity check, so it is not a verified interpreter"
 	else
-		ok "venv executable coverage: the venv's interpreter $venv_exec is measured and digested"
+		ok "venv executable coverage: the venv's interpreter $venv_exec passed the authenticity check as a measured interpreter"
 	fi
 else
 	skip "venv executable coverage: no venv case was established on this host"
