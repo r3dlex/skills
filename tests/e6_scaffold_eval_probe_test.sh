@@ -196,6 +196,17 @@ if [[ "${#interpreters[@]}" -eq 0 ]]; then
 	bad "no python3 interpreter is available to measure: the port's rendering cannot be compared with an interpreter's"
 fi
 
+# AC-16 INTERPRETER STABILITY SNAPSHOT, taken BEFORE any interpreter is
+# executed. Each interpreter's resolved realpath and its file digest are
+# recorded here and re-checked after the run; a changed realpath, or a
+# changed digest, is a FAILURE and never a skip.
+interp_paths=()
+interp_digests=()
+for interpreter in "${interpreters[@]:-}"; do
+	interp_paths+=("$interpreter")
+	interp_digests+=("$(shasum -a 256 "$interpreter" 2>/dev/null | cut -d' ' -f1)")
+done
+
 echo "interpreters measured: ${#interpreters[@]}"
 for interpreter in "${interpreters[@]}"; do
 	version="$("$interpreter" --version 2>&1 | head -n 1)"
@@ -432,6 +443,19 @@ packaged_rendering_with_path() {
 		grep -o '(choose from[^)]*)' | tail -n 1
 }
 
+# True when the recorded argv (one argument per line) carries FLAG before the
+# -c that starts the probe program. The flags must PRECEDE -c, not merely be
+# present somewhere in the recorded arguments.
+argv_has_flag_before_c() {
+	local log="$1" flag="$2"
+	local seen_c=0 line
+	while IFS= read -r line; do
+		[[ "$line" == "-c" ]] && { seen_c=1; continue; }
+		[[ "$seen_c" -eq 0 && "$line" == "$flag" ]] && return 0
+	done <"$log"
+	return 1
+}
+
 # A private bin dir whose "python3" RECORDS the argv it received, one argument
 # per line, and then forwards it unchanged to the absolute qualified interpreter.
 # It adds no flags, synthesises no answer and never re-invokes a PATH-resolved
@@ -462,7 +486,7 @@ qualified="${interpreters[0]:-}"
 if [[ -n "$qualified" ]]; then
 	canon_rec="$(recorder_bin "$qualified")"
 	port_rendering_with_path "$canon_rec:$NODE_DIR:/usr/bin:/bin" >/dev/null
-	if [[ -f "$canon_rec/argv.log" ]] && grep -qx -- '-I' "$canon_rec/argv.log" && grep -qx -- '-S' "$canon_rec/argv.log"; then
+	if [[ -f "$canon_rec/argv.log" ]] && argv_has_flag_before_c "$canon_rec/argv.log" '-I' && argv_has_flag_before_c "$canon_rec/argv.log" '-S'; then
 		ok "canonical site: the probe the port spawned received -I and -S"
 	else
 		bad "canonical site: the probe the port spawned did not receive -I and -S (argv: $(tr '\n' ' ' <"$canon_rec/argv.log" 2>/dev/null))"
@@ -470,12 +494,69 @@ if [[ -n "$qualified" ]]; then
 
 	pack_rec="$(recorder_bin "$qualified")"
 	packaged_rendering_with_path "$pack_rec:$NODE_DIR:/usr/bin:/bin" "$qualified" >/dev/null
-	if [[ -f "$pack_rec/argv.log" ]] && grep -qx -- '-I' "$pack_rec/argv.log" && grep -qx -- '-S' "$pack_rec/argv.log"; then
+	if [[ -f "$pack_rec/argv.log" ]] && argv_has_flag_before_c "$pack_rec/argv.log" '-I' && argv_has_flag_before_c "$pack_rec/argv.log" '-S'; then
 		ok "packaged site: the probe the port spawned received -I and -S"
 	else
 		bad "packaged site: the probe the port spawned did not receive -I and -S (argv: $(tr '\n' ' ' <"$pack_rec/argv.log" 2>/dev/null))"
 	fi
 fi
+
+# ---------------------------------------------------------------------------
+# AC-15 INTERPRETER AUTHENTICITY. Every interpreter the suite measures must be
+# a genuine CPython BINARY: the resolved file's first bytes must be a Mach-O
+# image (cf fa ed fe, fe ed fa cf, OR THE UNIVERSAL ca fe ba be), an ELF image
+# (7f 45 4c 46) or a Windows PE image (4d 5a) - NEVER a #! script - and it
+# must report sys.implementation.name == "cpython". A substituted interpreter
+# therefore FAILS THE SUITE BY NAME instead of agreeing with the port on a
+# forged rendering.
+#
+# DISCLOSED LIMIT: these checks assert the SHAPE AND IDENTITY of the executed
+# file, NOT its provenance. A substituted native executable can pass them.
+echo ""
+echo "interpreter authenticity"
+for interpreter in "${interpreters[@]:-}"; do
+	magic="$(head -c 4 "$interpreter" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')"
+	first2="$(head -c 2 "$interpreter" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')"
+	if [[ "$first2" == "2321" ]]; then
+		bad "interpreter authenticity: $interpreter is a #! script, not a binary image"
+		continue
+	fi
+	case "$magic" in
+	cffaedfe | feedfacf | cafebabe | 7f454c46 | 4d5a*) ;;
+	*)
+		bad "interpreter authenticity: $interpreter is not a binary image (first bytes: $magic)"
+		continue
+		;;
+	esac
+	impl="$("$interpreter" -c 'import sys; print(sys.implementation.name)' 2>/dev/null | tr -d '[:space:]')"
+	if [[ "$impl" != "cpython" ]]; then
+		bad "interpreter authenticity: $interpreter reports sys.implementation.name '$impl', not 'cpython'"
+		continue
+	fi
+	ok "interpreter authenticity: $interpreter is a genuine CPython binary"
+done
+
+# ---------------------------------------------------------------------------
+# AC-16 INTERPRETER STABILITY, re-checked AFTER the run. A changed resolved
+# realpath, or a changed file digest, is a FAILURE - not a skip: the
+# measurement is only valid for the file that was measured.
+echo ""
+echo "interpreter stability"
+index=0
+while [[ "$index" -lt "${#interp_paths[@]}" ]]; do
+	before_path="${interp_paths[$index]}"
+	before_digest="${interp_digests[$index]}"
+	now_path="$(node -e 'process.stdout.write(require("fs").realpathSync(process.argv[1]))' "$before_path" 2>/dev/null || printf '%s' "$before_path")"
+	now_digest="$(shasum -a 256 "$now_path" 2>/dev/null | cut -d' ' -f1)"
+	if [[ "$now_path" != "$before_path" ]]; then
+		bad "interpreter stability: $before_path now resolves to $now_path"
+	elif [[ "$now_digest" != "$before_digest" ]]; then
+		bad "interpreter stability: $before_path changed digest during the run"
+	else
+		ok "interpreter stability: $before_path is unchanged"
+	fi
+	index=$((index + 1))
+done
 
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"
