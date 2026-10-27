@@ -415,6 +415,68 @@ else
 	bad "no interpreter: the port rendered '$control' instead of the conservative '$QUOTED'"
 fi
 
+# ---------------------------------------------------------------------------
+# The PACKAGED public entrypoint, and the argv each shipping site actually
+# spawned the probe with.
+#
+# The packaged copy is reached through the live public Python shim, not by
+# importing its .mjs directly. The shim preserves PATH for its Node child, so
+# a private PATH wrapper shadows the CHILD's python3 probe and not the shim's
+# own interpreter; the shim is invoked with the explicit qualified interpreter
+# so it cannot be re-exec'd into something else.
+packaged_rendering_with_path() {
+	local probe_path="$1"
+	local interpreter="$2"
+	PATH="$probe_path" \
+		"$interpreter" 04-validate-handoff/eval-a-skill/scaffold-eval.py --kind bogus 2>&1 >/dev/null |
+		grep -o '(choose from[^)]*)' | tail -n 1
+}
+
+# A private bin dir whose "python3" RECORDS the argv it received, one argument
+# per line, and then forwards it unchanged to the absolute qualified interpreter.
+# It adds no flags, synthesises no answer and never re-invokes a PATH-resolved
+# python3, so what is recorded is the port's own invocation.
+recorder_bin() {
+	local interpreter="$1"
+	local dir
+	dir="$(mktemp -d)"
+	cat >"$dir/python3" <<SH
+#!/bin/sh
+for a in "\$@"; do printf '%s\n' "\$a" >>"$dir/argv.log"; done
+exec "$interpreter" "\$@"
+SH
+	chmod +x "$dir/python3"
+	printf '%s' "$dir"
+}
+
+if [[ -n "$venv_bin" ]]; then
+	rendered="$(packaged_rendering_with_path "$venv_bin:$NODE_DIR:/usr/bin:/bin" "$venv_bin/python3")"
+	if [[ "$rendered" == "$QUOTED" ]]; then
+		ok "packaged public entrypoint: a sitecustomize.py in the interpreter's own site-packages does not forge the port's rendering"
+	else
+		bad "packaged public entrypoint: a sitecustomize.py in the interpreter's own site-packages forged the port's rendering (rendered: '$rendered')"
+	fi
+fi
+
+qualified="${interpreters[0]:-}"
+if [[ -n "$qualified" ]]; then
+	canon_rec="$(recorder_bin "$qualified")"
+	port_rendering_with_path "$canon_rec:$NODE_DIR:/usr/bin:/bin" >/dev/null
+	if [[ -f "$canon_rec/argv.log" ]] && grep -qx -- '-I' "$canon_rec/argv.log" && grep -qx -- '-S' "$canon_rec/argv.log"; then
+		ok "canonical site: the probe the port spawned received -I and -S"
+	else
+		bad "canonical site: the probe the port spawned did not receive -I and -S (argv: $(tr '\n' ' ' <"$canon_rec/argv.log" 2>/dev/null))"
+	fi
+
+	pack_rec="$(recorder_bin "$qualified")"
+	packaged_rendering_with_path "$pack_rec:$NODE_DIR:/usr/bin:/bin" "$qualified" >/dev/null
+	if [[ -f "$pack_rec/argv.log" ]] && grep -qx -- '-I' "$pack_rec/argv.log" && grep -qx -- '-S' "$pack_rec/argv.log"; then
+		ok "packaged site: the probe the port spawned received -I and -S"
+	else
+		bad "packaged site: the probe the port spawned did not receive -I and -S (argv: $(tr '\n' ' ' <"$pack_rec/argv.log" 2>/dev/null))"
+	fi
+fi
+
 echo ""
 echo "Results: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"
 [[ "$FAIL" -eq 0 ]]
