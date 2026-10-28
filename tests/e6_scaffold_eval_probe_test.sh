@@ -355,7 +355,11 @@ for candidate in "${interp_paths[@]:-}"; do
 	# FINAL resolution is fail-closed: a retarget at ANY link must be
 	# detected, and an unresolvable alias is a FAILURE, never a fallback.
 	venv_alias_target="$(readlink "$venv/bin/python3" 2>/dev/null || printf '')"
-	venv_alias_inode="$(stat -f '%i' "$venv/bin/python3" 2>/dev/null || printf '')"
+	# GNU first: on GNU, `stat -f` is --file-system and its `%i` is the FILE
+	# SYSTEM id, so it exits 0 with the same value before and after a swap and
+	# the REPLACED branch below could never fire. BSD `stat` has no -c, so the
+	# fallback is the BSD inode there.
+	venv_alias_inode="$(stat -c '%i' "$venv/bin/python3" 2>/dev/null || stat -f '%i' "$venv/bin/python3" 2>/dev/null || printf '')"
 	venv_alias_chain=""
 	venv_alias_link="$venv/bin/python3"
 	while [[ -n "$venv_alias_link" && -L "$venv_alias_link" ]]; do
@@ -694,7 +698,7 @@ echo ""
 echo "interpreter stability"
 if [[ -n "$venv_bin" ]]; then
 	now_alias_target="$(readlink "$venv_bin/python3" 2>/dev/null || printf '')"
-	now_alias_inode="$(stat -f '%i' "$venv_bin/python3" 2>/dev/null || printf '')"
+	now_alias_inode="$(stat -c '%i' "$venv_bin/python3" 2>/dev/null || stat -f '%i' "$venv_bin/python3" 2>/dev/null || printf '')"
 	now_alias_chain=""
 	now_alias_link="$venv_bin/python3"
 	while [[ -n "$now_alias_link" && -L "$now_alias_link" ]]; do
