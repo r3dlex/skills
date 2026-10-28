@@ -98,6 +98,18 @@ port_rendering() {
 	port_rendering_with_path "$bin_dir:$NODE_DIR:/usr/bin:/bin"
 }
 
+# The choice list the PACKAGED public entrypoint renders for the same
+# question, reached through the live public Python shim. Defined here, before
+# every use: bash resolves a function only after it is defined, so a call that
+# sits above its definition silently produces no output.
+packaged_rendering_with_path() {
+	local probe_path="$1"
+	local interpreter="$2"
+	PATH="$probe_path" \
+		"$interpreter" 04-validate-handoff/eval-a-skill/scaffold-eval.py --kind bogus 2>&1 >/dev/null |
+		grep -o '(choose from[^)]*)' | tail -n 1
+}
+
 # A bin dir whose "python3" is exactly the interpreter under test.
 bin_for() {
 	local interpreter="$1"
@@ -222,6 +234,12 @@ for interpreter in "${interpreters[@]}"; do
 		ok "$version: the port reproduces the interpreter's rendering ($truth)"
 	else
 		bad "$version: the port rendered '$rendered' but the interpreter rendered '$truth'"
+	fi
+	packaged_rendered="$(packaged_rendering_with_path "$bin_dir:$NODE_DIR:/usr/bin:/bin" "$interpreter")"
+	if [[ "$packaged_rendered" == "$truth" ]]; then
+		ok "$version: the packaged public entrypoint reproduces the interpreter's rendering ($truth)"
+	else
+		bad "$version: the packaged public entrypoint rendered '$packaged_rendered' but the interpreter rendered '$truth'"
 	fi
 
 	# The forging cases. A band whose own rendering is the forged one
@@ -395,6 +413,13 @@ fi
 # from reaching the interpreter, so without these cases the read rule would
 # never be observed and could be broken without any assertion failing.
 
+# The live public Python shim needs an ABSOLUTE interpreter to run itself, so
+# the read-rule cases can drive the packaged site as well as the canonical one.
+read_rule_interpreter="${interpreters[0]:-}"
+if [[ -z "$read_rule_interpreter" ]]; then
+	bad "the read-rule cases need an absolute interpreter to drive the packaged public entrypoint"
+fi
+
 # 1. Noise that carries a bare choice list without an invalid-choice message
 #    is not an answer: a read that accepted any occurrence of the bare
 #    rendering would adopt the forgery here.
@@ -409,11 +434,12 @@ if [[ "$read_rule_noise" == *"$BARE"* ]]; then
 else
 	bad "the read-rule noise really carries the bare choice list (stderr: $read_rule_noise)"
 fi
-rendered="$(port_rendering "$SHIM_BIN")"
-if [[ "$rendered" == "$QUOTED" ]]; then
+canonical_rendered="$(port_rendering "$SHIM_BIN")"
+packaged_rendered="$(packaged_rendering_with_path "$SHIM_BIN:$NODE_DIR:/usr/bin:/bin" "$read_rule_interpreter")"
+if [[ "$canonical_rendered" == "$QUOTED" && "$packaged_rendered" == "$QUOTED" ]]; then
 	ok "a choice list without an invalid-choice message is not an answer"
 else
-	bad "a choice list without an invalid-choice message is not an answer (rendered: '$rendered')"
+	bad "a choice list without an invalid-choice message is not an answer (canonical: '$canonical_rendered', packaged: '$packaged_rendered')"
 fi
 
 # 2. A forged bare rendering ahead of the interpreter's own quoted rendering:
@@ -431,11 +457,12 @@ if [[ "$read_rule_ahead" == *"$BARE"* && "$read_rule_ahead" == *"$QUOTED"* ]]; t
 else
 	bad "the read-rule stderr really carries both renderings (stderr: $read_rule_ahead)"
 fi
-rendered="$(port_rendering "$SHIM_BIN")"
-if [[ "$rendered" == "$QUOTED" ]]; then
+canonical_rendered="$(port_rendering "$SHIM_BIN")"
+packaged_rendered="$(packaged_rendering_with_path "$SHIM_BIN:$NODE_DIR:/usr/bin:/bin" "$read_rule_interpreter")"
+if [[ "$canonical_rendered" == "$QUOTED" && "$packaged_rendered" == "$QUOTED" ]]; then
 	ok "the last invalid-choice message wins over a forged bare rendering ahead of it"
 else
-	bad "the last invalid-choice message wins over a forged bare rendering ahead of it (rendered: '$rendered')"
+	bad "the last invalid-choice message wins over a forged bare rendering ahead of it (canonical: '$canonical_rendered', packaged: '$packaged_rendered')"
 fi
 
 # 3. A message whose choice list is followed by anything else is truncated,
@@ -445,11 +472,12 @@ write_shim <<'SH'
 printf '%s\n' "scaffold-eval.py: error: argument --kind: invalid choice: 'nope' (choose from output, trajectory) and more" >&2
 exit 2
 SH
-rendered="$(port_rendering "$SHIM_BIN")"
-if [[ "$rendered" == "$QUOTED" ]]; then
+canonical_rendered="$(port_rendering "$SHIM_BIN")"
+packaged_rendered="$(packaged_rendering_with_path "$SHIM_BIN:$NODE_DIR:/usr/bin:/bin" "$read_rule_interpreter")"
+if [[ "$canonical_rendered" == "$QUOTED" && "$packaged_rendered" == "$QUOTED" ]]; then
 	ok "a truncated invalid-choice message is not an answer"
 else
-	bad "a truncated invalid-choice message is not an answer (rendered: '$rendered')"
+	bad "a truncated invalid-choice message is not an answer (canonical: '$canonical_rendered', packaged: '$packaged_rendered')"
 fi
 
 # Negative control: a probe that cannot run carries no answer, so the port
@@ -481,13 +509,6 @@ fi
 # a private PATH wrapper shadows the CHILD's python3 probe and not the shim's
 # own interpreter; the shim is invoked with the explicit qualified interpreter
 # so it cannot be re-exec'd into something else.
-packaged_rendering_with_path() {
-	local probe_path="$1"
-	local interpreter="$2"
-	PATH="$probe_path" \
-		"$interpreter" 04-validate-handoff/eval-a-skill/scaffold-eval.py --kind bogus 2>&1 >/dev/null |
-		grep -o '(choose from[^)]*)' | tail -n 1
-}
 
 # True when the recorded argv (one argument per line) carries FLAG before the
 # -c that starts the probe program. The flags must PRECEDE -c, not merely be
@@ -516,6 +537,36 @@ argv_has_flag_before_c() {
 	return 0
 }
 
+# True when the recorded argv carries a -c whose program is the argparse
+# choice-list probe, and NOT the separate version probe. A site is identified
+# by its CALL and its PROBE PROGRAM: the flags alone are not the binding,
+# because a site could carry -I -S and still stop measuring the interpreter.
+# The recorder logs one argument per line with its newlines escaped, so the
+# program is one recoverable line.
+argv_probe_is_choice_list() {
+	local log="$1" in_call=0 seen_c=0 line program=""
+	while IFS= read -r line; do
+		if [[ "$line" == "--call--" ]]; then
+			in_call=1
+			seen_c=0
+			program=""
+			continue
+		fi
+		[[ "$in_call" -eq 1 ]] || continue
+		if [[ "$seen_c" -eq 0 ]]; then
+			[[ "$line" == "-c" ]] && seen_c=1
+			continue
+		fi
+		program="$line"
+		break
+	done <"$log"
+	program="${program//$'\036'/$'\n'}"
+	[[ "$program" == *"import argparse, sys"* ]] || return 1
+	[[ "$program" == *"parser.add_argument('--kind', choices=sys.argv[1:])"* ]] || return 1
+	[[ "$program" != *"version_info"* ]] || return 1
+	return 0
+}
+
 # A private bin dir whose "python3" RECORDS the argv it received, one argument
 # per line, and then forwards it unchanged to the absolute qualified interpreter.
 # It adds no flags, synthesises no answer and never re-invokes a PATH-resolved
@@ -527,7 +578,7 @@ recorder_bin() {
 	cat >"$dir/python3" <<SH
 #!/bin/sh
 printf '%s\n' '--call--' >>"$dir/argv.log"
-for a in "\$@"; do printf '%s\n' "\$a" >>"$dir/argv.log"; done
+for a in "\$@"; do printf '%s\n' "\$(printf '%s' "\$a" | tr '\n' '\036')" >>"$dir/argv.log"; done
 exec "$interpreter" "\$@"
 SH
 	chmod +x "$dir/python3"
@@ -547,18 +598,26 @@ qualified="${interpreters[0]:-}"
 if [[ -n "$qualified" ]]; then
 	canon_rec="$(recorder_bin "$qualified")"
 	port_rendering_with_path "$canon_rec:$NODE_DIR:/usr/bin:/bin" >/dev/null
-	if [[ -f "$canon_rec/argv.log" ]] && argv_has_flag_before_c "$canon_rec/argv.log" '-I' && argv_has_flag_before_c "$canon_rec/argv.log" '-S'; then
-		ok "canonical site: the probe the port spawned received -I and -S"
-	else
+	if [[ ! -f "$canon_rec/argv.log" ]]; then
+		bad "canonical site: the port spawned no interpreter to record"
+	elif ! argv_has_flag_before_c "$canon_rec/argv.log" '-I' || ! argv_has_flag_before_c "$canon_rec/argv.log" '-S'; then
 		bad "canonical site: the probe the port spawned did not receive -I and -S (argv: $(tr '\n' ' ' <"$canon_rec/argv.log" 2>/dev/null))"
+	elif ! argv_probe_is_choice_list "$canon_rec/argv.log"; then
+		bad "canonical site: the probe the port spawned was not the choice-list probe (argv: $(tr '\n' ' ' <"$canon_rec/argv.log" 2>/dev/null))"
+	else
+		ok "canonical site: the probe the port spawned received -I and -S and was the choice-list probe"
 	fi
 
 	pack_rec="$(recorder_bin "$qualified")"
 	packaged_rendering_with_path "$pack_rec:$NODE_DIR:/usr/bin:/bin" "$qualified" >/dev/null
-	if [[ -f "$pack_rec/argv.log" ]] && argv_has_flag_before_c "$pack_rec/argv.log" '-I' && argv_has_flag_before_c "$pack_rec/argv.log" '-S'; then
-		ok "packaged site: the probe the port spawned received -I and -S"
-	else
+	if [[ ! -f "$pack_rec/argv.log" ]]; then
+		bad "packaged site: the port spawned no interpreter to record"
+	elif ! argv_has_flag_before_c "$pack_rec/argv.log" '-I' || ! argv_has_flag_before_c "$pack_rec/argv.log" '-S'; then
 		bad "packaged site: the probe the port spawned did not receive -I and -S (argv: $(tr '\n' ' ' <"$pack_rec/argv.log" 2>/dev/null))"
+	elif ! argv_probe_is_choice_list "$pack_rec/argv.log"; then
+		bad "packaged site: the probe the port spawned was not the choice-list probe (argv: $(tr '\n' ' ' <"$pack_rec/argv.log" 2>/dev/null))"
+	else
+		ok "packaged site: the probe the port spawned received -I and -S and was the choice-list probe"
 	fi
 fi
 
