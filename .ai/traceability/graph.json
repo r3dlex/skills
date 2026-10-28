@@ -1546,7 +1546,7 @@
       "owner": "unassigned",
       "path": ".ai/work-intake/e3.md",
       "repo_id": "skills",
-      "status": "needs-triage",
+      "status": "done",
       "title": "E3 probe isolation (`skills`, plan `e3`) \u2014 local work item",
       "type": "issue"
     },
