@@ -1,0 +1,21 @@
+{
+  "goal_id": "probe-isolation",
+  "green": {
+    "command": "bash tests/e6_scaffold_eval_probe_test.sh",
+    "exit_code": 0
+  },
+  "map_disposition": {
+    "historical_artifact_of_an_earlier_compilation": true,
+    "left_byte_unchanged": true,
+    "maintained_by_manual_dual_path_translation_of_the_canonical_source": true,
+    "mappings_are_not_authoritative": true,
+    "no_emitter_renders_it": true,
+    "path": "04-validate-handoff/eval-a-skill/lib/scaffold-eval.mjs.map",
+    "sha256": "695399985566f4ac5d10d87eb89063ba6ce465bbf91b157d9bbf4477d29aa1ae",
+    "statement": "The packaged source map is left byte-unchanged. It is a historical artifact of an earlier compilation: its mappings are not authoritative, and the packaged copy is maintained by manual dual-path translation of the canonical source. No emitter renders it, so its mappings cannot be regenerated honestly after a hand translation; the goal's tests are what enforce that the two copies stay in step."
+  },
+  "red": {
+    "command": "bash tests/e6_scaffold_eval_probe_test.sh",
+    "exit_code": 1
+  }
+}
