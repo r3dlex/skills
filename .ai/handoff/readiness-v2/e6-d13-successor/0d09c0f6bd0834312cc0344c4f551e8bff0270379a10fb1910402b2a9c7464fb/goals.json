@@ -1,0 +1,31 @@
+{
+  "attachments": {},
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "This spec states that a later implementation generation, not this one, must set consumers to exactly the evidence file named by the selected port successor goal id.",
+        "Skills #150, goal e6-d13-cc-01, is historical completion and is not this goal's merge.",
+        "This generation's scope does not include a generation-1 checker path."
+      ],
+      "dependencies": [],
+      "id": "e6-d13-su-01",
+      "issue_ref": "issue:skills:e6-d13-successor",
+      "scope": [
+        "docs/specifications/ACTIVE/e6-d13-successor.md",
+        ".ai/work-intake/e6-d13-successor.md"
+      ],
+      "verification": [
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "e6-d13-successor",
+  "issue_ref": "issue:skills:e6-d13-successor",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/e6-d13-successor.md"
+  }
+}
