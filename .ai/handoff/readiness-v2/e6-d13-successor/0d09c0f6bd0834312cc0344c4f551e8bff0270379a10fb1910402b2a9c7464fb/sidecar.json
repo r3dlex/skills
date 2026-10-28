@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "e6-d13-su-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "planning generation only; checker is unchanged",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e6-d13-successor",
+  "schema": "readiness-sidecar/1"
+}
