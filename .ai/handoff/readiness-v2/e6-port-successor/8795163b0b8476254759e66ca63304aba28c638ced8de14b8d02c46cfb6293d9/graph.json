@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:e6-port-successor:8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9",
+      "target": "plan:skills:e6-port-successor:e6-port-su-01:8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9",
+      "type": "plans"
+    }
+  ],
+  "generation": "8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9",
+  "goal_ids": [
+    "e6-port-su-01"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:e6-port-successor:8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9",
+      "path": ".ai/handoff/readiness-v2/e6-port-successor/8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "7bd3e871b9e3d20567fa56128bec6c35fa396cc3951672277fb397031ff0e27b",
+      "id": "plan:skills:e6-port-successor:e6-port-su-01:8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9",
+      "path": ".ai/handoff/readiness-v2/e6-port-successor/8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "e6-port-successor",
+  "schema_version": "1.1"
+}

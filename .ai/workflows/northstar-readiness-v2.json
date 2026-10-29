@@ -594,6 +594,38 @@
       "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
       "artifacts": {
         "bundle": {
+          "path": ".ai/handoff/readiness-v2/e6-port-successor/8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9/goals.json",
+          "sha256": "8890c61483a34b45ff4277d15880d5c9a8a2da6f27f74de87434aa027fa4dd67"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/e6-port-successor/8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9/graph.json",
+          "sha256": "a3f9ddce5af00690647df0ddcf8d0b69a3883968ebb5839401306ce7c6619160"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/e6-port-successor/8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9/handoff.md",
+          "sha256": "3754eda85ba4f3cc7200a399eb76215314dbbcc5b6851ee35bd3d48595812918"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/e6-port-successor/8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9/sidecar.json"
+        }
+      },
+      "generation": "8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9",
+      "handoff_path": ".ai/handoff/readiness-v2/e6-port-successor/8795163b0b8476254759e66ca63304aba28c638ced8de14b8d02c46cfb6293d9/handoff.md",
+      "id": "northstar-plan-e6-port-successor",
+      "mode": "live",
+      "plan_id": "e6-port-successor",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/e6-port-successor.md",
+        "sha256": "096c705b87588aeb3870b617e12fe9b9cbcbe17e7e692c44ff0581ad9942ac38"
+      },
+      "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
           "path": ".ai/handoff/readiness-v2/e6-d13-supplier-v2/e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c/goals.json",
           "sha256": "722c7c552c099a76d70fd1df79d67826f3646eeb2142a962222ca2ef89dd869b"
         },
