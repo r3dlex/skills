@@ -1,0 +1,40 @@
+{
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "Add e6-sk-02-owner-relabel to OWNERS while preserving e6-sk-02-v1-port and every other owner. Regenerate freeze-types.mjs, freeze-types.d.mts and freeze-types.mjs.map from the strict TS source and pass build-drift; no v1 conversion or D13 checker edit.",
+        "In legacy-freeze-baseline.json change only owner from e6-sk-02-v1-port to e6-sk-02-owner-relabel on five eligible rows: tests/autobahn_worktree_driver_integration_test.py, tests/readiness_contract_test.py, tests/readiness_mapped_test.py, tests/readiness_scoped_test.py and tests/readiness_worktree_test.py. Every other entry, class, measurement and property remains unchanged.",
+        "Extend tests/legacy_freeze_test.sh to accept both known owner IDs, assert exactly those five live relabels, reject an unknown owner and use a separate fixture to prove a historical-owner row remains valid. All five live old-owner rows move; no sixth live row is invented. Record the same focused test command failing before implementation and passing after in .ai/evidence/e6-sk-02-owner-relabel.json; no #139 or #155 receipts transfer.",
+        "Re-pin the four changed existing local-CI source keys for the ledger, TS source, .mjs output and focused test, add per-file keys for changed .d.mts/.mjs.map outputs if the reviewed final inventory requires them, and leave its verification list and workflow inventory unchanged. Full strict TS, bash tests/legacy_freeze_test.sh, bash tests/run-tests.sh, lint and git diff --check pass at the implementation PR head.",
+        "Independently qualify the principal's exact held/uncredited exceptions for the old active E6 goal's ts-tooling, baseline and local-CI claims and XSKP-P5C/P5D local-CI claims without editing their generations. The newly published supplier's local-CI claim is not held: before this preparation implementation edits that shared file, re-observe the actual e6-d13-su-02 implementation merge as an ancestor of origin/main. A supplier planning merge or agent-self tag does not satisfy this edge; missing or changed scope stops this goal."
+      ],
+      "dependencies": [],
+      "id": "e6-sk-02-owner-relabel",
+      "issue_ref": "issue:skills:e6-skills-ts-02-owner-prep",
+      "scope": [
+        ".ai/rules/legacy-freeze-baseline.json",
+        "ts-tooling/src/freeze-types.mts",
+        "scripts/lib/freeze-types.mjs",
+        "scripts/lib/freeze-types.d.mts",
+        "scripts/lib/freeze-types.mjs.map",
+        "tests/legacy_freeze_test.sh",
+        ".ai/ci/local-ci.json",
+        ".ai/evidence/e6-sk-02-owner-relabel.json"
+      ],
+      "verification": [
+        "bash tests/legacy_freeze_test.sh",
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "e6-skills-ts-02-owner-prep",
+  "issue_ref": "issue:skills:e6-skills-ts-02-owner-prep",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/e6-skills-ts-02-owner-prep.md"
+  }
+}

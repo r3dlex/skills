@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:e6-skills-ts-02-owner-prep:b59230b1ec1b1fdc1985ce78b1c1b2f8f328d83d9ba7034981d51f0443cacfd3",
+      "target": "plan:skills:e6-skills-ts-02-owner-prep:e6-sk-02-owner-relabel:b59230b1ec1b1fdc1985ce78b1c1b2f8f328d83d9ba7034981d51f0443cacfd3",
+      "type": "plans"
+    }
+  ],
+  "generation": "b59230b1ec1b1fdc1985ce78b1c1b2f8f328d83d9ba7034981d51f0443cacfd3",
+  "goal_ids": [
+    "e6-sk-02-owner-relabel"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:e6-skills-ts-02-owner-prep:b59230b1ec1b1fdc1985ce78b1c1b2f8f328d83d9ba7034981d51f0443cacfd3",
+      "path": ".ai/handoff/readiness-v2/e6-skills-ts-02-owner-prep/b59230b1ec1b1fdc1985ce78b1c1b2f8f328d83d9ba7034981d51f0443cacfd3/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "ee4e29554659cd73ae5e170af7808e1209192dd1cd352b37d9da84e78b89ace4",
+      "id": "plan:skills:e6-skills-ts-02-owner-prep:e6-sk-02-owner-relabel:b59230b1ec1b1fdc1985ce78b1c1b2f8f328d83d9ba7034981d51f0443cacfd3",
+      "path": ".ai/handoff/readiness-v2/e6-skills-ts-02-owner-prep/b59230b1ec1b1fdc1985ce78b1c1b2f8f328d83d9ba7034981d51f0443cacfd3/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "e6-skills-ts-02-owner-prep",
+  "schema_version": "1.1"
+}
