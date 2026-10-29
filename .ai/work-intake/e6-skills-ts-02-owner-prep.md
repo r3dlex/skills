@@ -14,4 +14,4 @@ Retain the historical freeze owner, add the new owner, relabel exactly five elig
 - Dispatch/implement the shared local-CI edit only after the supplier's **implementation merge** is on `origin/main`; otherwise the cross-plan path remains reserved. This preparation needs its own human approval, red/green, independent review and CI.
 - Publish the replacement-port plan only after both supplier and preparation **implementation** merges. #139 and #155 do not supply those merges or approvals.
 
-Knowledge kind: `plan`; `unpublished: no-registry` for the optional knowledge catalogue. The planning handoff remains a candidate pending its own real publication gate.
+Knowledge kind: `plan`; `unpublished: no-registry` for the optional knowledge catalogue. The handoff passed its real planning publication gate; registration alone is neither a planning-PR merge nor a human generation-bound approval. Verify both separately before implementation.
