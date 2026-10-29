@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "e6-port-su-01": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "planning generation only; no product file",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e6-port-successor",
+  "schema": "readiness-sidecar/1"
+}

@@ -1,0 +1,31 @@
+{
+  "attachments": {},
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "This spec states that implementation of e6-port-su-01 is blocked until e6-d13-su-01 is delivered, and this generation does not implement it.",
+        "Skills #150, goal e6-d13-cc-01, is historical completion and is not this goal's merge.",
+        "This spec states that a later implementation generation, not this one, must use evidence path .ai/evidence/e6-port-su-01.json."
+      ],
+      "dependencies": [],
+      "id": "e6-port-su-01",
+      "issue_ref": "issue:skills:e6-port-successor",
+      "scope": [
+        "docs/specifications/ACTIVE/e6-port-successor.md",
+        ".ai/work-intake/e6-port-successor.md"
+      ],
+      "verification": [
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "e6-port-successor",
+  "issue_ref": "issue:skills:e6-port-successor",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/e6-port-successor.md"
+  }
+}
