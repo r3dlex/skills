@@ -1,0 +1,16 @@
+{
+  "goals": {
+    "e6-sk-02-owner-relabel": {
+      "coverage_status": "unknown",
+      "legacy_risk_reason": "The owner transfer touches the frozen ledger, generated TypeScript outputs and shared local-CI pins; coverage is unknown, so use legacy-safe TDD.",
+      "legacy_safe_tdd": true,
+      "readiness": {
+        "implementation": "unknown",
+        "merge": "unknown",
+        "preparation": "unknown"
+      }
+    }
+  },
+  "plan_id": "e6-skills-ts-02-owner-prep",
+  "schema": "readiness-sidecar/1"
+}
