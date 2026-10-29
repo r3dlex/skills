@@ -1,0 +1,11 @@
+{
+  "goal_id": "e6-d13-su-02",
+  "green": {
+    "command": "bash tests/e6_d13_successor_test.sh",
+    "exit_code": 0
+  },
+  "red": {
+    "command": "bash tests/e6_d13_successor_test.sh",
+    "exit_code": 1
+  }
+}
