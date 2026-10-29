@@ -1,0 +1,39 @@
+{
+  "goals": [
+    {
+      "acceptance_criteria": [
+        "A new checker binds e6-d13-supplier-v2/e6-d13-su-02, its registered generation and spec digest, merged tool path/blob and only .ai/evidence/e6-sk-02-port-v2.json. Its retained successor consumer runs are physically contained under tests/fixtures/e6-v1-port-v2/d13/<run-id>/. Preserve the original D13 checker and all seven prior goal paths byte-unchanged; spec-only skills #155 and predecessor #150 do not count as this supplier implementation.",
+        "Retained synthetic fixtures exercise D13 steps 1-7 and all raw/whole-report and six consumer-check conditions. A valid two-parent input with PR head second passes mechanically. Old evidence path, missing new evidence, old run prefix, mismatched digest, forged report/custody, wrong registration/checker, squash and wrong second parent fail nonzero with asserted named refusal codes; no synthetic fixture claims real hosted completion or capture.",
+        "tests/e6_d13_successor_test.sh is discovered by tests/test-scripts.sh through bash tests/run-tests.sh. On a future real consumer head it invokes the new checker's --consumer-check against the replacement evidence and propagates refusals to local and hosted Test Suite. Its absent-file skip on supplier main is not consumer readiness; the consumer PR must supply new evidence and rerun exact-head checks.",
+        "The same focused test command fails before this implementation and passes after in .ai/evidence/e6-d13-su-02.json. Strict TS/build-drift, tests/run-tests.sh, lint and git diff --check pass at the PR head. After exact-path overlap review, the PR adds individual final-head local-CI source pins for new TS source, three generated outputs, test shell and all tracked fixtures the test reads without changing the verification list or workflow inventory. No old evidence/CI/approval transfers.",
+        "Before publication and dispatch, independently qualify the principal's held/uncredited exceptions for the old E6 ts-tooling and local-CI claims and the separate XSKP-P5C-01/XSKP-P5D-01 local-CI claims against live main, including closed-unmerged #129/#131 and #132 ancestry. A new unrelated claimant or refusal stops the required CI edit and this goal. Preserve #139 and all older bound generations. This supplier tests only synthetic merge topology; actual two-parent completion and consumer capture are downstream conditions, not supplier self-ACs."
+      ],
+      "dependencies": [],
+      "id": "e6-d13-su-02",
+      "issue_ref": "issue:skills:e6-d13-supplier-v2",
+      "scope": [
+        "ts-tooling/src/d13-compare-successor.mts",
+        "scripts/lib/d13-compare-successor.mjs",
+        "scripts/lib/d13-compare-successor.d.mts",
+        "scripts/lib/d13-compare-successor.mjs.map",
+        "tests/e6_d13_successor_test.sh",
+        "tests/fixtures/e6-d13-successor",
+        ".ai/evidence/e6-d13-su-02.json",
+        ".ai/ci/local-ci.json"
+      ],
+      "verification": [
+        "bash tests/run-tests.sh",
+        "git diff --check"
+      ]
+    }
+  ],
+  "id": "e6-d13-supplier-v2",
+  "issue_ref": "issue:skills:e6-d13-supplier-v2",
+  "repository": {
+    "id": "skills"
+  },
+  "schema": "handoff-goals/2",
+  "spec": {
+    "path": "docs/specifications/ACTIVE/e6-d13-supplier-v2.md"
+  }
+}

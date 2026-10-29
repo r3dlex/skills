@@ -1,0 +1,31 @@
+{
+  "contract": "readiness-contract/2",
+  "edges": [
+    {
+      "source": "handoff:skills:e6-d13-supplier-v2:e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c",
+      "target": "plan:skills:e6-d13-supplier-v2:e6-d13-su-02:e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c",
+      "type": "plans"
+    }
+  ],
+  "generation": "e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c",
+  "goal_ids": [
+    "e6-d13-su-02"
+  ],
+  "nodes": [
+    {
+      "id": "handoff:skills:e6-d13-supplier-v2:e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c",
+      "path": ".ai/handoff/readiness-v2/e6-d13-supplier-v2/e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c/handoff.md",
+      "repo_id": "skills",
+      "type": "handoff"
+    },
+    {
+      "goal_revision": "5e5696724e675b5c28af4b2a247b2abc29c53ec3c49e536bc9b3da5942059c68",
+      "id": "plan:skills:e6-d13-supplier-v2:e6-d13-su-02:e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c",
+      "path": ".ai/handoff/readiness-v2/e6-d13-supplier-v2/e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c/goals.json",
+      "repo_id": "skills",
+      "type": "plan"
+    }
+  ],
+  "plan_id": "e6-d13-supplier-v2",
+  "schema_version": "1.1"
+}

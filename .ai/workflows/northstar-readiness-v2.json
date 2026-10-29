@@ -589,6 +589,38 @@
         "sha256": "a64c3600f113a4559f40de4b680d607e5603ee81e0769d1dc1400e4c3cd0fb61"
       },
       "status": "active"
+    },
+    {
+      "anchor_sha256": "8b33406c8f2cfe54c0a4204f63ffa03e5c1a35aa0b648d0d3a7a35399ecb14f1",
+      "artifacts": {
+        "bundle": {
+          "path": ".ai/handoff/readiness-v2/e6-d13-supplier-v2/e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c/goals.json",
+          "sha256": "722c7c552c099a76d70fd1df79d67826f3646eeb2142a962222ca2ef89dd869b"
+        },
+        "graph": {
+          "path": ".ai/handoff/readiness-v2/e6-d13-supplier-v2/e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c/graph.json",
+          "sha256": "c60c302603a404d2cc74661b7fb77b399c025ebc2c14b9b0608cb66ede2de2d6"
+        },
+        "handoff": {
+          "path": ".ai/handoff/readiness-v2/e6-d13-supplier-v2/e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c/handoff.md",
+          "sha256": "d5461547399fe4fe74b5eab04c3d747616fe126e8e48ea0c84627b5aaef2005d"
+        },
+        "sidecar": {
+          "path": ".ai/handoff/readiness-v2/e6-d13-supplier-v2/e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c/sidecar.json"
+        }
+      },
+      "generation": "e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c",
+      "handoff_path": ".ai/handoff/readiness-v2/e6-d13-supplier-v2/e7f526fbf9424f93f2a28cbf1a6e958c9d488b10327ea0b814cbfb36b2764d8c/handoff.md",
+      "id": "northstar-plan-e6-d13-supplier-v2",
+      "mode": "live",
+      "plan_id": "e6-d13-supplier-v2",
+      "policy_sha256": "d48f7f6709af2dce406433d0f2611d97b56c85b5c5db7eaf2fbc9f7502e75962",
+      "schema": "readiness-contract/2",
+      "spec": {
+        "path": "docs/specifications/ACTIVE/e6-d13-supplier-v2.md",
+        "sha256": "2457a7105943ed92e8293b6c6c35dccc6a09cae169fefb640ce8b689a2a4fe1b"
+      },
+      "status": "active"
     }
   ],
   "retired_v1": [
